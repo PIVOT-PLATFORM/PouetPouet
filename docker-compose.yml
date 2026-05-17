@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pouetpouet_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pouetpouet
+      POSTGRES_PASSWORD: pouetpouet_dev
+      POSTGRES_DB: pouetpouet
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: pouetpouet_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:

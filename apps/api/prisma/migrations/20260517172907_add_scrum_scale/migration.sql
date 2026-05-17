@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "ScrumRoom" ADD COLUMN     "scale" TEXT NOT NULL DEFAULT 'FIBONACCI';

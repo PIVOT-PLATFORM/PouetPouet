@@ -1,0 +1,246 @@
+'use client'
+
+import { useState, useRef } from 'react'
+
+export type ToolMode = 'select' | 'text' | 'sticky' | 'rect' | 'circle' | 'diamond' | 'triangle' | 'draw' | 'link'
+export type StrokeSize = 'thin' | 'medium' | 'thick'
+
+interface Props {
+  toolMode: ToolMode
+  toolColor: string
+  toolStroke: StrokeSize
+  toolFill: boolean
+  toolOpacity: number
+  onToolChange: (tool: ToolMode, color?: string, stroke?: StrokeSize, fill?: boolean, opacity?: number) => void
+}
+
+const STICKY_COLORS = ['#FEF08A', '#86EFAC', '#93C5FD', '#F9A8D4', '#FCA5A5', '#C4B5FD', '#FED7AA']
+const SHAPE_COLORS  = ['#6366f1', '#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899', '#475569']
+
+const TOOLBAR_W = 48
+const GAP = 8
+
+export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, toolOpacity, onToolChange }: Props) {
+  const MIN_Y = 120
+  const [pos, setPos] = useState({ x: 16, y: MIN_Y })
+  const dragStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null)
+
+  function handleDragMouseDown(e: React.MouseEvent) {
+    e.preventDefault()
+    dragStart.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y }
+
+    function onMove(ev: MouseEvent) {
+      if (!dragStart.current) return
+      setPos({
+        x: Math.max(0, dragStart.current.px + ev.clientX - dragStart.current.mx),
+        y: Math.max(MIN_Y, dragStart.current.py + ev.clientY - dragStart.current.my),
+      })
+    }
+    function onUp() {
+      dragStart.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  const isShape    = ['rect', 'circle', 'diamond', 'triangle'].includes(toolMode)
+  const isDraw     = toolMode === 'draw'
+  const isSticky   = toolMode === 'sticky'
+  const showFlyout = isShape || isDraw || isSticky
+  const colorSet   = isSticky ? STICKY_COLORS : SHAPE_COLORS
+
+  const screenW = typeof window !== 'undefined' ? window.innerWidth : 1200
+  const flyoutOnRight = pos.x < screenW / 2
+  const flyoutPosStyle: React.CSSProperties = flyoutOnRight
+    ? { left: pos.x + TOOLBAR_W + GAP, top: pos.y }
+    : { right: screenW - pos.x + GAP, top: pos.y }
+
+  return (
+    <>
+      {/* ── Main vertical toolbar ── */}
+      <div
+        style={{ position: 'fixed', left: pos.x, top: pos.y, zIndex: 1000, userSelect: 'none' }}
+        className="flex flex-col items-center gap-0.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-2xl shadow-black/15 p-1.5 w-12"
+      >
+        {/* Drag handle */}
+        <div
+          className="w-full flex justify-center py-1.5 rounded-xl cursor-grab active:cursor-grabbing hover:bg-gray-100/80 transition-colors"
+          onMouseDown={handleDragMouseDown}
+        >
+          <svg className="w-4 h-3 text-gray-400" viewBox="0 0 16 12" fill="currentColor">
+            <circle cx="4"  cy="2"  r="1.5" /><circle cx="12" cy="2"  r="1.5" />
+            <circle cx="4"  cy="6"  r="1.5" /><circle cx="12" cy="6"  r="1.5" />
+            <circle cx="4"  cy="10" r="1.5" /><circle cx="12" cy="10" r="1.5" />
+          </svg>
+        </div>
+
+        <Btn mode="select" current={toolMode} label="Sélection (V)" onClick={() => onToolChange('select')}>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-7 1-4 7L5 3z" />
+          </svg>
+        </Btn>
+
+        <Sep />
+
+        <Btn mode="text" current={toolMode} label="Zone de texte (T)" onClick={() => onToolChange('text')}>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}>
+            <path strokeLinecap="round" d="M4 6h16M12 6v13M8 19h8" />
+          </svg>
+        </Btn>
+        <Btn mode="sticky" current={toolMode} label="Note adhésive" onClick={() => onToolChange('sticky', toolMode === 'sticky' ? toolColor : STICKY_COLORS[0])}>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        </Btn>
+
+        <Sep />
+
+        <Btn mode="rect"     current={toolMode} label="Rectangle" onClick={() => onToolChange('rect',     toolMode === 'rect'     ? toolColor : SHAPE_COLORS[0])}>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <rect x="4" y="6" width="16" height="12" rx="2" />
+          </svg>
+        </Btn>
+        <Btn mode="circle"   current={toolMode} label="Cercle"    onClick={() => onToolChange('circle',   toolMode === 'circle'   ? toolColor : SHAPE_COLORS[0])}>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <circle cx="12" cy="12" r="8" />
+          </svg>
+        </Btn>
+        <Btn mode="diamond"  current={toolMode} label="Losange"   onClick={() => onToolChange('diamond',  toolMode === 'diamond'  ? toolColor : SHAPE_COLORS[0])}>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <polygon points="12,3 21,12 12,21 3,12" />
+          </svg>
+        </Btn>
+        <Btn mode="triangle" current={toolMode} label="Triangle"  onClick={() => onToolChange('triangle', toolMode === 'triangle' ? toolColor : SHAPE_COLORS[0])}>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <polygon points="12,4 22,20 2,20" />
+          </svg>
+        </Btn>
+
+        <Sep />
+
+        <Btn mode="draw" current={toolMode} label="Dessin libre" onClick={() => onToolChange('draw', toolMode === 'draw' ? toolColor : SHAPE_COLORS[0])}>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+        </Btn>
+        <Btn mode="link" current={toolMode} label="Lien URL" onClick={() => onToolChange('link')}>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+        </Btn>
+
+        {toolMode !== 'select' && (
+          <>
+            <Sep />
+            <span className="text-[8px] text-gray-400 font-mono leading-tight text-center py-0.5 px-0.5">Échap</span>
+          </>
+        )}
+      </div>
+
+      {/* ── Options flyout (colors + stroke + fill) ── */}
+      {showFlyout && (
+        <div
+          style={{ position: 'fixed', ...flyoutPosStyle, zIndex: 999, userSelect: 'none' }}
+          className="flex flex-row items-center gap-2 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-2xl shadow-black/15 px-3 py-2.5"
+        >
+          {/* Color grid: 3 cols for shapes/draw (9 colors), 4 cols for sticky (7 colors) */}
+          <div className={`grid gap-1.5 ${isSticky ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            {colorSet.map((c) => (
+              <button
+                key={c}
+                title={c}
+                className={`w-5 h-5 rounded-full border-2 transition-all hover:scale-110 ${toolColor === c ? 'border-gray-800 scale-110 shadow-md' : 'border-white shadow-sm'}`}
+                style={{ background: c }}
+                onClick={() => onToolChange(toolMode, c)}
+              />
+            ))}
+          </div>
+
+          {/* Stroke thickness + fill: shapes only */}
+          {isShape && (
+            <>
+              <div className="w-px self-stretch bg-gray-200 mx-0.5" />
+              <div className="flex flex-col gap-1">
+                {(['thin', 'medium', 'thick'] as StrokeSize[]).map((s) => (
+                  <button
+                    key={s}
+                    title={s === 'thin' ? 'Trait fin' : s === 'medium' ? 'Trait moyen' : 'Trait épais'}
+                    onClick={() => onToolChange(toolMode, undefined, s)}
+                    className={`w-10 h-6 rounded-lg flex items-center justify-center transition-all ${
+                      toolStroke === s ? 'bg-indigo-600' : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div
+                      className="w-6 rounded-full"
+                      style={{
+                        height: s === 'thin' ? 1 : s === 'medium' ? 2.5 : 5,
+                        background: toolStroke === s ? 'white' : '#6b7280',
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+              <div className="w-px self-stretch bg-gray-200 mx-0.5" />
+              <button
+                title={toolFill ? 'Sans fond' : 'Avec fond'}
+                onClick={() => onToolChange(toolMode, undefined, undefined, !toolFill)}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                  toolFill
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+                }`}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <rect x="4" y="4" width="16" height="16" rx="3" fill={toolFill ? 'currentColor' : 'none'} fillOpacity={toolFill ? 0.4 : 0} />
+                </svg>
+              </button>
+              {toolFill && (
+                <>
+                  <div className="w-px self-stretch bg-gray-200 mx-0.5" />
+                  <div className="flex flex-col items-center gap-1 py-0.5">
+                    <span className="text-[9px] text-gray-400 font-mono leading-none">{Math.round(toolOpacity * 100)}%</span>
+                    <input
+                      type="range"
+                      min={5}
+                      max={100}
+                      step={5}
+                      value={Math.round(toolOpacity * 100)}
+                      onChange={(e) => onToolChange(toolMode, undefined, undefined, undefined, parseInt(e.target.value) / 100)}
+                      style={{ width: 56, accentColor: '#6366f1' }}
+                    />
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
+function Btn({
+  mode, current, label, onClick, children,
+}: {
+  mode: ToolMode; current: ToolMode; label: string; onClick: () => void; children: React.ReactNode
+}) {
+  return (
+    <button
+      title={label}
+      onClick={onClick}
+      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+        mode === current
+          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+          : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function Sep() {
+  return <div className="w-6 h-px bg-gray-100 my-0.5 rounded-full" />
+}

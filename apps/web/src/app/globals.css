@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  scrollbar-gutter: stable;
+}

@@ -1,0 +1,357 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  avatar    String?
+  bio       String?
+  theme     String   @default("light")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  boards        Board[]
+  sessions      SessionParticipant[]
+  scrumRooms    ScrumRoom[]
+  dailyTeams    DailyTeam[]
+  dailySessions DailySession[]
+  wheelEvents   WheelEvent[]
+  wheelDraws    WheelDraw[]
+}
+
+model Board {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cards       Card[]
+  connections CardConnection[]
+  frames      Frame[]
+  fields      BoardField[]
+  sessions    Session[]
+}
+
+model Card {
+  id        String   @id @default(cuid())
+  boardId   String
+  type      CardType @default(TEXT)
+  content   String
+  posX      Float    @default(0)
+  posY      Float    @default(0)
+  width     Float    @default(192)
+  height    Float    @default(128)
+  color     String   @default("#FFEB3B")
+  groupId   String?
+  authorId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board           Board            @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  connectionsFrom CardConnection[] @relation("ConnectionFrom")
+  connectionsTo   CardConnection[] @relation("ConnectionTo")
+  fieldValues     CardFieldValue[]
+}
+
+model Frame {
+  id        String   @id @default(cuid())
+  boardId   String
+  title     String   @default("Cadre")
+  posX      Float    @default(0)
+  posY      Float    @default(0)
+  width     Float    @default(400)
+  height    Float    @default(300)
+  color     String   @default("#E0E7FF")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+}
+
+model BoardField {
+  id        String    @id @default(cuid())
+  boardId   String
+  name      String
+  emoji     String?
+  type      FieldType @default(TEXT)
+  options   Json?
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  board  Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  values CardFieldValue[]
+}
+
+model CardFieldValue {
+  id      String @id @default(cuid())
+  cardId  String
+  fieldId String
+  value   String
+
+  card  Card       @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  field BoardField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, fieldId])
+}
+
+model CardConnection {
+  id        String   @id @default(cuid())
+  boardId   String
+  fromId    String
+  toId      String
+  createdAt DateTime @default(now())
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  from  Card  @relation("ConnectionFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to    Card  @relation("ConnectionTo", fields: [toId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String        @id @default(cuid())
+  boardId   String
+  code      String        @unique
+  status    SessionStatus @default(WAITING)
+  createdAt DateTime      @default(now())
+  closedAt  DateTime?
+
+  board        Board                @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  participants SessionParticipant[]
+  activities   Activity[]
+}
+
+model SessionParticipant {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String?
+  guestName String?
+  joinedAt  DateTime @default(now())
+
+  session   Session            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  responses ActivityResponse[]
+}
+
+model Activity {
+  id        String         @id @default(cuid())
+  sessionId String
+  type      ActivityType
+  title     String
+  config    Json
+  status    ActivityStatus @default(PENDING)
+  createdAt DateTime       @default(now())
+
+  session   Session            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  responses ActivityResponse[]
+}
+
+model ActivityResponse {
+  id            String   @id @default(cuid())
+  activityId    String
+  participantId String
+  value         Json
+  createdAt     DateTime @default(now())
+
+  activity    Activity           @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  participant SessionParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+}
+
+enum CardType {
+  TEXT
+  IMAGE
+  LINK
+  SHAPE
+  DRAW
+  LABEL
+}
+
+enum FieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+}
+
+enum SessionStatus {
+  WAITING
+  ACTIVE
+  CLOSED
+}
+
+enum ActivityType {
+  QUIZ
+  POLL
+  WORDCLOUD
+  BRAINSTORM
+  QA
+}
+
+enum ActivityStatus {
+  PENDING
+  ACTIVE
+  CLOSED
+}
+
+// ── Scrum Poker ───────────────────────────────────────────────────────────────
+
+model ScrumRoom {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  ownerId   String
+  scale     String   @default("FIBONACCI")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner   User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tickets ScrumTicket[]
+}
+
+model ScrumTicket {
+  id           String            @id @default(cuid())
+  roomId       String
+  title        String
+  estimate     String?
+  estimateTime String?
+  order        Int
+  status       ScrumTicketStatus @default(PENDING)
+  createdAt    DateTime          @default(now())
+
+  room  ScrumRoom   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  votes ScrumVote[]
+}
+
+model ScrumVote {
+  id              String      @id @default(cuid())
+  ticketId        String
+  participantName String
+  value           String
+  scale           String      @default("FIBONACCI")
+  createdAt       DateTime    @default(now())
+
+  ticket ScrumTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketId, participantName, scale])
+}
+
+enum ScrumTicketStatus {
+  PENDING
+  VOTING
+  REVEALED
+  DONE
+}
+
+// ── Daily Standup ─────────────────────────────────────────────────────────────
+
+model DailyTeam {
+  id          String   @id @default(cuid())
+  name        String
+  ownerId     String
+  color       String   @default("#6366f1")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner      User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members    DailyTeamMember[]
+  wheelDraws WheelDraw[]
+  sessions   DailySession[]
+}
+
+model DailyTeamMember {
+  id     String @id @default(cuid())
+  teamId String
+  name   String
+  order  Int    @default(0)
+
+  team DailyTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model DailySession {
+  id            String      @id @default(cuid())
+  name          String
+  ownerId       String
+  teamId        String?
+  timePerPerson Int         @default(120)
+  status        DailyStatus @default(PENDING)
+  currentIndex  Int         @default(-1)
+  startedAt     DateTime?
+  endedAt       DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  owner        User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  team         DailyTeam?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  participants DailyParticipant[]
+}
+
+model DailyParticipant {
+  id           String                 @id @default(cuid())
+  sessionId    String
+  name         String
+  order        Int
+  speakingAt   DateTime?
+  doneSpeaking DateTime?
+  status       DailyParticipantStatus @default(WAITING)
+
+  session DailySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+enum DailyStatus {
+  PENDING
+  RUNNING
+  DONE
+}
+
+enum DailyParticipantStatus {
+  WAITING
+  SPEAKING
+  DONE
+  SKIPPED
+}
+
+enum DrawMode {
+  WEIGHTED
+  RANDOM
+}
+
+// ── Wheel / Random picker ─────────────────────────────────────────────────────
+
+model WheelEvent {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  draws WheelDraw[]
+}
+
+model WheelDraw {
+  id        String    @id @default(cuid())
+  ownerId   String
+  teamId    String?
+  teamName  String?
+  eventId   String?
+  note      String?
+  count     Int
+  mode      DrawMode  @default(WEIGHTED)
+  results   String[]
+  excluded  String[]
+  createdAt DateTime  @default(now())
+
+  owner User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  team  DailyTeam?  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  event WheelEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+}

@@ -1,0 +1,27 @@
+{
+  "name": "pouetpouet",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
+  },
+  "devDependencies": {
+    "turbo": "^2.5.3",
+    "typescript": "^5.8.3",
+    "prettier": "^3.5.3"
+  },
+  "packageManager": "npm@11.13.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
+  }
+}
