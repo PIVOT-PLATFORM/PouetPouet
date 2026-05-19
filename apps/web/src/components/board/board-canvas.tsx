@@ -8,6 +8,8 @@ import { FrameItem } from './frame-item'
 import { CardDetailModal } from './card-detail-modal'
 import type { ToolMode, StrokeSize } from './floating-toolbar'
 
+type ClipCard = Pick<Card, 'type' | 'content' | 'color' | 'posX' | 'posY' | 'width' | 'height'>
+
 interface Props {
   cards: Card[]
   connections: Connection[]
@@ -19,6 +21,7 @@ interface Props {
   toolStroke: StrokeSize
   toolFill: boolean
   toolOpacity: number
+  clipboard: ClipCard[]
   onAddCard: (x: number, y: number, type?: string, content?: string, color?: string, width?: number, height?: number) => void
   onMoveCard: (id: string, x: number, y: number) => void
   onResizeCard: (id: string, w: number, h: number) => void
@@ -35,6 +38,7 @@ interface Props {
   onSetFieldValue: (cardId: string, fieldId: string, value: string) => void
   onClearFieldValue: (cardId: string, fieldId: string) => void
   onExitLinkCardsMode?: () => void
+  onPasteCards: (clipboard: ClipCard[], canvasX: number, canvasY: number) => void
 }
 
 const MIN_ZOOM = 0.1
@@ -43,10 +47,11 @@ const DOT_SPACING = 24
 
 export function BoardCanvas({
   cards, connections, frames, fields, selectedIds, toolMode, toolColor, toolStroke, toolFill, toolOpacity,
+  clipboard,
   onAddCard, onMoveCard, onResizeCard, onUpdateCard, onRecolorCard, onDeleteCard,
   onSelectCards, onAddConnection, onDeleteConnection,
   onMoveFrame, onResizeFrame, onUpdateFrame, onDeleteFrame,
-  onSetFieldValue, onClearFieldValue, onExitLinkCardsMode,
+  onSetFieldValue, onClearFieldValue, onExitLinkCardsMode, onPasteCards,
 }: Props) {
   // ── Refs ────────────────────────────────────────────────────────────────────
   const containerRef    = useRef<HTMLDivElement>(null)
@@ -54,6 +59,7 @@ export function BoardCanvas({
   const rbDomRef        = useRef<HTMLDivElement>(null)
   const drawingPathRef  = useRef<SVGPathElement>(null)
   const connectGhostRef = useRef<SVGLineElement>(null)
+  const mousePosRef     = useRef({ x: 0, y: 0 })
 
   // Live viewport — updated every frame via direct DOM manipulation (no React re-render)
   const vpRef = useRef({ x: 0, y: 0, zoom: 1 })
@@ -156,6 +162,34 @@ export function BoardCanvas({
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => { el.removeEventListener('wheel', onWheel); clearTimeout(timer) }
   }, [])
+
+  // ── Track mouse position in canvas coordinates ───────────────────────────────
+  useEffect(() => {
+    const el = containerRef.current!
+    function onMove(e: MouseEvent) {
+      const rect = el.getBoundingClientRect()
+      const { x, y, zoom } = vpRef.current
+      mousePosRef.current = {
+        x: (e.clientX - rect.left - x) / zoom,
+        y: (e.clientY - rect.top - y) / zoom,
+      }
+    }
+    el.addEventListener('mousemove', onMove)
+    return () => el.removeEventListener('mousemove', onMove)
+  }, [])
+
+  // ── Ctrl+V: paste clipboard cards at cursor ───────────────────────────────────
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!((e.ctrlKey || e.metaKey) && e.key === 'v')) return
+      if (clipboard.length === 0) return
+      e.preventDefault()
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+      onPasteCards(clipboard, mousePosRef.current.x, mousePosRef.current.y)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [clipboard, onPasteCards])
 
   // ── Paste image ──────────────────────────────────────────────────────────────
   useEffect(() => {
