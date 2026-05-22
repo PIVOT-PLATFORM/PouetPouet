@@ -88,13 +88,15 @@ export function useBoard(boardId: string) {
   cardsRef.current = cards
   const framesRef = useRef<Frame[]>([])
   framesRef.current = frames
+  const connectionsRef = useRef<Connection[]>([])
+  connectionsRef.current = connections
   const selectedIdsRef = useRef(selectedIds)
   selectedIdsRef.current = selectedIds
 
   // ── History refs ────────────────────────────────────────────────────────────
   const undoStackRef = useRef<HistoryEntry[]>([])
   const redoStackRef = useRef<HistoryEntry[]>([])
-  const [historyVersion, setHistoryVersion] = useState(0)
+  const [, setHistoryVersion] = useState(0)
   // Queues for async server-assigned IDs (card:created / frame:created)
   const pendingCardHistoryRef = useRef<Array<(card: Card) => void>>([])
   const pendingFrameHistoryRef = useRef<Array<(frame: Frame) => void>>([])
@@ -299,7 +301,7 @@ export function useBoard(boardId: string) {
   }
 
   // Called at drag END — compares start vs end positions and pushes undo entry if moved
-  function commitDragCard(id: string) {
+  function commitDragCard(_id: string) {
     const starts = cardDragStartRef.current
     cardDragStartRef.current = null
     if (!starts) return
@@ -616,6 +618,18 @@ export function useBoard(boardId: string) {
     socketRef.current.emit('frame:delete', { id, boardId })
   }
 
+  // ── Reset ─────────────────────────────────────────────────────────────────────
+  function resetBoard() {
+    cardsRef.current.forEach((c) => socketRef.current.emit('card:delete', { id: c.id, boardId }))
+    connectionsRef.current.forEach((c) => socketRef.current.emit('connection:delete', { id: c.id, boardId }))
+    framesRef.current.forEach((f) => socketRef.current.emit('frame:delete', { id: f.id, boardId }))
+    setSelectedIds(new Set())
+    // Clear history — post-reset state is the new baseline
+    undoStackRef.current = []
+    redoStackRef.current = []
+    bumpHistory()
+  }
+
   // ── Board fields ──────────────────────────────────────────────────────────────
   function createField(name: string, type: string, options?: string[], emoji?: string) {
     socketRef.current.emit('boardfield:create', { boardId, name, emoji: emoji ?? null, type, options: options ?? null, order: fields.length })
@@ -656,5 +670,6 @@ export function useBoard(boardId: string) {
     setFieldValue, clearFieldValue,
     selectCards,
     undo, redo, canUndo, canRedo,
+    resetBoard,
   }
 }

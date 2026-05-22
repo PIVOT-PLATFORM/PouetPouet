@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState, useEffect } from 'react'
+import { use, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useBoard } from '@/hooks/useBoard'
 import type { Card } from '@/hooks/useBoard'
@@ -25,6 +25,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     setFieldValue, clearFieldValue,
     selectCards,
     undo, redo, canUndo, canRedo,
+    resetBoard,
   } = useBoard(id)
   const {
     session, participantCount, currentActivity, activityResponses, isLoading: sessionLoading,
@@ -35,6 +36,19 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const [clipboard, setClipboard] = useState<ClipCard[]>([])
 
   const [showFieldsPanel, setShowFieldsPanel] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
+  const confirmResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function handleResetClick() {
+    if (!confirmReset) {
+      setConfirmReset(true)
+      confirmResetTimer.current = setTimeout(() => setConfirmReset(false), 3000)
+    } else {
+      if (confirmResetTimer.current) clearTimeout(confirmResetTimer.current)
+      setConfirmReset(false)
+      resetBoard()
+    }
+  }
   const [toolMode, setToolMode] = useState<ToolMode>('select')
   const [toolColor, setToolColor] = useState('#6366f1')
   const [toolStroke, setToolStroke] = useState<StrokeSize>('medium')
@@ -141,6 +155,22 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             </svg>
           </button>
         </div>
+
+        {/* Reset board */}
+        <button
+          onClick={handleResetClick}
+          title={confirmReset ? 'Cliquer pour confirmer la réinitialisation' : 'Réinitialiser le board'}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors shrink-0 ${
+            confirmReset
+              ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+              : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          {confirmReset ? 'Confirmer ?' : 'Reset'}
+        </button>
 
         {/* Selection badge */}
         {selectedIds.size > 0 && (
