@@ -331,6 +331,38 @@ export function BoardCanvas({
     onAddCard(p.x - 96, p.y - 64)
   }
 
+  // ── Button zoom (toward canvas center) ──────────────────────────────────────
+  function handleZoomBy(factor: number) {
+    const { x, y, zoom } = vpRef.current
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const mx = rect.width / 2
+    const my = rect.height / 2
+    const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor))
+    applyTransform({
+      x: mx - (mx - x) * (newZoom / zoom),
+      y: my - (my - y) * (newZoom / zoom),
+      zoom: newZoom,
+    })
+    setViewport({ ...vpRef.current })
+  }
+
+  function handleZoomReset() {
+    const { x, y, zoom } = vpRef.current
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const mx = rect.width / 2
+    const my = rect.height / 2
+    applyTransform({
+      x: mx - (mx - x) * (1 / zoom),
+      y: my - (my - y) * (1 / zoom),
+      zoom: 1,
+    })
+    setViewport({ ...vpRef.current })
+  }
+
   // ── Link confirmation ────────────────────────────────────────────────────────
   function confirmLink() {
     if (!linkPopover || !linkUrl.trim()) { setLinkPopover(null); setLinkUrl(''); return }
@@ -555,12 +587,24 @@ export function BoardCanvas({
           </div>
         )}
 
-        {/* Zoom indicator */}
-        {Math.abs(zoom - 1) > 0.05 && (
-          <div className="absolute bottom-4 right-6 text-xs font-mono text-gray-400 bg-white/80 dark:bg-gray-900/80 px-2 py-1 rounded-lg shadow pointer-events-none select-none">
-            {Math.round(zoom * 100)}%
-          </div>
-        )}
+        {/* Zoom controls */}
+        <div className="absolute bottom-4 right-6 flex items-center bg-white/95 border border-gray-200 rounded-lg shadow select-none text-xs font-mono text-gray-600">
+          <button
+            title="Dézoomer (−)"
+            onClick={() => handleZoomBy(1 / 1.25)}
+            className="px-2 py-1.5 hover:bg-gray-100 rounded-l-lg transition-colors leading-none"
+          >−</button>
+          <button
+            title="Réinitialiser le zoom (100%)"
+            onClick={handleZoomReset}
+            className="px-2 py-1.5 hover:bg-gray-100 transition-colors leading-none min-w-[3.5rem] text-center"
+          >{Math.round(zoom * 100)}%</button>
+          <button
+            title="Zoomer (+)"
+            onClick={() => handleZoomBy(1.25)}
+            className="px-2 py-1.5 hover:bg-gray-100 rounded-r-lg transition-colors leading-none"
+          >+</button>
+        </div>
       </div>
 
       {/* ── Link URL popover ── */}
