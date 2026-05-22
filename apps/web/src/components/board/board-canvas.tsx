@@ -518,7 +518,20 @@ export function BoardCanvas({
             />
           ))}
 
-          {/* Drawing preview SVG — rendered above all cards */}
+          {/* Draw mode overlay — sits above all cards, catches mousedown anywhere */}
+          {toolMode === 'draw' && (
+            <div
+              style={{ position: 'absolute', left: -100000, top: -100000, width: 200000, height: 200000, zIndex: 150, cursor: 'crosshair' }}
+              onMouseDown={(e) => {
+                if (e.button !== 0) return
+                e.preventDefault()
+                e.stopPropagation()
+                startFreehandDraw(e.clientX, e.clientY)
+              }}
+            />
+          )}
+
+          {/* Drawing preview SVG — above the overlay (zIndex 200) */}
           <svg
             style={{ position: 'absolute', left: -100000, top: -100000, width: 200000, height: 200000, overflow: 'visible', pointerEvents: 'none', zIndex: 200 }}
             viewBox="-100000 -100000 200000 200000"
