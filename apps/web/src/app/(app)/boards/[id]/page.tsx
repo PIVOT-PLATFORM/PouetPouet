@@ -51,6 +51,25 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const router = useRouter()
   const { saveTemplateFromDraft, discardTemplateDraft } = useTemplates()
   const [savingDraft, setSavingDraft] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+
+  function startEditingName() {
+    if (userRole !== 'OWNER' || !board) return
+    setNameDraft(board.name)
+    setEditingName(true)
+  }
+  async function commitName() {
+    if (!board) return
+    const next = nameDraft.trim()
+    setEditingName(false)
+    if (!next || next === board.name) return
+    try {
+      await updateBoardInfo({ name: next })
+    } catch (err) {
+      alert((err as Error).message)
+    }
+  }
 
   const templateDraftOf = board?.templateDraftOf ?? null
   async function handleSaveDraft() {
@@ -292,7 +311,27 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           </svg>
         </Link>
 
-        <h1 className="font-semibold text-gray-900 flex-1 truncate min-w-0">{board?.name}</h1>
+        {editingName && userRole === 'OWNER' ? (
+          <input
+            autoFocus
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur() }
+              else if (e.key === 'Escape') { setEditingName(false) }
+            }}
+            className="font-semibold text-gray-900 flex-1 truncate min-w-0 bg-white border border-indigo-300 rounded-lg px-2 py-1 -my-1 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+          />
+        ) : (
+          <h1
+            onClick={startEditingName}
+            title={userRole === 'OWNER' ? 'Cliquer pour renommer' : undefined}
+            className={`font-semibold text-gray-900 flex-1 truncate min-w-0 px-2 py-1 -my-1 rounded-lg ${userRole === 'OWNER' ? 'cursor-text hover:bg-gray-100' : ''}`}
+          >
+            {board?.name}
+          </h1>
+        )}
 
         {/* Presence indicator */}
         {members.length > 0 && (() => {
