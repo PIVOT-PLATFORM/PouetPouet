@@ -14,7 +14,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY packages/ ./packages/
 COPY apps/web/ ./apps/web/
-COPY package.json ./
+COPY package.json tsconfig.base.json ./
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_SOCKET_URL
