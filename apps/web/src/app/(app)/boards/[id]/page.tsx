@@ -803,6 +803,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             toolStroke={toolStroke}
             toolFill={toolFill}
             toolOpacity={toolOpacity}
+            minTop={templateDraftOf ? 170 : 120}
             onToolChange={handleToolChange}
           />
         )}

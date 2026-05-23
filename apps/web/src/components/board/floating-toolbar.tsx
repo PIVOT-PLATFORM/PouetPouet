@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 export type ToolMode = 'select' | 'text' | 'sticky' | 'rect' | 'circle' | 'diamond' | 'triangle' | 'draw' | 'link' | 'link-cards'
 export type StrokeSize = 'thin' | 'medium' | 'thick'
@@ -11,6 +11,7 @@ interface Props {
   toolStroke: StrokeSize
   toolFill: boolean
   toolOpacity: number
+  minTop?: number
   onToolChange: (tool: ToolMode, color?: string, stroke?: StrokeSize, fill?: boolean, opacity?: number) => void
 }
 
@@ -20,10 +21,15 @@ const SHAPE_COLORS  = ['#6366f1', '#ef4444', '#f97316', '#eab308', '#22c55e', '#
 const TOOLBAR_W = 48
 const GAP = 8
 
-export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, toolOpacity, onToolChange }: Props) {
-  const MIN_Y = 120
+export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, toolOpacity, minTop, onToolChange }: Props) {
+  const MIN_Y = minTop ?? 120
   const [pos, setPos] = useState({ x: 16, y: MIN_Y })
   const dragStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null)
+
+  // Re-clamp y when the minimum changes (e.g. banner appears after mount)
+  useEffect(() => {
+    setPos((p) => (p.y < MIN_Y ? { ...p, y: MIN_Y } : p))
+  }, [MIN_Y])
 
   function handleDragMouseDown(e: React.MouseEvent) {
     e.preventDefault()

@@ -56,6 +56,11 @@ export function TemplatesSection({ templates, onCreate, onDelete, onEditContent,
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [openingId, setOpeningId] = useState<string | null>(null)
 
+  const sortedTemplates = [...templates].sort((a, b) => {
+    if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  })
+
   async function handleDelete(e: React.MouseEvent, id: string) {
     e.stopPropagation()
     if (!confirm('Supprimer ce template ?')) return
@@ -104,7 +109,7 @@ export function TemplatesSection({ templates, onCreate, onDelete, onEditContent,
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {templates.map((tpl) => {
+          {sortedTemplates.map((tpl) => {
             const theme = getTheme(tpl.id)
             return (
               <div
