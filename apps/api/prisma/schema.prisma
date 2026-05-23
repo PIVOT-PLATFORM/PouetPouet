@@ -18,26 +18,32 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  boards        Board[]
-  boardShares   BoardShare[]
-  boardVotes    BoardVote[]
-  sessions      SessionParticipant[]
-  scrumRooms    ScrumRoom[]
-  dailyTeams    DailyTeam[]
-  dailySessions DailySession[]
-  wheelEvents   WheelEvent[]
-  wheelDraws    WheelDraw[]
+  boards         Board[]
+  boardShares    BoardShare[]
+  boardVotes     BoardVote[]
+  boardFavorites BoardFavorite[]
+  boardTemplates BoardTemplate[]
+  sessions       SessionParticipant[]
+  scrumRooms     ScrumRoom[]
+  dailyTeams     DailyTeam[]
+  dailySessions  DailySession[]
+  wheelEvents    WheelEvent[]
+  wheelDraws     WheelDraw[]
 }
 
 model Board {
-  id            String    @id @default(cuid())
-  name          String
-  description   String?
-  ownerId       String
-  shareToken    String?   @unique
-  shareLinkRole BoardRole @default(VIEWER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  name              String
+  description       String?
+  coverImage        String?
+  maxParticipants   Int?
+  enabledActivities Json?
+  ownerId           String
+  shareToken        String?   @unique
+  shareLinkRole     BoardRole @default(VIEWER)
+  templateDraftOf   String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   owner        User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   cards        Card[]
@@ -47,6 +53,38 @@ model Board {
   sessions     Session[]
   shares       BoardShare[]
   voteSessions BoardVoteSession[]
+  favorites    BoardFavorite[]
+}
+
+model BoardFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  boardId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, boardId])
+}
+
+model BoardTemplate {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  coverImage        String?
+  maxParticipants   Int?
+  enabledActivities Json?
+  isFavorite        Boolean  @default(false)
+  ownerId           String
+  cards             Json
+  frames            Json
+  connections       Json
+  fields            Json
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model BoardShare {

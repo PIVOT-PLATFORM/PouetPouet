@@ -6,3 +6,11 @@ dist
 .next
 build
 *.log
+
+# Local-only docs & backups (never merge)
+*.md
+*.pdf
+backup.sql
+ideatank.txt
+scripts/
+docs/

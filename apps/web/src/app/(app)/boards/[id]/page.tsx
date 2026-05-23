@@ -8,6 +8,9 @@ import { useSession } from '@/hooks/useSession'
 import { BoardCanvas } from '@/components/board/board-canvas'
 import { BoardFieldsPanel } from '@/components/board/board-fields-panel'
 import { ShareModal } from '@/components/board/share-modal'
+import { BoardSettingsModal } from '@/components/board/board-settings-modal'
+import { useTemplates } from '@/hooks/useTemplates'
+import { useRouter } from 'next/navigation'
 import { HostPanel } from '@/components/session/host-panel'
 import { FloatingToolbar } from '@/components/board/floating-toolbar'
 import type { ToolMode, StrokeSize } from '@/components/board/floating-toolbar'
@@ -24,6 +27,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     timerEndsAt, startTimer, stopTimer,
     activeVoteSession, lastVoteSession, startVote, castVote, uncastVote, stopVote, extendVote,
     lockCards, lockSelected,
+    updateBoardInfo,
     addCard, moveCard, resizeCard, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
     groupSelected,
@@ -44,11 +48,60 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const currentUser = useAuthStore((s) => s.user)
   const currentUserId = currentUser?.id ?? ''
 
+  const router = useRouter()
+  const { saveTemplateFromDraft, discardTemplateDraft } = useTemplates()
+  const [savingDraft, setSavingDraft] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+
+  function startEditingName() {
+    if (userRole !== 'OWNER' || !board) return
+    setNameDraft(board.name)
+    setEditingName(true)
+  }
+  async function commitName() {
+    if (!board) return
+    const next = nameDraft.trim()
+    setEditingName(false)
+    if (!next || next === board.name) return
+    try {
+      await updateBoardInfo({ name: next })
+    } catch (err) {
+      alert((err as Error).message)
+    }
+  }
+
+  const templateDraftOf = board?.templateDraftOf ?? null
+  async function handleSaveDraft() {
+    if (!templateDraftOf) return
+    setSavingDraft(true)
+    try {
+      await saveTemplateFromDraft(templateDraftOf)
+      router.push('/dashboard')
+    } catch (err) {
+      alert((err as Error).message)
+      setSavingDraft(false)
+    }
+  }
+  async function handleDiscardDraft() {
+    if (!templateDraftOf) return
+    if (!confirm('Annuler les modifications du template ?')) return
+    setSavingDraft(true)
+    try {
+      await discardTemplateDraft(templateDraftOf)
+      router.push('/dashboard')
+    } catch (err) {
+      alert((err as Error).message)
+      setSavingDraft(false)
+    }
+  }
+
   type ClipCard = Pick<Card, 'type' | 'content' | 'color' | 'posX' | 'posY' | 'width' | 'height'>
   const [clipboard, setClipboard] = useState<ClipCard[]>([])
 
   const [showFieldsPanel, setShowFieldsPanel] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [showVoteConfig, setShowVoteConfig] = useState(false)
   const [showVoteResults, setShowVoteResults] = useState(false)
   const [showLastVote, setShowLastVote] = useState(false)
@@ -222,6 +275,34 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)]">
+      {/* Template draft banner */}
+      {templateDraftOf && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-amber-50 border-b border-amber-200 shrink-0">
+          <div className="flex items-center gap-2 text-amber-800 text-sm font-medium min-w-0">
+            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+            <span className="truncate">Mode édition de template — les modifications doivent être enregistrées explicitement.</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleDiscardDraft}
+              disabled={savingDraft}
+              className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleSaveDraft}
+              disabled={savingDraft}
+              className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-amber-700 transition-colors disabled:opacity-50"
+            >
+              {savingDraft ? '…' : 'Enregistrer le template'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-b border-gray-200 shrink-0 overflow-x-auto">
         <Link href="/dashboard" className="text-gray-400 hover:text-gray-600 transition-colors mr-1 shrink-0">
@@ -230,7 +311,30 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           </svg>
         </Link>
 
-        <h1 className="font-semibold text-gray-900 flex-1 truncate min-w-0">{board?.name}</h1>
+        {editingName && userRole === 'OWNER' ? (
+          <input
+            autoFocus
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur() }
+              else if (e.key === 'Escape') { setEditingName(false) }
+            }}
+            className="font-semibold text-gray-900 flex-1 max-w-md truncate min-w-0 bg-white border border-indigo-300 rounded-lg px-2 py-1 -my-1 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+          />
+        ) : (
+          <h1
+            onClick={startEditingName}
+            title={userRole === 'OWNER' ? 'Cliquer pour renommer' : undefined}
+            className={`font-semibold text-gray-900 flex-1 max-w-md truncate min-w-0 px-2 py-1 -my-1 rounded-lg ${userRole === 'OWNER' ? 'cursor-text hover:bg-gray-100' : ''}`}
+          >
+            {board?.name}
+          </h1>
+        )}
+
+        {/* Spacer so the rest of the toolbar items hug the right edge */}
+        <div className="flex-1" />
 
         {/* Presence indicator */}
         {members.length > 0 && (() => {
@@ -313,62 +417,76 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           </span>
         )}
 
-        {/* Share button (owner only) */}
+        {/* ── Group: share + settings (owner) ─────────────────────────────── */}
         {userRole === 'OWNER' && (
-          <button
-            onClick={() => setShowShareModal(true)}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
-            title="Partager le board"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            Partager
-          </button>
+          <>
+            <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />
+            <div className="flex items-center gap-0.5 shrink-0">
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                title="Partager le board"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Partager
+              </button>
+              <button
+                onClick={() => setShowSettingsModal(true)}
+                className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
+                title="Paramètres du board"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            </div>
+          </>
         )}
 
-        {/* Undo / Redo */}
+        {/* ── Group: history (undo/redo/reset) ────────────────────────────── */}
         {!isReadonly && (
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button
-              onClick={undo}
-              disabled={!canUndo}
-              title="Annuler (Ctrl+Z)"
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6-6M3 10l6 6" />
-              </svg>
-            </button>
-            <button
-              onClick={redo}
-              disabled={!canRedo}
-              title="Rétablir (Ctrl+Y)"
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a8 8 0 00-8 8v2M21 10l-6-6M21 10l-6 6" />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {/* Reset board */}
-        {!isReadonly && (
-          <button
-            onClick={handleResetClick}
-            title={confirmReset ? 'Cliquer pour confirmer la réinitialisation' : 'Réinitialiser le board'}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors shrink-0 ${
-              confirmReset
-                ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
-                : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
-            }`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            {confirmReset ? 'Confirmer ?' : 'Reset'}
-          </button>
+          <>
+            <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />
+            <div className="flex items-center gap-0.5 shrink-0">
+              <button
+                onClick={undo}
+                disabled={!canUndo}
+                title="Annuler (Ctrl+Z)"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6-6M3 10l6 6" />
+                </svg>
+              </button>
+              <button
+                onClick={redo}
+                disabled={!canRedo}
+                title="Rétablir (Ctrl+Y)"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a8 8 0 00-8 8v2M21 10l-6-6M21 10l-6 6" />
+                </svg>
+              </button>
+              <button
+                onClick={handleResetClick}
+                title={confirmReset ? 'Cliquer pour confirmer la réinitialisation' : 'Réinitialiser le board'}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  confirmReset
+                    ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                {confirmReset ? 'Confirmer ?' : 'Reset'}
+              </button>
+            </div>
+          </>
         )}
 
         {/* Selection badge */}
@@ -434,34 +552,39 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           </button>
         )}
 
-        {/* Cadre */}
+        {/* ── Group: structure (frame / fields) ───────────────────────────── */}
         {!isReadonly && (
-          <button
-            onClick={() => addFrame(200, 200)}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
-            title="Ajouter un cadre"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2} strokeLinecap="round" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9h18M9 21V9" />
-            </svg>
-            Cadre
-          </button>
+          <>
+            <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />
+            <div className="flex items-center gap-0.5 shrink-0">
+              <button
+                onClick={() => addFrame(200, 200)}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                title="Ajouter un cadre"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2} strokeLinecap="round" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9h18M9 21V9" />
+                </svg>
+                Cadre
+              </button>
+              <button
+                onClick={() => setShowFieldsPanel(true)}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${fields.length > 0 ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                title="Gérer les champs personnalisés"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Champs{fields.length > 0 ? ` (${fields.length})` : ''}
+              </button>
+            </div>
+          </>
         )}
 
-        {/* Champs */}
-        {!isReadonly && (
-          <button
-            onClick={() => setShowFieldsPanel(true)}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors shrink-0 ${fields.length > 0 ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
-            title="Gérer les champs personnalisés"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            Champs{fields.length > 0 ? ` (${fields.length})` : ''}
-          </button>
-        )}
+        {/* ── Group: activities (vote / last vote / timer) ────────────────── */}
+        <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />
+        <div className="flex items-center gap-0.5 shrink-0">
 
         {/* Vote */}
         {activeVoteSession ? (
@@ -628,7 +751,11 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             )}
           </div>
         )}
+        </div>
+        {/* end activities group */}
 
+        {/* ── Group: session ──────────────────────────────────────────────── */}
+        {!isReadonly && <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />}
         {!isReadonly && (!session ? (
           <button
             onClick={startSession}
@@ -727,6 +854,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             toolStroke={toolStroke}
             toolFill={toolFill}
             toolOpacity={toolOpacity}
+            minTop={templateDraftOf ? 170 : 120}
             onToolChange={handleToolChange}
           />
         )}
@@ -740,6 +868,22 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           onUpdate={updateField}
           onDelete={deleteField}
           onClose={() => setShowFieldsPanel(false)}
+        />
+      )}
+
+      {showSettingsModal && board && (
+        <BoardSettingsModal
+          board={{
+            id: board.id,
+            name: board.name,
+            description: board.description,
+            coverImage: board.coverImage,
+            maxParticipants: board.maxParticipants,
+            enabledActivities: board.enabledActivities,
+            templateDraftOf: board.templateDraftOf,
+          }}
+          onClose={() => setShowSettingsModal(false)}
+          onSave={updateBoardInfo}
         />
       )}
 

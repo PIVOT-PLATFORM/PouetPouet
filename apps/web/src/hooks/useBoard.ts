@@ -56,6 +56,10 @@ export interface BoardDetail {
   id: string
   name: string
   description: string | null
+  coverImage: string | null
+  maxParticipants: number | null
+  enabledActivities: string[] | null
+  templateDraftOf: string | null
   cards: Card[]
 }
 
@@ -776,6 +780,19 @@ export function useBoard(boardId: string) {
     socketRef.current.emit('vote:extend', { sessionId: activeVoteSession.id, boardId, extraSeconds })
   }
 
+  // ── Board info update (description, cover, max participants, activities) ─────
+  async function updateBoardInfo(input: {
+    name?: string
+    description?: string | null
+    coverImage?: string | null
+    maxParticipants?: number | null
+    enabledActivities?: string[] | null
+  }) {
+    const updated = await api.patch<BoardDetail>(`/api/boards/${boardId}`, input)
+    setBoard((prev) => (prev ? { ...prev, ...updated } : prev))
+    return updated
+  }
+
   // ── Lock ──────────────────────────────────────────────────────────────────────
   function lockCards(ids: string[], locked: boolean) {
     socketRef.current.emit('card:lock', { ids, boardId, locked })
@@ -794,6 +811,7 @@ export function useBoard(boardId: string) {
     timerEndsAt, startTimer, stopTimer,
     activeVoteSession, lastVoteSession, startVote, castVote, uncastVote, stopVote, extendVote,
     lockCards, lockSelected,
+    updateBoardInfo,
     addCard, moveCard, resizeCard, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
     groupSelected,

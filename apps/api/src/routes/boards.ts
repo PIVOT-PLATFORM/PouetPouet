@@ -7,6 +7,18 @@ import { getIO } from '../lib/io.js'
 const boardSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
+  coverImage: z.string().nullable().optional(),
+  maxParticipants: z.number().int().positive().nullable().optional(),
+  enabledActivities: z.array(z.string()).nullable().optional(),
+  templateId: z.string().optional(),
+})
+
+const boardUpdateSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  coverImage: z.string().nullable().optional(),
+  maxParticipants: z.number().int().positive().nullable().optional(),
+  enabledActivities: z.array(z.string()).nullable().optional(),
 })
 
 const roleSchema = z.enum(['VIEWER', 'EDITOR'])
@@ -28,9 +40,9 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
   // List boards (owned + shared)
   app.get('/', async (request) => {
     const { id } = request.user as { id: string }
-    const [owned, shared] = await Promise.all([
+    const [owned, shared, favorites] = await Promise.all([
       prisma.board.findMany({
-        where: { ownerId: id },
+        where: { ownerId: id, templateDraftOf: null },
         orderBy: { updatedAt: 'desc' },
         include: { _count: { select: { shares: true } } },
       }),
@@ -39,10 +51,12 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
         include: { board: { include: { _count: { select: { shares: true } } } } },
         orderBy: { board: { updatedAt: 'desc' } },
       }),
+      prisma.boardFavorite.findMany({ where: { userId: id }, select: { boardId: true } }),
     ])
+    const favSet = new Set(favorites.map((f) => f.boardId))
     return [
-      ...owned.map((b) => ({ ...b, role: 'OWNER' as const, shareCount: b._count.shares })),
-      ...shared.map((s) => ({ ...s.board, role: s.role, shareCount: s.board._count.shares })),
+      ...owned.map((b) => ({ ...b, role: 'OWNER' as const, shareCount: b._count.shares, isFavorite: favSet.has(b.id) })),
+      ...shared.map((s) => ({ ...s.board, role: s.role, shareCount: s.board._count.shares, isFavorite: favSet.has(s.board.id) })),
     ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
   })
 
@@ -66,12 +80,133 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     return Object.fromEntries(counts)
   })
 
-  // Create board
+  // Create board (optionally from template)
   app.post('/', async (request, reply) => {
     const { id } = request.user as { id: string }
     const body = boardSchema.parse(request.body)
-    const board = await prisma.board.create({ data: { ...body, ownerId: id } })
-    return reply.status(201).send({ ...board, role: 'OWNER' })
+    const { templateId, ...rest } = body
+
+    let template: any = null
+    if (templateId) {
+      template = await prisma.boardTemplate.findUnique({ where: { id: templateId } })
+      if (!template) return reply.status(404).send({ error: 'Template introuvable' })
+      if (template.ownerId !== id) return reply.status(403).send({ error: 'Accès refusé' })
+    }
+
+    const board = await prisma.board.create({
+      data: {
+        name: rest.name,
+        description: rest.description ?? template?.description ?? null,
+        coverImage: rest.coverImage ?? template?.coverImage ?? null,
+        maxParticipants: rest.maxParticipants ?? template?.maxParticipants ?? null,
+        enabledActivities: (rest.enabledActivities ?? template?.enabledActivities ?? undefined) as never,
+        ownerId: id,
+      },
+    })
+
+    if (template) {
+      const cards = (template.cards as any[]) ?? []
+      const frames = (template.frames as any[]) ?? []
+      const connections = (template.connections as any[]) ?? []
+      const fields = (template.fields as any[]) ?? []
+
+      // Map old card ids to new ones (for connection rewiring)
+      const cardIdMap = new Map<string, string>()
+      for (const c of cards) {
+        const created = await prisma.card.create({
+          data: {
+            boardId: board.id,
+            type: c.type ?? 'TEXT',
+            content: c.content ?? '',
+            posX: c.posX ?? 0,
+            posY: c.posY ?? 0,
+            width: c.width ?? 192,
+            height: c.height ?? 128,
+            color: c.color ?? '#FFEB3B',
+          },
+        })
+        cardIdMap.set(c.id as string, created.id)
+      }
+      if (frames.length > 0) {
+        await prisma.frame.createMany({
+          data: frames.map((f) => ({
+            boardId: board.id,
+            title: f.title ?? 'Cadre',
+            posX: f.posX ?? 0,
+            posY: f.posY ?? 0,
+            width: f.width ?? 400,
+            height: f.height ?? 300,
+            color: f.color ?? '#E0E7FF',
+          })),
+        })
+      }
+      if (fields.length > 0) {
+        await prisma.boardField.createMany({
+          data: fields.map((f) => ({
+            boardId: board.id,
+            name: f.name,
+            emoji: f.emoji ?? null,
+            type: f.type ?? 'TEXT',
+            options: f.options ?? undefined,
+            order: f.order ?? 0,
+          })),
+        })
+      }
+      if (connections.length > 0) {
+        const remapped = connections
+          .map((cn) => ({ fromId: cardIdMap.get(cn.fromId), toId: cardIdMap.get(cn.toId) }))
+          .filter((cn) => cn.fromId && cn.toId)
+        if (remapped.length > 0) {
+          await prisma.cardConnection.createMany({
+            data: remapped.map((cn) => ({ boardId: board.id, fromId: cn.fromId!, toId: cn.toId! })),
+          })
+        }
+      }
+    }
+
+    return reply.status(201).send({ ...board, role: 'OWNER', shareCount: 0, isFavorite: false })
+  })
+
+  // Update board (owner only)
+  app.patch('/:id', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const body = boardUpdateSchema.parse(request.body)
+    const board = await prisma.board.findUnique({ where: { id } })
+    if (!board) return reply.status(404).send({ error: 'Board introuvable' })
+    if (board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    const updated = await prisma.board.update({
+      where: { id },
+      data: {
+        ...(body.name !== undefined && { name: body.name }),
+        ...(body.description !== undefined && { description: body.description }),
+        ...(body.coverImage !== undefined && { coverImage: body.coverImage }),
+        ...(body.maxParticipants !== undefined && { maxParticipants: body.maxParticipants }),
+        ...(body.enabledActivities !== undefined && { enabledActivities: (body.enabledActivities ?? undefined) as never }),
+      },
+    })
+    return reply.send(updated)
+  })
+
+  // Toggle favorite
+  app.post('/:id/favorite', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const role = await getUserBoardRole(id, userId)
+    if (!role) return reply.status(403).send({ error: 'Accès refusé' })
+    await prisma.boardFavorite.upsert({
+      where: { userId_boardId: { userId, boardId: id } },
+      update: {},
+      create: { userId, boardId: id },
+    })
+    return reply.send({ isFavorite: true })
+  })
+
+  app.delete('/:id/favorite', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    await prisma.boardFavorite.deleteMany({ where: { userId, boardId: id } })
+    return reply.send({ isFavorite: false })
   })
 
   // Join via share link

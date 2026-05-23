@@ -10,6 +10,7 @@ import { sessionRoutes } from './routes/sessions.js'
 import { scrumRoutes } from './routes/scrum.js'
 import { dailyRoutes } from './routes/daily.js'
 import { wheelRoutes } from './routes/wheel.js'
+import { templateRoutes } from './routes/templates.js'
 import { registerSocketHandlers } from './sockets/index.js'
 import { setIO } from './lib/io.js'
 
@@ -43,6 +44,7 @@ app.register(sessionRoutes, { prefix: '/api/sessions' })
 app.register(scrumRoutes, { prefix: '/api/scrum' })
 app.register(dailyRoutes, { prefix: '/api/daily' })
 app.register(wheelRoutes, { prefix: '/api/wheel' })
+app.register(templateRoutes, { prefix: '/api/templates' })
 
 app.get('/health', async () => ({ status: 'ok' }))
 
