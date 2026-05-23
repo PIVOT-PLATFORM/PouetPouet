@@ -828,6 +828,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             coverImage: board.coverImage,
             maxParticipants: board.maxParticipants,
             enabledActivities: board.enabledActivities,
+            templateDraftOf: board.templateDraftOf,
           }}
           onClose={() => setShowSettingsModal(false)}
           onSave={updateBoardInfo}

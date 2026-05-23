@@ -13,6 +13,7 @@ interface BoardSettings {
   coverImage: string | null
   maxParticipants: number | null
   enabledActivities: string[] | null
+  templateDraftOf?: string | null
 }
 
 interface Props {
@@ -141,7 +142,8 @@ export function BoardSettingsModal({ board, onClose, onSave }: Props) {
               </div>
             </div>
 
-            {/* Save as template */}
+            {/* Save as template (hidden when already editing a template draft) */}
+            {!board.templateDraftOf && (
             <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
               {!showTemplateForm ? (
                 <button
@@ -184,6 +186,7 @@ export function BoardSettingsModal({ board, onClose, onSave }: Props) {
                 </div>
               )}
             </div>
+            )}
 
             <div className="flex gap-3 mt-4">
               <Button variant="ghost" type="button" onClick={onClose} className="flex-1">Annuler</Button>

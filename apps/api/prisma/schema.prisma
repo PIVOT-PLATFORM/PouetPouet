@@ -75,6 +75,7 @@ model BoardTemplate {
   coverImage        String?
   maxParticipants   Int?
   enabledActivities Json?
+  isFavorite        Boolean  @default(false)
   ownerId           String
   cards             Json
   frames            Json

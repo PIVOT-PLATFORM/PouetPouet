@@ -8,6 +8,7 @@ export interface BoardTemplate {
   coverImage: string | null
   maxParticipants: number | null
   enabledActivities: string[] | null
+  isFavorite: boolean
   ownerId: string
   createdAt: string
   updatedAt: string
@@ -28,6 +29,7 @@ export interface UpdateTemplateInput {
   coverImage?: string | null
   maxParticipants?: number | null
   enabledActivities?: string[] | null
+  isFavorite?: boolean
 }
 
 export function useTemplates() {
@@ -83,6 +85,18 @@ export function useTemplates() {
     await api.post<void>(`/api/templates/${id}/discard-draft`, {})
   }
 
+  const toggleTemplateFavorite = async (id: string) => {
+    const current = templates.find((t) => t.id === id)
+    const willFavorite = !current?.isFavorite
+    setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, isFavorite: willFavorite } : t)))
+    try {
+      await api.patch<BoardTemplate>(`/api/templates/${id}`, { isFavorite: willFavorite })
+    } catch (err) {
+      setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, isFavorite: !willFavorite } : t)))
+      throw err
+    }
+  }
+
   return {
     templates,
     isLoading,
@@ -93,6 +107,7 @@ export function useTemplates() {
     editTemplateContent,
     saveTemplateFromDraft,
     discardTemplateDraft,
+    toggleTemplateFavorite,
     refetch: fetchTemplates,
   }
 }

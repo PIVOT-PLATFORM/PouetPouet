@@ -18,17 +18,18 @@ const templateUpdateSchema = z.object({
   coverImage: z.string().nullable().optional(),
   maxParticipants: z.number().int().positive().nullable().optional(),
   enabledActivities: z.array(z.string()).nullable().optional(),
+  isFavorite: z.boolean().optional(),
 })
 
 export const templateRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate)
 
-  // List user templates
+  // List user templates (favorites first)
   app.get('/', async (request) => {
     const { id } = request.user as { id: string }
     const templates = await prisma.boardTemplate.findMany({
       where: { ownerId: id },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: [{ isFavorite: 'desc' }, { updatedAt: 'desc' }],
     })
     return templates
   })
@@ -100,6 +101,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         ...(body.coverImage !== undefined && { coverImage: body.coverImage }),
         ...(body.maxParticipants !== undefined && { maxParticipants: body.maxParticipants }),
         ...(body.enabledActivities !== undefined && { enabledActivities: (body.enabledActivities ?? undefined) as never }),
+        ...(body.isFavorite !== undefined && { isFavorite: body.isFavorite }),
       },
     })
     return reply.send(updated)
@@ -222,6 +224,11 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
     const updated = await prisma.boardTemplate.update({
       where: { id },
       data: {
+        name: draft.name.replace(/^\[Template\]\s*/, ''),
+        description: draft.description,
+        coverImage: draft.coverImage,
+        maxParticipants: draft.maxParticipants,
+        enabledActivities: (draft.enabledActivities ?? undefined) as never,
         cards: cards as never,
         frames: frames as never,
         connections: connections as never,
