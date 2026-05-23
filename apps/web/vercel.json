@@ -1,0 +1,6 @@
+{
+  "framework": "nextjs",
+  "installCommand": "cd ../.. && npm ci",
+  "buildCommand": "cd ../.. && npx turbo run build --filter=@pouetpouet/web",
+  "outputDirectory": ".next"
+}
