@@ -58,6 +58,19 @@ export interface BoardDetail {
   cards: Card[]
 }
 
+export interface PresenceUser {
+  id: string
+  name: string
+  avatar: string | null
+}
+
+export interface BoardMember {
+  id: string
+  name: string
+  avatar: string | null
+  role: 'OWNER' | 'EDITOR' | 'VIEWER'
+}
+
 const CARD_COLORS = ['#FEF08A', '#86EFAC', '#93C5FD', '#F9A8D4', '#FCA5A5', '#C4B5FD']
 export const GROUP_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899']
 
@@ -85,6 +98,9 @@ export function useBoard(boardId: string) {
   const [isLoading, setIsLoading] = useState(true)
   const [userRole, setUserRole] = useState<'OWNER' | 'EDITOR' | 'VIEWER' | null>(null)
   const [accessDenied, setAccessDenied] = useState(false)
+  const [presence, setPresence] = useState<PresenceUser[]>([])
+  const [members, setMembers] = useState<BoardMember[]>([])
+  const [timerEndsAt, setTimerEndsAt] = useState<number | null>(null)
   const socketRef = useRef(connectSocket())
   const cardsRef = useRef<Card[]>([])
   cardsRef.current = cards
@@ -155,6 +171,10 @@ export function useBoard(boardId: string) {
         setIsLoading(false)
       })
 
+    api.get<BoardMember[]>(`/api/boards/${boardId}/members`)
+      .then(setMembers)
+      .catch(() => {})
+
     const socket = socketRef.current
     socket.emit('board:join', boardId)
 
@@ -169,6 +189,13 @@ export function useBoard(boardId: string) {
     socket.on('board:error', (msg: string) => {
       if (msg === 'Accès refusé') setAccessDenied(true)
     })
+
+    socket.on('board:presence', (users: PresenceUser[]) => {
+      setPresence(users)
+    })
+
+    socket.on('timer:started', ({ endsAt }: { endsAt: number }) => setTimerEndsAt(endsAt))
+    socket.on('timer:stopped', () => setTimerEndsAt(null))
 
     // Cards — process pending history callback before updating state
     socket.on('card:created', (card) => {
@@ -233,7 +260,7 @@ export function useBoard(boardId: string) {
 
     return () => {
       socket.emit('board:leave', boardId)
-      ;['board:state', 'board:error',
+      ;['board:state', 'board:error', 'board:presence', 'timer:started', 'timer:stopped',
         'card:created', 'card:moved', 'card:resized', 'card:updated', 'card:deleted', 'card:recolored',
         'cards:grouped', 'cards:ungrouped',
         'connection:created', 'connection:deleted',
@@ -671,10 +698,19 @@ export function useBoard(boardId: string) {
 
   const selectCards = useCallback((ids: Set<string>) => setSelectedIds(ids), [])
 
+  function startTimer(duration: number) {
+    socketRef.current.emit('timer:start', { boardId, duration })
+  }
+
+  function stopTimer() {
+    socketRef.current.emit('timer:stop', { boardId })
+  }
+
   const isReadonly = userRole === 'VIEWER'
 
   return {
-    board, cards, connections, frames, fields, selectedIds, isLoading, userRole, isReadonly, accessDenied,
+    board, cards, connections, frames, fields, selectedIds, isLoading, userRole, isReadonly, accessDenied, presence, members,
+    timerEndsAt, startTimer, stopTimer,
     addCard, moveCard, resizeCard, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
     groupSelected,

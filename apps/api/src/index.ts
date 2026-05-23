@@ -11,6 +11,7 @@ import { scrumRoutes } from './routes/scrum.js'
 import { dailyRoutes } from './routes/daily.js'
 import { wheelRoutes } from './routes/wheel.js'
 import { registerSocketHandlers } from './sockets/index.js'
+import { setIO } from './lib/io.js'
 
 const PORT = Number(process.env.PORT ?? 4000)
 
@@ -67,6 +68,7 @@ io.use((socket, next) => {
   }
 })
 
+setIO(io)
 registerSocketHandlers(io)
 
 await app.listen({ port: PORT, host: '0.0.0.0' })

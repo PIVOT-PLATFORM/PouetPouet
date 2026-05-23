@@ -22,6 +22,7 @@ interface Props {
   toolFill: boolean
   toolOpacity: number
   clipboard: ClipCard[]
+  isReadonly?: boolean
   onAddCard: (x: number, y: number, type?: string, content?: string, color?: string, width?: number, height?: number) => void
   onMoveCard: (id: string, x: number, y: number) => void
   onResizeCard: (id: string, w: number, h: number) => void
@@ -55,7 +56,7 @@ const DOT_SPACING = 24
 
 export function BoardCanvas({
   cards, connections, frames, fields, selectedIds, toolMode, toolColor, toolStroke, toolFill, toolOpacity,
-  clipboard,
+  clipboard, isReadonly,
   onAddCard, onMoveCard, onResizeCard, onUpdateCard, onRecolorCard, onDeleteCard,
   onStartDragCard, onCommitDragCard, onStartResizeCard, onCommitResizeCard,
   onSelectCards, onAddConnection, onDeleteConnection,
@@ -192,6 +193,7 @@ export function BoardCanvas({
   // ── Ctrl+V: paste clipboard cards at cursor ───────────────────────────────────
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (isReadonly) return
       if (!((e.ctrlKey || e.metaKey) && e.key === 'v')) return
       if (clipboard.length === 0) return
       e.preventDefault()
@@ -200,11 +202,12 @@ export function BoardCanvas({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [clipboard, onPasteCards])
+  }, [clipboard, isReadonly, onPasteCards])
 
   // ── Paste image ──────────────────────────────────────────────────────────────
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
+      if (isReadonly) return
       const items = e.clipboardData?.items
       if (!items) return
       for (const item of Array.from(items)) {
@@ -225,7 +228,7 @@ export function BoardCanvas({
     }
     window.addEventListener('paste', onPaste)
     return () => window.removeEventListener('paste', onPaste)
-  }, [onAddCard])
+  }, [isReadonly, onAddCard])
 
   // ── Freehand draw (called from canvas or card bubble) ────────────────────────
   function startFreehandDraw(clientX: number, clientY: number) {
@@ -269,6 +272,7 @@ export function BoardCanvas({
   // ── Canvas mouse down ────────────────────────────────────────────────────────
   function handleCanvasMouseDown(e: React.MouseEvent<HTMLDivElement>) {
     if (e.button !== 0) return
+    if (isReadonly) return
 
     // Draw mode: work anywhere — cards let the event bubble when drawMode=true
     if (toolMode === 'draw') {
@@ -318,6 +322,7 @@ export function BoardCanvas({
 
   // ── Canvas click (for tool placement) ───────────────────────────────────────
   function handleCanvasClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (isReadonly) return
     if ((e.target as HTMLElement) !== e.currentTarget) return
     if (toolMode === 'select' || toolMode === 'draw' || toolMode === 'link-cards') return
 
@@ -336,6 +341,7 @@ export function BoardCanvas({
 
   // ── Double-click: create text card (select mode only) ───────────────────────
   function handleCanvasDoubleClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (isReadonly) return
     if (toolMode !== 'select') return
     if ((e.target as HTMLElement) !== e.currentTarget) return
     const p = toCanvas(e.clientX, e.clientY)
@@ -385,6 +391,7 @@ export function BoardCanvas({
 
   // ── Connection drag (from card handle) ───────────────────────────────────────
   function handleStartConnect(cardId: string, e: React.MouseEvent) {
+    if (isReadonly) return
     e.preventDefault()
     e.stopPropagation()
     const card = cards.find((c) => c.id === cardId)
@@ -428,6 +435,7 @@ export function BoardCanvas({
 
   // ── Link-cards: per-card click (called by the per-card overlay) ──────────────
   function handleLinkCardClick(cardId: string) {
+    if (isReadonly) return
     if (linkSourceId === null) {
       setLinkSourceId(cardId)
     } else if (linkSourceId === cardId) {
@@ -452,6 +460,7 @@ export function BoardCanvas({
   const zoom = viewport.zoom
 
   const canvasCursor =
+    isReadonly ? 'default' :
     toolMode === 'draw' ? 'crosshair' :
     toolMode === 'link-cards' ? 'crosshair' :
     toolMode !== 'select' ? 'cell' :
@@ -484,6 +493,7 @@ export function BoardCanvas({
               frame={frame}
               cards={cards}
               zoom={zoom}
+              isReadonly={isReadonly}
               onMove={onMoveFrame}
               onStartDrag={onStartDragFrame}
               onCommitDrag={onCommitDragFrame}
@@ -512,7 +522,7 @@ export function BoardCanvas({
                   y1={from.posY + from.height / 2}
                   x2={to.posX + to.width / 2}
                   y2={to.posY + to.height / 2}
-                  onDelete={onDeleteConnection}
+                  onDelete={isReadonly ? undefined : onDeleteConnection}
                 />
               )
             })}
@@ -551,6 +561,7 @@ export function BoardCanvas({
               isSelected={selectedIds.has(card.id)}
               groupColor={card.groupId ? groupColor(card.groupId) : undefined}
               drawMode={toolMode === 'draw'}
+              isReadonly={isReadonly}
               onMove={onMoveCard}
               onStartDrag={onStartDragCard}
               onCommitDrag={onCommitDragCard}
@@ -680,7 +691,7 @@ export function BoardCanvas({
 
 // ── Connection line with hover-delete ─────────────────────────────────────────
 function ConnectionLine({ id, x1, y1, x2, y2, onDelete }: {
-  id: string; x1: number; y1: number; x2: number; y2: number; onDelete: (id: string) => void
+  id: string; x1: number; y1: number; x2: number; y2: number; onDelete?: (id: string) => void
 }) {
   const [hover, setHover] = useState(false)
   const mx = (x1 + x2) / 2
@@ -688,16 +699,16 @@ function ConnectionLine({ id, x1, y1, x2, y2, onDelete }: {
   return (
     <g onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       {/* Wide invisible hit-area */}
-      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth={16} style={{ pointerEvents: 'stroke', cursor: 'pointer' }} />
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth={16} style={{ pointerEvents: onDelete ? 'stroke' : 'none', cursor: onDelete ? 'pointer' : 'default' }} />
       {/* Visible line */}
       <line
         x1={x1} y1={y1} x2={x2} y2={y2}
-        stroke={hover ? '#6366f1' : '#9ca3af'}
-        strokeWidth={hover ? 2.5 : 2}
+        stroke={hover && onDelete ? '#6366f1' : '#9ca3af'}
+        strokeWidth={hover && onDelete ? 2.5 : 2}
         strokeLinecap="round"
         style={{ pointerEvents: 'none' }}
       />
-      {hover && (
+      {hover && onDelete && (
         <g style={{ pointerEvents: 'all', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); onDelete(id) }}>
           <circle cx={mx} cy={my} r={10} fill="white" stroke="#ef4444" strokeWidth={1.5} />
           <path

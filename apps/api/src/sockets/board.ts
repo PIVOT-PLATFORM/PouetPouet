@@ -7,6 +7,20 @@ function canWrite(socket: Socket, boardId: string): boolean {
   return role === 'OWNER' || role === 'EDITOR'
 }
 
+async function broadcastPresence(io: Server, boardId: string) {
+  const sockets = await io.in(`board:${boardId}`).fetchSockets()
+  const seen = new Set<string>()
+  const users: { id: string; name: string; avatar: string | null }[] = []
+  for (const s of sockets) {
+    const info = s.data.userInfo as { id: string; name: string; avatar: string | null } | undefined
+    if (info && !seen.has(info.id)) {
+      seen.add(info.id)
+      users.push(info)
+    }
+  }
+  io.to(`board:${boardId}`).emit('board:presence', users)
+}
+
 export function boardSocketHandlers(io: Server, socket: Socket) {
   // ── Board state ───────────────────────────────────────────────────────────────
   socket.on('board:join', async (boardId: string) => {
@@ -30,6 +44,14 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     socket.data.boardRoles = socket.data.boardRoles ?? {}
     socket.data.boardRoles[boardId] = role
 
+    if (!socket.data.userInfo) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, avatar: true },
+      })
+      socket.data.userInfo = user
+    }
+
     await socket.join(`board:${boardId}`)
     const [cards, connections, frames, fields] = await Promise.all([
       prisma.card.findMany({ where: { boardId }, include: { fieldValues: true } }),
@@ -38,10 +60,20 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
       prisma.boardField.findMany({ where: { boardId }, orderBy: { order: 'asc' } }),
     ])
     socket.emit('board:state', { cards, connections, frames, fields, role })
+    await broadcastPresence(io, boardId)
   })
 
-  socket.on('board:leave', (boardId: string) => {
+  socket.on('board:leave', async (boardId: string) => {
     socket.leave(`board:${boardId}`)
+    await broadcastPresence(io, boardId)
+  })
+
+  socket.on('disconnect', async () => {
+    const boardRoles = socket.data.boardRoles as Record<string, string> | undefined
+    if (!boardRoles) return
+    for (const boardId of Object.keys(boardRoles)) {
+      await broadcastPresence(io, boardId)
+    }
   })
 
   // ── Cards ─────────────────────────────────────────────────────────────────────
@@ -187,5 +219,17 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     if (!canWrite(socket, data.boardId)) return
     await prisma.cardFieldValue.deleteMany({ where: { cardId: data.cardId, fieldId: data.fieldId } })
     io.to(`board:${data.boardId}`).emit('cardfield:cleared', { cardId: data.cardId, fieldId: data.fieldId })
+  })
+
+  // ── Timer ─────────────────────────────────────────────────────────────────────
+  socket.on('timer:start', (data: { boardId: string; duration: number }) => {
+    if (!canWrite(socket, data.boardId)) return
+    const endsAt = Date.now() + data.duration * 1000
+    io.to(`board:${data.boardId}`).emit('timer:started', { endsAt })
+  })
+
+  socket.on('timer:stop', (data: { boardId: string }) => {
+    if (!canWrite(socket, data.boardId)) return
+    io.to(`board:${data.boardId}`).emit('timer:stopped')
   })
 }

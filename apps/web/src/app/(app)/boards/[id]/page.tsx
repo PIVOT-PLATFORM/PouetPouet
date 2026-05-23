@@ -3,7 +3,7 @@
 import { use, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useBoard } from '@/hooks/useBoard'
-import type { Card } from '@/hooks/useBoard'
+import type { Card, BoardMember } from '@/hooks/useBoard'
 import { useSession } from '@/hooks/useSession'
 import { BoardCanvas } from '@/components/board/board-canvas'
 import { BoardFieldsPanel } from '@/components/board/board-fields-panel'
@@ -11,11 +11,13 @@ import { ShareModal } from '@/components/board/share-modal'
 import { HostPanel } from '@/components/session/host-panel'
 import { FloatingToolbar } from '@/components/board/floating-toolbar'
 import type { ToolMode, StrokeSize } from '@/components/board/floating-toolbar'
+import { TimerOverlay } from '@/components/board/timer-overlay'
 
 export default function BoardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const {
-    board, cards, connections, frames, fields, selectedIds, isLoading, userRole, isReadonly, accessDenied,
+    board, cards, connections, frames, fields, selectedIds, isLoading, userRole, isReadonly, accessDenied, presence, members,
+    timerEndsAt, startTimer, stopTimer,
     addCard, moveCard, resizeCard, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
     groupSelected,
@@ -38,6 +40,53 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
   const [showFieldsPanel, setShowFieldsPanel] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showPresence, setShowPresence] = useState(false)
+  const [showTimerPicker, setShowTimerPicker] = useState(false)
+  const [timerCustomMin, setTimerCustomMin] = useState('5')
+  const [timerCustomSec, setTimerCustomSec] = useState('00')
+  const [now, setNow] = useState(() => Date.now())
+  const timerPickerRef = useRef<HTMLDivElement>(null)
+  const timerPickerLeaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [timerPickerRect, setTimerPickerRect] = useState<DOMRect | null>(null)
+
+  function launchCustomTimer() {
+    const min = Math.max(0, parseInt(timerCustomMin, 10) || 0)
+    const sec = Math.max(0, Math.min(59, parseInt(timerCustomSec, 10) || 0))
+    const total = min * 60 + sec
+    if (total <= 0) return
+    startTimer(total)
+    setShowTimerPicker(false)
+  }
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 500)
+    return () => clearInterval(id)
+  }, [])
+
+  const timerSecondsLeft = timerEndsAt !== null ? Math.max(0, Math.ceil((timerEndsAt - now) / 1000)) : null
+  const timerExpired = timerEndsAt !== null && now >= timerEndsAt
+
+  function handleTimerPickerEnter() {
+    if (timerPickerLeaveTimer.current) clearTimeout(timerPickerLeaveTimer.current)
+    if (timerPickerRef.current) setTimerPickerRect(timerPickerRef.current.getBoundingClientRect())
+    setShowTimerPicker(true)
+  }
+  function handleTimerPickerLeave() {
+    timerPickerLeaveTimer.current = setTimeout(() => setShowTimerPicker(false), 150)
+  }
+  const presenceTriggerRef = useRef<HTMLDivElement>(null)
+  const presenceLeaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [presenceRect, setPresenceRect] = useState<DOMRect | null>(null)
+
+  function handlePresenceEnter() {
+    if (presenceLeaveTimer.current) clearTimeout(presenceLeaveTimer.current)
+    if (presenceTriggerRef.current) setPresenceRect(presenceTriggerRef.current.getBoundingClientRect())
+    setShowPresence(true)
+  }
+
+  function handlePresenceLeave() {
+    presenceLeaveTimer.current = setTimeout(() => setShowPresence(false), 150)
+  }
   const [confirmReset, setConfirmReset] = useState(false)
   const confirmResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -67,6 +116,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      if (isReadonly) return
       // Ctrl+Z / Ctrl+Y: undo / redo (before focus check so they work even in inputs)
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault()
@@ -94,7 +144,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedIds, deleteSelected, selectCards, cards, undo, redo])
+  }, [isReadonly, selectedIds, deleteSelected, selectCards, cards, undo, redo])
 
   function handlePasteCards(cb: ClipCard[], canvasX: number, canvasY: number) {
     if (cb.length === 0) return
@@ -148,6 +198,80 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         </Link>
 
         <h1 className="font-semibold text-gray-900 flex-1 truncate min-w-0">{board?.name}</h1>
+
+        {/* Presence indicator */}
+        {members.length > 0 && (() => {
+          const connectedIds = new Set(presence.map((u) => u.id))
+          const sortedMembers = [...members].sort((a, b) => (connectedIds.has(b.id) ? 1 : 0) - (connectedIds.has(a.id) ? 1 : 0))
+          const triggerUsers = presence.length > 0 ? presence : members
+          return (
+            <div
+              ref={presenceTriggerRef}
+              className="shrink-0 flex items-center gap-1.5 rounded-lg px-2 py-1.5 hover:bg-gray-100 transition-colors cursor-default select-none"
+              onMouseEnter={handlePresenceEnter}
+              onMouseLeave={handlePresenceLeave}
+            >
+              <div className="flex -space-x-1.5">
+                {triggerUsers.slice(0, 3).map((u) => (
+                  <div
+                    key={u.id}
+                    className={`w-6 h-6 rounded-full ring-2 ring-white overflow-hidden flex items-center justify-center shrink-0 ${presence.length > 0 ? 'bg-indigo-100' : 'bg-gray-100'}`}
+                  >
+                    {u.avatar
+                      ? <img src={u.avatar} alt={u.name} className={`w-full h-full object-cover ${presence.length === 0 ? 'opacity-40' : ''}`} />
+                      : <span className={`text-[10px] font-semibold ${presence.length > 0 ? 'text-indigo-600' : 'text-gray-400'}`}>{u.name.charAt(0).toUpperCase()}</span>
+                    }
+                  </div>
+                ))}
+                {presence.length > 3 && (
+                  <div className="w-6 h-6 rounded-full ring-2 ring-white bg-gray-200 flex items-center justify-center shrink-0">
+                    <span className="text-[9px] font-semibold text-gray-600">+{presence.length - 3}</span>
+                  </div>
+                )}
+              </div>
+              <span className="text-xs font-medium text-gray-500">
+                {presence.length}/{members.length}
+              </span>
+
+              {/* Dropdown flottant en position fixed pour passer au-dessus de tout */}
+              {showPresence && presenceRect && (
+                <div
+                  style={{ position: 'fixed', top: presenceRect.bottom + 8, right: window.innerWidth - presenceRect.right }}
+                  className="w-64 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-[200]"
+                  onMouseEnter={handlePresenceEnter}
+                  onMouseLeave={handlePresenceLeave}
+                >
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 pb-1.5">
+                    {presence.length} connecté{presence.length > 1 ? 's' : ''} · {members.length} membre{members.length > 1 ? 's' : ''}
+                  </p>
+                  {sortedMembers.map((m: BoardMember) => {
+                    const isOnline = connectedIds.has(m.id)
+                    return (
+                      <div key={m.id} className="flex items-center gap-2.5 px-3 py-1.5 hover:bg-gray-50">
+                        <div className="relative shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden">
+                            {m.avatar
+                              ? <img src={m.avatar} alt={m.name} className="w-full h-full object-cover" />
+                              : <span className="text-xs font-semibold text-indigo-600">{m.name.charAt(0).toUpperCase()}</span>
+                            }
+                          </div>
+                          {isOnline && <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-400 ring-1 ring-white" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-700 truncate">{m.name}</p>
+                          <p className="text-[10px] text-gray-400">
+                            {m.role === 'OWNER' ? 'Propriétaire' : m.role === 'EDITOR' ? 'Éditeur' : 'Lecteur'}
+                            {isOnline && <span className="ml-1.5 text-green-500">· en ligne</span>}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Role badge (non-owner) */}
         {userRole && userRole !== 'OWNER' && (
@@ -285,6 +409,100 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           </button>
         )}
 
+        {/* Timer */}
+        {timerSecondsLeft !== null ? (
+          <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 shrink-0 ${timerSecondsLeft <= 10 ? 'bg-red-50 text-red-600' : timerSecondsLeft <= 30 ? 'bg-orange-50 text-orange-600' : 'bg-indigo-50 text-indigo-600'}`}>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9" strokeWidth={2} />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 7v5l3 3" />
+            </svg>
+            <span className="text-xs font-mono font-bold tabular-nums">
+              {String(Math.floor(timerSecondsLeft / 60)).padStart(2, '0')}:{String(timerSecondsLeft % 60).padStart(2, '0')}
+            </span>
+            {!isReadonly && (
+              <button onClick={stopTimer} className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity" title="Arrêter le timer">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        ) : !isReadonly && (
+          <div
+            ref={timerPickerRef}
+            className="relative shrink-0"
+            onMouseEnter={handleTimerPickerEnter}
+            onMouseLeave={handleTimerPickerLeave}
+          >
+            <button
+              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              title="Lancer un timer"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" strokeWidth={2} />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 7v5l3 3" />
+              </svg>
+              Timer
+            </button>
+            {showTimerPicker && timerPickerRect && (
+              <div
+                style={{ position: 'fixed', top: timerPickerRect.bottom + 8, left: timerPickerRect.left }}
+                className="w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-[200]"
+                onMouseEnter={handleTimerPickerEnter}
+                onMouseLeave={handleTimerPickerLeave}
+              >
+                {/* Saisie libre */}
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-3 pb-2">Durée personnalisée</p>
+                <div className="flex items-center gap-1.5 px-3 pb-3">
+                  <input
+                    type="number"
+                    min={0}
+                    max={99}
+                    value={timerCustomMin}
+                    onChange={(e) => setTimerCustomMin(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && launchCustomTimer()}
+                    className="w-14 text-center text-sm font-mono font-semibold border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    placeholder="mm"
+                  />
+                  <span className="text-gray-400 font-bold">:</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    value={timerCustomSec}
+                    onChange={(e) => setTimerCustomSec(e.target.value.padStart(2, '0'))}
+                    onKeyDown={(e) => e.key === 'Enter' && launchCustomTimer()}
+                    className="w-14 text-center text-sm font-mono font-semibold border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    placeholder="ss"
+                  />
+                  <button
+                    onClick={launchCustomTimer}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg py-1.5 transition-colors"
+                  >
+                    Go
+                  </button>
+                </div>
+
+                {/* Presets */}
+                <div className="border-t border-gray-100 pt-2">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-3 pb-1">Raccourcis</p>
+                  <div className="grid grid-cols-4 gap-1 px-3">
+                    {[1, 2, 3, 5, 10, 15, 20, 25].map((min) => (
+                      <button
+                        key={min}
+                        onClick={() => { startTimer(min * 60); setShowTimerPicker(false) }}
+                        className="text-xs font-medium text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg py-1.5 transition-colors"
+                      >
+                        {min}m
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {!isReadonly && (!session ? (
           <button
             onClick={startSession}
@@ -332,6 +550,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           toolFill={toolFill}
           toolOpacity={toolOpacity}
           clipboard={clipboard}
+          isReadonly={isReadonly}
           onAddCard={addCard}
           onMoveCard={moveCard}
           onResizeCard={resizeCard}
@@ -358,6 +577,10 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           onExitLinkCardsMode={() => setToolMode('select')}
           onPasteCards={handlePasteCards}
         />
+
+        {timerExpired && (
+          <TimerOverlay onDismiss={stopTimer} />
+        )}
 
         {!isReadonly && (
           <FloatingToolbar

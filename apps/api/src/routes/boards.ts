@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
+import { getIO } from '../lib/io.js'
 
 const boardSchema = z.object({
   name: z.string().min(1),
@@ -28,17 +29,41 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
   app.get('/', async (request) => {
     const { id } = request.user as { id: string }
     const [owned, shared] = await Promise.all([
-      prisma.board.findMany({ where: { ownerId: id }, orderBy: { updatedAt: 'desc' } }),
+      prisma.board.findMany({
+        where: { ownerId: id },
+        orderBy: { updatedAt: 'desc' },
+        include: { _count: { select: { shares: true } } },
+      }),
       prisma.boardShare.findMany({
         where: { userId: id },
-        include: { board: true },
+        include: { board: { include: { _count: { select: { shares: true } } } } },
         orderBy: { board: { updatedAt: 'desc' } },
       }),
     ])
     return [
-      ...owned.map((b) => ({ ...b, role: 'OWNER' as const })),
-      ...shared.map((s) => ({ ...s.board, role: s.role })),
+      ...owned.map((b) => ({ ...b, role: 'OWNER' as const, shareCount: b._count.shares })),
+      ...shared.map((s) => ({ ...s.board, role: s.role, shareCount: s.board._count.shares })),
     ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  })
+
+  // Connected user counts for all boards the requester has access to
+  app.get('/presence', async (request) => {
+    const { id: userId } = request.user as { id: string }
+    const io = getIO()
+    const [owned, shared] = await Promise.all([
+      prisma.board.findMany({ where: { ownerId: userId }, select: { id: true } }),
+      prisma.boardShare.findMany({ where: { userId }, select: { boardId: true } }),
+    ])
+    const boardIds = [...owned.map((b) => b.id), ...shared.map((s) => s.boardId)]
+    if (!io || boardIds.length === 0) return {}
+    const counts = await Promise.all(
+      boardIds.map(async (boardId) => {
+        const sockets = await io.in(`board:${boardId}`).fetchSockets()
+        const unique = new Set(sockets.map((s) => s.data.userId as string).filter(Boolean))
+        return [boardId, unique.size] as const
+      })
+    )
+    return Object.fromEntries(counts)
   })
 
   // Create board
@@ -90,6 +115,36 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     if (board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
     await prisma.board.delete({ where: { id } })
     return reply.status(204).send()
+  })
+
+  // ── Members ───────────────────────────────────────────────────────────────────
+
+  // Get all members with access (any role)
+  app.get('/:id/members', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const role = await getUserBoardRole(id, userId)
+    if (!role) return reply.status(403).send({ error: 'Accès refusé' })
+    const board = await prisma.board.findUnique({
+      where: { id },
+      include: {
+        owner: { select: { id: true, name: true, avatar: true } },
+        shares: {
+          include: { user: { select: { id: true, name: true, avatar: true } } },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    })
+    if (!board) return reply.status(404).send({ error: 'Board introuvable' })
+    return [
+      { id: board.owner.id, name: board.owner.name, avatar: board.owner.avatar, role: 'OWNER' as const },
+      ...board.shares.map((s) => ({
+        id: s.user.id,
+        name: s.user.name,
+        avatar: s.user.avatar,
+        role: s.role as 'EDITOR' | 'VIEWER',
+      })),
+    ]
   })
 
   // ── Share management ──────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ interface Props {
   frame: Frame
   cards: Card[]
   zoom?: number
+  isReadonly?: boolean
   onMove: (id: string, posX: number, posY: number, capturedCards: { id: string; startX: number; startY: number; frameStartX: number; frameStartY: number }[]) => void
   onStartDrag?: (id: string, capturedCardIds: string[]) => void
   onCommitDrag?: (id: string) => void
@@ -17,13 +18,14 @@ interface Props {
   onDelete: (id: string) => void
 }
 
-export function FrameItem({ frame, cards, zoom = 1, onMove, onStartDrag, onCommitDrag, onResize, onStartResize, onCommitResize, onUpdate, onDelete }: Props) {
+export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartDrag, onCommitDrag, onResize, onStartResize, onCommitResize, onUpdate, onDelete }: Props) {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [title, setTitle] = useState(frame.title)
   const capturedRef = useRef<{ id: string; startX: number; startY: number; frameStartX: number; frameStartY: number }[]>([])
 
   function handleMouseDown(e: React.MouseEvent) {
     if (isEditingTitle) return
+    if (isReadonly) return
     e.preventDefault()
     e.stopPropagation()
 
@@ -60,6 +62,7 @@ export function FrameItem({ frame, cards, zoom = 1, onMove, onStartDrag, onCommi
   }
 
   function handleResizeMouseDown(e: React.MouseEvent) {
+    if (isReadonly) return
     e.preventDefault()
     e.stopPropagation()
     onStartResize?.(frame.id)
@@ -96,8 +99,8 @@ export function FrameItem({ frame, cards, zoom = 1, onMove, onStartDrag, onCommi
     >
       {/* Frame body */}
       <div
-        className="w-full h-full rounded-2xl border-2 border-dashed cursor-move"
-        style={{ background: frame.color, borderColor: 'rgba(99,102,241,0.35)' }}
+        className="w-full h-full rounded-2xl border-2 border-dashed"
+        style={{ background: frame.color, borderColor: 'rgba(99,102,241,0.35)', cursor: isReadonly ? 'default' : 'move' }}
         onMouseDown={handleMouseDown}
       />
 
@@ -119,33 +122,37 @@ export function FrameItem({ frame, cards, zoom = 1, onMove, onStartDrag, onCommi
         ) : (
           <span
             className="text-xs font-semibold text-indigo-600 bg-white/80 rounded px-2 py-0.5 cursor-text hover:bg-white transition-colors"
-            onDoubleClick={(e) => { e.stopPropagation(); setIsEditingTitle(true) }}
+            onDoubleClick={(e) => { e.stopPropagation(); if (!isReadonly) setIsEditingTitle(true) }}
           >
             {title}
           </span>
         )}
 
         {/* Delete button */}
-        <button
-          className="opacity-0 group-hover/frame:opacity-100 transition-opacity w-5 h-5 rounded-full bg-white flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => { e.stopPropagation(); onDelete(frame.id) }}
-        >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        {!isReadonly && (
+          <button
+            className="opacity-0 group-hover/frame:opacity-100 transition-opacity w-5 h-5 rounded-full bg-white flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onDelete(frame.id) }}
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Resize handle */}
-      <div
-        className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover/frame:opacity-60 transition-opacity flex items-center justify-center"
-        onMouseDown={handleResizeMouseDown}
-      >
-        <svg className="w-3 h-3 text-indigo-400" viewBox="0 0 10 10" fill="currentColor">
-          <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-        </svg>
-      </div>
+      {!isReadonly && (
+        <div
+          className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover/frame:opacity-60 transition-opacity flex items-center justify-center"
+          onMouseDown={handleResizeMouseDown}
+        >
+          <svg className="w-3 h-3 text-indigo-400" viewBox="0 0 10 10" fill="currentColor">
+            <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+          </svg>
+        </div>
+      )}
     </div>
   )
 }
