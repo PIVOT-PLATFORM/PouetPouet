@@ -20,6 +20,7 @@ export interface Card {
   height: number
   color: string
   groupId: string | null
+  locked: boolean
   fieldValues: FieldValue[]
 }
 
@@ -71,6 +72,27 @@ export interface BoardMember {
   role: 'OWNER' | 'EDITOR' | 'VIEWER'
 }
 
+export interface BoardVote {
+  id: string
+  sessionId: string
+  cardId: string
+  userId: string
+  createdAt: string
+}
+
+export interface VoteSession {
+  id: string
+  boardId: string
+  status: 'ACTIVE' | 'CLOSED'
+  votesPerPerson: number
+  timerSeconds: number | null
+  timerEndsAt: string | null
+  voterIds: string[]
+  votes: BoardVote[]
+  createdAt: string
+  closedAt: string | null
+}
+
 const CARD_COLORS = ['#FEF08A', '#86EFAC', '#93C5FD', '#F9A8D4', '#FCA5A5', '#C4B5FD']
 export const GROUP_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899']
 
@@ -101,6 +123,8 @@ export function useBoard(boardId: string) {
   const [presence, setPresence] = useState<PresenceUser[]>([])
   const [members, setMembers] = useState<BoardMember[]>([])
   const [timerEndsAt, setTimerEndsAt] = useState<number | null>(null)
+  const [activeVoteSession, setActiveVoteSession] = useState<VoteSession | null>(null)
+  const [lastVoteSession, setLastVoteSession] = useState<VoteSession | null>(null)
   const socketRef = useRef(connectSocket())
   const cardsRef = useRef<Card[]>([])
   cardsRef.current = cards
@@ -175,6 +199,14 @@ export function useBoard(boardId: string) {
       .then(setMembers)
       .catch(() => {})
 
+    api.get<VoteSession | null>(`/api/boards/${boardId}/vote/current`)
+      .then((s) => { if (s) setActiveVoteSession(s) })
+      .catch(() => {})
+
+    api.get<VoteSession | null>(`/api/boards/${boardId}/vote/last`)
+      .then((s) => { if (s) setLastVoteSession(s) })
+      .catch(() => {})
+
     const socket = socketRef.current
     socket.emit('board:join', boardId)
 
@@ -196,6 +228,17 @@ export function useBoard(boardId: string) {
 
     socket.on('timer:started', ({ endsAt }: { endsAt: number }) => setTimerEndsAt(endsAt))
     socket.on('timer:stopped', () => setTimerEndsAt(null))
+
+    socket.on('vote:session:started', (session: VoteSession) => setActiveVoteSession(session))
+    socket.on('vote:updated', (session: VoteSession) => setActiveVoteSession(session))
+    socket.on('vote:session:closed', (session: VoteSession) => {
+      setActiveVoteSession(null)
+      setLastVoteSession(session)
+    })
+
+    socket.on('cards:locked', ({ ids, locked }: { ids: string[]; locked: boolean }) => {
+      setCards((prev) => prev.map((c) => ids.includes(c.id) ? { ...c, locked } : c))
+    })
 
     // Cards — process pending history callback before updating state
     socket.on('card:created', (card) => {
@@ -261,6 +304,8 @@ export function useBoard(boardId: string) {
     return () => {
       socket.emit('board:leave', boardId)
       ;['board:state', 'board:error', 'board:presence', 'timer:started', 'timer:stopped',
+        'vote:session:started', 'vote:updated', 'vote:session:closed',
+        'cards:locked',
         'card:created', 'card:moved', 'card:resized', 'card:updated', 'card:deleted', 'card:recolored',
         'cards:grouped', 'cards:ungrouped',
         'connection:created', 'connection:deleted',
@@ -706,11 +751,49 @@ export function useBoard(boardId: string) {
     socketRef.current.emit('timer:stop', { boardId })
   }
 
+  // ── Vote ──────────────────────────────────────────────────────────────────────
+  function startVote(config: { votesPerPerson: number; timerSeconds: number | null; voterIds: string[] }) {
+    socketRef.current.emit('vote:start', { boardId, ...config })
+  }
+
+  function castVote(cardId: string) {
+    if (!activeVoteSession) return
+    socketRef.current.emit('vote:cast', { sessionId: activeVoteSession.id, boardId, cardId })
+  }
+
+  function uncastVote(cardId: string) {
+    if (!activeVoteSession) return
+    socketRef.current.emit('vote:uncast', { sessionId: activeVoteSession.id, boardId, cardId })
+  }
+
+  function stopVote() {
+    if (!activeVoteSession) return
+    socketRef.current.emit('vote:stop', { sessionId: activeVoteSession.id, boardId })
+  }
+
+  function extendVote(extraSeconds: number) {
+    if (!activeVoteSession) return
+    socketRef.current.emit('vote:extend', { sessionId: activeVoteSession.id, boardId, extraSeconds })
+  }
+
+  // ── Lock ──────────────────────────────────────────────────────────────────────
+  function lockCards(ids: string[], locked: boolean) {
+    socketRef.current.emit('card:lock', { ids, boardId, locked })
+  }
+
+  function lockSelected(locked: boolean) {
+    const ids = Array.from(selectedIdsRef.current)
+    if (ids.length === 0) return
+    lockCards(ids, locked)
+  }
+
   const isReadonly = userRole === 'VIEWER'
 
   return {
     board, cards, connections, frames, fields, selectedIds, isLoading, userRole, isReadonly, accessDenied, presence, members,
     timerEndsAt, startTimer, stopTimer,
+    activeVoteSession, lastVoteSession, startVote, castVote, uncastVote, stopVote, extendVote,
+    lockCards, lockSelected,
     addCard, moveCard, resizeCard, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
     groupSelected,

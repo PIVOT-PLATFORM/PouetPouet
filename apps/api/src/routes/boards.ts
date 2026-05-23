@@ -250,4 +250,34 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     await prisma.boardShare.delete({ where: { id: shareId } })
     return reply.status(204).send()
   })
+
+  // ── Vote sessions ─────────────────────────────────────────────────────────────
+
+  // Active vote session (any role)
+  app.get('/:id/vote/current', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const role = await getUserBoardRole(id, userId)
+    if (!role) return reply.status(403).send({ error: 'Accès refusé' })
+    const session = await prisma.boardVoteSession.findFirst({
+      where: { boardId: id, status: 'ACTIVE' },
+      include: { votes: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    return reply.send(session ?? null)
+  })
+
+  // Last closed vote session (any role)
+  app.get('/:id/vote/last', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const role = await getUserBoardRole(id, userId)
+    if (!role) return reply.status(403).send({ error: 'Accès refusé' })
+    const session = await prisma.boardVoteSession.findFirst({
+      where: { boardId: id, status: 'CLOSED' },
+      include: { votes: true },
+      orderBy: { closedAt: 'desc' },
+    })
+    return reply.send(session ?? null)
+  })
 }

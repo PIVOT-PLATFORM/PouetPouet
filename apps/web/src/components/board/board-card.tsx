@@ -23,6 +23,7 @@ interface Props {
   onSelect?: (id: string, addToSelection: boolean) => void
   onOpenDetail: (id: string) => void
   onStartConnect?: (cardId: string, e: React.MouseEvent) => void
+  onSetLocked?: (id: string, locked: boolean) => void
   linkCardsMode?: boolean
   isLinkSource?: boolean
   onLinkCardsClick?: (cardId: string) => void
@@ -121,7 +122,7 @@ export function BoardCard({
   card, fields, zoom = 1, isSelected, groupColor, drawMode, isReadonly,
   onMove, onStartDrag, onCommitDrag, onUpdate, onRecolor, onDelete,
   onResize, onStartResize, onCommitResize,
-  onSelect, onOpenDetail, onStartConnect,
+  onSelect, onOpenDetail, onStartConnect, onSetLocked,
   linkCardsMode, isLinkSource, onLinkCardsClick,
 }: Props) {
   const isLabel = card.type === 'LABEL'
@@ -152,9 +153,11 @@ export function BoardCard({
   }, [card.content])
 
   function handleMouseDown(e: React.MouseEvent) {
+    if (e.button !== 0) return
     if (drawMode) return  // let event bubble to canvas so drawing works over cards
     if (isEditing) return
     if (isReadonly) return
+    if (card.locked) return
     // Safety net: if the mousedown bubbled up from a connect handle, ignore it
     if ((e.target as HTMLElement).closest('[data-connect-handle]')) return
     e.preventDefault()
@@ -183,6 +186,7 @@ export function BoardCard({
 
   function handleResizeMouseDown(e: React.MouseEvent) {
     if (isReadonly) return
+    if (card.locked) return
     e.preventDefault(); e.stopPropagation()
     onStartResize?.(card.id)
     const startX = e.clientX, startY = e.clientY
@@ -220,8 +224,9 @@ export function BoardCard({
 
   function handleClick(e: React.MouseEvent) {
     if (isDragging.current) return
+    if (isReadonly) return
     if (e.shiftKey || e.metaKey || e.ctrlKey) { onSelect?.(card.id, true); return }
-    if (!isReadonly && !isEditing && card.type === 'TEXT') setIsEditing(true)
+    if (!isEditing && card.type === 'TEXT') setIsEditing(true)
     if (!isEditing) onSelect?.(card.id, false)
   }
 
@@ -248,7 +253,7 @@ export function BoardCard({
   const chipsPerRow = Math.max(1, Math.floor((cardW - 16) / CHIP_AVG_W))
   const maxVisible = maxRows * chipsPerRow
 
-  const outline = isSelected ? '2px solid #6366f1' : groupColor ? `2px solid ${groupColor}` : 'none'
+  const outline = isSelected ? '2px solid #6366f1' : card.locked ? '1.5px solid #d1d5db' : groupColor ? `2px solid ${groupColor}` : 'none'
 
   // ── SHAPE card ──────────────────────────────────────────────────────────────
   if (card.type === 'SHAPE') {
@@ -587,39 +592,61 @@ export function BoardCard({
         width: Math.max(card.width, MIN_W),
         height: Math.max(card.height, MIN_H),
         background: card.type === 'IMAGE' ? '#1e1e1e' : card.color,
-        cursor: isReadonly ? 'default' : (isEditing ? 'default' : 'grab'),
+        cursor: isReadonly ? 'default' : (card.locked ? 'default' : isEditing ? 'default' : 'grab'),
         outline, outlineOffset: '2px',
       }}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
     >
       {/* ── Actions row ── */}
-      {!isReadonly && (
-        <div className="shrink-0 flex justify-end items-center gap-1 px-2 pt-1.5 h-7 opacity-0 group-hover:opacity-100 transition-opacity">
-          {card.type !== 'LINK' && (
+      <div className="shrink-0 flex justify-end items-center gap-1 px-2 pt-1.5 h-7 opacity-0 group-hover:opacity-100 transition-opacity">
+        {isReadonly ? (
+          <div className="w-5 h-5 rounded-full flex items-center justify-center text-gray-400/50" title="Lecture seule">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-4-5a4 4 0 118 0v1H8v-1z" />
+              <rect x="5" y="12" width="14" height="9" rx="2" strokeWidth={2} strokeLinecap="round" />
+            </svg>
+          </div>
+        ) : (
+          <>
+            {card.type !== 'LINK' && (
+              <button
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onOpenDetail(card.id) }}
+                className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500/60 hover:text-indigo-600 hover:bg-indigo-100/60 transition-colors"
+                title="Détail"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-16h2a2 2 0 012 2v2m-4 12h2a2 2 0 002-2v-2" />
+                </svg>
+              </button>
+            )}
             <button
               onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); onOpenDetail(card.id) }}
-              className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500/60 hover:text-indigo-600 hover:bg-indigo-100/60 transition-colors"
-              title="Détail"
+              onClick={(e) => { e.stopPropagation(); onSetLocked?.(card.id, !card.locked) }}
+              className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${card.locked ? 'text-amber-600 bg-amber-100/80 hover:bg-amber-200/80' : 'text-gray-500/60 hover:text-amber-600 hover:bg-amber-100/60'}`}
+              title={card.locked ? 'Déverrouiller' : 'Verrouiller'}
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-16h2a2 2 0 012 2v2m-4 12h2a2 2 0 002-2v-2" />
+                {card.locked
+                  ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6-6h12a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2zm10-4a4 4 0 10-8 0v4h8V9z" />
+                  : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                }
               </svg>
             </button>
-          )}
-          <button
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
-            className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500/60 hover:text-red-600 hover:bg-red-100/60 transition-colors"
-            title="Supprimer"
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
+            <button
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
+              className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500/60 hover:text-red-600 hover:bg-red-100/60 transition-colors"
+              title="Supprimer"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </>
+        )}
+      </div>
 
       {/* ── Content ── */}
       <div className="flex-1 min-h-0 px-3 overflow-hidden">

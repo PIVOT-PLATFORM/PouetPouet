@@ -20,6 +20,7 @@ model User {
 
   boards        Board[]
   boardShares   BoardShare[]
+  boardVotes    BoardVote[]
   sessions      SessionParticipant[]
   scrumRooms    ScrumRoom[]
   dailyTeams    DailyTeam[]
@@ -38,13 +39,14 @@ model Board {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  cards       Card[]
-  connections CardConnection[]
-  frames      Frame[]
-  fields      BoardField[]
-  sessions    Session[]
-  shares      BoardShare[]
+  owner        User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cards        Card[]
+  connections  CardConnection[]
+  frames       Frame[]
+  fields       BoardField[]
+  sessions     Session[]
+  shares       BoardShare[]
+  voteSessions BoardVoteSession[]
 }
 
 model BoardShare {
@@ -71,6 +73,7 @@ model Card {
   height    Float    @default(128)
   color     String   @default("#FFEB3B")
   groupId   String?
+  locked    Boolean  @default(false)
   authorId  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -345,6 +348,39 @@ enum DailyParticipantStatus {
 enum DrawMode {
   WEIGHTED
   RANDOM
+}
+
+// ── Board Voting ──────────────────────────────────────────────────────────────
+
+model BoardVoteSession {
+  id             String     @id @default(cuid())
+  boardId        String
+  status         VoteStatus @default(ACTIVE)
+  votesPerPerson Int        @default(3)
+  timerSeconds   Int?
+  timerEndsAt    DateTime?
+  voterIds       String[]
+  createdAt      DateTime   @default(now())
+  closedAt       DateTime?
+
+  board Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  votes BoardVote[]
+}
+
+model BoardVote {
+  id        String   @id @default(cuid())
+  sessionId String
+  cardId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  session BoardVoteSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum VoteStatus {
+  ACTIVE
+  CLOSED
 }
 
 // ── Wheel / Random picker ─────────────────────────────────────────────────────
