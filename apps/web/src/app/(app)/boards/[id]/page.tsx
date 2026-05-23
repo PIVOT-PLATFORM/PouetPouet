@@ -321,13 +321,13 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
               if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur() }
               else if (e.key === 'Escape') { setEditingName(false) }
             }}
-            className="font-semibold text-gray-900 flex-1 max-w-xs truncate min-w-0 bg-white border border-indigo-300 rounded-lg px-2 py-1 -my-1 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+            className="font-semibold text-gray-900 flex-1 max-w-md truncate min-w-0 bg-white border border-indigo-300 rounded-lg px-2 py-1 -my-1 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
           />
         ) : (
           <h1
             onClick={startEditingName}
             title={userRole === 'OWNER' ? 'Cliquer pour renommer' : undefined}
-            className={`font-semibold text-gray-900 flex-1 max-w-xs truncate min-w-0 px-2 py-1 -my-1 rounded-lg ${userRole === 'OWNER' ? 'cursor-text hover:bg-gray-100' : ''}`}
+            className={`font-semibold text-gray-900 flex-1 max-w-md truncate min-w-0 px-2 py-1 -my-1 rounded-lg ${userRole === 'OWNER' ? 'cursor-text hover:bg-gray-100' : ''}`}
           >
             {board?.name}
           </h1>
