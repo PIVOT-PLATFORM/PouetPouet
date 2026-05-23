@@ -11,6 +11,7 @@ import { scrumRoutes } from './routes/scrum.js'
 import { dailyRoutes } from './routes/daily.js'
 import { wheelRoutes } from './routes/wheel.js'
 import { registerSocketHandlers } from './sockets/index.js'
+import { setIO } from './lib/io.js'
 
 const PORT = Number(process.env.PORT ?? 4000)
 
@@ -55,6 +56,19 @@ const io = new Server(app.server, {
   },
 })
 
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token
+  if (!token || typeof token !== 'string') return next(new Error('Unauthorized'))
+  try {
+    const payload = app.jwt.verify<{ id: string; email: string }>(token)
+    socket.data.userId = payload.id
+    next()
+  } catch {
+    next(new Error('Unauthorized'))
+  }
+})
+
+setIO(io)
 registerSocketHandlers(io)
 
 await app.listen({ port: PORT, host: '0.0.0.0' })

@@ -10,6 +10,7 @@ interface Props {
   isSelected?: boolean
   groupColor?: string
   drawMode?: boolean
+  isReadonly?: boolean
   onMove: (id: string, x: number, y: number) => void
   onStartDrag?: (id: string) => void
   onCommitDrag?: (id: string) => void
@@ -117,7 +118,7 @@ function formatFieldValue(type: string, value: string): string {
 }
 
 export function BoardCard({
-  card, fields, zoom = 1, isSelected, groupColor, drawMode,
+  card, fields, zoom = 1, isSelected, groupColor, drawMode, isReadonly,
   onMove, onStartDrag, onCommitDrag, onUpdate, onRecolor, onDelete,
   onResize, onStartResize, onCommitResize,
   onSelect, onOpenDetail, onStartConnect,
@@ -153,6 +154,7 @@ export function BoardCard({
   function handleMouseDown(e: React.MouseEvent) {
     if (drawMode) return  // let event bubble to canvas so drawing works over cards
     if (isEditing) return
+    if (isReadonly) return
     // Safety net: if the mousedown bubbled up from a connect handle, ignore it
     if ((e.target as HTMLElement).closest('[data-connect-handle]')) return
     e.preventDefault()
@@ -180,6 +182,7 @@ export function BoardCard({
   const minH = card.type === 'SHAPE' || card.type === 'DRAW' ? SHAPE_MIN : isLabel ? 20 : MIN_H
 
   function handleResizeMouseDown(e: React.MouseEvent) {
+    if (isReadonly) return
     e.preventDefault(); e.stopPropagation()
     onStartResize?.(card.id)
     const startX = e.clientX, startY = e.clientY
@@ -218,7 +221,7 @@ export function BoardCard({
   function handleClick(e: React.MouseEvent) {
     if (isDragging.current) return
     if (e.shiftKey || e.metaKey || e.ctrlKey) { onSelect?.(card.id, true); return }
-    if (!isEditing && card.type === 'TEXT') setIsEditing(true)
+    if (!isReadonly && !isEditing && card.type === 'TEXT') setIsEditing(true)
     if (!isEditing) onSelect?.(card.id, false)
   }
 
@@ -278,7 +281,7 @@ export function BoardCard({
       <div
         data-card-id={card.id}
         className="absolute group select-none"
-        style={{ left: card.posX, top: card.posY, width: w, height: h, cursor: 'grab', outline, outlineOffset: '2px' }}
+        style={{ left: card.posX, top: card.posY, width: w, height: h, cursor: isReadonly ? 'default' : 'grab', outline, outlineOffset: '2px' }}
         onMouseDown={handleMouseDown}
         onClick={(e) => {
           if (isDragging.current) return
@@ -287,7 +290,7 @@ export function BoardCard({
         }}
       >
         {/* ── Shape editing panel (visible when selected) ── */}
-        {isSelected && (
+        {isSelected && !isReadonly && (
           <div
             className="absolute -top-9 left-0 flex items-center gap-0.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-xl shadow-xl px-2 py-1.5 whitespace-nowrap"
             style={{ zIndex: 10 }}
@@ -358,26 +361,30 @@ export function BoardCard({
           {shapeType === 'triangle' && <polygon points={`${w / 2},${pad} ${w - pad},${h - pad} ${pad},${h - pad}`} {...shapeAttrs} />}
         </svg>
 
-        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
-            className="w-6 h-6 rounded-full bg-white/90 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm"
+        {!isReadonly && (
+          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
+              className="w-6 h-6 rounded-full bg-white/90 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+        {!isReadonly && (
+          <div
+            className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity flex items-center justify-center"
+            onMouseDown={handleResizeMouseDown}
           >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-3 h-3 text-gray-600" viewBox="0 0 10 10">
+              <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
             </svg>
-          </button>
-        </div>
-        <div
-          className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity flex items-center justify-center"
-          onMouseDown={handleResizeMouseDown}
-        >
-          <svg className="w-3 h-3 text-gray-600" viewBox="0 0 10 10">
-            <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-          </svg>
-        </div>
-        <ConnectHandles cardId={card.id} onStart={onStartConnect} />
+          </div>
+        )}
+        <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />
         {linkCardsMode && onLinkCardsClick && (
           <LinkCardsOverlay cardId={card.id} isSource={isLinkSource} onClick={onLinkCardsClick} />
         )}
@@ -393,33 +400,37 @@ export function BoardCard({
       <div
         data-card-id={card.id}
         className="absolute group select-none"
-        style={{ left: card.posX, top: card.posY, width: w, height: h, cursor: 'grab', outline, outlineOffset: '2px' }}
+        style={{ left: card.posX, top: card.posY, width: w, height: h, cursor: isReadonly ? 'default' : 'grab', outline, outlineOffset: '2px' }}
         onMouseDown={handleMouseDown}
         onClick={handleClick}
       >
         <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block' }}>
           <path d={card.content} stroke={card.color} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
-            className="w-6 h-6 rounded-full bg-white/90 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm"
+        {!isReadonly && (
+          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
+              className="w-6 h-6 rounded-full bg-white/90 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+        {!isReadonly && (
+          <div
+            className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity flex items-center justify-center"
+            onMouseDown={handleResizeMouseDown}
           >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-3 h-3 text-gray-600" viewBox="0 0 10 10">
+              <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
             </svg>
-          </button>
-        </div>
-        <div
-          className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity flex items-center justify-center"
-          onMouseDown={handleResizeMouseDown}
-        >
-          <svg className="w-3 h-3 text-gray-600" viewBox="0 0 10 10">
-            <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-          </svg>
-        </div>
-        <ConnectHandles cardId={card.id} onStart={onStartConnect} />
+          </div>
+        )}
+        <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />
         {linkCardsMode && onLinkCardsClick && (
           <LinkCardsOverlay cardId={card.id} isSource={isLinkSource} onClick={onLinkCardsClick} />
         )}
@@ -445,17 +456,17 @@ export function BoardCard({
         style={{
           left: card.posX,
           top: card.posY,
-          cursor: isEditing ? 'default' : 'grab',
+          cursor: isReadonly ? 'default' : (isEditing ? 'default' : 'grab'),
           outline: isSelected ? '1.5px dashed #818cf8' : 'none',
           outlineOffset: 6,
           borderRadius: 4,
         }}
         onMouseDown={handleMouseDown}
         onClick={handleClick}
-        onDoubleClick={(e) => { e.stopPropagation(); setIsEditing(true) }}
+        onDoubleClick={(e) => { e.stopPropagation(); if (!isReadonly) setIsEditing(true) }}
       >
         {/* ── Formatting toolbar (visible when selected) ── */}
-        {isSelected && (
+        {isSelected && !isReadonly && (
           <div
             className="absolute -top-9 left-0 flex items-center gap-0.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-xl shadow-xl px-1.5 py-1 whitespace-nowrap"
             style={{ zIndex: 10 }}
@@ -532,28 +543,32 @@ export function BoardCard({
         )}
 
         {/* ── Delete button (inside bounds, top-right) ── */}
-        <button
-          className="absolute top-0 right-0 w-5 h-5 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ zIndex: 5 }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
-          title="Supprimer"
-        >
-          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        {!isReadonly && (
+          <button
+            className="absolute top-0 right-0 w-5 h-5 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ zIndex: 5 }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
+            title="Supprimer"
+          >
+            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
 
         {/* ── Resize handle ── */}
-        <div
-          className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover:opacity-50 transition-opacity flex items-center justify-center"
-          onMouseDown={handleResizeMouseDown}
-        >
-          <svg className="w-2.5 h-2.5 text-gray-400" viewBox="0 0 10 10">
-            <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-          </svg>
-        </div>
-        <ConnectHandles cardId={card.id} onStart={onStartConnect} />
+        {!isReadonly && (
+          <div
+            className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover:opacity-50 transition-opacity flex items-center justify-center"
+            onMouseDown={handleResizeMouseDown}
+          >
+            <svg className="w-2.5 h-2.5 text-gray-400" viewBox="0 0 10 10">
+              <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+            </svg>
+          </div>
+        )}
+        <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />
         {linkCardsMode && onLinkCardsClick && (
           <LinkCardsOverlay cardId={card.id} isSource={isLinkSource} onClick={onLinkCardsClick} />
         )}
@@ -572,37 +587,39 @@ export function BoardCard({
         width: Math.max(card.width, MIN_W),
         height: Math.max(card.height, MIN_H),
         background: card.type === 'IMAGE' ? '#1e1e1e' : card.color,
-        cursor: isEditing ? 'default' : 'grab',
+        cursor: isReadonly ? 'default' : (isEditing ? 'default' : 'grab'),
         outline, outlineOffset: '2px',
       }}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
     >
       {/* ── Actions row ── */}
-      <div className="shrink-0 flex justify-end items-center gap-1 px-2 pt-1.5 h-7 opacity-0 group-hover:opacity-100 transition-opacity">
-        {card.type !== 'LINK' && (
+      {!isReadonly && (
+        <div className="shrink-0 flex justify-end items-center gap-1 px-2 pt-1.5 h-7 opacity-0 group-hover:opacity-100 transition-opacity">
+          {card.type !== 'LINK' && (
+            <button
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onOpenDetail(card.id) }}
+              className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500/60 hover:text-indigo-600 hover:bg-indigo-100/60 transition-colors"
+              title="Détail"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-16h2a2 2 0 012 2v2m-4 12h2a2 2 0 002-2v-2" />
+              </svg>
+            </button>
+          )}
           <button
             onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onOpenDetail(card.id) }}
-            className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500/60 hover:text-indigo-600 hover:bg-indigo-100/60 transition-colors"
-            title="Détail"
+            onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
+            className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500/60 hover:text-red-600 hover:bg-red-100/60 transition-colors"
+            title="Supprimer"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-16h2a2 2 0 012 2v2m-4 12h2a2 2 0 002-2v-2" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-        )}
-        <button
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
-          className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500/60 hover:text-red-600 hover:bg-red-100/60 transition-colors"
-          title="Supprimer"
-        >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
+        </div>
+      )}
 
       {/* ── Content ── */}
       <div className="flex-1 min-h-0 px-3 overflow-hidden">
@@ -671,16 +688,18 @@ export function BoardCard({
       <div className="shrink-0 h-2" />
 
       {/* ── Resize handle ── */}
-      <div
-        className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-50 transition-opacity flex items-center justify-center"
-        onMouseDown={handleResizeMouseDown}
-      >
-        <svg className="w-3 h-3 text-gray-500" viewBox="0 0 10 10">
-          <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-        </svg>
-      </div>
+      {!isReadonly && (
+        <div
+          className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-50 transition-opacity flex items-center justify-center"
+          onMouseDown={handleResizeMouseDown}
+        >
+          <svg className="w-3 h-3 text-gray-500" viewBox="0 0 10 10">
+            <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+          </svg>
+        </div>
+      )}
 
-      <ConnectHandles cardId={card.id} onStart={onStartConnect} />
+      <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />
         {linkCardsMode && onLinkCardsClick && (
           <LinkCardsOverlay cardId={card.id} isSource={isLinkSource} onClick={onLinkCardsClick} />
         )}

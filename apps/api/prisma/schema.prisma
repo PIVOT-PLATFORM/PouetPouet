@@ -19,6 +19,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   boards        Board[]
+  boardShares   BoardShare[]
   sessions      SessionParticipant[]
   scrumRooms    ScrumRoom[]
   dailyTeams    DailyTeam[]
@@ -28,12 +29,14 @@ model User {
 }
 
 model Board {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  ownerId     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  ownerId       String
+  shareToken    String?   @unique
+  shareLinkRole BoardRole @default(VIEWER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   owner       User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   cards       Card[]
@@ -41,6 +44,20 @@ model Board {
   frames      Frame[]
   fields      BoardField[]
   sessions    Session[]
+  shares      BoardShare[]
+}
+
+model BoardShare {
+  id        String    @id @default(cuid())
+  boardId   String
+  userId    String
+  role      BoardRole @default(VIEWER)
+  createdAt DateTime  @default(now())
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
 }
 
 model Card {
@@ -164,6 +181,11 @@ model ActivityResponse {
 
   activity    Activity           @relation(fields: [activityId], references: [id], onDelete: Cascade)
   participant SessionParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+}
+
+enum BoardRole {
+  VIEWER
+  EDITOR
 }
 
 enum CardType {

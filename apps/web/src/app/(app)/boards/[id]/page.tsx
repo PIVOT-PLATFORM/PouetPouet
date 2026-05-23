@@ -3,18 +3,21 @@
 import { use, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useBoard } from '@/hooks/useBoard'
-import type { Card } from '@/hooks/useBoard'
+import type { Card, BoardMember } from '@/hooks/useBoard'
 import { useSession } from '@/hooks/useSession'
 import { BoardCanvas } from '@/components/board/board-canvas'
 import { BoardFieldsPanel } from '@/components/board/board-fields-panel'
+import { ShareModal } from '@/components/board/share-modal'
 import { HostPanel } from '@/components/session/host-panel'
 import { FloatingToolbar } from '@/components/board/floating-toolbar'
 import type { ToolMode, StrokeSize } from '@/components/board/floating-toolbar'
+import { TimerOverlay } from '@/components/board/timer-overlay'
 
 export default function BoardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const {
-    board, cards, connections, frames, fields, selectedIds, isLoading,
+    board, cards, connections, frames, fields, selectedIds, isLoading, userRole, isReadonly, accessDenied, presence, members,
+    timerEndsAt, startTimer, stopTimer,
     addCard, moveCard, resizeCard, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
     groupSelected,
@@ -36,6 +39,54 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const [clipboard, setClipboard] = useState<ClipCard[]>([])
 
   const [showFieldsPanel, setShowFieldsPanel] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [showPresence, setShowPresence] = useState(false)
+  const [showTimerPicker, setShowTimerPicker] = useState(false)
+  const [timerCustomMin, setTimerCustomMin] = useState('5')
+  const [timerCustomSec, setTimerCustomSec] = useState('00')
+  const [now, setNow] = useState(() => Date.now())
+  const timerPickerRef = useRef<HTMLDivElement>(null)
+  const timerPickerLeaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [timerPickerRect, setTimerPickerRect] = useState<DOMRect | null>(null)
+
+  function launchCustomTimer() {
+    const min = Math.max(0, parseInt(timerCustomMin, 10) || 0)
+    const sec = Math.max(0, Math.min(59, parseInt(timerCustomSec, 10) || 0))
+    const total = min * 60 + sec
+    if (total <= 0) return
+    startTimer(total)
+    setShowTimerPicker(false)
+  }
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 500)
+    return () => clearInterval(id)
+  }, [])
+
+  const timerSecondsLeft = timerEndsAt !== null ? Math.max(0, Math.ceil((timerEndsAt - now) / 1000)) : null
+  const timerExpired = timerEndsAt !== null && now >= timerEndsAt
+
+  function handleTimerPickerEnter() {
+    if (timerPickerLeaveTimer.current) clearTimeout(timerPickerLeaveTimer.current)
+    if (timerPickerRef.current) setTimerPickerRect(timerPickerRef.current.getBoundingClientRect())
+    setShowTimerPicker(true)
+  }
+  function handleTimerPickerLeave() {
+    timerPickerLeaveTimer.current = setTimeout(() => setShowTimerPicker(false), 150)
+  }
+  const presenceTriggerRef = useRef<HTMLDivElement>(null)
+  const presenceLeaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [presenceRect, setPresenceRect] = useState<DOMRect | null>(null)
+
+  function handlePresenceEnter() {
+    if (presenceLeaveTimer.current) clearTimeout(presenceLeaveTimer.current)
+    if (presenceTriggerRef.current) setPresenceRect(presenceTriggerRef.current.getBoundingClientRect())
+    setShowPresence(true)
+  }
+
+  function handlePresenceLeave() {
+    presenceLeaveTimer.current = setTimeout(() => setShowPresence(false), 150)
+  }
   const [confirmReset, setConfirmReset] = useState(false)
   const confirmResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -65,6 +116,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      if (isReadonly) return
       // Ctrl+Z / Ctrl+Y: undo / redo (before focus check so they work even in inputs)
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault()
@@ -92,7 +144,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedIds, deleteSelected, selectCards, cards, undo, redo])
+  }, [isReadonly, selectedIds, deleteSelected, selectCards, cards, undo, redo])
 
   function handlePasteCards(cb: ClipCard[], canvasX: number, canvasY: number) {
     if (cb.length === 0) return
@@ -120,6 +172,21 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     )
   }
 
+  if (accessDenied) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-4">
+        <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center">
+          <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-5V7m0 0a5 5 0 00-5 5h10a5 5 0 00-5-5z" />
+          </svg>
+        </div>
+        <h2 className="text-lg font-semibold text-gray-900">Accès refusé</h2>
+        <p className="text-sm text-gray-500">Tu n'as pas accès à ce board. Demande au propriétaire de te partager le lien.</p>
+        <Link href="/dashboard" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">← Retour au dashboard</Link>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)]">
       {/* Toolbar */}
@@ -132,45 +199,144 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
         <h1 className="font-semibold text-gray-900 flex-1 truncate min-w-0">{board?.name}</h1>
 
+        {/* Presence indicator */}
+        {members.length > 0 && (() => {
+          const connectedIds = new Set(presence.map((u) => u.id))
+          const sortedMembers = [...members].sort((a, b) => (connectedIds.has(b.id) ? 1 : 0) - (connectedIds.has(a.id) ? 1 : 0))
+          const triggerUsers = presence.length > 0 ? presence : members
+          return (
+            <div
+              ref={presenceTriggerRef}
+              className="shrink-0 flex items-center gap-1.5 rounded-lg px-2 py-1.5 hover:bg-gray-100 transition-colors cursor-default select-none"
+              onMouseEnter={handlePresenceEnter}
+              onMouseLeave={handlePresenceLeave}
+            >
+              <div className="flex -space-x-1.5">
+                {triggerUsers.slice(0, 3).map((u) => (
+                  <div
+                    key={u.id}
+                    className={`w-6 h-6 rounded-full ring-2 ring-white overflow-hidden flex items-center justify-center shrink-0 ${presence.length > 0 ? 'bg-indigo-100' : 'bg-gray-100'}`}
+                  >
+                    {u.avatar
+                      ? <img src={u.avatar} alt={u.name} className={`w-full h-full object-cover ${presence.length === 0 ? 'opacity-40' : ''}`} />
+                      : <span className={`text-[10px] font-semibold ${presence.length > 0 ? 'text-indigo-600' : 'text-gray-400'}`}>{u.name.charAt(0).toUpperCase()}</span>
+                    }
+                  </div>
+                ))}
+                {presence.length > 3 && (
+                  <div className="w-6 h-6 rounded-full ring-2 ring-white bg-gray-200 flex items-center justify-center shrink-0">
+                    <span className="text-[9px] font-semibold text-gray-600">+{presence.length - 3}</span>
+                  </div>
+                )}
+              </div>
+              <span className="text-xs font-medium text-gray-500">
+                {presence.length}/{members.length}
+              </span>
+
+              {/* Dropdown flottant en position fixed pour passer au-dessus de tout */}
+              {showPresence && presenceRect && (
+                <div
+                  style={{ position: 'fixed', top: presenceRect.bottom + 8, right: window.innerWidth - presenceRect.right }}
+                  className="w-64 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-[200]"
+                  onMouseEnter={handlePresenceEnter}
+                  onMouseLeave={handlePresenceLeave}
+                >
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 pb-1.5">
+                    {presence.length} connecté{presence.length > 1 ? 's' : ''} · {members.length} membre{members.length > 1 ? 's' : ''}
+                  </p>
+                  {sortedMembers.map((m: BoardMember) => {
+                    const isOnline = connectedIds.has(m.id)
+                    return (
+                      <div key={m.id} className="flex items-center gap-2.5 px-3 py-1.5 hover:bg-gray-50">
+                        <div className="relative shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden">
+                            {m.avatar
+                              ? <img src={m.avatar} alt={m.name} className="w-full h-full object-cover" />
+                              : <span className="text-xs font-semibold text-indigo-600">{m.name.charAt(0).toUpperCase()}</span>
+                            }
+                          </div>
+                          {isOnline && <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-400 ring-1 ring-white" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-700 truncate">{m.name}</p>
+                          <p className="text-[10px] text-gray-400">
+                            {m.role === 'OWNER' ? 'Propriétaire' : m.role === 'EDITOR' ? 'Éditeur' : 'Lecteur'}
+                            {isOnline && <span className="ml-1.5 text-green-500">· en ligne</span>}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
+        {/* Role badge (non-owner) */}
+        {userRole && userRole !== 'OWNER' && (
+          <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${isReadonly ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}`}>
+            {isReadonly ? 'Lecture seule' : 'Éditeur'}
+          </span>
+        )}
+
+        {/* Share button (owner only) */}
+        {userRole === 'OWNER' && (
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
+            title="Partager le board"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            Partager
+          </button>
+        )}
+
         {/* Undo / Redo */}
-        <div className="flex items-center gap-0.5 shrink-0">
-          <button
-            onClick={undo}
-            disabled={!canUndo}
-            title="Annuler (Ctrl+Z)"
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6-6M3 10l6 6" />
-            </svg>
-          </button>
-          <button
-            onClick={redo}
-            disabled={!canRedo}
-            title="Rétablir (Ctrl+Y)"
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a8 8 0 00-8 8v2M21 10l-6-6M21 10l-6 6" />
-            </svg>
-          </button>
-        </div>
+        {!isReadonly && (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              onClick={undo}
+              disabled={!canUndo}
+              title="Annuler (Ctrl+Z)"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6-6M3 10l6 6" />
+              </svg>
+            </button>
+            <button
+              onClick={redo}
+              disabled={!canRedo}
+              title="Rétablir (Ctrl+Y)"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a8 8 0 00-8 8v2M21 10l-6-6M21 10l-6 6" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Reset board */}
-        <button
-          onClick={handleResetClick}
-          title={confirmReset ? 'Cliquer pour confirmer la réinitialisation' : 'Réinitialiser le board'}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors shrink-0 ${
-            confirmReset
-              ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
-              : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-          {confirmReset ? 'Confirmer ?' : 'Reset'}
-        </button>
+        {!isReadonly && (
+          <button
+            onClick={handleResetClick}
+            title={confirmReset ? 'Cliquer pour confirmer la réinitialisation' : 'Réinitialiser le board'}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors shrink-0 ${
+              confirmReset
+                ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+                : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            {confirmReset ? 'Confirmer ?' : 'Reset'}
+          </button>
+        )}
 
         {/* Selection badge */}
         {selectedIds.size > 0 && (
@@ -178,27 +344,31 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             <span className="text-xs font-medium text-indigo-700">
               {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
             </span>
-            <div className="w-px h-4 bg-indigo-200" />
-            {['#FEF08A', '#86EFAC', '#93C5FD', '#F9A8D4', '#FCA5A5', '#C4B5FD', '#FED7AA'].map((c) => (
-              <button
-                key={c}
-                title={`Colorier en ${c}`}
-                onClick={() => recolorSelected(c)}
-                className="w-4 h-4 rounded-full border border-white shadow-sm hover:scale-125 transition-transform"
-                style={{ background: c }}
-              />
-            ))}
-            <div className="w-px h-4 bg-indigo-200" />
-            <button onClick={deleteSelected} className="text-red-400 hover:text-red-600 transition-colors" title="Supprimer (Suppr)">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+            {!isReadonly && (
+              <>
+                <div className="w-px h-4 bg-indigo-200" />
+                {['#FEF08A', '#86EFAC', '#93C5FD', '#F9A8D4', '#FCA5A5', '#C4B5FD', '#FED7AA'].map((c) => (
+                  <button
+                    key={c}
+                    title={`Colorier en ${c}`}
+                    onClick={() => recolorSelected(c)}
+                    className="w-4 h-4 rounded-full border border-white shadow-sm hover:scale-125 transition-transform"
+                    style={{ background: c }}
+                  />
+                ))}
+                <div className="w-px h-4 bg-indigo-200" />
+                <button onClick={deleteSelected} className="text-red-400 hover:text-red-600 transition-colors" title="Supprimer (Suppr)">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </>
+            )}
           </div>
         )}
 
         {/* Grouper */}
-        {canGroup && (
+        {canGroup && !isReadonly && (
           <button onClick={groupSelected} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {allInSameGroup
@@ -211,31 +381,129 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         )}
 
         {/* Cadre */}
-        <button
-          onClick={() => addFrame(200, 200)}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
-          title="Ajouter un cadre"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2} strokeLinecap="round" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9h18M9 21V9" />
-          </svg>
-          Cadre
-        </button>
+        {!isReadonly && (
+          <button
+            onClick={() => addFrame(200, 200)}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
+            title="Ajouter un cadre"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2} strokeLinecap="round" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9h18M9 21V9" />
+            </svg>
+            Cadre
+          </button>
+        )}
 
         {/* Champs */}
-        <button
-          onClick={() => setShowFieldsPanel(true)}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors shrink-0 ${fields.length > 0 ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
-          title="Gérer les champs personnalisés"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          Champs{fields.length > 0 ? ` (${fields.length})` : ''}
-        </button>
+        {!isReadonly && (
+          <button
+            onClick={() => setShowFieldsPanel(true)}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors shrink-0 ${fields.length > 0 ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+            title="Gérer les champs personnalisés"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            Champs{fields.length > 0 ? ` (${fields.length})` : ''}
+          </button>
+        )}
 
-        {!session ? (
+        {/* Timer */}
+        {timerSecondsLeft !== null ? (
+          <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 shrink-0 ${timerSecondsLeft <= 10 ? 'bg-red-50 text-red-600' : timerSecondsLeft <= 30 ? 'bg-orange-50 text-orange-600' : 'bg-indigo-50 text-indigo-600'}`}>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9" strokeWidth={2} />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 7v5l3 3" />
+            </svg>
+            <span className="text-xs font-mono font-bold tabular-nums">
+              {String(Math.floor(timerSecondsLeft / 60)).padStart(2, '0')}:{String(timerSecondsLeft % 60).padStart(2, '0')}
+            </span>
+            {!isReadonly && (
+              <button onClick={stopTimer} className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity" title="Arrêter le timer">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        ) : !isReadonly && (
+          <div
+            ref={timerPickerRef}
+            className="relative shrink-0"
+            onMouseEnter={handleTimerPickerEnter}
+            onMouseLeave={handleTimerPickerLeave}
+          >
+            <button
+              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              title="Lancer un timer"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" strokeWidth={2} />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 7v5l3 3" />
+              </svg>
+              Timer
+            </button>
+            {showTimerPicker && timerPickerRect && (
+              <div
+                style={{ position: 'fixed', top: timerPickerRect.bottom + 8, left: timerPickerRect.left }}
+                className="w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-[200]"
+                onMouseEnter={handleTimerPickerEnter}
+                onMouseLeave={handleTimerPickerLeave}
+              >
+                {/* Saisie libre */}
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-3 pb-2">Durée personnalisée</p>
+                <div className="flex items-center gap-1.5 px-3 pb-3">
+                  <input
+                    type="number"
+                    min={0}
+                    max={99}
+                    value={timerCustomMin}
+                    onChange={(e) => setTimerCustomMin(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && launchCustomTimer()}
+                    className="w-14 text-center text-sm font-mono font-semibold border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    placeholder="mm"
+                  />
+                  <span className="text-gray-400 font-bold">:</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    value={timerCustomSec}
+                    onChange={(e) => setTimerCustomSec(e.target.value.padStart(2, '0'))}
+                    onKeyDown={(e) => e.key === 'Enter' && launchCustomTimer()}
+                    className="w-14 text-center text-sm font-mono font-semibold border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    placeholder="ss"
+                  />
+                  <button
+                    onClick={launchCustomTimer}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg py-1.5 transition-colors"
+                  >
+                    Go
+                  </button>
+                </div>
+
+                {/* Presets */}
+                <div className="border-t border-gray-100 pt-2">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-3 pb-1">Raccourcis</p>
+                  <div className="grid grid-cols-4 gap-1 px-3">
+                    {[1, 2, 3, 5, 10, 15, 20, 25].map((min) => (
+                      <button
+                        key={min}
+                        onClick={() => { startTimer(min * 60); setShowTimerPicker(false) }}
+                        className="text-xs font-medium text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg py-1.5 transition-colors"
+                      >
+                        {min}m
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!isReadonly && (!session ? (
           <button
             onClick={startSession}
             disabled={sessionLoading}
@@ -253,7 +521,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             <span className="text-sm font-bold text-green-700 font-mono tracking-widest">{session.code}</span>
             <span className="text-xs text-green-600">· {participantCount} 👤</span>
           </div>
-        )}
+        ))}
       </div>
 
       {/* Canvas area */}
@@ -282,6 +550,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           toolFill={toolFill}
           toolOpacity={toolOpacity}
           clipboard={clipboard}
+          isReadonly={isReadonly}
           onAddCard={addCard}
           onMoveCard={moveCard}
           onResizeCard={resizeCard}
@@ -309,14 +578,20 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           onPasteCards={handlePasteCards}
         />
 
-        <FloatingToolbar
-          toolMode={toolMode}
-          toolColor={toolColor}
-          toolStroke={toolStroke}
-          toolFill={toolFill}
-          toolOpacity={toolOpacity}
-          onToolChange={handleToolChange}
-        />
+        {timerExpired && (
+          <TimerOverlay onDismiss={stopTimer} />
+        )}
+
+        {!isReadonly && (
+          <FloatingToolbar
+            toolMode={toolMode}
+            toolColor={toolColor}
+            toolStroke={toolStroke}
+            toolFill={toolFill}
+            toolOpacity={toolOpacity}
+            onToolChange={handleToolChange}
+          />
+        )}
       </div>
 
       {/* Fields panel modal */}
@@ -328,6 +603,10 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           onDelete={deleteField}
           onClose={() => setShowFieldsPanel(false)}
         />
+      )}
+
+      {showShareModal && (
+        <ShareModal boardId={id} onClose={() => setShowShareModal(false)} />
       )}
     </div>
   )
