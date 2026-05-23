@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Link from 'next/link'
 import { useTeams } from '@/hooks/useDaily'
 import { useWheel } from '@/hooks/useWheel'
 import type { WheelDraw, WheelEvent, DrawMode } from '@/hooks/useWheel'
@@ -468,7 +469,7 @@ export default function WheelPage() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Équipe</label>
                 {teams.length === 0 ? (
                   <p className="text-sm text-gray-400">
-                    Aucune équipe. Créez-en une dans <a href="/daily" className="text-indigo-600 hover:underline">Mes dailys</a>.
+                    Aucune équipe. Créez-en une dans <Link href="/daily" className="text-indigo-600 hover:underline">Mes dailys</Link>.
                   </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
