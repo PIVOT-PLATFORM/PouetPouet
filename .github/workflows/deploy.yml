@@ -1,0 +1,98 @@
+name: Deploy to GCP
+
+on:
+  push:
+    branches: [master]
+
+env:
+  REGION: europe-west1
+  REPO: europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/pouetpouet
+
+jobs:
+  deploy-api:
+    name: Build & Deploy API
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.get-url.outputs.url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build & push API image
+        run: |
+          docker build -f apps/api/Dockerfile \
+            -t ${{ env.REPO }}/api:${{ github.sha }} \
+            -t ${{ env.REPO }}/api:latest \
+            .
+          docker push ${{ env.REPO }}/api --all-tags
+
+      - name: Deploy API to Cloud Run
+        run: |
+          gcloud run deploy pouetpouet-api \
+            --image ${{ env.REPO }}/api:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080 \
+            --add-cloudsql-instances ${{ secrets.GCP_PROJECT_ID }}:${{ env.REGION }}:pouetpouet-db \
+            --set-secrets DATABASE_URL=DATABASE_URL:latest \
+            --set-secrets JWT_SECRET=JWT_SECRET:latest \
+            --set-secrets FRONTEND_URL=FRONTEND_URL:latest \
+            --set-env-vars NODE_ENV=production
+
+      - name: Get API URL
+        id: get-url
+        run: |
+          URL=$(gcloud run services describe pouetpouet-api \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+  deploy-web:
+    name: Build & Deploy Web
+    runs-on: ubuntu-latest
+    needs: deploy-api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build & push Web image
+        run: |
+          docker build -f apps/web/Dockerfile \
+            --build-arg NEXT_PUBLIC_API_URL=${{ needs.deploy-api.outputs.url }} \
+            --build-arg NEXT_PUBLIC_SOCKET_URL=${{ needs.deploy-api.outputs.url }} \
+            -t ${{ env.REPO }}/web:${{ github.sha }} \
+            -t ${{ env.REPO }}/web:latest \
+            .
+          docker push ${{ env.REPO }}/web --all-tags
+
+      - name: Deploy Web to Cloud Run
+        run: |
+          gcloud run deploy pouetpouet-web \
+            --image ${{ env.REPO }}/web:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 3000

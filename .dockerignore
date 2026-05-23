@@ -1,0 +1,14 @@
+node_modules
+apps/web/.next
+apps/api/dist
+.git
+.github
+.turbo
+*.env
+.env.*
+backup.sql
+ideatank.txt
+*.pdf
+*.tsbuildinfo
+apps/*/node_modules
+packages/*/node_modules
