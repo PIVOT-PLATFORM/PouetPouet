@@ -124,10 +124,11 @@ export default function ProfilePage() {
   }
 
   async function handleThemeToggle() {
+    if (!user) return
     await updateProfile({ theme: user.theme === 'dark' ? 'light' : 'dark' })
   }
 
-  const avatarInitials = user.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
+  const avatarInitials = (user?.name ?? '').split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
