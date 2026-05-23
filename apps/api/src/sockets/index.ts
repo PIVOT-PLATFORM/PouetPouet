@@ -3,6 +3,7 @@ import { boardSocketHandlers } from './board.js'
 import { sessionSocketHandlers } from './session.js'
 import { scrumSocketHandlers } from './scrum.js'
 import { dailySocketHandlers } from './daily.js'
+import { voteSocketHandlers } from './vote.js'
 
 export function registerSocketHandlers(io: Server) {
   io.on('connection', (socket) => {
@@ -10,5 +11,6 @@ export function registerSocketHandlers(io: Server) {
     sessionSocketHandlers(io, socket)
     scrumSocketHandlers(io, socket)
     dailySocketHandlers(io, socket)
+    voteSocketHandlers(io, socket)
   })
 }

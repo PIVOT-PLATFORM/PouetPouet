@@ -12,12 +12,16 @@ import { HostPanel } from '@/components/session/host-panel'
 import { FloatingToolbar } from '@/components/board/floating-toolbar'
 import type { ToolMode, StrokeSize } from '@/components/board/floating-toolbar'
 import { TimerOverlay } from '@/components/board/timer-overlay'
+import { VoteConfigModal } from '@/components/board/vote-config-modal'
+import { VoteResultsPanel } from '@/components/board/vote-results-panel'
+import { useAuthStore } from '@/store/auth'
 
 export default function BoardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const {
     board, cards, connections, frames, fields, selectedIds, isLoading, userRole, isReadonly, accessDenied, presence, members,
     timerEndsAt, startTimer, stopTimer,
+    activeVoteSession, lastVoteSession, startVote, castVote, uncastVote, stopVote,
     addCard, moveCard, resizeCard, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
     groupSelected,
@@ -35,11 +39,17 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     startSession, closeSession, launchActivity, closeActivity,
   } = useSession(id)
 
+  const currentUser = useAuthStore((s) => s.user)
+  const currentUserId = currentUser?.id ?? ''
+
   type ClipCard = Pick<Card, 'type' | 'content' | 'color' | 'posX' | 'posY' | 'width' | 'height'>
   const [clipboard, setClipboard] = useState<ClipCard[]>([])
 
   const [showFieldsPanel, setShowFieldsPanel] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showVoteConfig, setShowVoteConfig] = useState(false)
+  const [showVoteResults, setShowVoteResults] = useState(false)
+  const [showLastVote, setShowLastVote] = useState(false)
   const [showPresence, setShowPresence] = useState(false)
   const [showTimerPicker, setShowTimerPicker] = useState(false)
   const [timerCustomMin, setTimerCustomMin] = useState('5')
@@ -163,6 +173,10 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const selectedGroupIds = new Set(selectedCards.map((c) => c.groupId).filter(Boolean))
   const allInSameGroup = selectedGroupIds.size === 1 && selectedCards.every((c) => c.groupId !== null)
   const canGroup = selectedIds.size >= 2
+
+  const myVoteCount = activeVoteSession?.votes.filter((v) => v.userId === currentUserId).length ?? 0
+  const voteRemaining = activeVoteSession ? activeVoteSession.votesPerPerson - myVoteCount : 0
+  const isEligibleVoter = activeVoteSession?.voterIds.includes(currentUserId) ?? false
 
   if (isLoading) {
     return (
@@ -409,6 +423,59 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           </button>
         )}
 
+        {/* Vote */}
+        {activeVoteSession ? (
+          <div className="flex items-center gap-1.5 rounded-lg bg-purple-50 border border-purple-200 px-2.5 py-1.5 shrink-0">
+            <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse shrink-0" />
+            <span className="text-xs font-semibold text-purple-700">Vote en cours</span>
+            {isEligibleVoter && (
+              <span className="text-xs text-purple-500 font-medium">
+                {voteRemaining} restant{voteRemaining !== 1 ? 's' : ''}
+              </span>
+            )}
+            <button
+              onClick={() => setShowVoteResults(true)}
+              className="text-xs text-purple-500 hover:text-purple-700 font-medium underline-offset-2 hover:underline"
+            >
+              Résultats
+            </button>
+            {!isReadonly && (
+              <button onClick={stopVote} className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity" title="Terminer le vote">
+                <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {!isReadonly && (
+              <button
+                onClick={() => setShowVoteConfig(true)}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
+                title="Lancer un vote"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Vote
+              </button>
+            )}
+            {lastVoteSession && (
+              <button
+                onClick={() => setShowLastVote(true)}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
+                title="Voir le dernier vote"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Dernier vote
+              </button>
+            )}
+          </>
+        )}
+
         {/* Timer */}
         {timerSecondsLeft !== null ? (
           <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 shrink-0 ${timerSecondsLeft <= 10 ? 'bg-red-50 text-red-600' : timerSecondsLeft <= 30 ? 'bg-orange-50 text-orange-600' : 'bg-indigo-50 text-indigo-600'}`}>
@@ -576,6 +643,10 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           onClearFieldValue={clearFieldValue}
           onExitLinkCardsMode={() => setToolMode('select')}
           onPasteCards={handlePasteCards}
+          voteSession={activeVoteSession}
+          currentUserId={currentUserId}
+          onCastVote={castVote}
+          onUncastVote={uncastVote}
         />
 
         {timerExpired && (
@@ -607,6 +678,33 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
       {showShareModal && (
         <ShareModal boardId={id} onClose={() => setShowShareModal(false)} />
+      )}
+
+      {showVoteConfig && (
+        <VoteConfigModal
+          members={members}
+          currentUserId={currentUserId}
+          onStart={startVote}
+          onClose={() => setShowVoteConfig(false)}
+        />
+      )}
+
+      {showVoteResults && activeVoteSession && (
+        <VoteResultsPanel
+          session={activeVoteSession}
+          cards={cards}
+          onClose={() => setShowVoteResults(false)}
+          onStopVote={stopVote}
+        />
+      )}
+
+      {showLastVote && lastVoteSession && (
+        <VoteResultsPanel
+          session={lastVoteSession}
+          cards={cards}
+          isHistory
+          onClose={() => setShowLastVote(false)}
+        />
       )}
     </div>
   )

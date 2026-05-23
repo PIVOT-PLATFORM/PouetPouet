@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react'
-import type { Card, Frame, BoardField, Connection } from '@/hooks/useBoard'
+import type { Card, Frame, BoardField, Connection, VoteSession } from '@/hooks/useBoard'
 import { groupColor } from '@/hooks/useBoard'
 import { BoardCard } from './board-card'
 import { FrameItem } from './frame-item'
@@ -48,6 +48,10 @@ interface Props {
   onClearFieldValue: (cardId: string, fieldId: string) => void
   onExitLinkCardsMode?: () => void
   onPasteCards: (clipboard: ClipCard[], canvasX: number, canvasY: number) => void
+  voteSession?: VoteSession | null
+  currentUserId?: string
+  onCastVote?: (cardId: string) => void
+  onUncastVote?: (cardId: string) => void
 }
 
 const MIN_ZOOM = 0.1
@@ -64,6 +68,7 @@ export function BoardCanvas({
   onResizeFrame, onStartResizeFrame, onCommitResizeFrame,
   onUpdateFrame, onDeleteFrame,
   onSetFieldValue, onClearFieldValue, onExitLinkCardsMode, onPasteCards,
+  voteSession, currentUserId, onCastVote, onUncastVote,
 }: Props) {
   // ── Refs ────────────────────────────────────────────────────────────────────
   const containerRef    = useRef<HTMLDivElement>(null)
@@ -579,6 +584,63 @@ export function BoardCanvas({
               onLinkCardsClick={toolMode === 'link-cards' ? handleLinkCardClick : undefined}
             />
           ))}
+
+          {/* Vote badges overlay */}
+          {voteSession && cards.filter((c) => c.type !== 'DRAW').map((card) => {
+            const cardVotes = voteSession.votes.filter((v) => v.cardId === card.id)
+            const myVotesOnCard = cardVotes.filter((v) => v.userId === currentUserId).length
+            const totalVotes = cardVotes.length
+            const isEligible = currentUserId ? voteSession.voterIds.includes(currentUserId) : false
+            const myTotalVotes = voteSession.votes.filter((v) => v.userId === currentUserId).length
+            const canVoteMore = myTotalVotes < voteSession.votesPerPerson
+            const isActive = voteSession.status === 'ACTIVE'
+
+            if (totalVotes === 0 && !isEligible) return null
+
+            return (
+              <div
+                key={`vote-${card.id}`}
+                className="absolute pointer-events-none"
+                style={{ left: card.posX, top: card.posY, width: card.width, height: card.height, zIndex: 50 }}
+              >
+                <div
+                  className="absolute top-1.5 right-1.5 flex items-center gap-1 pointer-events-auto"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {totalVotes > 0 && (
+                    <div className="flex items-center gap-0.5 bg-purple-500 text-white rounded-full px-2 py-0.5 shadow-md">
+                      <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                      </svg>
+                      <span className="text-[10px] font-bold tabular-nums">{totalVotes}</span>
+                    </div>
+                  )}
+                  {isEligible && isActive && (
+                    myVotesOnCard > 0 ? (
+                      <button
+                        onClick={() => onUncastVote?.(card.id)}
+                        className="flex items-center gap-0.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-full px-1.5 py-0.5 shadow-sm transition-colors"
+                        title="Retirer un vote"
+                      >
+                        <span className="text-[10px] font-bold">−{myVotesOnCard}</span>
+                      </button>
+                    ) : canVoteMore ? (
+                      <button
+                        onClick={() => onCastVote?.(card.id)}
+                        className="flex items-center gap-0.5 bg-white hover:bg-purple-50 text-purple-500 border border-purple-200 rounded-full px-1.5 py-0.5 shadow-sm transition-colors"
+                        title="Voter pour ce post-it"
+                      >
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    ) : null
+                  )}
+                </div>
+              </div>
+            )
+          })}
 
           {/* Draw mode overlay — sits above all cards, catches mousedown anywhere */}
           {toolMode === 'draw' && (
