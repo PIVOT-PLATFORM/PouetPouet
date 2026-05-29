@@ -67,7 +67,7 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
     <>
       {/* ── Main vertical toolbar ── */}
       <div
-        style={{ position: 'fixed', left: pos.x, top: pos.y, zIndex: 1000, userSelect: 'none' }}
+        style={{ position: 'fixed', left: pos.x, top: pos.y, zIndex: 45, userSelect: 'none' }}
         className="flex flex-col items-center gap-0.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-2xl shadow-black/15 p-1.5 w-12"
       >
         {/* Drag handle */}
@@ -155,7 +155,7 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
       {/* ── Options flyout (colors + stroke + fill) ── */}
       {showFlyout && (
         <div
-          style={{ position: 'fixed', ...flyoutPosStyle, zIndex: 999, userSelect: 'none' }}
+          style={{ position: 'fixed', ...flyoutPosStyle, zIndex: 44, userSelect: 'none' }}
           className="flex flex-row items-center gap-2 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-2xl shadow-black/15 px-3 py-2.5"
         >
           {/* Color grid: 3 cols for shapes/draw (9 colors), 4 cols for sticky (7 colors) */}
