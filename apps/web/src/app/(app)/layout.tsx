@@ -172,13 +172,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {!isBoardPage && (
         <footer className="border-t border-gray-100 dark:border-gray-800 mt-8">
-          <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+          <div className="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <span className="text-xs text-gray-400 dark:text-gray-600">
               © {new Date().getFullYear()} PouetPouet
             </span>
-            <span className="text-xs text-gray-300 dark:text-gray-700">
-              Fait avec ☕ par l'équipe
-            </span>
+            <nav className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-600">
+              <Link href="/mentions-legales" className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+                Mentions légales
+              </Link>
+              <Link href="/confidentialite" className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+                Confidentialité
+              </Link>
+              <Link href="/cgu" className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+                CGU
+              </Link>
+            </nav>
           </div>
         </footer>
       )}

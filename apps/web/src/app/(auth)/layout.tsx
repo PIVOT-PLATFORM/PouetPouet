@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { useAuthHydrated } from '@/hooks/useAuthHydrated'
 
@@ -34,6 +35,18 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           {children}
         </div>
+
+        <nav className="mt-6 flex items-center justify-center gap-4 text-xs text-indigo-200">
+          <Link href="/mentions-legales" className="hover:text-white transition-colors">
+            Mentions légales
+          </Link>
+          <Link href="/confidentialite" className="hover:text-white transition-colors">
+            Confidentialité
+          </Link>
+          <Link href="/cgu" className="hover:text-white transition-colors">
+            CGU
+          </Link>
+        </nav>
       </div>
     </div>
   )

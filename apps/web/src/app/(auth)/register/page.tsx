@@ -78,6 +78,18 @@ export default function RegisterPage() {
         <Button type="submit" isLoading={isLoading} className="w-full mt-2">
           Créer mon compte
         </Button>
+
+        <p className="text-xs text-center text-gray-400 leading-relaxed">
+          En créant un compte, vous acceptez nos{' '}
+          <Link href="/cgu" className="text-indigo-600 hover:text-indigo-700 underline">
+            conditions générales d&apos;utilisation
+          </Link>{' '}
+          et notre{' '}
+          <Link href="/confidentialite" className="text-indigo-600 hover:text-indigo-700 underline">
+            politique de confidentialité
+          </Link>
+          .
+        </p>
       </form>
 
       <p className="mt-6 text-center text-sm text-gray-500">
