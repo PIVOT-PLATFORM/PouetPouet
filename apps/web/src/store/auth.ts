@@ -4,19 +4,6 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { api, setOnUnauthorized } from '@/lib/api'
 
-// Reads the `iat`/`exp` claims (epoch ms) from a JWT without verifying the signature.
-export function tokenTimes(token: string): { iat: number; exp: number } | null {
-  try {
-    const payload = token.split('.')[1]
-    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
-    const { iat, exp } = JSON.parse(json) as { iat?: number; exp?: number }
-    if (typeof iat !== 'number' || typeof exp !== 'number') return null
-    return { iat: iat * 1000, exp: exp * 1000 }
-  } catch {
-    return null
-  }
-}
-
 export interface User {
   id: string
   email: string

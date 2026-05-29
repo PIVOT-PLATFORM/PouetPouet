@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import type { Card, BoardField } from '@/hooks/useBoard'
+import { parseLabelFmt, formatFieldValue, type LabelFmt } from '@/lib/card-format'
 
 interface Props {
   card: Card
@@ -84,19 +85,7 @@ function LinkCardsOverlay({ cardId, isSource, onClick }: { cardId: string; isSou
 const SHAPE_PALETTE = ['#6366f1', '#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899', '#475569']
 
 // ── Label formatting ─────────────────────────────────────────────────────────
-interface LabelFmt {
-  text: string; size: number; bold: boolean; italic: boolean; underline: boolean; strike: boolean; color: string
-}
-const LABEL_DEFAULTS: LabelFmt = { text: '', size: 16, bold: false, italic: false, underline: false, strike: false, color: '#374151' }
 const LABEL_COLORS = ['#374151', '#1d4ed8', '#15803d', '#b91c1c', '#7c3aed', '#b45309', '#000000', '#ffffff']
-
-function parseLabelFmt(raw: string): LabelFmt {
-  try {
-    const p = JSON.parse(raw)
-    if (p && typeof p === 'object' && 'text' in p) return { ...LABEL_DEFAULTS, ...p }
-  } catch {}
-  return { ...LABEL_DEFAULTS, text: raw }
-}
 
 // ── Field chips ──────────────────────────────────────────────────────────────
 const CHIP_STYLE: Record<string, string> = {
@@ -109,14 +98,6 @@ const CHIP_STYLE: Record<string, string> = {
 const MIN_W = 150
 const MIN_H = 110
 const SHAPE_MIN = 80
-
-function formatFieldValue(type: string, value: string): string {
-  if (type === 'DATE' && value) {
-    const d = new Date(value)
-    return isNaN(d.getTime()) ? value : d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })
-  }
-  return value
-}
 
 export function BoardCard({
   card, fields, zoom = 1, isSelected, groupColor, drawMode, isReadonly,

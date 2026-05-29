@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useAuthStore, tokenTimes } from '@/store/auth'
+import { useAuthStore } from '@/store/auth'
+import { tokenTimes } from '@/lib/jwt'
 
 // Show the countdown once the session has this little time left; turn red in the final minute.
 const WARN_BEFORE_MS = 5 * 60_000

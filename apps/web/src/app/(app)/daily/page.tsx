@@ -4,18 +4,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTeams, useDailySessions } from '@/hooks/useDaily'
 import type { DailyTeam, DailySession } from '@/hooks/useDaily'
+import { formatDuration } from '@/lib/time'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-}
-
-function formatDuration(seconds: number) {
-  if (seconds < 60) return `${seconds}s`
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return s > 0 ? `${m}min ${s}s` : `${m}min`
 }
 
 function statusLabel(status: string) {

@@ -4,23 +4,7 @@ import { use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDailySession } from '@/hooks/useDaily'
 import type { DailyParticipant } from '@/hooks/useDaily'
-
-// ── Timer formatting ──────────────────────────────────────────────────────────
-
-function formatTime(seconds: number) {
-  const m = Math.floor(Math.abs(seconds) / 60)
-  const s = Math.abs(seconds) % 60
-  const sign = seconds < 0 ? '-' : ''
-  return `${sign}${m}:${s.toString().padStart(2, '0')}`
-}
-
-function formatSessionTime(seconds: number) {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = seconds % 60
-  if (h > 0) return `${h}h ${m.toString().padStart(2, '0')}min`
-  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-}
+import { formatTime, formatSessionTime } from '@/lib/time'
 
 // ── Circular progress ─────────────────────────────────────────────────────────
 
