@@ -441,7 +441,7 @@ export function BoardCanvas({
   }
 
   // ── Link-cards: per-card click (called by the per-card overlay) ──────────────
-  function handleLinkCardClick(cardId: string) {
+  function handleLinkCardClick(cardId: string, additive: boolean) {
     if (isReadonly) return
     if (linkSourceId === null) {
       setLinkSourceId(cardId)
@@ -449,7 +449,8 @@ export function BoardCanvas({
       setLinkSourceId(null)
     } else {
       onAddConnection(linkSourceId, cardId)
-      setLinkSourceId(null)
+      // Ctrl/Cmd+click keeps the source selected to fan out to several cards.
+      if (!additive) setLinkSourceId(null)
     }
   }
 
@@ -687,9 +688,11 @@ export function BoardCanvas({
               <path strokeLinecap="round" d="M7.5 12h9" />
             </svg>
             <span className="font-medium">
-              {linkSourceId === null ? 'Cliquez la première carte' : 'Cliquez la deuxième carte'}
+              {linkSourceId === null ? 'Cliquez la carte source' : 'Cliquez une carte à relier'}
             </span>
-            <span className="text-xs text-indigo-200">Échap pour quitter</span>
+            <span className="text-xs text-indigo-200">
+              {linkSourceId === null ? 'Échap pour quitter' : 'Ctrl+clic : relier plusieurs · Échap'}
+            </span>
           </div>
         )}
 

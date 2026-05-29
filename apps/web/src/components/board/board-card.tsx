@@ -26,7 +26,7 @@ interface Props {
   onSetLocked?: (id: string, locked: boolean) => void
   linkCardsMode?: boolean
   isLinkSource?: boolean
-  onLinkCardsClick?: (cardId: string) => void
+  onLinkCardsClick?: (cardId: string, additive: boolean) => void
 }
 
 // Handles placed INSIDE the card edges. Outer is 24x24 (hit area), inner is 12x12 (visible dot).
@@ -65,7 +65,7 @@ function ConnectHandles({ cardId, onStart }: { cardId: string; onStart?: (cardId
 
 // Per-card overlay shown in link-cards toolbar mode. Catches clicks directly so
 // there's no need for elementFromPoint and no risk of the click hitting the wrong target.
-function LinkCardsOverlay({ cardId, isSource, onClick }: { cardId: string; isSource?: boolean; onClick: (cardId: string) => void }) {
+function LinkCardsOverlay({ cardId, isSource, onClick }: { cardId: string; isSource?: boolean; onClick: (cardId: string, additive: boolean) => void }) {
   return (
     <div
       className="absolute inset-0 rounded-xl"
@@ -76,7 +76,7 @@ function LinkCardsOverlay({ cardId, isSource, onClick }: { cardId: string; isSou
         boxShadow: isSource ? 'inset 0 0 0 3px #6366f1' : undefined,
       }}
       onMouseDown={(e) => { e.preventDefault(); e.stopPropagation() }}
-      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick(cardId) }}
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick(cardId, e.ctrlKey || e.metaKey) }}
     />
   )
 }
