@@ -18,14 +18,6 @@ export function Section({ title, children }: { title: string; children: React.Re
   )
 }
 
-export function Todo({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-block rounded bg-amber-100 dark:bg-amber-950 px-1.5 py-0.5 font-mono text-xs text-amber-700 dark:text-amber-400">
-      {children}
-    </span>
-  )
-}
-
 export function List({ children }: { children: React.ReactNode }) {
   return <ul className="list-disc pl-5 space-y-1.5 marker:text-gray-300 dark:marker:text-gray-600">{children}</ul>
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { PageTitle, Section, Todo, List } from '@/components/legal/legal-ui'
+import { PageTitle, Section, List } from '@/components/legal/legal-ui'
 
 export const metadata: Metadata = { title: 'Mentions légales · PouetPouet' }
 
@@ -9,22 +9,28 @@ export default function MentionsLegalesPage() {
       <PageTitle updated="29 mai 2026">Mentions légales</PageTitle>
 
       <Section title="Éditeur du site">
-        <p>Le présent site est édité par :</p>
-        <List>
-          <li>Dénomination / Nom : <Todo>[À COMPLÉTER : nom ou raison sociale]</Todo></li>
-          <li>Forme juridique : <Todo>[À COMPLÉTER : ex. SAS, auto-entrepreneur, particulier]</Todo></li>
-          <li>Capital social : <Todo>[À COMPLÉTER si société]</Todo></li>
-          <li>Adresse : <Todo>[À COMPLÉTER : adresse du siège]</Todo></li>
-          <li>Email : <Todo>[À COMPLÉTER : email de contact]</Todo></li>
-          <li>Téléphone : <Todo>[À COMPLÉTER]</Todo></li>
-          <li>SIRET / RCS : <Todo>[À COMPLÉTER si société]</Todo></li>
-          <li>N° TVA intracommunautaire : <Todo>[À COMPLÉTER si assujetti]</Todo></li>
-        </List>
+        <p>
+          Le présent site est édité à titre non professionnel par un particulier. Conformément à
+          l&apos;article 6-III-2 de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans
+          l&apos;économie numérique (LCEN), l&apos;éditeur a choisi de ne pas communiquer publiquement son
+          identité et ses coordonnées personnelles.
+        </p>
+        <p>
+          Ces informations ont été communiquées à l&apos;hébergeur du site, qui est tenu de les conserver et
+          peut les transmettre à l&apos;autorité judiciaire sur réquisition.
+        </p>
+        <p>
+          L&apos;éditeur peut être contacté par email à l&apos;adresse{' '}
+          <strong><em>contact mail bientôt disponible</em></strong>
+          .
+        </p>
       </Section>
 
       <Section title="Directeur de la publication">
         <p>
-          Le directeur de la publication est <Todo>[À COMPLÉTER : nom du responsable]</Todo>.
+          Le directeur de la publication est l&apos;éditeur du site, joignable à l&apos;adresse{' '}
+          <strong><em>contact mail bientôt disponible</em></strong>
+          .
         </p>
       </Section>
 
@@ -35,9 +41,6 @@ export default function MentionsLegalesPage() {
           <li>70 Sir John Rogerson&apos;s Quay, Dublin 2, Irlande</li>
           <li>Site : cloud.google.com</li>
         </List>
-        <p className="text-xs text-gray-400 dark:text-gray-500">
-          Adaptez cette section si vous changez d&apos;hébergeur.
-        </p>
       </Section>
 
       <Section title="Propriété intellectuelle">
@@ -60,7 +63,8 @@ export default function MentionsLegalesPage() {
       <Section title="Contact">
         <p>
           Pour toute question relative au site, vous pouvez écrire à{' '}
-          <Todo>[À COMPLÉTER : email de contact]</Todo>.
+          <strong><em>contact mail bientôt disponible</em></strong>
+          .
         </p>
       </Section>
     </>

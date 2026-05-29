@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { PageTitle, Section, Todo, List } from '@/components/legal/legal-ui'
+import { PageTitle, Section, List } from '@/components/legal/legal-ui'
 
 export const metadata: Metadata = { title: "Conditions générales d'utilisation · PouetPouet" }
 
@@ -18,9 +18,10 @@ export default function CguPage() {
 
       <Section title="Article 2 — Accès au service">
         <p>
-          Le service est accessible gratuitement à tout utilisateur disposant d&apos;un accès à Internet et
-          d&apos;un compte. L&apos;éditeur se réserve le droit de modifier, suspendre ou interrompre tout ou partie
-          du service, notamment pour des opérations de maintenance, sans que sa responsabilité puisse être engagée.
+          Le service est proposé à titre gratuit et non professionnel, à tout utilisateur disposant d&apos;un
+          accès à Internet et d&apos;un compte. L&apos;éditeur se réserve le droit de modifier, suspendre ou
+          interrompre tout ou partie du service, notamment pour des opérations de maintenance, sans que sa
+          responsabilité puisse être engagée.
         </p>
       </Section>
 
@@ -75,8 +76,9 @@ export default function CguPage() {
 
       <Section title="Article 9 — Droit applicable">
         <p>
-          Les présentes CGU sont régies par le droit français. En cas de litige, et à défaut de résolution amiable,
-          les tribunaux compétents seront ceux de <Todo>[À COMPLÉTER : ressort du tribunal]</Todo>.
+          Les présentes CGU sont régies par le droit français. En cas de litige, et à défaut de résolution
+          amiable, le litige sera porté devant les juridictions françaises compétentes selon les règles de droit
+          commun.
         </p>
       </Section>
     </>

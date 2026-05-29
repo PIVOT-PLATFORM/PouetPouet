@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { PageTitle, Section, Todo, List } from '@/components/legal/legal-ui'
+import { PageTitle, Section, List } from '@/components/legal/legal-ui'
 
 export const metadata: Metadata = { title: 'Politique de confidentialité · PouetPouet' }
 
@@ -18,15 +18,16 @@ export default function ConfidentialitePage() {
 
       <Section title="Responsable du traitement">
         <p>
-          Le responsable du traitement des données est <Todo>[À COMPLÉTER : nom / raison sociale]</Todo>, joignable
-          à l&apos;adresse <Todo>[À COMPLÉTER : email]</Todo>.
+          Le responsable du traitement des données est l&apos;éditeur du site, joignable à l&apos;adresse{' '}
+          <strong><em>contact mail bientôt disponible</em></strong>
+          .
         </p>
       </Section>
 
       <Section title="Données collectées">
         <p>Dans le cadre de l&apos;utilisation du service, nous collectons :</p>
         <List>
-          <li><strong>Données de compte</strong> : nom, adresse email, mot de passe (stocké de façon chiffrée / haché).</li>
+          <li><strong>Données de compte</strong> : nom, adresse email, mot de passe (stocké haché, jamais en clair).</li>
           <li><strong>Données d&apos;usage</strong> : boards, dailys, salles de Scrum Poker, équipes et contenus que vous créez.</li>
           <li><strong>Données techniques</strong> : journaux de connexion, adresse IP, type de navigateur (à des fins de sécurité et de bon fonctionnement).</li>
           <li><strong>Préférences</strong> : thème d&apos;affichage, avatar.</li>
@@ -45,15 +46,14 @@ export default function ConfidentialitePage() {
       <Section title="Durée de conservation">
         <p>
           Les données de compte sont conservées tant que votre compte est actif. En cas de suppression de votre
-          compte, vos données personnelles sont supprimées sous{' '}
-          <Todo>[À COMPLÉTER : ex. 30 jours]</Todo>, sauf obligation légale de conservation (journaux techniques :{' '}
-          <Todo>[À COMPLÉTER : ex. 12 mois]</Todo>).
+          compte, vos données personnelles sont effacées sous 30 jours. Les journaux techniques de connexion sont
+          conservés 12 mois maximum, conformément aux obligations légales.
         </p>
       </Section>
 
       <Section title="Destinataires des données">
         <p>
-          Vos données sont accessibles uniquement à l&apos;éditeur et à ses sous-traitants techniques (hébergeur
+          Vos données sont accessibles uniquement à l&apos;éditeur et à son sous-traitant technique (l&apos;hébergeur
           Google Cloud Platform). Elles ne sont ni vendues ni cédées à des tiers à des fins commerciales.
         </p>
       </Section>
@@ -68,25 +68,25 @@ export default function ConfidentialitePage() {
           <li>Droit à la portabilité de vos données.</li>
         </List>
         <p>
-          Pour exercer ces droits, contactez <Todo>[À COMPLÉTER : email]</Todo>. Vous pouvez également introduire
-          une réclamation auprès de la CNIL (www.cnil.fr).
+          Pour exercer ces droits, contactez{' '}
+          <strong><em>contact mail bientôt disponible</em></strong>
+          . Vous pouvez également introduire une réclamation auprès de la CNIL (www.cnil.fr).
         </p>
       </Section>
 
       <Section title="Sécurité">
         <p>
           Nous mettons en œuvre des mesures techniques appropriées pour protéger vos données : mots de passe
-          hachés, communication chiffrée (HTTPS), sessions authentifiées par jeton à durée limitée.
+          hachés (bcrypt), communication chiffrée (HTTPS), sessions authentifiées par jeton à durée limitée.
         </p>
       </Section>
 
       <Section title="Cookies et stockage local">
         <p>
-          PouetPouet utilise le stockage local de votre navigateur pour conserver votre session d&apos;authentification
-          et vos préférences d&apos;affichage. Ces éléments sont strictement nécessaires au fonctionnement du service
-          et ne nécessitent pas de consentement. Aucun cookie de suivi publicitaire ou de mesure d&apos;audience
-          tierce n&apos;est déposé{' '}
-          <Todo>[À AJUSTER si vous ajoutez un outil d&apos;analytics]</Todo>.
+          PouetPouet utilise le stockage local de votre navigateur pour conserver votre session
+          d&apos;authentification et vos préférences d&apos;affichage. Ces éléments sont strictement nécessaires
+          au fonctionnement du service et ne nécessitent pas de consentement. Aucun cookie de suivi publicitaire
+          ni de mesure d&apos;audience tierce n&apos;est déposé.
         </p>
       </Section>
     </>
