@@ -315,7 +315,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         <div className="flex-1" />
 
         {/* Presence indicator */}
-        <PresenceIndicator presence={presence} members={members} />
+        <PresenceIndicator presence={presence} members={members} dropdownTop={templateDraftOf ? 170 : 120} />
 
         {/* Role badge (non-owner) */}
         {userRole && userRole !== 'OWNER' && (

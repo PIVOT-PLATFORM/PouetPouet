@@ -4,7 +4,9 @@ import { useState, useRef } from 'react'
 import type { PresenceUser, BoardMember } from '@/hooks/useBoard'
 
 // Toolbar avatar cluster + hover dropdown listing who is connected on the board.
-export function PresenceIndicator({ presence, members }: { presence: PresenceUser[]; members: BoardMember[] }) {
+// `dropdownTop` fixes the dropdown's viewport top so it lines up with the floating
+// toolbar's initial position rather than hugging the header bar.
+export function PresenceIndicator({ presence, members, dropdownTop = 120 }: { presence: PresenceUser[]; members: BoardMember[]; dropdownTop?: number }) {
   const [showPresence, setShowPresence] = useState(false)
   const [presenceRect, setPresenceRect] = useState<DOMRect | null>(null)
   const presenceTriggerRef = useRef<HTMLDivElement>(null)
@@ -58,7 +60,7 @@ export function PresenceIndicator({ presence, members }: { presence: PresenceUse
       {/* Dropdown flottant en position fixed pour passer au-dessus de tout */}
       {showPresence && presenceRect && (
         <div
-          style={{ position: 'fixed', top: presenceRect.bottom + 8, right: window.innerWidth - presenceRect.right }}
+          style={{ position: 'fixed', top: dropdownTop, right: window.innerWidth - presenceRect.right }}
           className="w-64 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-[200]"
           onMouseEnter={handlePresenceEnter}
           onMouseLeave={handlePresenceLeave}
