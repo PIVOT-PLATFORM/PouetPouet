@@ -21,10 +21,31 @@ const SHAPE_COLORS  = ['#6366f1', '#ef4444', '#f97316', '#eab308', '#22c55e', '#
 const TOOLBAR_W = 48
 const GAP = 8
 
+type ShapeMode = 'rect' | 'circle' | 'diamond' | 'triangle'
+const SHAPES: ShapeMode[] = ['rect', 'circle', 'diamond', 'triangle']
+const SHAPE_LABELS: Record<ShapeMode, string> = { rect: 'Rectangle', circle: 'Cercle', diamond: 'Losange', triangle: 'Triangle' }
+
+// Inner SVG for a shape glyph, reused by the toolbar button and the shape picker.
+function ShapeGlyph({ mode }: { mode: ShapeMode }) {
+  switch (mode) {
+    case 'rect':     return <rect x="4" y="6" width="16" height="12" rx="2" />
+    case 'circle':   return <circle cx="12" cy="12" r="8" />
+    case 'diamond':  return <polygon points="12,3 21,12 12,21 3,12" />
+    case 'triangle': return <polygon points="12,4 22,20 2,20" />
+  }
+}
+
 export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, toolOpacity, minTop, onToolChange }: Props) {
   const MIN_Y = minTop ?? 120
   const [pos, setPos] = useState({ x: 16, y: MIN_Y })
+  const [collapsed, setCollapsed] = useState(false)
+  const [lastShape, setLastShape] = useState<ShapeMode>('rect')
   const dragStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null)
+
+  // Remember the most recently used shape so the grouped shapes button restores it.
+  useEffect(() => {
+    if (SHAPES.includes(toolMode as ShapeMode)) setLastShape(toolMode as ShapeMode)
+  }, [toolMode])
 
   // Re-clamp y when the minimum changes (e.g. banner appears after mount)
   useEffect(() => {
@@ -54,7 +75,7 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
   const isShape    = ['rect', 'circle', 'diamond', 'triangle'].includes(toolMode)
   const isDraw     = toolMode === 'draw'
   const isSticky   = toolMode === 'sticky'
-  const showFlyout = isShape || isDraw || isSticky
+  const showFlyout = !collapsed && (isShape || isDraw || isSticky)
   const colorSet   = isSticky ? STICKY_COLORS : SHAPE_COLORS
 
   const screenW = typeof window !== 'undefined' ? window.innerWidth : 1200
@@ -82,72 +103,85 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
           </svg>
         </div>
 
-        <Btn mode="select" current={toolMode} label="Sélection (V)" onClick={() => onToolChange('select')}>
+        {/* Collapse / expand */}
+        <button
+          title={collapsed ? 'Déplier la barre' : 'Replier la barre'}
+          onClick={(e) => { setCollapsed((v) => !v); e.currentTarget.blur() }}
+          className="w-9 h-6 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all focus:outline-none"
+        >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-7 1-4 7L5 3z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d={collapsed ? 'M19 9l-7 7-7-7' : 'M5 15l7-7 7 7'} />
           </svg>
-        </Btn>
+        </button>
 
-        <Sep />
-
-        <Btn mode="text" current={toolMode} label="Zone de texte (T)" onClick={() => onToolChange('text')}>
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}>
-            <path strokeLinecap="round" d="M4 6h16M12 6v13M8 19h8" />
-          </svg>
-        </Btn>
-        <Btn mode="sticky" current={toolMode} label="Note adhésive" onClick={() => onToolChange('sticky', toolMode === 'sticky' ? toolColor : STICKY_COLORS[0])}>
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-        </Btn>
-
-        <Sep />
-
-        <Btn mode="rect"     current={toolMode} label="Rectangle" onClick={() => onToolChange('rect',     toolMode === 'rect'     ? toolColor : SHAPE_COLORS[0])}>
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <rect x="4" y="6" width="16" height="12" rx="2" />
-          </svg>
-        </Btn>
-        <Btn mode="circle"   current={toolMode} label="Cercle"    onClick={() => onToolChange('circle',   toolMode === 'circle'   ? toolColor : SHAPE_COLORS[0])}>
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <circle cx="12" cy="12" r="8" />
-          </svg>
-        </Btn>
-        <Btn mode="diamond"  current={toolMode} label="Losange"   onClick={() => onToolChange('diamond',  toolMode === 'diamond'  ? toolColor : SHAPE_COLORS[0])}>
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <polygon points="12,3 21,12 12,21 3,12" />
-          </svg>
-        </Btn>
-        <Btn mode="triangle" current={toolMode} label="Triangle"  onClick={() => onToolChange('triangle', toolMode === 'triangle' ? toolColor : SHAPE_COLORS[0])}>
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <polygon points="12,4 22,20 2,20" />
-          </svg>
-        </Btn>
-
-        <Sep />
-
-        <Btn mode="draw" current={toolMode} label="Dessin libre" onClick={() => onToolChange('draw', toolMode === 'draw' ? toolColor : SHAPE_COLORS[0])}>
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-        </Btn>
-        <Btn mode="link" current={toolMode} label="Lien URL" onClick={() => onToolChange('link')}>
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-          </svg>
-        </Btn>
-        <Btn mode="link-cards" current={toolMode} label="Relier des cartes" onClick={() => onToolChange('link-cards')}>
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <circle cx="5"  cy="12" r="2.5" />
-            <circle cx="19" cy="12" r="2.5" />
-            <path strokeLinecap="round" d="M7.5 12h9" />
-          </svg>
-        </Btn>
-
-        {toolMode !== 'select' && (
+        {!collapsed && (
           <>
             <Sep />
-            <span className="text-[8px] text-gray-400 font-mono leading-tight text-center py-0.5 px-0.5">Échap</span>
+
+            <Btn mode="select" current={toolMode} label="Sélection (V)" onClick={() => onToolChange('select')}>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-7 1-4 7L5 3z" />
+              </svg>
+            </Btn>
+
+            <Sep />
+
+            <Btn mode="text" current={toolMode} label="Zone de texte (T)" onClick={() => onToolChange('text')}>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}>
+                <path strokeLinecap="round" d="M4 6h16M12 6v13M8 19h8" />
+              </svg>
+            </Btn>
+            <Btn mode="sticky" current={toolMode} label="Note adhésive" onClick={() => onToolChange('sticky', toolMode === 'sticky' ? toolColor : STICKY_COLORS[0])}>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </Btn>
+
+            <Sep />
+
+            {/* Grouped shapes — opens the shape picker in the options flyout */}
+            <button
+              title="Formes"
+              onClick={(e) => { onToolChange(lastShape, isShape ? toolColor : SHAPE_COLORS[0]); e.currentTarget.blur() }}
+              className={`relative w-9 h-9 rounded-xl flex items-center justify-center transition-all focus:outline-none ${
+                isShape ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+              }`}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <ShapeGlyph mode={lastShape} />
+              </svg>
+              {/* caret hint that more shapes are available */}
+              <svg className={`absolute bottom-0.5 right-0.5 w-2 h-2 ${isShape ? 'text-white/80' : 'text-gray-400'}`} viewBox="0 0 8 8" fill="currentColor">
+                <path d="M8 8H3l5-5z" />
+              </svg>
+            </button>
+
+            <Sep />
+
+            <Btn mode="draw" current={toolMode} label="Dessin libre" onClick={() => onToolChange('draw', toolMode === 'draw' ? toolColor : SHAPE_COLORS[0])}>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </Btn>
+            <Btn mode="link" current={toolMode} label="Lien URL" onClick={() => onToolChange('link')}>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </Btn>
+            <Btn mode="link-cards" current={toolMode} label="Relier des cartes" onClick={() => onToolChange('link-cards')}>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <circle cx="5"  cy="12" r="2.5" />
+                <circle cx="19" cy="12" r="2.5" />
+                <path strokeLinecap="round" d="M7.5 12h9" />
+              </svg>
+            </Btn>
+
+            {toolMode !== 'select' && (
+              <>
+                <Sep />
+                <span className="text-[8px] text-gray-400 font-mono leading-tight text-center py-0.5 px-0.5">Échap</span>
+              </>
+            )}
           </>
         )}
       </div>
@@ -158,6 +192,29 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
           style={{ position: 'fixed', ...flyoutPosStyle, zIndex: 44, userSelect: 'none' }}
           className="flex flex-row items-center gap-2 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-2xl shadow-black/15 px-3 py-2.5"
         >
+          {/* Shape picker (shapes only) — grouped shapes button opens this */}
+          {isShape && (
+            <>
+              <div className="grid grid-cols-2 gap-1">
+                {SHAPES.map((s) => (
+                  <button
+                    key={s}
+                    title={SHAPE_LABELS[s]}
+                    onClick={() => { setLastShape(s); onToolChange(s, toolColor) }}
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                      toolMode === s ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <ShapeGlyph mode={s} />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+              <div className="w-px self-stretch bg-gray-200 mx-0.5" />
+            </>
+          )}
+
           {/* Color grid: 3 cols for shapes/draw (9 colors), 4 cols for sticky (7 colors) */}
           <div className={`grid gap-1.5 ${isSticky ? 'grid-cols-4' : 'grid-cols-3'}`}>
             {colorSet.map((c) => (

@@ -30,6 +30,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     timerEndsAt, startTimer, stopTimer,
     activeVoteSession, lastVoteSession, startVote, castVote, uncastVote, stopVote, extendVote,
     lockCards, lockSelected,
+    moveSelectedBy, arrangeSelected,
     updateBoardInfo,
     addCard, moveCard, resizeCard, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
@@ -218,6 +219,27 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         return
       }
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as HTMLElement).isContentEditable) return
+      // Ctrl+A: select every card on the board
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault()
+        selectCards(new Set(cards.map((c) => c.id)))
+        return
+      }
+      // Ctrl+D: duplicate the selection in place (slightly offset)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault()
+        if (selectedIds.size > 0) duplicateSelection()
+        return
+      }
+      // Arrow keys: nudge the selection (1px, or 20px with Shift)
+      if (selectedIds.size > 0 && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault()
+        const step = e.shiftKey ? 20 : 1
+        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0
+        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0
+        moveSelectedBy(dx, dy)
+        return
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedIds.size > 0) deleteSelected()
       }
@@ -226,7 +248,17 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isReadonly, selectedIds, deleteSelected, selectCards, cards, undo, redo])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReadonly, selectedIds, deleteSelected, selectCards, cards, undo, redo, moveSelectedBy])
+
+  // Duplicate the current selection, offset by 24px so the copies are visible.
+  function duplicateSelection() {
+    const sel = cards.filter((c) => selectedIds.has(c.id))
+    if (sel.length === 0) return
+    sel.forEach(({ type, content, color, posX, posY, width, height }) => {
+      addCard(posX + 24, posY + 24, type, content, color, width, height)
+    })
+  }
 
   function handlePasteCards(cb: ClipCard[], canvasX: number, canvasY: number) {
     if (cb.length === 0) return
@@ -457,6 +489,46 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             </svg>
             {allInSameGroup ? 'Dégrouper' : 'Grouper'}
           </button>
+        )}
+
+        {/* Arranger la sélection (colonne / ligne / grille) */}
+        {canGroup && !isReadonly && (
+          <div className="flex items-center gap-0.5 rounded-lg bg-gray-50 border border-gray-200 px-1 py-1 shrink-0">
+            <button
+              onClick={() => arrangeSelected('column')}
+              title="Aligner en colonne"
+              className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="8" y="3" width="8" height="5" rx="1" strokeWidth={2} />
+                <rect x="8" y="10" width="8" height="5" rx="1" strokeWidth={2} />
+                <rect x="8" y="17" width="8" height="5" rx="1" strokeWidth={2} />
+              </svg>
+            </button>
+            <button
+              onClick={() => arrangeSelected('row')}
+              title="Aligner en ligne"
+              className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="8" width="5" height="8" rx="1" strokeWidth={2} />
+                <rect x="10" y="8" width="5" height="8" rx="1" strokeWidth={2} />
+                <rect x="17" y="8" width="5" height="8" rx="1" strokeWidth={2} />
+              </svg>
+            </button>
+            <button
+              onClick={() => arrangeSelected('grid')}
+              title="Aligner en grille"
+              className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2} />
+                <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2} />
+                <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2} />
+                <rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={2} />
+              </svg>
+            </button>
+          </div>
         )}
 
         {/* ── Group: structure (frame / fields) ───────────────────────────── */}

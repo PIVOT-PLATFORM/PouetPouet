@@ -711,6 +711,75 @@ export function useBoard(boardId: string) {
     lockCards(ids, locked)
   }
 
+  // ── Batch positioning (nudge / arrange) ────────────────────────────────────
+  // Applies absolute positions to several cards at once, emits the moves, and
+  // records a single combined undo entry.
+  function setCardPositions(targets: { id: string; posX: number; posY: number }[]) {
+    if (targets.length === 0) return
+    const before = new Map<string, { posX: number; posY: number }>()
+    targets.forEach((t) => {
+      const c = cardsRef.current.find((cc) => cc.id === t.id)
+      if (c) before.set(t.id, { posX: c.posX, posY: c.posY })
+    })
+    const after = new Map(targets.map((t) => [t.id, { posX: t.posX, posY: t.posY }]))
+
+    const apply = (m: Map<string, { posX: number; posY: number }>) => {
+      setCards((prev) => prev.map((c) => (m.has(c.id) ? { ...c, ...m.get(c.id)! } : c)))
+      m.forEach((p, id) => socketRef.current.emit('card:move', { id, boardId, posX: p.posX, posY: p.posY }))
+    }
+    apply(after)
+
+    let changed = false
+    before.forEach((b, id) => {
+      const a = after.get(id)!
+      if (Math.abs(a.posX - b.posX) > 0.5 || Math.abs(a.posY - b.posY) > 0.5) changed = true
+    })
+    if (!changed) return
+    pushHistory({ undo: () => apply(before), redo: () => apply(after) })
+  }
+
+  // Nudge every selected (unlocked) card by a delta — used by arrow-key moves.
+  function moveSelectedBy(dx: number, dy: number) {
+    const ids = Array.from(selectedIdsRef.current)
+    const targets = ids.flatMap((id) => {
+      const c = cardsRef.current.find((cc) => cc.id === id)
+      return c && !c.locked ? [{ id, posX: c.posX + dx, posY: c.posY + dy }] : []
+    })
+    setCardPositions(targets)
+  }
+
+  // Re-lay the selected cards as a row, column, or grid, anchored at their
+  // current top-left, ordered by reading order for a stable result.
+  function arrangeSelected(layout: 'row' | 'column' | 'grid') {
+    const ids = Array.from(selectedIdsRef.current)
+    const sel = ids.flatMap((id) => {
+      const c = cardsRef.current.find((cc) => cc.id === id)
+      return c ? [c] : []
+    })
+    if (sel.length < 2) return
+    const GAP = 24
+    const minX = Math.min(...sel.map((c) => c.posX))
+    const minY = Math.min(...sel.map((c) => c.posY))
+    const ordered = [...sel].sort((a, b) => a.posY - b.posY || a.posX - b.posX)
+    const targets: { id: string; posX: number; posY: number }[] = []
+
+    if (layout === 'row') {
+      let x = minX
+      for (const c of ordered) { targets.push({ id: c.id, posX: x, posY: minY }); x += c.width + GAP }
+    } else if (layout === 'column') {
+      let y = minY
+      for (const c of ordered) { targets.push({ id: c.id, posX: minX, posY: y }); y += c.height + GAP }
+    } else {
+      const cols = Math.ceil(Math.sqrt(ordered.length))
+      const colW = Math.max(...sel.map((c) => c.width)) + GAP
+      const rowH = Math.max(...sel.map((c) => c.height)) + GAP
+      ordered.forEach((c, i) => {
+        targets.push({ id: c.id, posX: minX + (i % cols) * colW, posY: minY + Math.floor(i / cols) * rowH })
+      })
+    }
+    setCardPositions(targets)
+  }
+
   const isReadonly = userRole === 'VIEWER'
 
   return {
@@ -718,6 +787,7 @@ export function useBoard(boardId: string) {
     timerEndsAt, startTimer, stopTimer,
     activeVoteSession, lastVoteSession, startVote, castVote, uncastVote, stopVote, extendVote,
     lockCards, lockSelected,
+    moveSelectedBy, arrangeSelected,
     updateBoardInfo,
     addCard, moveCard, resizeCard, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
