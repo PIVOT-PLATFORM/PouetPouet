@@ -67,6 +67,16 @@ const MIN_ZOOM = 0.1
 const MAX_ZOOM = 3
 const DOT_SPACING = 24
 
+// Custom cursors (white fill + black outline) so the pointer/hand stay visible on the
+// light canvas even when the OS cursor theme is white.
+function svgCursor(svg: string, hotX: number, hotY: number, fallback: string) {
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${hotX} ${hotY}, ${fallback}`
+}
+const ARROW_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M5 3l14 9-7 1-4 7L5 3z" fill="white" stroke="black" stroke-width="1.6" stroke-linejoin="round"/></svg>`
+const HAND_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"><path d="M7 11.5V6a1.5 1.5 0 013 0m0 0v-.5a1.5 1.5 0 013 0V6m0 0a1.5 1.5 0 013 0v1.5m0 0a1.5 1.5 0 013 0V14a6 6 0 01-6 6h-2.5a6 6 0 01-4.243-1.757l-3-3a1.5 1.5 0 012.122-2.122L10 14.5" fill="white" stroke="black" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+const CURSOR_ARROW = svgCursor(ARROW_SVG, 5, 3, 'default')
+const CURSOR_HAND = svgCursor(HAND_SVG, 12, 11, 'grab')
+
 export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCanvas({
   cards, connections, frames, fields, selectedIds, toolMode, toolColor, toolStroke, toolFill, toolOpacity,
   clipboard, isReadonly,
@@ -173,7 +183,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     if (!el) return
     const ox = clientX - vpRef.current.x
     const oy = clientY - vpRef.current.y
-    el.style.cursor = 'grabbing'
+    el.style.cursor = CURSOR_HAND
     function onMove(ev: MouseEvent) {
       applyTransform({ ...vpRef.current, x: ev.clientX - ox, y: ev.clientY - oy })
     }
@@ -667,13 +677,13 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   const zoom = viewport.zoom
 
   const canvasCursor =
-    spaceHeld ? 'grab' :
-    isReadonly ? 'default' :
-    toolMode === 'pan' ? 'grab' :
+    spaceHeld ? CURSOR_HAND :
+    isReadonly ? CURSOR_ARROW :
+    toolMode === 'pan' ? CURSOR_HAND :
     toolMode === 'draw' ? 'crosshair' :
     toolMode === 'link-cards' ? 'crosshair' :
     toolMode !== 'select' ? 'cell' :
-    'default'
+    CURSOR_ARROW
 
   const sourceCard = linkSourceId ? cards.find((c) => c.id === linkSourceId) : null
 
@@ -877,7 +887,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
           {/* Pan overlay — left-drag pans the board (hand tool, or while Space is held) */}
           {(toolMode === 'pan' || spaceHeld) && (
             <div
-              style={{ position: 'absolute', left: -100000, top: -100000, width: 200000, height: 200000, zIndex: 160, cursor: 'grab' }}
+              style={{ position: 'absolute', left: -100000, top: -100000, width: 200000, height: 200000, zIndex: 160, cursor: CURSOR_HAND }}
               onMouseDown={(e) => {
                 if (e.button !== 0) return
                 e.preventDefault()
