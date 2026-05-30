@@ -25,17 +25,17 @@ export function ColorPicker({ value, onChange, columns = 7 }: ColorPickerProps) 
 
   const gridStyle = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
 
-  function swatch(c: string, h: string) {
+  function swatch(c: string) {
     const selected = norm === c.toLowerCase()
     return (
       <button
         key={c}
         title={c}
         onClick={() => onChange(c)}
-        className={`relative w-full ${h} rounded-lg transition-transform hover:scale-105`}
+        className="relative w-full aspect-square rounded-full transition-transform hover:scale-110"
         style={{ background: c, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
       >
-        {selected && <span className="absolute -inset-0.5 rounded-[10px] ring-2 ring-indigo-500" />}
+        {selected && <span className="absolute -inset-0.5 rounded-full ring-2 ring-indigo-500" />}
       </button>
     )
   }
@@ -43,14 +43,14 @@ export function ColorPicker({ value, onChange, columns = 7 }: ColorPickerProps) 
   return (
     <div className="flex flex-col gap-2.5 w-44" onMouseDown={(e) => e.stopPropagation()}>
       <div className="grid gap-1.5" style={gridStyle}>
-        {BASE_COLORS.map((c) => swatch(c, 'h-6'))}
+        {BASE_COLORS.map((c) => swatch(c))}
       </div>
 
       {recents.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Récentes</span>
           <div className="grid gap-1.5" style={gridStyle}>
-            {recents.map((c) => swatch(c, 'h-5'))}
+            {recents.map((c) => swatch(c))}
           </div>
         </div>
       )}

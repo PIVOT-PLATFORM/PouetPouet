@@ -2,26 +2,28 @@
 // labels, teams…). Quick-pick swatches everywhere use BASE_COLORS; anything beyond
 // is available through the custom picker, and recent custom colors are remembered.
 
+// Softened pastel palette (≈ Tailwind 300 level) — gentle on the eyes for cards,
+// shapes and labels alike, plus neutrals for text.
 export const BASE_COLORS = [
-  '#ef4444', // red
-  '#f97316', // orange
-  '#f59e0b', // amber
-  '#eab308', // yellow
-  '#22c55e', // green
-  '#14b8a6', // teal
-  '#0ea5e9', // sky
-  '#3b82f6', // blue
-  '#6366f1', // indigo
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#64748b', // slate
+  '#FCA5A5', // red
+  '#FDBA74', // orange
+  '#FCD34D', // amber
+  '#FEF08A', // yellow
+  '#86EFAC', // green
+  '#5EEAD4', // teal
+  '#7DD3FC', // sky
+  '#93C5FD', // blue
+  '#A5B4FC', // indigo
+  '#C4B5FD', // violet
+  '#F9A8D4', // pink
+  '#CBD5E1', // soft gray
   '#111827', // near-black
-  '#ffffff', // white
+  '#FFFFFF', // white
 ] as const
 
 // Sensible defaults drawn from the shared palette.
-export const DEFAULT_CARD_COLOR = '#eab308'   // yellow — new sticky notes
-export const DEFAULT_SHAPE_COLOR = '#6366f1'  // indigo — new shapes / drawings
+export const DEFAULT_CARD_COLOR = '#FEF08A'   // soft yellow — new sticky notes
+export const DEFAULT_SHAPE_COLOR = '#A5B4FC'  // soft indigo — new shapes / drawings
 export const DEFAULT_LABEL_COLOR = '#111827'  // near-black — label text
 
 // ── Recently used custom colors (localStorage) ────────────────────────────────
