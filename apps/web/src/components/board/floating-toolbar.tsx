@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, forwardRef } from 'react'
 
 export type ToolMode = 'select' | 'text' | 'sticky' | 'rect' | 'circle' | 'diamond' | 'triangle' | 'draw' | 'link' | 'link-cards'
 export type StrokeSize = 'thin' | 'medium' | 'thick'
@@ -41,6 +41,9 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
   const [collapsed, setCollapsed] = useState(false)
   const [lastShape, setLastShape] = useState<ShapeMode>('rect')
   const dragStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null)
+  // Anchors the options flyout to the active tool button instead of the toolbar top.
+  const flyoutAnchorRef = useRef<HTMLButtonElement>(null)
+  const [flyoutTop, setFlyoutTop] = useState<number | null>(null)
 
   // Remember the most recently used shape so the grouped shapes button restores it.
   useEffect(() => {
@@ -78,11 +81,17 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
   const showFlyout = !collapsed && (isShape || isDraw || isSticky)
   const colorSet   = isSticky ? STICKY_COLORS : SHAPE_COLORS
 
+  // Measure the active tool button's viewport top so the flyout lines up with it.
+  useLayoutEffect(() => {
+    setFlyoutTop(showFlyout && flyoutAnchorRef.current ? flyoutAnchorRef.current.getBoundingClientRect().top : null)
+  }, [showFlyout, toolMode, pos.x, pos.y, collapsed])
+
   const screenW = typeof window !== 'undefined' ? window.innerWidth : 1200
   const flyoutOnRight = pos.x < screenW / 2
+  const flyoutTopPx = flyoutTop ?? pos.y
   const flyoutPosStyle: React.CSSProperties = flyoutOnRight
-    ? { left: pos.x + TOOLBAR_W + GAP, top: pos.y }
-    : { right: screenW - pos.x + GAP, top: pos.y }
+    ? { left: pos.x + TOOLBAR_W + GAP, top: flyoutTopPx }
+    : { right: screenW - pos.x + GAP, top: flyoutTopPx }
 
   return (
     <>
@@ -131,7 +140,7 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
                 <path strokeLinecap="round" d="M4 6h16M12 6v13M8 19h8" />
               </svg>
             </Btn>
-            <Btn mode="sticky" current={toolMode} label="Note adhésive" onClick={() => onToolChange('sticky', toolMode === 'sticky' ? toolColor : STICKY_COLORS[0])}>
+            <Btn ref={isSticky ? flyoutAnchorRef : undefined} mode="sticky" current={toolMode} label="Note adhésive" onClick={() => onToolChange('sticky', toolMode === 'sticky' ? toolColor : STICKY_COLORS[0])}>
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
@@ -141,6 +150,7 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
 
             {/* Grouped shapes — opens the shape picker in the options flyout */}
             <button
+              ref={isShape ? flyoutAnchorRef : undefined}
               title="Formes"
               onClick={(e) => { onToolChange(lastShape, isShape ? toolColor : SHAPE_COLORS[0]); e.currentTarget.blur() }}
               className={`relative w-9 h-9 rounded-xl flex items-center justify-center transition-all focus:outline-none ${
@@ -158,7 +168,7 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
 
             <Sep />
 
-            <Btn mode="draw" current={toolMode} label="Dessin libre" onClick={() => onToolChange('draw', toolMode === 'draw' ? toolColor : SHAPE_COLORS[0])}>
+            <Btn ref={isDraw ? flyoutAnchorRef : undefined} mode="draw" current={toolMode} label="Dessin libre" onClick={() => onToolChange('draw', toolMode === 'draw' ? toolColor : SHAPE_COLORS[0])}>
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
@@ -291,13 +301,12 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
   )
 }
 
-function Btn({
-  mode, current, label, onClick, children,
-}: {
+const Btn = forwardRef<HTMLButtonElement, {
   mode: ToolMode; current: ToolMode; label: string; onClick: () => void; children: React.ReactNode
-}) {
+}>(function Btn({ mode, current, label, onClick, children }, ref) {
   return (
     <button
+      ref={ref}
       title={label}
       onClick={(e) => { onClick(); e.currentTarget.blur() }}
       className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all focus:outline-none ${
@@ -309,7 +318,7 @@ function Btn({
       {children}
     </button>
   )
-}
+})
 
 function Sep() {
   return <div className="w-6 h-px bg-gray-100 my-0.5 rounded-full" />
