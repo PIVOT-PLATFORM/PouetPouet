@@ -265,6 +265,8 @@ export function useBoard(boardId: string) {
     if (useSelection) {
       selected.forEach((sid) => { if (sid !== id) followIds.add(sid) })
     }
+    // Locked cards never move, even when dragged as part of a group/selection.
+    cardsRef.current.forEach((c) => { if (c.locked) followIds.delete(c.id) })
 
     setCards((prev) => prev.map((c) => {
       if (c.id === id) return { ...c, posX, posY }
@@ -288,6 +290,8 @@ export function useBoard(boardId: string) {
     const movedIds = new Set<string>([id])
     if (card.groupId) cardsRef.current.forEach((c) => { if (c.groupId === card.groupId) movedIds.add(c.id) })
     if (useSelection) selected.forEach((sid) => movedIds.add(sid))
+    // Locked cards (other than the one grabbed) don't travel with the group.
+    cardsRef.current.forEach((c) => { if (c.locked && c.id !== id) movedIds.delete(c.id) })
     cardDragStartRef.current = new Map(
       Array.from(movedIds).flatMap((cid) => {
         const c = cardsRef.current.find((cc) => cc.id === cid)
@@ -403,8 +407,14 @@ export function useBoard(boardId: string) {
     socketRef.current.emit('card:recolor', { id, boardId, color })
   }
 
+  // Selected card ids minus any that are locked — locked cards ignore bulk edits.
+  function unlockedSelectedIds() {
+    return Array.from(selectedIdsRef.current).filter((id) => !cardsRef.current.find((c) => c.id === id)?.locked)
+  }
+
   function recolorSelected(color: string) {
-    const ids = Array.from(selectedIdsRef.current)
+    const ids = unlockedSelectedIds()
+    if (ids.length === 0) return
     const oldColors = new Map(ids.map((id) => {
       const c = cardsRef.current.find((cc) => cc.id === id)
       return [id, c?.color ?? ''] as [string, string]
@@ -430,7 +440,7 @@ export function useBoard(boardId: string) {
   }
 
   function deleteSelected() {
-    const ids = Array.from(selectedIdsRef.current)
+    const ids = unlockedSelectedIds()
     const savedCards = ids.map((id) => cardsRef.current.find((c) => c.id === id)).filter(Boolean) as Card[]
     if (savedCards.length === 0) return
     // trackedIds[i] follows the live ID through undo/redo cycles
@@ -751,8 +761,7 @@ export function useBoard(boardId: string) {
   // Re-lay the selected cards as a row, column, or grid, anchored at their
   // current top-left, ordered by reading order for a stable result.
   function arrangeSelected(layout: 'row' | 'column' | 'grid') {
-    const ids = Array.from(selectedIdsRef.current)
-    const sel = ids.flatMap((id) => {
+    const sel = unlockedSelectedIds().flatMap((id) => {
       const c = cardsRef.current.find((cc) => cc.id === id)
       return c ? [c] : []
     })

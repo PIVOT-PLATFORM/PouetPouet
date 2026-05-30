@@ -34,9 +34,10 @@ export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartD
     const startFrameX = frame.posX
     const startFrameY = frame.posY
 
-    // Capture cards whose center is inside the frame
+    // Capture cards whose center is inside the frame (locked cards stay put)
     capturedRef.current = cards
       .filter((c) => {
+        if (c.locked) return false
         const cx = c.posX + c.width / 2
         const cy = c.posY + c.height / 2
         return cx >= frame.posX && cx <= frame.posX + frame.width && cy >= frame.posY && cy <= frame.posY + frame.height

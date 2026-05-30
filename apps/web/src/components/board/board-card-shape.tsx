@@ -86,8 +86,8 @@ export function ShapeCard({
         onSelect?.(card.id, false)
       }}
     >
-      {/* ── Shape editing panel (visible when a single object is selected) ── */}
-      {isSelected && !isReadonly && !isMultiSelect && (
+      {/* ── Shape editing panel (visible when a single, unlocked object is selected) ── */}
+      {isSelected && !isReadonly && !isMultiSelect && !card.locked && (
         <div
           className="absolute -top-9 left-0 flex items-center gap-0.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-xl shadow-xl px-2 py-1.5 whitespace-nowrap"
           style={{ zIndex: 10 }}
@@ -152,7 +152,7 @@ export function ShapeCard({
         {shapeType === 'star' && <polygon points={starPoints} strokeLinejoin="round" {...shapeAttrs} />}
       </svg>
 
-      {!isReadonly && (
+      {!isReadonly && !card.locked && (
         <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onMouseDown={(e) => e.stopPropagation()}
@@ -165,7 +165,7 @@ export function ShapeCard({
           </button>
         </div>
       )}
-      {!isReadonly && (
+      {!isReadonly && !card.locked && (
         <div
           className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity flex items-center justify-center"
           onMouseDown={handleResizeMouseDown}

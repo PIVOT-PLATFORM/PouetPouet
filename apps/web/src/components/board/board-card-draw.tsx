@@ -36,7 +36,7 @@ export function DrawCard({
       <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block' }}>
         <path d={card.content} stroke={card.color} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      {!isReadonly && (
+      {!isReadonly && !card.locked && (
         <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onMouseDown={(e) => e.stopPropagation()}
@@ -49,7 +49,7 @@ export function DrawCard({
           </button>
         </div>
       )}
-      {!isReadonly && (
+      {!isReadonly && !card.locked && (
         <div
           className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity flex items-center justify-center"
           onMouseDown={handleResizeMouseDown}

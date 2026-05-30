@@ -144,7 +144,7 @@ export function BoardCard({
     if (isDragging.current) return
     if (isReadonly) return
     if (e.shiftKey || e.metaKey || e.ctrlKey) { onSelect?.(card.id, true); return }
-    if (!isEditing && card.type === 'TEXT') setIsEditing(true)
+    if (!isEditing && card.type === 'TEXT' && !card.locked) setIsEditing(true)
     if (!isEditing) onSelect?.(card.id, false)
   }
 
@@ -241,10 +241,10 @@ export function BoardCard({
         }}
         onMouseDown={handleMouseDown}
         onClick={handleClick}
-        onDoubleClick={(e) => { e.stopPropagation(); if (!isReadonly) setIsEditing(true) }}
+        onDoubleClick={(e) => { e.stopPropagation(); if (!isReadonly && !card.locked) setIsEditing(true) }}
       >
-        {/* ── Formatting toolbar (visible when a single object is selected) ── */}
-        {isSelected && !isReadonly && !isMultiSelect && (
+        {/* ── Formatting toolbar (visible when a single, unlocked object is selected) ── */}
+        {isSelected && !isReadonly && !isMultiSelect && !card.locked && (
           <div
             className="absolute -top-9 left-0 flex items-center gap-0.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-xl shadow-xl px-1.5 py-1 whitespace-nowrap"
             style={{ zIndex: 10 }}
@@ -313,7 +313,7 @@ export function BoardCard({
         )}
 
         {/* ── Delete button (inside bounds, top-right) ── */}
-        {!isReadonly && (
+        {!isReadonly && !card.locked && (
           <button
             className="absolute top-0 right-0 w-5 h-5 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
             style={{ zIndex: 5 }}
@@ -328,7 +328,7 @@ export function BoardCard({
         )}
 
         {/* ── Resize handle ── */}
-        {!isReadonly && (
+        {!isReadonly && !card.locked && (
           <div
             className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover:opacity-50 transition-opacity flex items-center justify-center"
             onMouseDown={handleResizeMouseDown}
@@ -374,7 +374,7 @@ export function BoardCard({
           </div>
         ) : (
           <>
-            {card.type !== 'LINK' && (
+            {card.type !== 'LINK' && !card.locked && (
               <button
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onOpenDetail(card.id) }}
@@ -399,16 +399,18 @@ export function BoardCard({
                 }
               </svg>
             </button>
-            <button
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
-              className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500/60 hover:text-red-600 hover:bg-red-100/60 transition-colors"
-              title="Supprimer"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            {!card.locked && (
+              <button
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
+                className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500/60 hover:text-red-600 hover:bg-red-100/60 transition-colors"
+                title="Supprimer"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </>
         )}
       </div>
@@ -480,7 +482,7 @@ export function BoardCard({
       <div className="shrink-0 h-2" />
 
       {/* ── Resize handle ── */}
-      {!isReadonly && (
+      {!isReadonly && !card.locked && (
         <div
           className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-50 transition-opacity flex items-center justify-center"
           onMouseDown={handleResizeMouseDown}
