@@ -314,37 +314,57 @@ export function NotificationBell() {
             </>
           )}
 
-          {/* Patch notes tab — summary cards; click to open the full detail */}
+          {/* Patch notes tab — vertical timeline; click an entry to open the full detail */}
           {tab === 'patch' && (
-            <div className="max-h-[60vh] overflow-y-auto p-3 space-y-2">
+            <div className="max-h-[60vh] overflow-y-auto px-4 py-4">
               {patchNotes.length === 0 ? (
                 <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">Aucune note de version.</p>
               ) : (
-                patchNotes.map((pn, i) => (
-                  <button
-                    key={pn.version}
-                    onClick={() => setDetailIndex(i)}
-                    className="w-full text-left rounded-xl border border-gray-200 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 transition-colors p-3 group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">v{pn.version}</span>
-                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{pn.title}</span>
-                      {isPatchNew(pn.date) && (
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-rose-600 bg-rose-50 dark:bg-rose-950 dark:text-rose-400 rounded px-1.5 py-0.5 shrink-0">Nouveau</span>
-                      )}
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{pn.summary}</p>
-                    <div className="mt-1.5 flex items-center justify-between">
-                      <span className="text-[11px] text-gray-400 dark:text-gray-500">{formatDate(pn.date)}</span>
-                      <span className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400 inline-flex items-center gap-0.5 opacity-70 group-hover:opacity-100">
-                        Détails
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </span>
-                    </div>
-                  </button>
-                ))
+                <ol className="relative">
+                  {patchNotes.map((pn, i) => {
+                    const isNew = isPatchNew(pn.date)
+                    const isLast = i === patchNotes.length - 1
+                    return (
+                      <li key={pn.version} className="relative pl-7 pb-5 last:pb-0">
+                        {/* Connecting line */}
+                        {!isLast && (
+                          <span className="absolute left-[5px] top-3 bottom-0 w-px bg-gray-200 dark:bg-gray-700" aria-hidden />
+                        )}
+                        {/* Dot — filled/ringed when the release is new */}
+                        <span
+                          className={`absolute left-0 top-1.5 w-[11px] h-[11px] rounded-full border-2 ${
+                            isNew
+                              ? 'bg-rose-500 border-rose-200 dark:border-rose-900'
+                              : 'bg-indigo-400 border-white dark:border-gray-900'
+                          }`}
+                          aria-hidden
+                        />
+                        <button
+                          onClick={() => setDetailIndex(i)}
+                          className="group block w-full text-left -mt-0.5"
+                        >
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">v{pn.version}</span>
+                            <span className="text-[11px] text-gray-400 dark:text-gray-500">{formatDate(pn.date)}</span>
+                            {isNew && (
+                              <span className="text-[10px] font-bold uppercase tracking-wide text-rose-600 bg-rose-50 dark:bg-rose-950 dark:text-rose-400 rounded px-1.5 py-0.5">Nouveau</span>
+                            )}
+                          </div>
+                          <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">
+                            {pn.title}
+                          </p>
+                          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{pn.summary}</p>
+                          <span className="mt-1 inline-flex items-center gap-0.5 text-[11px] font-medium text-indigo-500 dark:text-indigo-400 opacity-70 group-hover:opacity-100 group-hover:gap-1 transition-all">
+                            Détails
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ol>
               )}
             </div>
           )}

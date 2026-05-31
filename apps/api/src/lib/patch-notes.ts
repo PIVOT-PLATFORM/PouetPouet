@@ -22,9 +22,9 @@ export const PATCH_NOTES: PatchNote[] = [
   {
     version: '0.2.0',
     date: '2026-05-31',
-    title: 'Édition avancée, comptes & notifications',
+    title: 'Édition avancée & notifications',
     summary:
-      "Tout le travail réalisé depuis la première mise en ligne : édition des boards repensée (couleurs, formes, redimensionnement, liaisons), sécurité des comptes, pages légales et nouveau centre de notifications.",
+      "Refonte de l'édition des boards, sécurité des comptes et nouveau centre de notifications.",
     sections: [
       {
         heading: '✨ Nouveautés',
@@ -73,7 +73,7 @@ export const PATCH_NOTES: PatchNote[] = [
     date: '2026-05-29',
     title: 'Première mise en ligne',
     summary:
-      'Version initiale déployée de PouetPouet : boards collaboratifs en temps réel et ateliers d’animation d’équipe.',
+      'Boards collaboratifs en temps réel et ateliers d’animation d’équipe.',
     sections: [
       {
         heading: '✨ Au programme',
