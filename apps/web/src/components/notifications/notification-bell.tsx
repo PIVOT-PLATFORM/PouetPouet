@@ -1,13 +1,19 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { connectSocket } from '@/lib/socket'
 import {
   useNotificationsStore,
   type ActivityNotification,
   type NotificationType,
+  type PatchNote,
 } from '@/store/notifications'
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+}
 
 // Relative French time, coarse-grained — enough for a notifications feed.
 function timeAgo(iso: string): string {
@@ -70,6 +76,112 @@ function ActivityRow({
   )
 }
 
+// Full-screen detailed view of a single release, with prev/next navigation
+// (buttons + arrow keys). Rendered in a portal so it sits above everything.
+function PatchNoteModal({
+  notes,
+  index,
+  isNew,
+  onNavigate,
+  onClose,
+}: {
+  notes: PatchNote[]
+  index: number
+  isNew: (date: string) => boolean
+  onNavigate: (i: number) => void
+  onClose: () => void
+}) {
+  const pn = notes[index]
+  const hasPrev = index > 0
+  const hasNext = index < notes.length - 1
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      else if (e.key === 'ArrowLeft' && hasPrev) onNavigate(index - 1)
+      else if (e.key === 'ArrowRight' && hasNext) onNavigate(index + 1)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [index, hasPrev, hasNext, onNavigate, onClose])
+
+  if (!pn) return null
+
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-2xl max-h-[85vh] flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-start gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400">v{pn.version}</span>
+              {isNew(pn.date) && (
+                <span className="text-[10px] font-bold uppercase tracking-wide text-rose-600 bg-rose-50 dark:bg-rose-950 dark:text-rose-400 rounded px-1.5 py-0.5">Nouveau</span>
+              )}
+            </div>
+            <h2 className="mt-0.5 text-lg font-bold text-gray-900 dark:text-gray-50 leading-tight">{pn.title}</h2>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{formatDate(pn.date)}</p>
+          </div>
+          <button
+            onClick={onClose}
+            title="Fermer"
+            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 overflow-y-auto space-y-5">
+          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{pn.summary}</p>
+          {pn.sections.map((sec) => (
+            <div key={sec.heading}>
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2">{sec.heading}</h3>
+              <ul className="space-y-1.5">
+                {sec.items.map((item, i) => (
+                  <li key={i} className="flex gap-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                    <span className="text-indigo-400 mt-1 shrink-0">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer navigation */}
+        <div className="flex items-center justify-between gap-2 px-6 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-800/30">
+          <button
+            disabled={!hasPrev}
+            onClick={() => hasPrev && onNavigate(index - 1)}
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 enabled:hover:text-indigo-600 dark:enabled:hover:text-indigo-400 disabled:opacity-30 disabled:cursor-default transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            {hasPrev ? `v${notes[index - 1].version}` : 'Plus récent'}
+          </button>
+          <span className="text-xs text-gray-400 dark:text-gray-500">{index + 1} / {notes.length}</span>
+          <button
+            disabled={!hasNext}
+            onClick={() => hasNext && onNavigate(index + 1)}
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 enabled:hover:text-indigo-600 dark:enabled:hover:text-indigo-400 disabled:opacity-30 disabled:cursor-default transition-colors"
+          >
+            {hasNext ? `v${notes[index + 1].version}` : 'Plus ancien'}
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 export function NotificationBell() {
   const router = useRouter()
   const {
@@ -82,6 +194,8 @@ export function NotificationBell() {
   // Frozen "seen" timestamp so the "Nouveau" badges stay visible while the user reads,
   // even though opening the tab immediately persists the acknowledgement.
   const [patchSnapshot, setPatchSnapshot] = useState<string | null>(null)
+  // Index of the patch note opened in the full detail modal, or null when closed.
+  const [detailIndex, setDetailIndex] = useState<number | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   const unreadActivity = activity.filter((n) => n.readAt === null).length
@@ -96,15 +210,19 @@ export function NotificationBell() {
     return () => { socket.off('notification:new', onNew) }
   }, [loaded, fetch, receive])
 
-  // Close on outside click / Escape.
+  // Close on outside click / Escape — but defer to the detail modal while it's open
+  // (it owns its own backdrop click + Escape + arrow keys).
   useEffect(() => {
     if (!open) return
-    const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    const onDown = (e: MouseEvent) => {
+      if (detailIndex !== null) return
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && detailIndex === null) setOpen(false) }
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey)
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey) }
-  }, [open])
+  }, [open, detailIndex])
 
   function toggle() {
     setOpen((v) => {
@@ -196,38 +314,51 @@ export function NotificationBell() {
             </>
           )}
 
-          {/* Patch notes tab */}
+          {/* Patch notes tab — summary cards; click to open the full detail */}
           {tab === 'patch' && (
-            <div className="max-h-[60vh] overflow-y-auto px-4 py-3 space-y-4">
+            <div className="max-h-[60vh] overflow-y-auto p-3 space-y-2">
               {patchNotes.length === 0 ? (
                 <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">Aucune note de version.</p>
               ) : (
-                patchNotes.map((pn) => (
-                  <div key={pn.version}>
+                patchNotes.map((pn, i) => (
+                  <button
+                    key={pn.version}
+                    onClick={() => setDetailIndex(i)}
+                    className="w-full text-left rounded-xl border border-gray-200 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 transition-colors p-3 group"
+                  >
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-semibold text-indigo-600 dark:text-indigo-400">v{pn.version}</span>
-                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{pn.title}</span>
+                      <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">v{pn.version}</span>
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{pn.title}</span>
                       {isPatchNew(pn.date) && (
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-rose-600 bg-rose-50 dark:bg-rose-950 dark:text-rose-400 rounded px-1.5 py-0.5">Nouveau</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-rose-600 bg-rose-50 dark:bg-rose-950 dark:text-rose-400 rounded px-1.5 py-0.5 shrink-0">Nouveau</span>
                       )}
-                      <span className="ml-auto text-[11px] text-gray-400 dark:text-gray-500">
-                        {new Date(pn.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{pn.summary}</p>
+                    <div className="mt-1.5 flex items-center justify-between">
+                      <span className="text-[11px] text-gray-400 dark:text-gray-500">{formatDate(pn.date)}</span>
+                      <span className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400 inline-flex items-center gap-0.5 opacity-70 group-hover:opacity-100">
+                        Détails
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                       </span>
                     </div>
-                    <ul className="mt-1.5 space-y-1">
-                      {pn.highlights.map((h, i) => (
-                        <li key={i} className="flex gap-2 text-xs text-gray-600 dark:text-gray-300">
-                          <span className="text-indigo-400 mt-0.5">•</span>
-                          <span>{h}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  </button>
                 ))
               )}
             </div>
           )}
         </div>
+      )}
+
+      {detailIndex !== null && patchNotes[detailIndex] && (
+        <PatchNoteModal
+          notes={patchNotes}
+          index={detailIndex}
+          isNew={isPatchNew}
+          onNavigate={setDetailIndex}
+          onClose={() => setDetailIndex(null)}
+        />
       )}
     </div>
   )

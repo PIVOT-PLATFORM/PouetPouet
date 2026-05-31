@@ -16,11 +16,17 @@ export interface ActivityNotification {
   createdAt: string
 }
 
+export interface PatchNoteSection {
+  heading: string
+  items: string[]
+}
+
 export interface PatchNote {
   version: string
   date: string
   title: string
-  highlights: string[]
+  summary: string
+  sections: PatchNoteSection[]
 }
 
 interface NotificationsPayload {
