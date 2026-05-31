@@ -43,6 +43,10 @@ interface NotificationsState {
   patchNotesSeenAt: string | null
   hasUnreadPatchNotes: boolean
   loaded: boolean
+  // Bumped to ask the NotificationBell to open straight onto the patch notes tab
+  // (e.g. from the version badge in the navbar).
+  patchNotesSignal: number
+  openPatchNotes: () => void
   fetch: () => Promise<void>
   /** Live insert from the socket. */
   receive: (n: ActivityNotification) => void
@@ -67,6 +71,9 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   patchNotesSeenAt: null,
   hasUnreadPatchNotes: false,
   loaded: false,
+  patchNotesSignal: 0,
+
+  openPatchNotes: () => set((s) => ({ patchNotesSignal: s.patchNotesSignal + 1 })),
 
   fetch: async () => {
     try {

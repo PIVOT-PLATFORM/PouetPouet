@@ -185,7 +185,7 @@ function PatchNoteModal({
 export function NotificationBell() {
   const router = useRouter()
   const {
-    activity, patchNotes, patchNotesSeenAt, hasUnreadPatchNotes, loaded,
+    activity, patchNotes, patchNotesSeenAt, hasUnreadPatchNotes, loaded, patchNotesSignal,
     fetch, receive, markRead, markAllRead, remove, markPatchNotesSeen,
   } = useNotificationsStore()
 
@@ -223,6 +223,17 @@ export function NotificationBell() {
     document.addEventListener('keydown', onKey)
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey) }
   }, [open, detailIndex])
+
+  // External trigger (e.g. the navbar version badge): open straight onto the patch notes.
+  useEffect(() => {
+    if (patchNotesSignal === 0) return
+    if (!loaded) void fetch()
+    setOpen(true)
+    setTab('patch')
+    setPatchSnapshot(patchNotesSeenAt)
+    void markPatchNotesSeen()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patchNotesSignal])
 
   function toggle() {
     setOpen((v) => {

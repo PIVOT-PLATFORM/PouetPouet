@@ -11,6 +11,7 @@ import { SessionExpiredModal } from '@/components/session-expired-modal'
 import { SessionCountdown } from '@/components/session-countdown'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useNotificationsStore } from '@/store/notifications'
+import { APP_VERSION } from '@/lib/version'
 
 function Avatar({ name, src }: { name: string; src?: string | null }) {
   if (src) {
@@ -98,6 +99,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Logo />
           </Link>
 
+          <button
+            onClick={() => useNotificationsStore.getState().openPatchNotes()}
+            title="Notes de version"
+            className="hidden sm:inline-flex items-center rounded-full bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 text-[11px] font-mono font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors cursor-pointer leading-none"
+          >
+            v{APP_VERSION}
+          </button>
+
           {!isBoardPage && (
             <nav className="flex items-center gap-1 ml-2">
               <Link
@@ -177,7 +186,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <footer className="border-t border-gray-100 dark:border-gray-800 mt-8">
           <div className="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <span className="text-xs text-gray-400 dark:text-gray-600">
-              © {new Date().getFullYear()} PouetPouet
+              © {new Date().getFullYear()} PouetPouet · v{APP_VERSION}
             </span>
             <nav className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-600">
               <Link href="/mentions-legales" className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
