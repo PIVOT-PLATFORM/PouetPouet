@@ -101,6 +101,8 @@ export function useBoard(boardId: string) {
         setCards(data.cards.map((c) => ({ ...c, fieldValues: (c as Card).fieldValues ?? [] })))
         setUserRole(data.role)
         setIsLoading(false)
+        // HTTP is authoritative: if the API confirms access, clear any transient socket error.
+        setAccessDenied(false)
       })
       .catch((err: Error) => {
         if (err.message === 'Accès refusé') setAccessDenied(true)
@@ -123,8 +125,9 @@ export function useBoard(boardId: string) {
     socket.emit('board:join', boardId)
 
     // On reconnect the server clears all rooms and socket.data — re-join to restore state.
+    // Use socket.io (the Manager) so this fires on reconnections only, not the initial connect.
     const handleReconnect = () => socket.emit('board:join', boardId)
-    socket.on('connect', handleReconnect)
+    socket.io.on('reconnect', handleReconnect)
 
     socket.on('board:state', ({ cards: sc, connections: sconn, frames: sf, fields: sfields, role }) => {
       setCards(sc as Card[])
@@ -223,7 +226,7 @@ export function useBoard(boardId: string) {
     })
 
     return () => {
-      socket.off('connect', handleReconnect)
+      socket.io.off('reconnect', handleReconnect)
       socket.emit('board:leave', boardId)
       ;['board:state', 'board:error', 'board:presence', 'timer:started', 'timer:stopped',
         'vote:session:started', 'vote:updated', 'vote:session:closed',

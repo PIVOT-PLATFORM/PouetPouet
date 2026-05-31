@@ -107,10 +107,18 @@ export function ColorPopover({ value, onChange, title = 'Couleur', align = 'righ
 
   function toggle() {
     if (open) { setOpen(false); return }
-    // Anchor to the enclosing toolbar (if it opts in via data-popover-anchor) so the
-    // panel aligns with the toolbar's edge, not the small swatch; else the swatch.
+    // Use the enclosing data-popover-anchor element (e.g. the toolbar) for the vertical
+    // position only (bottom edge), and the trigger itself for horizontal alignment.
     const anchor = (triggerRef.current?.closest('[data-popover-anchor]') as HTMLElement | null) ?? triggerRef.current
-    if (anchor) setRect(anchor.getBoundingClientRect())
+    const trigger = triggerRef.current
+    if (anchor && trigger) {
+      const anchorRect = anchor.getBoundingClientRect()
+      const triggerRect = trigger.getBoundingClientRect()
+      // Synthesise a rect: bottom from the anchor, left/right from the trigger.
+      setRect(new DOMRect(triggerRect.left, anchorRect.top, triggerRect.width, anchorRect.height))
+    } else if (trigger) {
+      setRect(trigger.getBoundingClientRect())
+    }
     setOpen(true)
   }
 

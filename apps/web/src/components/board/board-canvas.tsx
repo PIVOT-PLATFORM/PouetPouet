@@ -420,7 +420,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
       onAddCard(p.x - 80, p.y - 14, 'LABEL', '', '#374151', 160, 28)
     } else if (toolMode === 'sticky') {
       onAddCard(p.x - 96, p.y - 64, 'TEXT', '', toolColor)
-    } else if (toolMode === 'rect' || toolMode === 'circle' || toolMode === 'diamond' || toolMode === 'triangle' || toolMode === 'hexagon' || toolMode === 'star') {
+    } else if (toolMode === 'rect' || toolMode === 'circle' || toolMode === 'diamond' || toolMode === 'triangle' || toolMode === 'line' || toolMode === 'star') {
       onAddCard(p.x - 75, p.y - 75, 'SHAPE', `${toolMode}|${toolStroke}|${toolFill}|${toolOpacity}`, toolColor, 150, 150)
     } else if (toolMode === 'link') {
       setLinkPopover({ screenX: e.clientX, screenY: e.clientY, canvasX: p.x - 100, canvasY: p.y - 36 })

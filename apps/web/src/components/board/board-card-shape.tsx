@@ -36,15 +36,17 @@ export function ShapeCard({
   const sw = strokeSize === 'thin' ? 1.5 : strokeSize === 'thick' ? 6 : 3
   const hasFill = parts[2] !== 'false'
   const fillOpacity = parts[3] !== undefined ? Math.min(1, Math.max(0.05, parseFloat(parts[3]) || 0.25)) : 0.25
+  const rotation = parts[4] !== undefined ? parseFloat(parts[4]) || 0 : 0
   const w = Math.max(card.width, SHAPE_MIN)
   const h = Math.max(card.height, SHAPE_MIN)
   const pad = Math.ceil(sw / 2) + 4
 
-  function updateShape(overrides: { stroke?: string; fill?: boolean; opacity?: number }) {
+  function updateShape(overrides: { stroke?: string; fill?: boolean; opacity?: number; rotation?: number }) {
     const s = overrides.stroke ?? strokeSize
     const f = overrides.fill ?? hasFill
     const o = overrides.opacity ?? fillOpacity
-    onUpdate(card.id, `${shapeType}|${s}|${f}|${o}`)
+    const r = overrides.rotation ?? rotation
+    onUpdate(card.id, `${shapeType}|${s}|${f}|${o}${shapeType === 'line' ? `|${r}` : ''}`)
   }
 
   const shapeAttrs = {
@@ -54,16 +56,6 @@ export function ShapeCard({
     strokeWidth: sw,
     vectorEffect: 'non-scaling-stroke' as const,
   }
-
-  // Flat-top hexagon that fills the box.
-  const hexPoints = [
-    [pad + (w - 2 * pad) * 0.25, pad],
-    [pad + (w - 2 * pad) * 0.75, pad],
-    [w - pad, h / 2],
-    [pad + (w - 2 * pad) * 0.75, h - pad],
-    [pad + (w - 2 * pad) * 0.25, h - pad],
-    [pad, h / 2],
-  ].map((p) => p.map((n) => n.toFixed(1)).join(',')).join(' ')
 
   // 5-point star centred in the box.
   const starCx = w / 2, starCy = h / 2
@@ -113,31 +105,44 @@ export function ShapeCard({
 
           <div className="w-px self-stretch bg-gray-200 mx-0.5" />
 
-          {/* Fill toggle */}
-          <button
-            title={hasFill ? 'Sans fond' : 'Avec fond'}
-            onClick={() => updateShape({ fill: !hasFill })}
-            className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${hasFill ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <rect x="4" y="4" width="16" height="16" rx="3" fill={hasFill ? 'currentColor' : 'none'} fillOpacity={hasFill ? 0.4 : 0} />
-            </svg>
-          </button>
-
-          {/* Opacity slider — only when fill is on */}
-          {hasFill && (
+          {shapeType === 'line' ? (
+            /* Rotation slider — line only */
+            <input
+              type="range"
+              min={0}
+              max={175}
+              step={5}
+              value={rotation}
+              onChange={(e) => updateShape({ rotation: parseInt(e.target.value) })}
+              style={{ width: 80, accentColor: '#6366f1' }}
+            />
+          ) : (
+            /* Fill toggle + opacity — other shapes */
             <>
-              <div className="w-px self-stretch bg-gray-200 mx-0.5" />
-              <span className="text-[10px] font-mono text-gray-500 w-6 text-right">{Math.round(fillOpacity * 100)}%</span>
-              <input
-                type="range"
-                min={5}
-                max={100}
-                step={5}
-                value={Math.round(fillOpacity * 100)}
-                onChange={(e) => updateShape({ opacity: parseInt(e.target.value) / 100 })}
-                style={{ width: 52, accentColor: '#6366f1' }}
-              />
+              <button
+                title={hasFill ? 'Sans fond' : 'Avec fond'}
+                onClick={() => updateShape({ fill: !hasFill })}
+                className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${hasFill ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <rect x="4" y="4" width="16" height="16" rx="3" fill={hasFill ? 'currentColor' : 'none'} fillOpacity={hasFill ? 0.4 : 0} />
+                </svg>
+              </button>
+              {hasFill && (
+                <>
+                  <div className="w-px self-stretch bg-gray-200 mx-0.5" />
+                  <span className="text-[10px] font-mono text-gray-500 w-6 text-right">{Math.round(fillOpacity * 100)}%</span>
+                  <input
+                    type="range"
+                    min={5}
+                    max={100}
+                    step={5}
+                    value={Math.round(fillOpacity * 100)}
+                    onChange={(e) => updateShape({ opacity: parseInt(e.target.value) / 100 })}
+                    style={{ width: 52, accentColor: '#6366f1' }}
+                  />
+                </>
+              )}
             </>
           )}
         </div>
@@ -148,7 +153,24 @@ export function ShapeCard({
         {shapeType === 'circle' && <circle cx={w / 2} cy={h / 2} r={Math.min(w, h) / 2 - pad} {...shapeAttrs} />}
         {shapeType === 'diamond' && <polygon points={`${w / 2},${pad} ${w - pad},${h / 2} ${w / 2},${h - pad} ${pad},${h / 2}`} {...shapeAttrs} />}
         {shapeType === 'triangle' && <polygon points={`${w / 2},${pad} ${w - pad},${h - pad} ${pad},${h - pad}`} {...shapeAttrs} />}
-        {shapeType === 'hexagon' && <polygon points={hexPoints} strokeLinejoin="round" {...shapeAttrs} />}
+        {shapeType === 'line' && (() => {
+          const theta = (rotation * Math.PI) / 180
+          const cosA = Math.abs(Math.cos(theta))
+          const sinA = Math.abs(Math.sin(theta))
+          // Length of the chord spanning the bounding box at the current angle.
+          const chord = cosA < 1e-9 ? h : sinA < 1e-9 ? w : Math.min(w / cosA, h / sinA)
+          const half = Math.max(0, chord / 2 - pad)
+          return (
+            <g transform={`rotate(${rotation}, ${w / 2}, ${h / 2})`}>
+              <line
+                x1={w / 2 - half} y1={h / 2}
+                x2={w / 2 + half} y2={h / 2}
+                stroke={shapeAttrs.stroke} strokeWidth={shapeAttrs.strokeWidth}
+                strokeLinecap="round" vectorEffect="non-scaling-stroke"
+              />
+            </g>
+          )
+        })()}
         {shapeType === 'star' && <polygon points={starPoints} strokeLinejoin="round" {...shapeAttrs} />}
       </svg>
 

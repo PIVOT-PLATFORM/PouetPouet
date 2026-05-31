@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useLayoutEffect, forwardRef } from 'react'
 import { ColorPicker } from '@/components/ui/color-picker'
 import { DEFAULT_CARD_COLOR, DEFAULT_SHAPE_COLOR } from '@/lib/colors'
 
-export type ToolMode = 'select' | 'pan' | 'text' | 'sticky' | 'rect' | 'circle' | 'diamond' | 'triangle' | 'hexagon' | 'star' | 'draw' | 'link' | 'link-cards'
+export type ToolMode = 'select' | 'pan' | 'text' | 'sticky' | 'rect' | 'circle' | 'diamond' | 'triangle' | 'line' | 'star' | 'draw' | 'link' | 'link-cards'
 export type StrokeSize = 'thin' | 'medium' | 'thick'
 
 interface Props {
@@ -20,9 +20,9 @@ interface Props {
 const TOOLBAR_W = 48
 const GAP = 8
 
-type ShapeMode = 'rect' | 'circle' | 'diamond' | 'triangle' | 'hexagon' | 'star'
-const SHAPES: ShapeMode[] = ['rect', 'circle', 'diamond', 'triangle', 'hexagon', 'star']
-const SHAPE_LABELS: Record<ShapeMode, string> = { rect: 'Rectangle', circle: 'Cercle', diamond: 'Losange', triangle: 'Triangle', hexagon: 'Hexagone', star: 'Étoile' }
+type ShapeMode = 'rect' | 'circle' | 'diamond' | 'triangle' | 'line' | 'star'
+const SHAPES: ShapeMode[] = ['rect', 'circle', 'diamond', 'triangle', 'line', 'star']
+const SHAPE_LABELS: Record<ShapeMode, string> = { rect: 'Rectangle', circle: 'Cercle', diamond: 'Losange', triangle: 'Triangle', line: 'Trait', star: 'Étoile' }
 
 // Inner SVG for a shape glyph, reused by the toolbar button and the shape picker.
 function ShapeGlyph({ mode }: { mode: ShapeMode }) {
@@ -31,7 +31,7 @@ function ShapeGlyph({ mode }: { mode: ShapeMode }) {
     case 'circle':   return <circle cx="12" cy="12" r="8" />
     case 'diamond':  return <polygon points="12,3 21,12 12,21 3,12" />
     case 'triangle': return <polygon points="12,4 22,20 2,20" />
-    case 'hexagon':  return <polygon points="12,2 20.5,7 20.5,17 12,22 3.5,17 3.5,7" />
+    case 'line':     return <line x1="3" y1="12" x2="21" y2="12" strokeLinecap="round" />
     case 'star':     return <polygon points="12,2 14.6,8.8 22,9.2 16.2,13.9 18.2,21 12,16.9 5.8,21 7.8,13.9 2,9.2 9.4,8.8" />
   }
 }
