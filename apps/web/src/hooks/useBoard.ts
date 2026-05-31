@@ -776,7 +776,8 @@ export function useBoard(boardId: string) {
   }
 
   function lockSelected(locked: boolean) {
-    const ids = Array.from(selectedIdsRef.current)
+    // Drawings can't be locked.
+    const ids = Array.from(selectedIdsRef.current).filter((id) => cardsRef.current.find((c) => c.id === id)?.type !== 'DRAW')
     if (ids.length === 0) return
     lockCards(ids, locked)
   }
