@@ -55,15 +55,13 @@ export function ShapeCard({
     vectorEffect: 'non-scaling-stroke' as const,
   }
 
-  // Flat-top hexagon that fills the box.
-  const hexPoints = [
-    [pad + (w - 2 * pad) * 0.25, pad],
-    [pad + (w - 2 * pad) * 0.75, pad],
-    [w - pad, h / 2],
-    [pad + (w - 2 * pad) * 0.75, h - pad],
-    [pad + (w - 2 * pad) * 0.25, h - pad],
-    [pad, h / 2],
-  ].map((p) => p.map((n) => n.toFixed(1)).join(',')).join(' ')
+  // Regular point-top hexagon inscribed in the smaller dimension.
+  const hexR = Math.min(w, h) / 2 - pad
+  const hexCx = w / 2, hexCy = h / 2
+  const hexPoints = Array.from({ length: 6 }, (_, i) => {
+    const ang = (i * 60 - 90) * (Math.PI / 180)
+    return `${(hexCx + hexR * Math.cos(ang)).toFixed(1)},${(hexCy + hexR * Math.sin(ang)).toFixed(1)}`
+  }).join(' ')
 
   // 5-point star centred in the box.
   const starCx = w / 2, starCy = h / 2

@@ -431,7 +431,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
         {/* Selection badge */}
         {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2 rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-1.5 shrink-0">
+          <div data-popover-anchor className="flex items-center gap-2 rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-1.5 shrink-0">
             <span className="text-xs font-medium text-indigo-700">
               {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
             </span>

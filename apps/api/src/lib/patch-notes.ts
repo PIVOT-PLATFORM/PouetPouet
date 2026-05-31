@@ -20,6 +20,23 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.2.1',
+    date: '2026-05-31',
+    title: 'Corrections v0.2.1',
+    summary: 'Hexagone régulier, flèches propres sur les liaisons et meilleur positionnement du sélecteur de couleur.',
+    sections: [
+      {
+        heading: '🐛 Corrections',
+        items: [
+          'Hexagone corrigé en vrai hexagone régulier (calcul en coordonnées polaires).',
+          'Flèches sur les liaisons rendues via marqueurs SVG natifs : plus de débordement de trait sous la pointe.',
+          'Sélecteur de couleur en sélection multiple ancré sur le badge de sélection, aligné sous la barre de navigation comme les autres popups.',
+          'Reconnexion automatique au board après une coupure réseau : les modifications reprennent sans devoir quitter et revenir.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.0',
     date: '2026-05-31',
     title: 'Édition avancée & notifications',

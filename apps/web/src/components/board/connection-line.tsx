@@ -9,6 +9,24 @@ type Side = 'n' | 's' | 'e' | 'w'
 const DEFAULT_COLOR = '#9ca3af'
 const OUT: Record<Side, Pt> = { n: { x: 0, y: -1 }, s: { x: 0, y: 1 }, e: { x: 1, y: 0 }, w: { x: -1, y: 0 } }
 
+// Triangle pointing right (→): tip at (s, s/2), base at x=0.
+// refX=s places the tip at the path endpoint for markerEnd.
+// refX=0, orient="auto-start-reverse" places the tip at the path start for markerStart.
+function ArrowMarker({ id, size, color, reverse }: { id: string; size: number; color: string; reverse?: boolean }) {
+  const s = size
+  return (
+    <marker
+      id={id}
+      markerWidth={s} markerHeight={s}
+      refX={reverse ? 0 : s} refY={s / 2}
+      orient={reverse ? 'auto-start-reverse' : 'auto'}
+      markerUnits="userSpaceOnUse"
+    >
+      <polygon points={`0,0 ${s},${s / 2} 0,${s}`} fill={color} />
+    </marker>
+  )
+}
+
 function center(r: Rect): Pt {
   return { x: r.posX + r.width / 2, y: r.posY + r.height / 2 }
 }
@@ -58,13 +76,6 @@ function buildPath(shape: string, a: Pt, sa: Side, b: Pt, sb: Side) {
   return { d: `M${a.x},${a.y} C${c1.x},${c1.y} ${c2.x},${c2.y} ${b.x},${b.y}`, tStart, tEnd, mid }
 }
 
-function arrowHead(p: Pt, t: Pt, size: number, color: string, key: string) {
-  const ang = Math.atan2(t.y, t.x)
-  const a1 = { x: p.x - size * Math.cos(ang - 0.45), y: p.y - size * Math.sin(ang - 0.45) }
-  const a2 = { x: p.x - size * Math.cos(ang + 0.45), y: p.y - size * Math.sin(ang + 0.45) }
-  return <polygon key={key} points={`${p.x},${p.y} ${a1.x},${a1.y} ${a2.x},${a2.y}`} fill={color} />
-}
-
 export function ConnectionLine({ conn, from, to, selected, interactive, onSelect }: {
   conn: Connection
   from: Rect
@@ -79,10 +90,21 @@ export function ConnectionLine({ conn, from, to, selected, interactive, onSelect
   const { d, tStart, tEnd, mid } = buildPath(conn.shape, a, fa.side, b, tb.side)
   const color = conn.color || DEFAULT_COLOR
   const w = conn.width || 2
+  const strokeColor = selected ? '#6366f1' : color
   const headSize = 7 + w * 1.5
+  const hasStart = conn.arrow === 'start' || conn.arrow === 'both'
+  const hasEnd   = conn.arrow === 'end'   || conn.arrow === 'both'
+  const startId  = `arr-s-${conn.id}`
+  const endId    = `arr-e-${conn.id}`
 
   return (
     <g>
+      {(hasStart || hasEnd) && (
+        <defs>
+          {hasEnd   && <ArrowMarker id={endId}   size={headSize} color={strokeColor} />}
+          {hasStart && <ArrowMarker id={startId} size={headSize} color={strokeColor} reverse />}
+        </defs>
+      )}
       {/* Selection halo */}
       {selected && (
         <path d={d} fill="none" stroke="#6366f1" strokeOpacity={0.25} strokeWidth={w + 8} strokeLinecap="round" style={{ pointerEvents: 'none' }} />
@@ -96,20 +118,19 @@ export function ConnectionLine({ conn, from, to, selected, interactive, onSelect
         style={{ pointerEvents: interactive ? 'stroke' : 'none', cursor: interactive ? 'pointer' : 'default' }}
         onMouseDown={(e) => { if (interactive) { e.stopPropagation(); onSelect?.(conn.id) } }}
       />
-      {/* Visible line */}
+      {/* Visible line — butt cap when arrows are present so no round cap bleeds past the marker tip */}
       <path
         d={d}
         fill="none"
-        stroke={selected ? '#6366f1' : color}
+        stroke={strokeColor}
         strokeWidth={w}
-        strokeLinecap="round"
+        strokeLinecap={hasStart || hasEnd ? 'butt' : 'round'}
         strokeLinejoin="round"
         strokeDasharray={conn.dashed ? `${Math.max(6, w * 3)} ${Math.max(4, w * 2)}` : undefined}
+        markerEnd={hasEnd   ? `url(#${endId})`   : undefined}
+        markerStart={hasStart ? `url(#${startId})` : undefined}
         style={{ pointerEvents: 'none' }}
       />
-      {/* Arrow heads */}
-      {(conn.arrow === 'end' || conn.arrow === 'both') && arrowHead(b, tEnd, headSize, selected ? '#6366f1' : color, 'end')}
-      {(conn.arrow === 'start' || conn.arrow === 'both') && arrowHead(a, tStart, headSize, selected ? '#6366f1' : color, 'start')}
 
       {/* Label */}
       {conn.label && (
