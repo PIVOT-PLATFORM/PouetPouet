@@ -1,7 +1,7 @@
 'use client'
 
 import type { Card } from '@/hooks/useBoard'
-import { ConnectHandles, LinkCardsOverlay } from './board-card-parts'
+import { ConnectHandles, LinkCardsOverlay, ResizeHandles, type ResizeDir } from './board-card-parts'
 import { SHAPE_MIN } from './board-card-constants'
 import { ColorPicker } from '@/components/ui/color-picker'
 
@@ -20,7 +20,7 @@ interface ShapeCardProps {
   linkCardsMode?: boolean
   isLinkSource?: boolean
   handleMouseDown: (e: React.MouseEvent) => void
-  handleResizeMouseDown: (e: React.MouseEvent) => void
+  handleResizeMouseDown: (e: React.MouseEvent, dir: ResizeDir) => void
   isDragging: React.RefObject<boolean>
 }
 
@@ -165,17 +165,10 @@ export function ShapeCard({
           </button>
         </div>
       )}
-      {!isReadonly && !card.locked && (
-        <div
-          className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity flex items-center justify-center"
-          onMouseDown={handleResizeMouseDown}
-        >
-          <svg className="w-3 h-3 text-gray-600" viewBox="0 0 10 10">
-            <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-          </svg>
-        </div>
+      {!isReadonly && !card.locked && isSelected && !isMultiSelect && (
+        <ResizeHandles onStart={handleResizeMouseDown} />
       )}
-      <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />
+      {!isSelected && <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />}
       {linkCardsMode && onLinkCardsClick && (
         <LinkCardsOverlay cardId={card.id} isSource={isLinkSource} onClick={onLinkCardsClick} />
       )}

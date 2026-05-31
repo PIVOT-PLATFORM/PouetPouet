@@ -33,7 +33,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     lockCards, lockSelected,
     moveSelectedBy, arrangeSelected,
     updateBoardInfo,
-    addCard, moveCard, resizeCard, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
+    addCard, moveCard, resizeCard, resizeCardBox, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
     groupSelected,
     addConnection, deleteConnection,
@@ -786,6 +786,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           onAddCard={addCard}
           onMoveCard={moveCard}
           onResizeCard={resizeCard}
+          onResizeCardBox={resizeCardBox}
           onUpdateCard={updateCard}
           onRecolorCard={recolorCard}
           onDeleteCard={deleteCard}

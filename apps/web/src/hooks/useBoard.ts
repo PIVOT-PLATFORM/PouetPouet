@@ -57,7 +57,7 @@ export function useBoard(boardId: string) {
   const pendingFrameHistoryRef = useRef<Array<(frame: Frame) => void>>([])
   // Start positions for drag/resize (pushed to history only on commit)
   const cardDragStartRef = useRef<Map<string, { posX: number; posY: number }> | null>(null)
-  const cardResizeStartRef = useRef<{ id: string; width: number; height: number } | null>(null)
+  const cardResizeStartRef = useRef<{ id: string; posX: number; posY: number; width: number; height: number } | null>(null)
   const frameDragStartRef = useRef<{
     frameId: string
     framePos: { posX: number; posY: number }
@@ -337,10 +337,18 @@ export function useBoard(boardId: string) {
     socketRef.current.emit('card:resize', { id, boardId, width, height })
   }
 
+  // Resize from any edge/corner: the box may shift (posX/posY) when the top/left side
+  // is dragged, so we emit both resize and move.
+  function resizeCardBox(id: string, box: { posX: number; posY: number; width: number; height: number }) {
+    setCards((prev) => prev.map((c) => c.id === id ? { ...c, ...box } : c))
+    socketRef.current.emit('card:resize', { id, boardId, width: box.width, height: box.height })
+    socketRef.current.emit('card:move', { id, boardId, posX: box.posX, posY: box.posY })
+  }
+
   function startResizeCard(id: string) {
     const card = cardsRef.current.find((c) => c.id === id)
     if (!card) return
-    cardResizeStartRef.current = { id, width: card.width, height: card.height }
+    cardResizeStartRef.current = { id, posX: card.posX, posY: card.posY, width: card.width, height: card.height }
   }
 
   function commitResizeCard(id: string) {
@@ -349,19 +357,18 @@ export function useBoard(boardId: string) {
     if (!start || start.id !== id) return
     const card = cardsRef.current.find((c) => c.id === id)
     if (!card) return
-    const { width: oldW, height: oldH } = start
-    const { width: newW, height: newH } = card
-    if (Math.abs(newW - oldW) < 0.5 && Math.abs(newH - oldH) < 0.5) return
-    pushHistory({
-      undo: () => {
-        setCards((prev) => prev.map((c) => c.id === id ? { ...c, width: oldW, height: oldH } : c))
-        socketRef.current.emit('card:resize', { id, boardId, width: oldW, height: oldH })
-      },
-      redo: () => {
-        setCards((prev) => prev.map((c) => c.id === id ? { ...c, width: newW, height: newH } : c))
-        socketRef.current.emit('card:resize', { id, boardId, width: newW, height: newH })
-      },
-    })
+    const before = { posX: start.posX, posY: start.posY, width: start.width, height: start.height }
+    const after = { posX: card.posX, posY: card.posY, width: card.width, height: card.height }
+    if (
+      Math.abs(after.width - before.width) < 0.5 && Math.abs(after.height - before.height) < 0.5 &&
+      Math.abs(after.posX - before.posX) < 0.5 && Math.abs(after.posY - before.posY) < 0.5
+    ) return
+    const apply = (b: typeof before) => {
+      setCards((prev) => prev.map((c) => c.id === id ? { ...c, ...b } : c))
+      socketRef.current.emit('card:resize', { id, boardId, width: b.width, height: b.height })
+      socketRef.current.emit('card:move', { id, boardId, posX: b.posX, posY: b.posY })
+    }
+    pushHistory({ undo: () => apply(before), redo: () => apply(after) })
   }
 
   function updateCard(id: string, content: string) {
@@ -798,7 +805,7 @@ export function useBoard(boardId: string) {
     lockCards, lockSelected,
     moveSelectedBy, arrangeSelected,
     updateBoardInfo,
-    addCard, moveCard, resizeCard, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
+    addCard, moveCard, resizeCard, resizeCardBox, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
     groupSelected,
     addConnection, deleteConnection,

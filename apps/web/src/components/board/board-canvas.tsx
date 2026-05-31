@@ -27,6 +27,7 @@ interface Props {
   onAddCard: (x: number, y: number, type?: string, content?: string, color?: string, width?: number, height?: number) => void
   onMoveCard: (id: string, x: number, y: number) => void
   onResizeCard: (id: string, w: number, h: number) => void
+  onResizeCardBox: (id: string, box: { posX: number; posY: number; width: number; height: number }) => void
   onUpdateCard: (id: string, content: string) => void
   onRecolorCard: (id: string, color: string) => void
   onDeleteCard: (id: string) => void
@@ -80,7 +81,7 @@ const CURSOR_HAND = svgCursor(HAND_SVG, 12, 11, 'grab')
 export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCanvas({
   cards, connections, frames, fields, selectedIds, toolMode, toolColor, toolStroke, toolFill, toolOpacity,
   clipboard, isReadonly,
-  onAddCard, onMoveCard, onResizeCard, onUpdateCard, onRecolorCard, onDeleteCard,
+  onAddCard, onMoveCard, onResizeCard, onResizeCardBox, onUpdateCard, onRecolorCard, onDeleteCard,
   onStartDragCard, onCommitDragCard, onStartResizeCard, onCommitResizeCard,
   onSelectCards, onAddConnection, onDeleteConnection,
   onMoveFrame, onStartDragFrame, onCommitDragFrame,
@@ -790,6 +791,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
               onRecolor={onRecolorCard}
               onDelete={onDeleteCard}
               onResize={onResizeCard}
+              onResizeBox={onResizeCardBox}
               onStartResize={onStartResizeCard}
               onCommitResize={onCommitResizeCard}
               onSelect={handleSelect}

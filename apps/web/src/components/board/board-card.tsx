@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { Card, BoardField } from '@/hooks/useBoard'
 import { parseLabelFmt, formatFieldValue, type LabelFmt } from '@/lib/card-format'
-import { ConnectHandles, LinkCardsOverlay, FmtBtn } from './board-card-parts'
+import { ConnectHandles, LinkCardsOverlay, FmtBtn, ResizeHandles, type ResizeDir } from './board-card-parts'
 import { CHIP_STYLE, MIN_W, MIN_H, SHAPE_MIN } from './board-card-constants'
 import { ColorPicker } from '@/components/ui/color-picker'
 import { ShapeCard } from './board-card-shape'
@@ -25,6 +25,7 @@ interface Props {
   onRecolor?: (id: string, color: string) => void
   onDelete: (id: string) => void
   onResize: (id: string, w: number, h: number) => void
+  onResizeBox?: (id: string, box: { posX: number; posY: number; width: number; height: number }) => void
   onStartResize?: (id: string) => void
   onCommitResize?: (id: string) => void
   onSelect?: (id: string, addToSelection: boolean) => void
@@ -39,7 +40,7 @@ interface Props {
 export function BoardCard({
   card, fields, zoom = 1, isSelected, isMultiSelect, groupColor, drawMode, isReadonly,
   onMove, onStartDrag, onCommitDrag, onUpdate, onRecolor, onDelete,
-  onResize, onStartResize, onCommitResize,
+  onResize, onResizeBox, onStartResize, onCommitResize,
   onSelect, onOpenDetail, onStartConnect, onSetLocked,
   linkCardsMode, isLinkSource, onLinkCardsClick,
 }: Props) {
@@ -102,15 +103,24 @@ export function BoardCard({
   const minW = card.type === 'SHAPE' || card.type === 'DRAW' ? SHAPE_MIN : isLabel ? 40 : MIN_W
   const minH = card.type === 'SHAPE' || card.type === 'DRAW' ? SHAPE_MIN : isLabel ? 20 : MIN_H
 
-  function handleResizeMouseDown(e: React.MouseEvent) {
-    if (isReadonly) return
-    if (card.locked) return
+  function handleResizeMouseDown(e: React.MouseEvent, dir: ResizeDir = 'se') {
+    if (isReadonly || card.locked) return
     e.preventDefault(); e.stopPropagation()
     onStartResize?.(card.id)
-    const startX = e.clientX, startY = e.clientY
-    const startW = card.width, startH = card.height
+    const sx = e.clientX, sy = e.clientY
+    const s = { x: card.posX, y: card.posY, w: card.width, h: card.height }
     function onMouseMove(ev: MouseEvent) {
-      onResize(card.id, Math.max(minW, startW + (ev.clientX - startX) / zoom), Math.max(minH, startH + (ev.clientY - startY) / zoom))
+      const dx = (ev.clientX - sx) / zoom
+      const dy = (ev.clientY - sy) / zoom
+      let { x, y, w, h } = s
+      if (dir.includes('e')) w = s.w + dx
+      if (dir.includes('s')) h = s.h + dy
+      if (dir.includes('w')) { w = s.w - dx; x = s.x + dx }
+      if (dir.includes('n')) { h = s.h - dy; y = s.y + dy }
+      // Clamp to the minimum while keeping the anchored (opposite) edge fixed.
+      if (w < minW) { if (dir.includes('w')) x = s.x + (s.w - minW); w = minW }
+      if (h < minH) { if (dir.includes('n')) y = s.y + (s.h - minH); h = minH }
+      onResizeBox?.(card.id, { posX: x, posY: y, width: w, height: h })
     }
     function onMouseUp() {
       onCommitResize?.(card.id)
@@ -203,6 +213,8 @@ export function BoardCard({
       <DrawCard
         card={card}
         isReadonly={isReadonly}
+        isSelected={isSelected}
+        isMultiSelect={isMultiSelect}
         outline={outline}
         onDelete={onDelete}
         onStartConnect={onStartConnect}
@@ -327,18 +339,11 @@ export function BoardCard({
           </button>
         )}
 
-        {/* ── Resize handle ── */}
-        {!isReadonly && !card.locked && (
-          <div
-            className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover:opacity-50 transition-opacity flex items-center justify-center"
-            onMouseDown={handleResizeMouseDown}
-          >
-            <svg className="w-2.5 h-2.5 text-gray-400" viewBox="0 0 10 10">
-              <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-            </svg>
-          </div>
+        {/* ── Resize handles (when selected) ── */}
+        {!isReadonly && !card.locked && isSelected && !isMultiSelect && (
+          <ResizeHandles onStart={handleResizeMouseDown} />
         )}
-        <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />
+        {!isSelected && <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />}
         {linkCardsMode && onLinkCardsClick && (
           <LinkCardsOverlay cardId={card.id} isSource={isLinkSource} onClick={onLinkCardsClick} />
         )}
@@ -481,19 +486,12 @@ export function BoardCard({
 
       <div className="shrink-0 h-2" />
 
-      {/* ── Resize handle ── */}
-      {!isReadonly && !card.locked && (
-        <div
-          className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-50 transition-opacity flex items-center justify-center"
-          onMouseDown={handleResizeMouseDown}
-        >
-          <svg className="w-3 h-3 text-gray-500" viewBox="0 0 10 10">
-            <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-          </svg>
-        </div>
+      {/* ── Resize handles (when selected) ── */}
+      {!isReadonly && !card.locked && isSelected && !isMultiSelect && (
+        <ResizeHandles onStart={handleResizeMouseDown} />
       )}
 
-      <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />
+      {!isSelected && <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />}
         {linkCardsMode && onLinkCardsClick && (
           <LinkCardsOverlay cardId={card.id} isSource={isLinkSource} onClick={onLinkCardsClick} />
         )}
