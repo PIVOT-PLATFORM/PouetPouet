@@ -16,7 +16,8 @@ const SHAPES: { v: ConnShape; title: string; d: string }[] = [
 ]
 const ARROWS: { v: ConnArrow; title: string; label: string }[] = [
   { v: 'none', title: 'Aucune flèche', label: '—' },
-  { v: 'end', title: 'Flèche au bout', label: '→' },
+  { v: 'start', title: 'Flèche au départ', label: '←' },
+  { v: 'end', title: 'Flèche à l\'arrivée', label: '→' },
   { v: 'both', title: 'Double flèche', label: '↔' },
 ]
 

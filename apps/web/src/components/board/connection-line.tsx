@@ -109,7 +109,7 @@ export function ConnectionLine({ conn, from, to, selected, interactive, onSelect
       />
       {/* Arrow heads */}
       {(conn.arrow === 'end' || conn.arrow === 'both') && arrowHead(b, tEnd, headSize, selected ? '#6366f1' : color, 'end')}
-      {(conn.arrow === 'both') && arrowHead(a, tStart, headSize, selected ? '#6366f1' : color, 'start')}
+      {(conn.arrow === 'start' || conn.arrow === 'both') && arrowHead(a, tStart, headSize, selected ? '#6366f1' : color, 'start')}
 
       {/* Label */}
       {conn.label && (

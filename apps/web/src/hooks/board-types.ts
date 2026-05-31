@@ -23,7 +23,7 @@ export interface Card {
 }
 
 export type ConnShape = 'straight' | 'curved' | 'orthogonal'
-export type ConnArrow = 'none' | 'end' | 'both'
+export type ConnArrow = 'none' | 'end' | 'start' | 'both'
 
 export interface Connection {
   id: string
