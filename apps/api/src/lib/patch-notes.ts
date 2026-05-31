@@ -29,7 +29,8 @@ export const PATCH_NOTES: PatchNote[] = [
       {
         heading: '✨ Nouveautés',
         items: [
-          'Centre de notifications dans la barre de navigation : suivi de l’activité du compte (board partagé, changement de rôle, accès retiré, board supprimé) en temps réel, et notes de version consultables à tout moment.',
+          'Centre de notifications dans la barre de navigation : suivi de l’activité du compte (board partagé, changement de rôle, accès retiré, board supprimé) en temps réel, et notes de version consultables à tout moment (frise des versions + détail complet par version).',
+          'Numéro de version affiché dans l’interface (sur le logo et en pied de page), cliquable pour ouvrir les notes de version.',
           'Vérification de l’adresse email à l’inscription (lien envoyé par email), connexion bloquée tant que l’email n’est pas confirmé.',
           'Suppression définitive du compte depuis le profil, confirmée par le mot de passe.',
           'Pages légales : mentions légales, confidentialité et CGU, adaptées à un éditeur particulier.',
