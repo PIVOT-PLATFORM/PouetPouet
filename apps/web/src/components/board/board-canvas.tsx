@@ -40,10 +40,11 @@ interface Props {
   onMoveFrame: (id: string, posX: number, posY: number, capturedCards: { id: string; startX: number; startY: number; frameStartX: number; frameStartY: number }[]) => void
   onStartDragFrame: (id: string, capturedCardIds: string[]) => void
   onCommitDragFrame: (id: string) => void
-  onResizeFrame: (id: string, w: number, h: number) => void
+  onResizeFrameBox: (id: string, posX: number, posY: number, w: number, h: number) => void
   onStartResizeFrame: (id: string) => void
   onCommitResizeFrame: (id: string) => void
   onUpdateFrame: (id: string, title: string) => void
+  onSetFrameActive: (id: string, active: boolean) => void
   onDeleteFrame: (id: string) => void
   onStartDragCard: (id: string) => void
   onCommitDragCard: (id: string) => void
@@ -89,8 +90,8 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   onStartDragCard, onCommitDragCard, onStartResizeCard, onCommitResizeCard,
   onSelectCards, onAddConnection, onDeleteConnection, onUpdateConnection,
   onMoveFrame, onStartDragFrame, onCommitDragFrame,
-  onResizeFrame, onStartResizeFrame, onCommitResizeFrame,
-  onUpdateFrame, onDeleteFrame,
+  onResizeFrameBox, onStartResizeFrame, onCommitResizeFrame,
+  onUpdateFrame, onSetFrameActive, onDeleteFrame,
   onSetFieldValue, onClearFieldValue, onExitLinkCardsMode, onPasteCards,
   voteSession, voteCanVote = true, currentUserId, onCastVote, onUncastVote, onSetCardLocked,
   boardName,
@@ -776,10 +777,11 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
               onMove={onMoveFrame}
               onStartDrag={onStartDragFrame}
               onCommitDrag={onCommitDragFrame}
-              onResize={onResizeFrame}
+              onResizeBox={onResizeFrameBox}
               onStartResize={onStartResizeFrame}
               onCommitResize={onCommitResizeFrame}
               onUpdate={onUpdateFrame}
+              onSetActive={onSetFrameActive}
               onDelete={onDeleteFrame}
             />
           ))}

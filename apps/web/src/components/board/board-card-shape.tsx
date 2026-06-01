@@ -1,7 +1,7 @@
 'use client'
 
 import type { Card } from '@/hooks/useBoard'
-import { ConnectHandles, LinkCardsOverlay, ResizeHandles, type ResizeDir } from './board-card-parts'
+import { ConnectHandles, LinkCardsOverlay, BorderResizeHandles, type ResizeDir } from './board-card-parts'
 import { SHAPE_MIN } from './board-card-constants'
 import { ColorPicker } from '@/components/ui/color-picker'
 
@@ -187,8 +187,8 @@ export function ShapeCard({
           </button>
         </div>
       )}
-      {!isReadonly && !card.locked && isSelected && !isMultiSelect && (
-        <ResizeHandles onStart={handleResizeMouseDown} />
+      {!isReadonly && !card.locked && !isMultiSelect && (
+        <BorderResizeHandles onStart={handleResizeMouseDown} />
       )}
       {!isSelected && <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />}
       {linkCardsMode && onLinkCardsClick && (

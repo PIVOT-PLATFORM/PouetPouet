@@ -140,6 +140,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
             width: f.width ?? 400,
             height: f.height ?? 300,
             color: f.color ?? '#E0E7FF',
+            active: f.active ?? false,
           })),
         })
       }

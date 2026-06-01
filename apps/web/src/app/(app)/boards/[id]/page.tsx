@@ -43,7 +43,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
     groupSelected,
     addConnection, deleteConnection, updateConnection,
-    addFrame, moveFrame, resizeFrame, updateFrame, deleteFrame,
+    addFrame, moveFrame, resizeFrameBox, updateFrame, setFrameActive, deleteFrame,
     startDragFrame, commitDragFrame, startResizeFrame, commitResizeFrame,
     createField, updateField, deleteField,
     setFieldValue, clearFieldValue,
@@ -890,10 +890,11 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           onMoveFrame={moveFrame}
           onStartDragFrame={startDragFrame}
           onCommitDragFrame={commitDragFrame}
-          onResizeFrame={resizeFrame}
+          onResizeFrameBox={resizeFrameBox}
           onStartResizeFrame={startResizeFrame}
           onCommitResizeFrame={commitResizeFrame}
           onUpdateFrame={updateFrame}
+          onSetFrameActive={setFrameActive}
           onDeleteFrame={deleteFrame}
           onSetFieldValue={setFieldValue}
           onClearFieldValue={clearFieldValue}

@@ -1,7 +1,7 @@
 'use client'
 
 import type { Card } from '@/hooks/useBoard'
-import { ConnectHandles, LinkCardsOverlay, ResizeHandles, type ResizeDir } from './board-card-parts'
+import { ConnectHandles, LinkCardsOverlay, BorderResizeHandles, type ResizeDir } from './board-card-parts'
 import { MIN_W, MIN_H } from './board-card-constants'
 
 interface DrawCardProps {
@@ -51,8 +51,8 @@ export function DrawCard({
           </button>
         </div>
       )}
-      {!isReadonly && !card.locked && isSelected && !isMultiSelect && (
-        <ResizeHandles onStart={handleResizeMouseDown} />
+      {!isReadonly && !card.locked && !isMultiSelect && (
+        <BorderResizeHandles onStart={handleResizeMouseDown} />
       )}
       {!isSelected && <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />}
       {linkCardsMode && onLinkCardsClick && (

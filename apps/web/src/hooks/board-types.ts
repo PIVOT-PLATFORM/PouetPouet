@@ -49,6 +49,9 @@ export interface Frame {
   width: number
   height: number
   color: string
+  // When active, dragging the frame carries every unlocked card inside it.
+  // When inactive (default), the frame moves alone and captures nothing.
+  active: boolean
 }
 
 export interface BoardField {

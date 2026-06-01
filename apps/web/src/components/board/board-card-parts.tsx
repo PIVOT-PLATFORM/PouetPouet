@@ -54,34 +54,6 @@ export function LinkCardsOverlay({ cardId, isSource, onClick }: { cardId: string
 
 export type ResizeDir = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
 
-const RESIZE_HANDLES: { dir: ResizeDir; pos: React.CSSProperties; cursor: string }[] = [
-  { dir: 'nw', pos: { top: 0, left: 0 }, cursor: 'nwse-resize' },
-  { dir: 'n', pos: { top: 0, left: '50%' }, cursor: 'ns-resize' },
-  { dir: 'ne', pos: { top: 0, left: '100%' }, cursor: 'nesw-resize' },
-  { dir: 'e', pos: { top: '50%', left: '100%' }, cursor: 'ew-resize' },
-  { dir: 'se', pos: { top: '100%', left: '100%' }, cursor: 'nwse-resize' },
-  { dir: 's', pos: { top: '100%', left: '50%' }, cursor: 'ns-resize' },
-  { dir: 'sw', pos: { top: '100%', left: 0 }, cursor: 'nesw-resize' },
-  { dir: 'w', pos: { top: '50%', left: 0 }, cursor: 'ew-resize' },
-]
-
-// Eight resize handles (4 corners + 4 edge midpoints) shown when a card is selected;
-// dragging any one resizes the card with the opposite point anchored.
-export function ResizeHandles({ onStart }: { onStart: (e: React.MouseEvent, dir: ResizeDir) => void }) {
-  return (
-    <>
-      {RESIZE_HANDLES.map((h) => (
-        <div
-          key={h.dir}
-          onMouseDown={(e) => { if (e.button === 0) onStart(e, h.dir) }}
-          className="absolute w-2.5 h-2.5 rounded-sm bg-white border border-indigo-500 shadow-sm"
-          style={{ ...h.pos, transform: 'translate(-50%, -50%)', zIndex: 45, cursor: h.cursor }}
-        />
-      ))}
-    </>
-  )
-}
-
 const C = 14 // corner zone size (px)
 const E = 8  // edge zone thickness (px)
 

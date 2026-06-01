@@ -195,9 +195,12 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     socket.to(`board:${data.boardId}`).emit('frame:resized', frame)
   })
 
-  socket.on('frame:update', async (data: { id: string; boardId: string; title: string }) => {
+  socket.on('frame:update', async (data: { id: string; boardId: string; title?: string; active?: boolean }) => {
     if (!canWrite(socket, data.boardId)) return
-    const frame = await prisma.frame.update({ where: { id: data.id }, data: { title: data.title } })
+    const patch: { title?: string; active?: boolean } = {}
+    if (data.title !== undefined) patch.title = data.title
+    if (data.active !== undefined) patch.active = data.active
+    const frame = await prisma.frame.update({ where: { id: data.id }, data: patch })
     io.to(`board:${data.boardId}`).emit('frame:updated', frame)
   })
 

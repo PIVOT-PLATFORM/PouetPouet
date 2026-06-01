@@ -2,6 +2,10 @@
 
 import { useState, useRef } from 'react'
 import type { Frame, Card } from '@/hooks/useBoard'
+import { BorderResizeHandles, type ResizeDir } from './board-card-parts'
+
+const FRAME_MIN_W = 150
+const FRAME_MIN_H = 100
 
 interface Props {
   frame: Frame
@@ -11,14 +15,15 @@ interface Props {
   onMove: (id: string, posX: number, posY: number, capturedCards: { id: string; startX: number; startY: number; frameStartX: number; frameStartY: number }[]) => void
   onStartDrag?: (id: string, capturedCardIds: string[]) => void
   onCommitDrag?: (id: string) => void
-  onResize: (id: string, width: number, height: number) => void
+  onResizeBox: (id: string, posX: number, posY: number, width: number, height: number) => void
   onStartResize?: (id: string) => void
   onCommitResize?: (id: string) => void
   onUpdate: (id: string, title: string) => void
+  onSetActive: (id: string, active: boolean) => void
   onDelete: (id: string) => void
 }
 
-export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartDrag, onCommitDrag, onResize, onStartResize, onCommitResize, onUpdate, onDelete }: Props) {
+export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartDrag, onCommitDrag, onResizeBox, onStartResize, onCommitResize, onUpdate, onSetActive, onDelete }: Props) {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [title, setTitle] = useState(frame.title)
   const capturedRef = useRef<{ id: string; startX: number; startY: number; frameStartX: number; frameStartY: number }[]>([])
@@ -34,15 +39,18 @@ export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartD
     const startFrameX = frame.posX
     const startFrameY = frame.posY
 
-    // Capture cards whose center is inside the frame (locked cards stay put)
-    capturedRef.current = cards
-      .filter((c) => {
-        if (c.locked) return false
-        const cx = c.posX + c.width / 2
-        const cy = c.posY + c.height / 2
-        return cx >= frame.posX && cx <= frame.posX + frame.width && cy >= frame.posY && cy <= frame.posY + frame.height
-      })
-      .map((c) => ({ id: c.id, startX: c.posX, startY: c.posY, frameStartX: startFrameX, frameStartY: startFrameY }))
+    // Only an ACTIVE frame carries its contents. Inactive frames move alone and
+    // capture nothing. Among captured cards, locked ones always stay put.
+    capturedRef.current = frame.active
+      ? cards
+          .filter((c) => {
+            if (c.locked) return false
+            const cx = c.posX + c.width / 2
+            const cy = c.posY + c.height / 2
+            return cx >= frame.posX && cx <= frame.posX + frame.width && cy >= frame.posY && cy <= frame.posY + frame.height
+          })
+          .map((c) => ({ id: c.id, startX: c.posX, startY: c.posY, frameStartX: startFrameX, frameStartY: startFrameY }))
+      : []
 
     onStartDrag?.(frame.id, capturedRef.current.map((c) => c.id))
 
@@ -62,20 +70,26 @@ export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartD
     window.addEventListener('mouseup', onMouseUp)
   }
 
-  function handleResizeMouseDown(e: React.MouseEvent) {
+  function handleResizeMouseDown(e: React.MouseEvent, dir: ResizeDir = 'se') {
     if (isReadonly) return
     e.preventDefault()
     e.stopPropagation()
     onStartResize?.(frame.id)
-    const startX = e.clientX
-    const startY = e.clientY
-    const startW = frame.width
-    const startH = frame.height
+    const sx = e.clientX, sy = e.clientY
+    const s = { x: frame.posX, y: frame.posY, w: frame.width, h: frame.height }
 
     function onMouseMove(ev: MouseEvent) {
-      const w = Math.max(150, startW + (ev.clientX - startX) / zoom)
-      const h = Math.max(100, startH + (ev.clientY - startY) / zoom)
-      onResize(frame.id, w, h)
+      const dx = (ev.clientX - sx) / zoom
+      const dy = (ev.clientY - sy) / zoom
+      let { x, y, w, h } = s
+      if (dir.includes('e')) w = s.w + dx
+      if (dir.includes('s')) h = s.h + dy
+      if (dir.includes('w')) { w = s.w - dx; x = s.x + dx }
+      if (dir.includes('n')) { h = s.h - dy; y = s.y + dy }
+      // Clamp to the minimum while keeping the anchored (opposite) edge fixed.
+      if (w < FRAME_MIN_W) { if (dir.includes('w')) x = s.x + (s.w - FRAME_MIN_W); w = FRAME_MIN_W }
+      if (h < FRAME_MIN_H) { if (dir.includes('n')) y = s.y + (s.h - FRAME_MIN_H); h = FRAME_MIN_H }
+      onResizeBox(frame.id, x, y, w, h)
     }
 
     function onMouseUp() {
@@ -98,10 +112,14 @@ export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartD
       className="absolute group/frame select-none"
       style={{ left: frame.posX, top: frame.posY, width: frame.width, height: frame.height }}
     >
-      {/* Frame body */}
+      {/* Frame body — active frames get a solid, stronger border to signal they carry content */}
       <div
-        className="w-full h-full rounded-2xl border-2 border-dashed"
-        style={{ background: frame.color, borderColor: 'rgba(99,102,241,0.35)', cursor: isReadonly ? 'default' : 'move' }}
+        className={`w-full h-full rounded-2xl border-2 ${frame.active ? 'border-solid' : 'border-dashed'}`}
+        style={{
+          background: frame.color,
+          borderColor: frame.active ? 'rgba(99,102,241,0.7)' : 'rgba(99,102,241,0.35)',
+          cursor: isReadonly ? 'default' : 'move',
+        }}
         onMouseDown={handleMouseDown}
       />
 
@@ -129,6 +147,26 @@ export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartD
           </span>
         )}
 
+        {/* Active toggle — when active, the frame carries its unlocked contents on move */}
+        {!isReadonly && (
+          <button
+            className={`transition-all w-5 h-5 rounded-full flex items-center justify-center ${
+              frame.active
+                ? 'bg-indigo-600 text-white opacity-100'
+                : 'bg-white text-gray-400 opacity-0 group-hover/frame:opacity-100 hover:text-indigo-600'
+            }`}
+            title={frame.active ? 'Cadre actif : déplace son contenu. Cliquer pour désactiver.' : 'Cadre inactif : se déplace seul. Cliquer pour activer.'}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onSetActive(frame.id, !frame.active) }}
+          >
+            {/* frame-holds-content glyph: outer frame + inner block (filled when active) */}
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}>
+              <rect x="3" y="3" width="18" height="18" rx="4" />
+              <rect x="8.5" y="8.5" width="7" height="7" rx="2" fill={frame.active ? 'currentColor' : 'none'} stroke="none" />
+            </svg>
+          </button>
+        )}
+
         {/* Delete button */}
         {!isReadonly && (
           <button
@@ -143,16 +181,9 @@ export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartD
         )}
       </div>
 
-      {/* Resize handle */}
+      {/* Invisible border zones for resizing from any edge or corner — no visible handle */}
       {!isReadonly && (
-        <div
-          className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover/frame:opacity-60 transition-opacity flex items-center justify-center"
-          onMouseDown={handleResizeMouseDown}
-        >
-          <svg className="w-3 h-3 text-indigo-400" viewBox="0 0 10 10" fill="currentColor">
-            <path d="M9 5L5 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-          </svg>
-        </div>
+        <BorderResizeHandles onStart={handleResizeMouseDown} />
       )}
     </div>
   )

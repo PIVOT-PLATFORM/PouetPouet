@@ -136,6 +136,7 @@ model Frame {
   width     Float    @default(400)
   height    Float    @default(300)
   color     String   @default("#E0E7FF")
+  active    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

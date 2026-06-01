@@ -139,8 +139,8 @@ export function ImageCard({
         <LinkCardsOverlay cardId={card.id} isSource={isLinkSource} onClick={onLinkCardsClick} />
       )}
 
-      {/* Invisible border zones for resizing — always active, no visible dots */}
-      {!isReadonly && !card.locked && (
+      {/* Invisible border zones for resizing — no visible dots, disabled during multi-select */}
+      {!isReadonly && !card.locked && !isMultiSelect && (
         <BorderResizeHandles onStart={handleResizeMouseDown} />
       )}
     </div>

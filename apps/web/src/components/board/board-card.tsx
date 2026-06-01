@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { Card, BoardField } from '@/hooks/useBoard'
 import { parseLabelFmt, formatFieldValue, type LabelFmt } from '@/lib/card-format'
-import { ConnectHandles, LinkCardsOverlay, FmtBtn, ResizeHandles, type ResizeDir } from './board-card-parts'
+import { ConnectHandles, LinkCardsOverlay, FmtBtn, BorderResizeHandles, type ResizeDir } from './board-card-parts'
 import { CHIP_STYLE, MIN_W, MIN_H, SHAPE_MIN } from './board-card-constants'
 import { ColorPicker } from '@/components/ui/color-picker'
 import { ShapeCard } from './board-card-shape'
@@ -365,8 +365,8 @@ export function BoardCard({
         )}
 
         {/* ── Resize handles (when selected) ── */}
-        {!isReadonly && !card.locked && isSelected && !isMultiSelect && (
-          <ResizeHandles onStart={handleResizeMouseDown} />
+        {!isReadonly && !card.locked && !isMultiSelect && (
+          <BorderResizeHandles onStart={handleResizeMouseDown} />
         )}
         {!isSelected && <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />}
         {linkCardsMode && onLinkCardsClick && (
@@ -512,8 +512,8 @@ export function BoardCard({
       <div className="shrink-0 h-2" />
 
       {/* ── Resize handles (when selected) ── */}
-      {!isReadonly && !card.locked && isSelected && !isMultiSelect && (
-        <ResizeHandles onStart={handleResizeMouseDown} />
+      {!isReadonly && !card.locked && !isMultiSelect && (
+        <BorderResizeHandles onStart={handleResizeMouseDown} />
       )}
 
       {!isSelected && <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />}
