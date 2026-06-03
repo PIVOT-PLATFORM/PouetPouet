@@ -155,8 +155,14 @@ export function BoardCard({
     if (isDragging.current) return
     if (isReadonly) return
     if (e.shiftKey || e.metaKey || e.ctrlKey) { onSelect?.(card.id, true); return }
-    if (!isEditing && card.type === 'TEXT' && !card.locked) setIsEditing(true)
     if (!isEditing) onSelect?.(card.id, false)
+  }
+
+  function handleDoubleClick(e: React.MouseEvent) {
+    if (isDragging.current) return
+    if (isReadonly || card.locked) return
+    e.stopPropagation()
+    if (card.type === 'TEXT') setIsEditing(true)
   }
 
   function updateLabelFmt(changes: Partial<Omit<LabelFmt, 'text'>>) {
@@ -392,6 +398,7 @@ export function BoardCard({
       }}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
     >
       {/* ── Actions row ── */}
       <div className="shrink-0 flex justify-end items-center gap-1 px-2 pt-1.5 h-7 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -480,7 +487,7 @@ export function BoardCard({
           />
         ) : (
           <p className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed h-full overflow-hidden">
-            {content || <span className="text-gray-400/70 text-xs italic">Cliquer pour écrire</span>}
+            {content || <span className="text-gray-400/70 text-xs italic">Double-cliquer pour écrire</span>}
           </p>
         )}
       </div>
