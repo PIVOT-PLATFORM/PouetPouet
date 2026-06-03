@@ -41,15 +41,28 @@ export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartD
 
     // Only an ACTIVE frame carries its contents. Inactive frames move alone and
     // capture nothing. Among captured cards, locked ones always stay put.
+    // If a captured card belongs to a group, all unlocked group members travel
+    // with it even if they sit outside the frame bounds.
     capturedRef.current = frame.active
-      ? cards
-          .filter((c) => {
+      ? (() => {
+          const inside = cards.filter((c) => {
             if (c.locked) return false
             const cx = c.posX + c.width / 2
             const cy = c.posY + c.height / 2
             return cx >= frame.posX && cx <= frame.posX + frame.width && cy >= frame.posY && cy <= frame.posY + frame.height
           })
-          .map((c) => ({ id: c.id, startX: c.posX, startY: c.posY, frameStartX: startFrameX, frameStartY: startFrameY }))
+          const capturedIds = new Set(inside.map((c) => c.id))
+          const groupIds = new Set(inside.map((c) => c.groupId).filter(Boolean) as string[])
+          if (groupIds.size > 0) {
+            cards.forEach((c) => {
+              if (!c.locked && c.groupId && groupIds.has(c.groupId) && !capturedIds.has(c.id))
+                capturedIds.add(c.id)
+            })
+          }
+          return cards
+            .filter((c) => capturedIds.has(c.id))
+            .map((c) => ({ id: c.id, startX: c.posX, startY: c.posY, frameStartX: startFrameX, frameStartY: startFrameY }))
+        })()
       : []
 
     onStartDrag?.(frame.id, capturedRef.current.map((c) => c.id))

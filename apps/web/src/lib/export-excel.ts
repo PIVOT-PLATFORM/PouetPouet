@@ -1,4 +1,5 @@
 import type { Card, Connection, Frame } from '@/hooks/useBoard'
+import { cardDisplayText } from './card-format'
 
 export async function exportBoardExcel(
   boardName: string,
@@ -10,7 +11,7 @@ export async function exportBoardExcel(
 
   const cardsRows = cards.map((c) => ({
     Type: c.type,
-    Contenu: c.type === 'IMAGE' ? '[Image]' : c.content.slice(0, 1000),
+    Contenu: c.type === 'IMAGE' ? '[Image]' : cardDisplayText(c).slice(0, 1000),
     Couleur: c.color,
     'Position X': c.posX,
     'Position Y': c.posY,

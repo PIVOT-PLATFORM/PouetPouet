@@ -1,6 +1,7 @@
 'use client'
 
 import type { VoteSession, Card } from '@/hooks/useBoard'
+import { cardDisplayText } from '@/lib/card-format'
 
 interface Props {
   session: VoteSession
@@ -119,7 +120,7 @@ export function VoteResultsPanel({ session, cards, isHistory = false, isOwner = 
                 <div className="relative z-10 w-3 h-3 rounded-full shrink-0 border border-black/10" style={{ background: r.card.color }} />
                 {/* Content */}
                 <p className={`relative z-10 flex-1 text-sm font-medium truncate ${isFirst ? 'text-indigo-800' : 'text-gray-700'}`}>
-                  {r.card.content || <span className="italic text-gray-400">Post-it vide</span>}
+                  {cardDisplayText(r.card) || <span className="italic text-gray-400">Post-it vide</span>}
                 </p>
                 {/* Vote count */}
                 <span className={`relative z-10 shrink-0 text-sm font-bold ${isFirst ? 'text-indigo-600' : 'text-gray-500'}`}>

@@ -18,6 +18,7 @@ export interface Card {
   height: number
   color: string
   groupId: string | null
+  groupColor: string | null
   locked: boolean
   fieldValues: FieldValue[]
 }
@@ -110,7 +111,9 @@ export interface VoteSession {
 }
 
 export const CARD_COLORS = ['#FEF08A', '#86EFAC', '#93C5FD', '#F9A8D4', '#FCA5A5', '#C4B5FD']
-export const GROUP_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899']
+
+// Group ring colors drawn from the shared BASE_COLORS pastel palette.
+export const GROUP_COLORS = ['#FCA5A5', '#FDBA74', '#86EFAC', '#7DD3FC', '#93C5FD', '#C4B5FD', '#F9A8D4'] as const
 
 export function groupColor(groupId: string): string {
   let hash = 0

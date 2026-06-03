@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react'
 import type { Card, BoardField } from '@/hooks/useBoard'
-import { parseLabelFmt, formatFieldValue, type LabelFmt } from '@/lib/card-format'
+import { parseLabelFmt, parseTextFmt, serializeTextFmt, formatFieldValue, type LabelFmt, type TextFmt } from '@/lib/card-format'
 import { ConnectHandles, LinkCardsOverlay, FmtBtn, BorderResizeHandles, type ResizeDir } from './board-card-parts'
 import { CHIP_STYLE, MIN_W, MIN_H, SHAPE_MIN } from './board-card-constants'
 import { ColorPicker } from '@/components/ui/color-picker'
+import { headerTint } from '@/lib/colors'
 import { ShapeCard } from './board-card-shape'
 import { DrawCard } from './board-card-draw'
 import { ImageCard } from './board-card-image'
@@ -46,20 +47,60 @@ export function BoardCard({
   linkCardsMode, isLinkSource, onLinkCardsClick,
 }: Props) {
   const isLabel = card.type === 'LABEL'
+  const isText = card.type === 'TEXT'
 
-  const [isEditing, setIsEditing] = useState(card.content === '' && (card.type === 'TEXT' || isLabel))
-  const [content, setContent] = useState(() => isLabel ? parseLabelFmt(card.content).text : card.content)
+  // Initial text, unwrapped from any formatting JSON (TEXT and LABEL store rich text as JSON).
+  const initialText = isLabel ? parseLabelFmt(card.content).text : isText ? parseTextFmt(card.content).text : card.content
+
+  const [isEditing, setIsEditing] = useState(initialText === '' && (isText || isLabel))
+  const [content, setContent] = useState(initialText)
   const [labelFmt, setLabelFmt] = useState<Omit<LabelFmt, 'text'>>(() => {
     if (!isLabel) return { size: 16, bold: false, italic: false, underline: false, strike: false, color: '#374151' }
     const f = parseLabelFmt(card.content)
     return { size: f.size, bold: f.bold, italic: f.italic, underline: f.underline, strike: f.strike, color: f.color }
   })
+  // TEXT card formatting (set from the detail modal; the card just renders it).
+  const [textFmt, setTextFmt] = useState<Omit<TextFmt, 'text'>>(() => {
+    const f = parseTextFmt(card.content)
+    return { size: f.size, bold: f.bold, italic: f.italic, underline: f.underline, strike: f.strike, color: f.color, align: f.align }
+  })
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isDragging = useRef(false)
+  const editEntryPointRef = useRef<{ x: number; y: number } | null>(null)
+
+  // Local height that persists the grown card height across the editing→display transition,
+  // avoiding a flicker back to card.height before onResize propagates from server.
+  const [localHeight, setLocalHeight] = useState<number | null>(null)
+  const OVERHEAD = 44 // actions h-7 (28) + content pb-2 (8) + spacer h-2 (8)
+  const effectiveHeight = Math.max(localHeight ?? 0, Math.max(card.height, MIN_H))
+
+  // Clear localHeight once the server-confirmed card.height has caught up.
+  useEffect(() => {
+    if (localHeight !== null && Math.max(card.height, MIN_H) >= localHeight - 2) {
+      setLocalHeight(null)
+    }
+  }, [card.height, localHeight])
 
   useEffect(() => {
-    if (isEditing) { textareaRef.current?.focus(); textareaRef.current?.select() }
+    if (!isEditing || !textareaRef.current) return
+    const ta = textareaRef.current
+    ta.style.height = 'auto'
+    ta.style.height = `${ta.scrollHeight}px`
+    // Initialise localHeight for cards that already have content
+    const needed = ta.scrollHeight + OVERHEAD
+    setLocalHeight(prev => Math.max(prev ?? Math.max(card.height, MIN_H), needed))
+    const pt = editEntryPointRef.current
+    editEntryPointRef.current = null
+    ta.focus()
+    if (pt) {
+      const caretPos = (document as Document & {
+        caretPositionFromPoint?: (x: number, y: number) => { offset: number } | null
+      }).caretPositionFromPoint?.(pt.x, pt.y)
+      const range = !caretPos ? document.caretRangeFromPoint?.(pt.x, pt.y) : null
+      const offset = caretPos?.offset ?? range?.startOffset ?? ta.value.length
+      ta.setSelectionRange(offset, offset)
+    }
   }, [isEditing])
 
   useEffect(() => {
@@ -67,6 +108,10 @@ export function BoardCard({
       const f = parseLabelFmt(card.content)
       setContent(f.text)
       setLabelFmt({ size: f.size, bold: f.bold, italic: f.italic, underline: f.underline, strike: f.strike, color: f.color })
+    } else if (isText) {
+      const f = parseTextFmt(card.content)
+      setContent(f.text)
+      setTextFmt({ size: f.size, bold: f.bold, italic: f.italic, underline: f.underline, strike: f.strike, color: f.color, align: f.align })
     } else {
       setContent(card.content)
     }
@@ -137,17 +182,43 @@ export function BoardCard({
     onUpdate(card.id, JSON.stringify({ ...fmt, text }))
   }
 
+  // TEXT cards preserve their formatting across inline text edits.
+  function saveTextContent(text: string) {
+    onUpdate(card.id, serializeTextFmt({ ...textFmt, text }))
+  }
+
   function handleBlur() {
+    // Read scrollHeight synchronously BEFORE setIsEditing unmounts the textarea.
+    const ta = textareaRef.current
     setIsEditing(false)
     if (isLabel) saveLabelContent(content, labelFmt)
+    else if (isText) saveTextContent(content)
     else onUpdate(card.id, content)
+    if (card.type === 'TEXT' && ta) {
+      ta.style.height = 'auto'
+      const neededH = Math.max(ta.scrollHeight + OVERHEAD, Math.max(card.height, MIN_H))
+      // Always set localHeight so the card keeps its grown size across the transition.
+      setLocalHeight(neededH)
+      if (neededH > Math.max(card.height, MIN_H) + 2) {
+        onResize(card.id, card.width, neededH)
+      }
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
+      const ta = textareaRef.current
       setIsEditing(false)
       if (isLabel) saveLabelContent(content, labelFmt)
       else onUpdate(card.id, content)
+      if (card.type === 'TEXT' && ta) {
+        ta.style.height = 'auto'
+        const neededH = Math.max(ta.scrollHeight + OVERHEAD, Math.max(card.height, MIN_H))
+        setLocalHeight(neededH)
+        if (neededH > Math.max(card.height, MIN_H) + 2) {
+          onResize(card.id, card.width, neededH)
+        }
+      }
     }
   }
 
@@ -155,8 +226,18 @@ export function BoardCard({
     if (isDragging.current) return
     if (isReadonly) return
     if (e.shiftKey || e.metaKey || e.ctrlKey) { onSelect?.(card.id, true); return }
-    if (!isEditing && card.type === 'TEXT' && !card.locked) setIsEditing(true)
     if (!isEditing) onSelect?.(card.id, false)
+  }
+
+  function handleDoubleClick(e: React.MouseEvent) {
+    if (isDragging.current) return
+    if (isReadonly || card.locked) return
+    e.preventDefault()
+    e.stopPropagation()
+    if (card.type === 'TEXT') {
+      editEntryPointRef.current = { x: e.clientX, y: e.clientY }
+      setIsEditing(true)
+    }
   }
 
   function updateLabelFmt(changes: Partial<Omit<LabelFmt, 'text'>>) {
@@ -377,24 +458,42 @@ export function BoardCard({
   }
 
   // ── TEXT / IMAGE / LINK card ─────────────────────────────────────────────────
+  // TEXT cards get a colored header band derived from the card color.
+  const headerBg = card.type === 'TEXT' ? headerTint(card.color) : undefined
+  // TEXT card text styling (configured from the detail modal).
+  const textStyle: React.CSSProperties = {
+    fontSize: textFmt.size,
+    fontWeight: textFmt.bold ? 700 : 400,
+    fontStyle: textFmt.italic ? 'italic' : 'normal',
+    textDecoration: [textFmt.underline ? 'underline' : '', textFmt.strike ? 'line-through' : ''].filter(Boolean).join(' ') || 'none',
+    color: textFmt.color,
+    textAlign: textFmt.align,
+  }
   return (
     <div
       data-card-id={card.id}
-      className="absolute rounded-xl shadow-md hover:shadow-xl transition-shadow duration-200 flex flex-col group select-none overflow-hidden"
+      className={`absolute rounded-xl shadow-md hover:shadow-xl transition-shadow duration-200 flex flex-col group select-none ${isEditing && card.type === 'TEXT' ? '' : 'overflow-hidden'}`}
       style={{
         left: card.posX,
         top: card.posY,
         width: Math.max(card.width, MIN_W),
-        height: Math.max(card.height, MIN_H),
+        ...(isEditing && card.type === 'TEXT'
+          ? { minHeight: effectiveHeight }
+          : { height: effectiveHeight }),
         background: card.type === 'IMAGE' ? '#1e1e1e' : card.color,
         cursor: isReadonly ? 'default' : (card.locked ? 'default' : isEditing ? 'default' : 'grab'),
         outline, outlineOffset: '2px',
       }}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
     >
-      {/* ── Actions row ── */}
-      <div className="shrink-0 flex justify-end items-center gap-1 px-2 pt-1.5 h-7 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* ── Header band (colored for TEXT) + actions row ── */}
+      <div
+        className="shrink-0 flex justify-end items-center gap-1 px-2 pt-1.5 h-7 rounded-t-xl"
+        style={headerBg ? { background: headerBg } : undefined}
+      >
+       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         {isReadonly ? (
           <div className="w-5 h-5 rounded-full flex items-center justify-center text-gray-400/50" title="Lecture seule">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -443,10 +542,11 @@ export function BoardCard({
             )}
           </>
         )}
+       </div>
       </div>
 
       {/* ── Content ── */}
-      <div className="flex-1 min-h-0 px-3 overflow-hidden">
+      <div className={`px-3 ${isEditing && card.type === 'TEXT' ? 'pb-2' : 'flex-1 min-h-0 overflow-hidden'}`}>
         {card.type === 'IMAGE' ? (
           <img src={card.content} alt="" className="w-full h-full object-contain rounded" draggable={false} />
         ) : card.type === 'LINK' ? (
@@ -471,16 +571,23 @@ export function BoardCard({
           <textarea
             ref={textareaRef}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => {
+              setContent(e.target.value)
+              e.target.style.height = 'auto'
+              e.target.style.height = `${e.target.scrollHeight}px`
+              const needed = e.target.scrollHeight + OVERHEAD
+              setLocalHeight(prev => Math.max(prev ?? effectiveHeight, needed))
+            }}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
-            className="w-full h-full bg-transparent resize-none text-sm text-gray-800 focus:outline-none placeholder-gray-500/60 leading-relaxed"
+            className="w-full bg-transparent resize-none focus:outline-none placeholder-gray-500/60 leading-relaxed overflow-hidden"
+            style={{ height: 'auto', ...textStyle }}
             placeholder="Votre idée…"
             onMouseDown={(e) => e.stopPropagation()}
           />
         ) : (
-          <p className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed h-full overflow-hidden">
-            {content || <span className="text-gray-400/70 text-xs italic">Cliquer pour écrire</span>}
+          <p className="whitespace-pre-wrap break-words leading-relaxed" style={textStyle}>
+            {content || <span className="text-gray-400/70 text-xs italic">Double-cliquer pour écrire</span>}
           </p>
         )}
       </div>

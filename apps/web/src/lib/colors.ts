@@ -34,6 +34,34 @@ function isHex(c: string) {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(c)
 }
 
+// ── Header tint ───────────────────────────────────────────────────────────────
+// Derives a richer shade of a card color for its header band: light/pastel colors
+// are darkened, already-dark colors are lightened instead so the header stays
+// visibly distinct from the body in both cases.
+function hexToRgb(hex: string): [number, number, number] {
+  let h = hex.replace('#', '')
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('')
+  const n = parseInt(h, 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const to = (v: number) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')
+  return `#${to(r)}${to(g)}${to(b)}`
+}
+
+export function headerTint(hex: string): string {
+  if (!isHex(hex)) return hex
+  const [r, g, b] = hexToRgb(hex)
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b // perceived luminance, 0–255
+  if (lum < 70) {
+    // Already dark — lighten toward white so the header reads as distinct.
+    return rgbToHex(r + (255 - r) * 0.05, g + (255 - g) * 0.05, b + (255 - b) * 0.05)
+  }
+  // Light/pastel — darken toward black for a richer header band.
+  return rgbToHex(r * 0.95, g * 0.95, b * 0.95)
+}
+
 export function getRecentColors(): string[] {
   if (typeof window === 'undefined') return []
   try {

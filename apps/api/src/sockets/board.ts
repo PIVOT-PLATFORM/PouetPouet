@@ -115,7 +115,20 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
   socket.on('card:delete', async (data: { id: string; boardId: string }) => {
     if (!canWrite(socket, data.boardId)) return
     const deleted = await ignoreMissing(prisma.card.delete({ where: { id: data.id } }))
-    if (deleted) io.to(`board:${data.boardId}`).emit('card:deleted', data.id)
+    if (!deleted) return
+    io.to(`board:${data.boardId}`).emit('card:deleted', data.id)
+    // A group of one is meaningless: if deleting this card leaves its group with a
+    // single remaining member, dissolve the group automatically.
+    if (deleted.groupId) {
+      const remaining = await prisma.card.findMany({
+        where: { groupId: deleted.groupId, boardId: data.boardId },
+        select: { id: true },
+      })
+      if (remaining.length === 1) {
+        await prisma.card.update({ where: { id: remaining[0].id }, data: { groupId: null } })
+        io.to(`board:${data.boardId}`).emit('cards:ungrouped', deleted.groupId)
+      }
+    }
   })
 
   socket.on('card:recolor', async (data: { id: string; boardId: string; color: string }) => {
@@ -142,6 +155,12 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     if (!canWrite(socket, data.boardId)) return
     await prisma.card.updateMany({ where: { groupId: data.groupId, boardId: data.boardId }, data: { groupId: null } })
     io.to(`board:${data.boardId}`).emit('cards:ungrouped', data.groupId)
+  })
+
+  socket.on('cards:group-color', async (data: { boardId: string; groupId: string; color: string }) => {
+    if (!canWrite(socket, data.boardId)) return
+    await prisma.card.updateMany({ where: { groupId: data.groupId, boardId: data.boardId }, data: { groupColor: data.color } })
+    io.to(`board:${data.boardId}`).emit('cards:group-colored', { groupId: data.groupId, color: data.color })
   })
 
   // ── Connections ───────────────────────────────────────────────────────────────
