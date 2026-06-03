@@ -169,19 +169,36 @@ export function BoardCard({
   }
 
   function handleBlur() {
+    // Read scrollHeight synchronously BEFORE setIsEditing unmounts the textarea.
+    const ta = textareaRef.current
     setIsEditing(false)
     if (isLabel) saveLabelContent(content, labelFmt)
     else onUpdate(card.id, content)
-    if (localHeight !== null && card.type === 'TEXT' && localHeight > Math.max(card.height, MIN_H) + 2) {
-      onResize(card.id, card.width, localHeight)
+    if (card.type === 'TEXT' && ta) {
+      ta.style.height = 'auto'
+      const neededH = Math.max(ta.scrollHeight + OVERHEAD, Math.max(card.height, MIN_H))
+      // Always set localHeight so the card keeps its grown size across the transition.
+      setLocalHeight(neededH)
+      if (neededH > Math.max(card.height, MIN_H) + 2) {
+        onResize(card.id, card.width, neededH)
+      }
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
+      const ta = textareaRef.current
       setIsEditing(false)
       if (isLabel) saveLabelContent(content, labelFmt)
       else onUpdate(card.id, content)
+      if (card.type === 'TEXT' && ta) {
+        ta.style.height = 'auto'
+        const neededH = Math.max(ta.scrollHeight + OVERHEAD, Math.max(card.height, MIN_H))
+        setLocalHeight(neededH)
+        if (neededH > Math.max(card.height, MIN_H) + 2) {
+          onResize(card.id, card.width, neededH)
+        }
+      }
     }
   }
 
@@ -533,7 +550,7 @@ export function BoardCard({
             onMouseDown={(e) => e.stopPropagation()}
           />
         ) : (
-          <p className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed h-full overflow-hidden">
+          <p className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed">
             {content || <span className="text-gray-400/70 text-xs italic">Double-cliquer pour écrire</span>}
           </p>
         )}
