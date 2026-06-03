@@ -56,16 +56,30 @@ export function BoardCard({
   })
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const cardDivRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   const editEntryPointRef = useRef<{ x: number; y: number } | null>(null)
+
+  // Local height that persists the grown card height across the editing→display transition,
+  // avoiding a flicker back to card.height before onResize propagates from server.
+  const [localHeight, setLocalHeight] = useState<number | null>(null)
+  const OVERHEAD = 44 // actions h-7 (28) + content pb-2 (8) + spacer h-2 (8)
+  const effectiveHeight = Math.max(localHeight ?? 0, Math.max(card.height, MIN_H))
+
+  // Clear localHeight once the server-confirmed card.height has caught up.
+  useEffect(() => {
+    if (localHeight !== null && Math.max(card.height, MIN_H) >= localHeight - 2) {
+      setLocalHeight(null)
+    }
+  }, [card.height, localHeight])
 
   useEffect(() => {
     if (!isEditing || !textareaRef.current) return
     const ta = textareaRef.current
-    // Trigger auto-height on entry so existing content already expands the card
     ta.style.height = 'auto'
     ta.style.height = `${ta.scrollHeight}px`
+    // Initialise localHeight for cards that already have content
+    const needed = ta.scrollHeight + OVERHEAD
+    setLocalHeight(prev => Math.max(prev ?? Math.max(card.height, MIN_H), needed))
     const pt = editEntryPointRef.current
     editEntryPointRef.current = null
     ta.focus()
@@ -158,12 +172,8 @@ export function BoardCard({
     setIsEditing(false)
     if (isLabel) saveLabelContent(content, labelFmt)
     else onUpdate(card.id, content)
-    // Persist expanded height if the card grew during editing
-    if (cardDivRef.current && card.type === 'TEXT') {
-      const newH = cardDivRef.current.offsetHeight
-      if (newH > Math.max(card.height, MIN_H) + 2) {
-        onResize(card.id, card.width, newH)
-      }
+    if (localHeight !== null && card.type === 'TEXT' && localHeight > Math.max(card.height, MIN_H) + 2) {
+      onResize(card.id, card.width, localHeight)
     }
   }
 
@@ -413,7 +423,6 @@ export function BoardCard({
   // ── TEXT / IMAGE / LINK card ─────────────────────────────────────────────────
   return (
     <div
-      ref={cardDivRef}
       data-card-id={card.id}
       className={`absolute rounded-xl shadow-md hover:shadow-xl transition-shadow duration-200 flex flex-col group select-none ${isEditing && card.type === 'TEXT' ? '' : 'overflow-hidden'}`}
       style={{
@@ -421,8 +430,8 @@ export function BoardCard({
         top: card.posY,
         width: Math.max(card.width, MIN_W),
         ...(isEditing && card.type === 'TEXT'
-          ? { minHeight: Math.max(card.height, MIN_H) }
-          : { height: Math.max(card.height, MIN_H) }),
+          ? { minHeight: effectiveHeight }
+          : { height: effectiveHeight }),
         background: card.type === 'IMAGE' ? '#1e1e1e' : card.color,
         cursor: isReadonly ? 'default' : (card.locked ? 'default' : isEditing ? 'default' : 'grab'),
         outline, outlineOffset: '2px',
@@ -513,6 +522,8 @@ export function BoardCard({
               setContent(e.target.value)
               e.target.style.height = 'auto'
               e.target.style.height = `${e.target.scrollHeight}px`
+              const needed = e.target.scrollHeight + OVERHEAD
+              setLocalHeight(prev => Math.max(prev ?? effectiveHeight, needed))
             }}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
