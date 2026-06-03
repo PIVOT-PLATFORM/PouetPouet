@@ -57,9 +57,23 @@ export function BoardCard({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isDragging = useRef(false)
+  const editEntryPointRef = useRef<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
-    if (isEditing) { textareaRef.current?.focus() }
+    if (!isEditing || !textareaRef.current) return
+    const ta = textareaRef.current
+    const pt = editEntryPointRef.current
+    editEntryPointRef.current = null
+    ta.focus()
+    if (pt) {
+      // Place cursor at the click position inside the textarea
+      const caretPos = (document as Document & {
+        caretPositionFromPoint?: (x: number, y: number) => { offset: number } | null
+      }).caretPositionFromPoint?.(pt.x, pt.y)
+      const range = !caretPos ? document.caretRangeFromPoint?.(pt.x, pt.y) : null
+      const offset = caretPos?.offset ?? range?.startOffset ?? ta.value.length
+      ta.setSelectionRange(offset, offset)
+    }
   }, [isEditing])
 
   useEffect(() => {
@@ -163,7 +177,10 @@ export function BoardCard({
     if (isReadonly || card.locked) return
     e.preventDefault()
     e.stopPropagation()
-    if (card.type === 'TEXT') setIsEditing(true)
+    if (card.type === 'TEXT') {
+      editEntryPointRef.current = { x: e.clientX, y: e.clientY }
+      setIsEditing(true)
+    }
   }
 
   function updateLabelFmt(changes: Partial<Omit<LabelFmt, 'text'>>) {
