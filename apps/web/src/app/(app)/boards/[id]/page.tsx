@@ -789,7 +789,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             </button>
             {showTimerPicker && timerPickerRect && (
               <div
-                style={{ position: 'fixed', top: timerPickerRect.bottom + 8, left: timerPickerRect.left }}
+                style={{ position: 'fixed', top: templateDraftOf ? 170 : 120, left: timerPickerRect.left }}
                 className="w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-[200]"
                 onMouseEnter={handleTimerPickerEnter}
                 onMouseLeave={handleTimerPickerLeave}
