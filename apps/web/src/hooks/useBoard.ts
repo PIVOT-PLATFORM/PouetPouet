@@ -174,7 +174,15 @@ export function useBoard(boardId: string) {
     })
     socket.on('card:moved', (card) => setCards((prev) => prev.map((c) => c.id === (card as Card).id ? { ...c, ...(card as Card) } : c)))
     socket.on('card:resized', (card) => setCards((prev) => prev.map((c) => c.id === (card as Card).id ? { ...c, ...(card as Card) } : c)))
-    socket.on('card:updated', (card) => setCards((prev) => prev.map((c) => c.id === (card as Card).id ? { ...c, ...(card as Card) } : c)))
+    // card:update only ever changes `content`. Its echo (io.to) returns to the sender too,
+    // so we must NOT apply the payload's geometry — doing so would clobber a freshly
+    // grown height (e.g. a TEXT card that auto-expanded) with a stale racing value.
+    socket.on('card:updated', (card) => setCards((prev) => prev.map((c) => {
+      if (c.id !== (card as Card).id) return c
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { posX, posY, width, height, ...rest } = card as Card
+      return { ...c, ...rest }
+    })))
     socket.on('card:deleted', (id) => {
       setCards((prev) => prev.filter((c) => c.id !== id))
       setConnections((prev) => prev.filter((c) => c.fromId !== id && c.toId !== id))
