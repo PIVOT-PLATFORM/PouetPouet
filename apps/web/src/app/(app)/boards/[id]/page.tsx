@@ -42,7 +42,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     updateBoardInfo,
     addCard, moveCard, resizeCard, resizeCardBox, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
-    groupSelected,
+    groupSelected, ungroupById, recolorGroup,
     addConnection, deleteConnection, updateConnection,
     addFrame, moveFrame, resizeFrameBox, updateFrame, setFrameActive, deleteFrame,
     startDragFrame, commitDragFrame, startResizeFrame, commitResizeFrame,
@@ -309,7 +309,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedIds.size > 0) deleteSelected()
       }
-      if (e.key === 'Escape') { setToolMode('select'); selectCards(new Set()) }
+      if (e.key === 'Escape') { setToolMode('select'); selectCards(new Set()); setHighlightedGroupId(null) }
       if ((e.key === 'v' || e.key === 'V') && !e.ctrlKey && !e.metaKey) setToolMode('select')
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -966,6 +966,8 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           cards={cards}
           highlightedGroupId={highlightedGroupId}
           onHighlight={setHighlightedGroupId}
+          onRecolor={recolorGroup}
+          onDelete={(gid) => { ungroupById(gid); if (highlightedGroupId === gid) setHighlightedGroupId(null) }}
           onClose={() => { setShowGroupsPanel(false); setHighlightedGroupId(null) }}
           top={templateDraftOf ? 170 : 120}
           right={groupsBtnRect ? window.innerWidth - groupsBtnRect.right : 16}

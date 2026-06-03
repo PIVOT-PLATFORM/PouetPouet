@@ -197,6 +197,9 @@ export function useBoard(boardId: string) {
     socket.on('cards:ungrouped', (groupId: string) => {
       setCards((prev) => prev.map((c) => c.groupId === groupId ? { ...c, groupId: null } : c))
     })
+    socket.on('cards:group-colored', ({ groupId, color }: { groupId: string; color: string }) => {
+      setCards((prev) => prev.map((c) => c.groupId === groupId ? { ...c, groupColor: color } : c))
+    })
 
     // Connections
     socket.on('connection:created', (conn) => {
@@ -247,7 +250,7 @@ export function useBoard(boardId: string) {
         'vote:session:started', 'vote:updated', 'vote:session:closed',
         'cards:locked',
         'card:created', 'card:moved', 'card:resized', 'card:updated', 'card:deleted', 'card:recolored',
-        'cards:grouped', 'cards:ungrouped',
+        'cards:grouped', 'cards:ungrouped', 'cards:group-colored',
         'connection:created', 'connection:deleted', 'connection:updated',
         'frame:created', 'frame:moved', 'frame:resized', 'frame:updated', 'frame:deleted',
         'boardfield:created', 'boardfield:updated', 'boardfield:deleted',
@@ -509,6 +512,17 @@ export function useBoard(boardId: string) {
     } else {
       socketRef.current.emit('cards:group', { boardId, cardIds: ids })
     }
+  }
+
+  // Dissolves a group by id (used by the groups panel).
+  function ungroupById(groupId: string) {
+    socketRef.current.emit('cards:ungroup', { boardId, groupId })
+  }
+
+  // Sets a custom outline color for every card of a group.
+  function recolorGroup(groupId: string, color: string) {
+    setCards((prev) => prev.map((c) => c.groupId === groupId ? { ...c, groupColor: color } : c))
+    socketRef.current.emit('cards:group-color', { boardId, groupId, color })
   }
 
   // ── Connections ───────────────────────────────────────────────────────────────
@@ -903,7 +917,7 @@ export function useBoard(boardId: string) {
     updateBoardInfo,
     addCard, moveCard, resizeCard, resizeCardBox, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
-    groupSelected,
+    groupSelected, ungroupById, recolorGroup,
     addConnection, deleteConnection, updateConnection,
     addFrame, moveFrame, resizeFrameBox, updateFrame, setFrameActive, deleteFrame,
     startDragFrame, commitDragFrame, startResizeFrame, commitResizeFrame,

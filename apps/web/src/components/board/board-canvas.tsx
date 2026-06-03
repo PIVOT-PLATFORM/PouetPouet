@@ -797,16 +797,19 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
               const from = cards.find((c) => c.id === conn.fromId)
               const to = cards.find((c) => c.id === conn.toId)
               if (!from || !to) return null
+              // During group focus, dim links unless both endpoints are in the group.
+              const dimmed = !!highlightedGroupId && !(from.groupId === highlightedGroupId && to.groupId === highlightedGroupId)
               return (
-                <ConnectionLine
-                  key={conn.id}
-                  conn={conn}
-                  from={from}
-                  to={to}
-                  selected={selectedConnId === conn.id}
-                  interactive={!isReadonly}
-                  onSelect={handleSelectConnection}
-                />
+                <g key={conn.id} style={{ opacity: dimmed ? 0.12 : 1, transition: 'opacity 0.2s', pointerEvents: dimmed ? 'none' : undefined }}>
+                  <ConnectionLine
+                    conn={conn}
+                    from={from}
+                    to={to}
+                    selected={selectedConnId === conn.id}
+                    interactive={!isReadonly}
+                    onSelect={handleSelectConnection}
+                  />
+                </g>
               )
             })}
             <line ref={connectGhostRef} stroke="#6366f1" strokeWidth={2} strokeDasharray="6 4" strokeLinecap="round" style={{ display: 'none', pointerEvents: 'none' }} />
@@ -845,7 +848,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
                   zoom={zoom}
                   isSelected={selectedIds.has(card.id)}
                   isMultiSelect={selectedIds.size > 1}
-                  groupColor={card.groupId ? groupColor(card.groupId) : undefined}
+                  groupColor={card.groupId ? (card.groupColor ?? groupColor(card.groupId)) : undefined}
                   drawMode={toolMode === 'draw'}
                   isReadonly={isReadonly}
                   onMove={onMoveCard}

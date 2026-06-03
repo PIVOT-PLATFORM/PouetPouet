@@ -18,6 +18,7 @@ export interface Card {
   height: number
   color: string
   groupId: string | null
+  groupColor: string | null
   locked: boolean
   fieldValues: FieldValue[]
 }

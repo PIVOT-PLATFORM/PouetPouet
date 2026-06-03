@@ -157,6 +157,12 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     io.to(`board:${data.boardId}`).emit('cards:ungrouped', data.groupId)
   })
 
+  socket.on('cards:group-color', async (data: { boardId: string; groupId: string; color: string }) => {
+    if (!canWrite(socket, data.boardId)) return
+    await prisma.card.updateMany({ where: { groupId: data.groupId, boardId: data.boardId }, data: { groupColor: data.color } })
+    io.to(`board:${data.boardId}`).emit('cards:group-colored', { groupId: data.groupId, color: data.color })
+  })
+
   // ── Connections ───────────────────────────────────────────────────────────────
   socket.on('connection:create', async (data: { boardId: string; fromId: string; toId: string }) => {
     if (!canWrite(socket, data.boardId)) return
