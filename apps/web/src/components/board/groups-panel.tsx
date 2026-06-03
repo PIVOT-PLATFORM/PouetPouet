@@ -8,9 +8,13 @@ interface Props {
   highlightedGroupId: string | null
   onHighlight: (groupId: string | null) => void
   onClose: () => void
+  // Viewport anchor: `top` lines up with the usual gap below the navbar,
+  // `right` aligns the panel's right edge with the Groups button.
+  top: number
+  right: number
 }
 
-export function GroupsPanel({ cards, highlightedGroupId, onHighlight, onClose }: Props) {
+export function GroupsPanel({ cards, highlightedGroupId, onHighlight, onClose, top, right }: Props) {
   const groups = new Map<string, Card[]>()
   cards.forEach((c) => {
     if (!c.groupId) return
@@ -20,7 +24,10 @@ export function GroupsPanel({ cards, highlightedGroupId, onHighlight, onClose }:
   })
 
   return (
-    <div className="fixed top-[4.5rem] right-4 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 z-[150] flex flex-col overflow-hidden">
+    <div
+      style={{ position: 'fixed', top, right }}
+      className="w-56 bg-white rounded-2xl shadow-xl border border-gray-100 z-[200] flex flex-col overflow-hidden"
+    >
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <span className="text-sm font-semibold text-gray-800">Groupes</span>
         <button

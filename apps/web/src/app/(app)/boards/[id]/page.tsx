@@ -122,6 +122,8 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const imageImportRef = useRef<HTMLInputElement>(null)
   const [showGroupsPanel, setShowGroupsPanel] = useState(false)
   const [highlightedGroupId, setHighlightedGroupId] = useState<string | null>(null)
+  const groupsBtnRef = useRef<HTMLButtonElement>(null)
+  const [groupsBtnRect, setGroupsBtnRect] = useState<DOMRect | null>(null)
   const [showVoteConfig, setShowVoteConfig] = useState(false)
   const [showVoteResults, setShowVoteResults] = useState(false)
   const [showLastVote, setShowLastVote] = useState(false)
@@ -639,7 +641,16 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                 Cadre
               </button>
               <button
-                onClick={() => { setShowGroupsPanel((v) => !v); if (showGroupsPanel) setHighlightedGroupId(null) }}
+                ref={groupsBtnRef}
+                onClick={() => {
+                  if (showGroupsPanel) {
+                    setShowGroupsPanel(false)
+                    setHighlightedGroupId(null)
+                  } else {
+                    if (groupsBtnRef.current) setGroupsBtnRect(groupsBtnRef.current.getBoundingClientRect())
+                    setShowGroupsPanel(true)
+                  }
+                }}
                 className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${showGroupsPanel || highlightedGroupId ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
                 title="Voir les groupes"
               >
@@ -956,6 +967,8 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           highlightedGroupId={highlightedGroupId}
           onHighlight={setHighlightedGroupId}
           onClose={() => { setShowGroupsPanel(false); setHighlightedGroupId(null) }}
+          top={templateDraftOf ? 170 : 120}
+          right={groupsBtnRect ? window.innerWidth - groupsBtnRect.right : 16}
         />
       )}
 
