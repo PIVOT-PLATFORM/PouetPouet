@@ -303,6 +303,8 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
       if (isReadonly) return
+      // Board clipboard takes priority — if it has content, Ctrl+V is handled by keydown
+      if (clipboard.length > 0) return
       const active = document.activeElement
       if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || (active as HTMLElement)?.isContentEditable) return
 
@@ -342,7 +344,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     }
     window.addEventListener('paste', onPaste)
     return () => window.removeEventListener('paste', onPaste)
-  }, [isReadonly, onAddCard])
+  }, [isReadonly, onAddCard, clipboard])
 
   // ── Freehand draw (called from canvas or card bubble) ────────────────────────
   function startFreehandDraw(clientX: number, clientY: number) {
