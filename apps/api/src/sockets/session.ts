@@ -15,11 +15,13 @@ function getParticipantCount(io: Server, sessionId: string): number {
 export function sessionSocketHandlers(io: Server, socket: Socket) {
   // ── Animateur : rejoint la room et notifie le board que la session est active ──
   socket.on('session:host_join', async (sessionId: string) => {
+    const userId = socket.data.userId as string | undefined
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
-      select: { boardId: true, code: true },
+      select: { boardId: true, code: true, board: { select: { ownerId: true } } },
     })
     if (!session) return
+    if (session.board.ownerId !== userId) return socket.emit('error', 'Accès refusé')
 
     await socket.join(`session:${sessionId}`)
     socket.data.isHost = true
@@ -27,8 +29,6 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
     socket.data.boardId = session.boardId
 
     socket.emit('session:participant_count', getParticipantCount(io, sessionId))
-
-    // Notify board members so they can auto-join as participants
     io.to(`board:${session.boardId}`).emit('session:started', { sessionId, code: session.code })
   })
 
@@ -115,6 +115,7 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
 
   // ── Lancer une activité ───────────────────────────────────────────────────────
   socket.on('activity:launch', async (data: { sessionId: string; type: string; title: string; config: object }) => {
+    if (!socket.data.isHost) return socket.emit('error', 'Accès refusé')
     const activity = await prisma.activity.create({
       data: {
         sessionId: data.sessionId,
@@ -129,6 +130,7 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
 
   // ── Fermer une activité ───────────────────────────────────────────────────────
   socket.on('activity:close', async (activityId: string) => {
+    if (!socket.data.isHost) return socket.emit('error', 'Accès refusé')
     await prisma.activity.update({ where: { id: activityId }, data: { status: 'CLOSED' } })
     const sessionId = socket.data.sessionId as string
     io.to(`session:${sessionId}`).emit('activity:closed', activityId)
@@ -136,6 +138,7 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
 
   // ── Fermer la session (remplace le HTTP PATCH) ────────────────────────────────
   socket.on('session:close', async (sessionId: string) => {
+    if (!socket.data.isHost) return socket.emit('error', 'Accès refusé')
     const session = await prisma.session.update({
       where: { id: sessionId },
       data: { status: 'CLOSED', closedAt: new Date() },
