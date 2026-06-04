@@ -18,6 +18,8 @@ export interface Activity {
   status: string
 }
 
+const LS_KEY = 'klx_host_session'
+
 export function useSession(boardId: string) {
   const [session, setSession] = useState<Session | null>(null)
   const [participantCount, setParticipantCount] = useState(0)
@@ -25,6 +27,8 @@ export function useSession(boardId: string) {
   const [activityResponses, setActivityResponses] = useState<unknown[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const socketRef = useRef(connectSocket())
+  const sessionRef = useRef<Session | null>(null)
+  sessionRef.current = session
 
   useEffect(() => {
     const socket = socketRef.current
@@ -41,14 +45,49 @@ export function useSession(boardId: string) {
     socket.on('activity:responses_updated', ({ responses }: { activityId: string; responses: unknown[] }) => {
       setActivityResponses(responses)
     })
+    socket.on('session:closed', () => {
+      setSession(null)
+      setParticipantCount(0)
+      setCurrentActivity(null)
+      setActivityResponses([])
+      try { localStorage.removeItem(LS_KEY) } catch {}
+    })
+
+    // On reconnect, re-join the session room if one was active
+    const handleReconnect = () => {
+      if (sessionRef.current) {
+        socket.emit('session:host_join', sessionRef.current.id)
+      }
+    }
+    socket.io.on('reconnect', handleReconnect)
 
     return () => {
       socket.off('session:participant_count')
       socket.off('activity:launched')
       socket.off('activity:closed')
       socket.off('activity:responses_updated')
+      socket.off('session:closed')
+      socket.io.off('reconnect', handleReconnect)
     }
   }, [])
+
+  // Auto-rejoin host session on mount (after refresh)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LS_KEY)
+      if (!stored) return
+      const { sessionId, boardId: storedBoardId } = JSON.parse(stored) as { sessionId: string; boardId: string }
+      if (storedBoardId !== boardId) return
+      api.get<Session>(`/api/sessions/${sessionId}`)
+        .then((s) => {
+          setSession(s)
+          socketRef.current.emit('session:host_join', s.id)
+        })
+        .catch(() => {
+          try { localStorage.removeItem(LS_KEY) } catch {}
+        })
+    } catch {}
+  }, [boardId])
 
   async function startSession() {
     setIsLoading(true)
@@ -57,18 +96,20 @@ export function useSession(boardId: string) {
       setSession(s)
       setParticipantCount(0)
       socketRef.current.emit('session:host_join', s.id)
+      try { localStorage.setItem(LS_KEY, JSON.stringify({ sessionId: s.id, boardId })) } catch {}
     } finally {
       setIsLoading(false)
     }
   }
 
-  async function closeSession() {
+  function closeSession() {
     if (!session) return
-    await api.patch(`/api/sessions/${session.id}/close`, {})
+    socketRef.current.emit('session:close', session.id)
     setSession(null)
     setParticipantCount(0)
     setCurrentActivity(null)
     setActivityResponses([])
+    try { localStorage.removeItem(LS_KEY) } catch {}
   }
 
   function launchActivity(type: Activity['type'], title: string, config: Record<string, unknown>) {

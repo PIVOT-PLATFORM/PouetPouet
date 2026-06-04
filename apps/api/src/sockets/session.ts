@@ -1,16 +1,93 @@
 import type { Server, Socket } from 'socket.io'
 import { prisma } from '../lib/prisma.js'
 
+function getParticipantCount(io: Server, sessionId: string): number {
+  const room = io.sockets.adapter.rooms.get(`session:${sessionId}`)
+  if (!room) return 0
+  let count = 0
+  for (const socketId of room) {
+    const s = io.sockets.sockets.get(socketId)
+    if (s && !s.data.isHost) count++
+  }
+  return count
+}
+
 export function sessionSocketHandlers(io: Server, socket: Socket) {
-  // L'animateur rejoint la room pour recevoir les mises à jour
+  // ── Animateur : rejoint la room et notifie le board que la session est active ──
   socket.on('session:host_join', async (sessionId: string) => {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { boardId: true, code: true },
+    })
+    if (!session) return
+
     await socket.join(`session:${sessionId}`)
     socket.data.isHost = true
     socket.data.sessionId = sessionId
-    const count = await prisma.sessionParticipant.count({ where: { sessionId } })
-    socket.emit('session:participant_count', count)
+    socket.data.boardId = session.boardId
+
+    socket.emit('session:participant_count', getParticipantCount(io, sessionId))
+
+    // Notify board members so they can auto-join as participants
+    io.to(`board:${session.boardId}`).emit('session:started', { sessionId, code: session.code })
   })
 
+  // ── Membre authentifié du board : rejoint en tant que participant ─────────────
+  socket.on('session:member_join', async (sessionId: string) => {
+    const userId = socket.data.userId as string | undefined
+    if (!userId) return socket.emit('error', 'Non authentifié')
+
+    const session = await prisma.session.findUnique({ where: { id: sessionId } })
+    if (!session || session.status === 'CLOSED') return socket.emit('error', 'Session introuvable ou terminée')
+
+    // Find or create participant (avoid duplicates across refreshes)
+    let participant = await prisma.sessionParticipant.findFirst({
+      where: { sessionId, userId },
+    })
+    if (!participant) {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } })
+      participant = await prisma.sessionParticipant.create({
+        data: { sessionId, userId, guestName: user?.name ?? 'Membre' },
+      })
+    }
+
+    await socket.join(`session:${sessionId}`)
+    socket.data.participantId = participant.id
+    socket.data.sessionId = sessionId
+
+    socket.emit('session:joined', { session, participant })
+    io.to(`session:${sessionId}`).emit('session:participant_count', getParticipantCount(io, sessionId))
+
+    const activeActivity = await prisma.activity.findFirst({
+      where: { sessionId, status: 'ACTIVE' },
+    })
+    if (activeActivity) socket.emit('activity:launched', activeActivity)
+  })
+
+  // ── Participant anonyme : rejoint avec son participantId (après refresh) ──────
+  socket.on('session:rejoin', async (data: { participantId: string }) => {
+    const participant = await prisma.sessionParticipant.findUnique({
+      where: { id: data.participantId },
+    })
+    if (!participant) return socket.emit('error', 'Participant introuvable')
+
+    const session = await prisma.session.findUnique({ where: { id: participant.sessionId } })
+    if (!session || session.status === 'CLOSED') return socket.emit('error', 'Session terminée')
+
+    await socket.join(`session:${participant.sessionId}`)
+    socket.data.participantId = participant.id
+    socket.data.sessionId = participant.sessionId
+
+    socket.emit('session:rejoined', { session, participant })
+    io.to(`session:${participant.sessionId}`).emit('session:participant_count', getParticipantCount(io, participant.sessionId))
+
+    const activeActivity = await prisma.activity.findFirst({
+      where: { sessionId: participant.sessionId, status: 'ACTIVE' },
+    })
+    if (activeActivity) socket.emit('activity:launched', activeActivity)
+  })
+
+  // ── Participant anonyme : premier join ────────────────────────────────────────
   socket.on('session:join', async (data: { code: string; guestName?: string }) => {
     const session = await prisma.session.findUnique({
       where: { code: data.code },
@@ -27,17 +104,16 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
     socket.data.participantId = participant.id
     socket.data.sessionId = session.id
 
-    const count = await prisma.sessionParticipant.count({ where: { sessionId: session.id } })
-    io.to(`session:${session.id}`).emit('session:participant_count', count)
     socket.emit('session:joined', { session, participant })
+    io.to(`session:${session.id}`).emit('session:participant_count', getParticipantCount(io, session.id))
 
-    // If an activity is already running, send it immediately to the new participant
     const activeActivity = await prisma.activity.findFirst({
       where: { sessionId: session.id, status: 'ACTIVE' },
     })
     if (activeActivity) socket.emit('activity:launched', activeActivity)
   })
 
+  // ── Lancer une activité ───────────────────────────────────────────────────────
   socket.on('activity:launch', async (data: { sessionId: string; type: string; title: string; config: object }) => {
     const activity = await prisma.activity.create({
       data: {
@@ -51,15 +127,34 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
     io.to(`session:${data.sessionId}`).emit('activity:launched', activity)
   })
 
+  // ── Fermer une activité ───────────────────────────────────────────────────────
   socket.on('activity:close', async (activityId: string) => {
     await prisma.activity.update({ where: { id: activityId }, data: { status: 'CLOSED' } })
     const sessionId = socket.data.sessionId as string
     io.to(`session:${sessionId}`).emit('activity:closed', activityId)
   })
 
+  // ── Fermer la session (remplace le HTTP PATCH) ────────────────────────────────
+  socket.on('session:close', async (sessionId: string) => {
+    const session = await prisma.session.update({
+      where: { id: sessionId },
+      data: { status: 'CLOSED', closedAt: new Date() },
+      select: { boardId: true },
+    })
+    io.to(`session:${sessionId}`).emit('session:closed')
+    io.to(`board:${session.boardId}`).emit('session:closed')
+  })
+
+  // ── Répondre à une activité ───────────────────────────────────────────────────
   socket.on('activity:respond', async (data: { activityId: string; value: unknown }) => {
     const participantId = socket.data.participantId as string
     if (!participantId) return socket.emit('error', 'Non connecté à une session')
+
+    // Prevent duplicate responses
+    const existing = await prisma.activityResponse.findFirst({
+      where: { activityId: data.activityId, participantId },
+    })
+    if (existing) return
 
     await prisma.activityResponse.create({
       data: { activityId: data.activityId, participantId, value: data.value as never },
@@ -75,11 +170,12 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
     })
   })
 
-  socket.on('disconnect', async () => {
+  // ── Déconnexion ───────────────────────────────────────────────────────────────
+  socket.on('disconnect', () => {
     const sessionId = socket.data.sessionId as string | undefined
     const isHost = socket.data.isHost as boolean | undefined
     if (!sessionId || isHost) return
-    const count = await prisma.sessionParticipant.count({ where: { sessionId } })
-    io.to(`session:${sessionId}`).emit('session:participant_count', count)
+    // Broadcast live count (socket is already removed from room at this point)
+    io.to(`session:${sessionId}`).emit('session:participant_count', getParticipantCount(io, sessionId))
   })
 }

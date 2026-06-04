@@ -30,6 +30,7 @@ import { TemplateDraftBanner } from '@/components/board/template-draft-banner'
 import { useAuthStore } from '@/store/auth'
 import { ColorPopover } from '@/components/ui/color-picker'
 import { GroupsPanel } from '@/components/board/groups-panel'
+import { useBoardSession } from '@/hooks/useBoardSession'
 
 export default function BoardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -62,6 +63,8 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
   const currentUser = useAuthStore((s) => s.user)
   const currentUserId = currentUser?.id ?? ''
+
+  const boardSession = useBoardSession(id, currentUserId || undefined, userRole === 'OWNER')
 
   const router = useRouter()
   const { saveTemplateFromDraft, discardTemplateDraft } = useTemplates()
@@ -460,6 +463,13 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${isReadonly ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}`}>
             {isReadonly ? 'Lecture seule' : 'Éditeur'}
           </span>
+        )}
+        {/* Session active badge for non-owner board members */}
+        {userRole !== 'OWNER' && boardSession.activeSession && (
+          <div className="flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            <span className="text-xs font-semibold text-indigo-600 font-mono tracking-widest">{boardSession.activeSession.code}</span>
+          </div>
         )}
 
         {/* ── Group: share + settings (owner) ─────────────────────────────── */}
@@ -920,6 +930,15 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           highlightedGroupId={highlightedGroupId}
         />
 
+        {/* Activity overlay for authenticated board members (non-owner) */}
+        {userRole !== 'OWNER' && boardSession.activeSession && boardSession.currentActivity && (
+          <MemberActivityOverlay
+            activity={boardSession.currentActivity}
+            hasResponded={boardSession.hasResponded}
+            onRespond={boardSession.respond}
+          />
+        )}
+
         {timerExpired && (
           <TimerOverlay onDismiss={stopTimer} />
         )}
@@ -1166,6 +1185,89 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           onClose={() => setShowLastVote(false)}
         />
       )}
+    </div>
+  )
+}
+
+// ── Activity overlay for authenticated non-owner board members ────────────────
+
+interface MemberActivity {
+  id: string
+  type: string
+  title: string
+  config: Record<string, unknown>
+}
+
+function MemberActivityOverlay({
+  activity,
+  hasResponded,
+  onRespond,
+}: {
+  activity: MemberActivity
+  hasResponded: boolean
+  onRespond: (id: string, value: unknown) => void
+}) {
+  const [text, setText] = useState('')
+  const isPoll = activity.type === 'POLL' || activity.type === 'QUIZ'
+  const options = activity.config.options as string[] | undefined
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center pb-8 px-4 pointer-events-none">
+      <div className="pointer-events-auto w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+        {/* Header */}
+        <div className="bg-indigo-600 px-4 py-3">
+          <p className="text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-0.5">
+            {activity.type === 'QUIZ' ? 'Quiz' : activity.type === 'POLL' ? 'Sondage' : activity.type === 'WORDCLOUD' ? 'Nuage de mots' : 'Brainstorming'}
+          </p>
+          <h3 className="text-white font-semibold text-sm leading-snug">{activity.title}</h3>
+        </div>
+
+        {/* Body */}
+        <div className="p-4">
+          {hasResponded ? (
+            <div className="flex items-center gap-3 text-sm text-gray-600">
+              <span className="text-2xl">✅</span>
+              <div>
+                <p className="font-medium text-gray-800">Réponse envoyée !</p>
+                <p className="text-gray-400 text-xs">En attente de la prochaine activité…</p>
+              </div>
+            </div>
+          ) : isPoll && options ? (
+            <div className="flex flex-col gap-2">
+              {options.map((opt, i) => (
+                <button
+                  key={i}
+                  onClick={() => onRespond(activity.id, i)}
+                  className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-left hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+                >
+                  <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold shrink-0">
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  {opt}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <form onSubmit={(e) => { e.preventDefault(); if (text.trim()) onRespond(activity.id, text.trim()) }} className="flex gap-2">
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder={activity.type === 'WORDCLOUD' ? 'Un mot…' : 'Votre idée…'}
+                autoFocus
+                maxLength={activity.type === 'WORDCLOUD' ? 30 : 200}
+                className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <button
+                type="submit"
+                disabled={!text.trim()}
+                className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+              >
+                Envoyer
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/auth'
 
 export default function SessionPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params)
-  const { sessionInfo, participantCount, currentActivity, responses, hasResponded, isJoined, error, join, respond } =
+  const { sessionInfo, participantCount, currentActivity, responses, hasResponded, isJoined, error, closedByHost, join, respond } =
     useParticipantSession(code)
   const { user } = useAuthStore()
   const [name, setName] = useState('')
@@ -37,6 +37,18 @@ export default function SessionPage({ params }: { params: Promise<{ code: string
           <p className="text-indigo-300 text-xs mt-5">
             Pour tester en tant que participant, ouvrez cette page dans un autre navigateur ou en navigation privée.
           </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (closedByHost) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 flex items-center justify-center p-4">
+        <div className="text-center max-w-sm">
+          <div className="text-6xl mb-6">🏁</div>
+          <h2 className="text-2xl font-bold text-white mb-2">Session terminée</h2>
+          <p className="text-indigo-200 text-sm">L'animateur a mis fin à la session. Merci pour votre participation !</p>
         </div>
       </div>
     )
