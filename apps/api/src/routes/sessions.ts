@@ -42,4 +42,24 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     })
     return reply.send(session)
   })
+
+  // Active session for a board — used by board members to auto-join
+  app.get('/active', async (request, reply) => {
+    const { boardId } = request.query as { boardId?: string }
+    if (!boardId) return reply.status(400).send({ error: 'boardId requis' })
+    const session = await prisma.session.findFirst({
+      where: { boardId, status: { not: 'CLOSED' } },
+      orderBy: { createdAt: 'desc' },
+    })
+    return reply.send(session ?? null)
+  })
+
+  // Single session by ID — used by host on rejoin
+  app.get('/:id', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const session = await prisma.session.findUnique({ where: { id } })
+    if (!session) return reply.status(404).send({ error: 'Session introuvable' })
+    if (session.status === 'CLOSED') return reply.status(410).send({ error: 'Session terminée' })
+    return reply.send(session)
+  })
 }
