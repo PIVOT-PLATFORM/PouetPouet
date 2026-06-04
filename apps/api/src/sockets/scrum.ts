@@ -84,8 +84,8 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
       where: { roomId, status: 'VOTING' },
       data: { status: 'PENDING' },
     })
-    // Clear existing votes for this scale only (fresh round)
-    await prisma.scrumVote.deleteMany({ where: { ticketId, scale } })
+    // Clear all votes for this ticket (fresh round regardless of scale)
+    await prisma.scrumVote.deleteMany({ where: { ticketId } })
 
     const ticket = await prisma.scrumTicket.update({
       where: { id: ticketId },

@@ -10,6 +10,25 @@ export default function ScrumJoinPage({ params }: { params: Promise<{ code: stri
   const [name, setName] = useState('')
   const [joining, setJoining] = useState(false)
 
+  // Store name in sessionStorage after successful join
+  useEffect(() => {
+    if (isJoined && participantName) {
+      try { sessionStorage.setItem(`klx_scrum_${code}`, JSON.stringify({ participantName })) } catch {}
+    }
+  }, [isJoined, participantName, code])
+
+  // Auto-rejoin on refresh if we have a stored name
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(`klx_scrum_${code}`)
+      if (stored) {
+        const { participantName: storedName } = JSON.parse(stored) as { participantName: string }
+        if (storedName) { setJoining(true); join(code, storedName) }
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code])
+
   useEffect(() => {
     if (error) setJoining(false)
   }, [error])
@@ -157,7 +176,7 @@ export default function ScrumJoinPage({ params }: { params: Promise<{ code: stri
             <div className="mt-4 inline-block bg-green-100 rounded-2xl px-6 py-3">
               <p className="text-xs text-green-500 font-medium">Estimation</p>
               <p className="text-4xl font-bold text-green-700">
-                {ticket.estimate}{scaleInfo.suffix ? ` ${scaleInfo.suffix}` : ''}
+                {currentScale === 'TIME' ? ticket.estimateTime : ticket.estimate}{scaleInfo.suffix ? ` ${scaleInfo.suffix}` : ''}
               </p>
             </div>
             <p className="text-gray-400 text-sm mt-4">En attente du prochain ticket…</p>

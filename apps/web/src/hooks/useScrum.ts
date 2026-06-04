@@ -63,6 +63,9 @@ export function useScrum(roomId: string) {
     const socket = socketRef.current
     socket.emit('scrum:host_join', roomId)
 
+    const handleReconnect = () => socket.emit('scrum:host_join', roomId)
+    socket.io.on('reconnect', handleReconnect)
+
     socket.on('scrum:state', ({ room: r, participantCount: c, participantNames: names }: { room: ScrumRoom; participantCount: number; participantNames: string[] }) => {
       setRoom(r)
       setParticipantCount(c)
@@ -120,10 +123,11 @@ export function useScrum(roomId: string) {
     }).catch(() => {})
 
     return () => {
-      ['scrum:state', 'scrum:participant_count', 'scrum:ticket:added',
-       'scrum:ticket:activated', 'scrum:vote:received', 'scrum:ticket:revealed',
-       'scrum:ticket:done', 'scrum:ticket:reset', 'scrum:ticket:deleted',
-       'scrum:room:scale_updated',
+      socket.io.off('reconnect', handleReconnect)
+      ;['scrum:state', 'scrum:participant_count', 'scrum:ticket:added',
+        'scrum:ticket:activated', 'scrum:vote:received', 'scrum:ticket:revealed',
+        'scrum:ticket:done', 'scrum:ticket:reset', 'scrum:ticket:deleted',
+        'scrum:room:scale_updated',
       ].forEach((e) => socket.off(e))
     }
   }, [roomId])
