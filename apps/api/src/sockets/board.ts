@@ -88,7 +88,7 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
   })
 
   // ── Cards ─────────────────────────────────────────────────────────────────────
-  socket.on('card:create', async (data: { boardId: string; content: string; posX: number; posY: number; color?: string; type?: string; width?: number; height?: number }) => {
+  socket.on('card:create', async (data: { boardId: string; content: string; posX: number; posY: number; color?: string; type?: string; width?: number; height?: number; layer?: number }) => {
     if (!canWrite(socket, data.boardId)) return
     const card = await prisma.card.create({ data: data as never, include: { fieldValues: true } })
     io.to(`board:${data.boardId}`).emit('card:created', card)

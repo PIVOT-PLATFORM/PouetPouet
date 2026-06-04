@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect, forwardRef, useImperativeHandle } from 'react'
-import type { Card, Frame, BoardField, Connection, VoteSession } from '@/hooks/useBoard'
+import type { Card, Frame, BoardField, Connection, VoteSession, ClipboardCard } from '@/hooks/useBoard'
 import { groupColor } from '@/hooks/useBoard'
 import { BoardCard } from './board-card'
 import { FrameItem } from './frame-item'
@@ -11,7 +11,7 @@ import { ConnectionToolbar } from './connection-toolbar'
 import type { ConnectionPatch } from '@/hooks/useBoard'
 import type { ToolMode, StrokeSize } from './floating-toolbar'
 
-type ClipCard = Pick<Card, 'type' | 'content' | 'color' | 'posX' | 'posY' | 'width' | 'height'>
+type ClipCard = ClipboardCard
 
 interface Props {
   cards: Card[]

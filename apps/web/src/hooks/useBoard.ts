@@ -15,6 +15,19 @@ export type {
 } from './board-types'
 export { groupColor, GROUP_COLORS } from './board-types'
 
+export interface ClipboardCard {
+  type: string
+  content: string
+  color: string
+  posX: number
+  posY: number
+  width: number
+  height: number
+  layer: number
+  groupId: string | null
+  groupColor: string | null
+}
+
 // ── History ────────────────────────────────────────────────────────────────────
 const HISTORY_LIMIT = 30
 
@@ -1065,6 +1078,70 @@ export function useBoard(boardId: string) {
     setCardPositions(targets)
   }
 
+  function pasteCards(clipCards: ClipboardCard[], canvasX: number, canvasY: number) {
+    if (clipCards.length === 0) return
+
+    const minX = Math.min(...clipCards.map((c) => c.posX))
+    const minY = Math.min(...clipCards.map((c) => c.posY))
+    const maxX = Math.max(...clipCards.map((c) => c.posX + c.width))
+    const maxY = Math.max(...clipCards.map((c) => c.posY + c.height))
+    const dx = canvasX - (minX + maxX) / 2
+    const dy = canvasY - (minY + maxY) / 2
+
+    // original groupId → indices in clipCards (only groups with 2+ cards)
+    const groupMap = new Map<string, number[]>()
+    clipCards.forEach((c, i) => {
+      if (c.groupId) {
+        const arr = groupMap.get(c.groupId) ?? []
+        arr.push(i)
+        groupMap.set(c.groupId, arr)
+      }
+    })
+    const groupsToDo = [...groupMap.entries()].filter(([, idxs]) => idxs.length >= 2)
+
+    // Mutated by redo so undo always targets the latest IDs
+    let currentIds: string[] = []
+
+    function spawnCards(onAllCreated: (ids: string[]) => void) {
+      const ids = new Array<string>(clipCards.length).fill('')
+      let remaining = clipCards.length
+      clipCards.forEach((c, i) => {
+        pendingCardHistoryRef.current.push((card: Card) => {
+          ids[i] = card.id
+          remaining--
+          if (remaining === 0) onAllCreated(ids)
+        })
+        socketRef.current.emit('card:create', {
+          boardId, posX: c.posX + dx, posY: c.posY + dy,
+          type: c.type, content: c.content, color: c.color,
+          width: c.width, height: c.height, layer: c.layer ?? 1,
+        })
+      })
+    }
+
+    function regroup(newIds: string[]) {
+      groupsToDo.forEach(([, idxs]) => {
+        const cardIds = idxs.map((idx) => newIds[idx]).filter(Boolean) as string[]
+        if (cardIds.length < 2) return
+        const groupCol = clipCards[idxs[0]].groupColor
+        // Push callback 1:1 with cards:group emit to capture the new groupId
+        pendingGroupHistoryRef.current.push((newGroupId) => {
+          if (groupCol) socketRef.current.emit('cards:group-color', { boardId, groupId: newGroupId, color: groupCol })
+        })
+        socketRef.current.emit('cards:group', { boardId, cardIds })
+      })
+    }
+
+    spawnCards((ids) => {
+      currentIds = ids
+      regroup(ids)
+      pushHistory({
+        undo: () => currentIds.forEach((id) => socketRef.current.emit('card:delete', { id, boardId })),
+        redo: () => spawnCards((redoIds) => { currentIds = redoIds; regroup(redoIds) }),
+      })
+    })
+  }
+
   const isReadonly = userRole === 'VIEWER'
 
   return {
@@ -1084,6 +1161,7 @@ export function useBoard(boardId: string) {
     createField, updateField, deleteField,
     setFieldValue, clearFieldValue,
     selectCards,
+    pasteCards,
     undo, redo, canUndo, canRedo,
     resetBoard,
     importCount,

@@ -3,7 +3,7 @@
 import { use, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useBoard } from '@/hooks/useBoard'
-import type { Card } from '@/hooks/useBoard'
+import type { Card, ClipboardCard } from '@/hooks/useBoard'
 import { useSession } from '@/hooks/useSession'
 import { BoardCanvas } from '@/components/board/board-canvas'
 import type { BoardCanvasHandle } from '@/components/board/board-canvas'
@@ -50,6 +50,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     createField, updateField, deleteField,
     setFieldValue, clearFieldValue,
     selectCards,
+    pasteCards,
     undo, redo, canUndo, canRedo,
     resetBoard,
     importCount,
@@ -110,8 +111,13 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     }
   }
 
-  type ClipCard = Pick<Card, 'type' | 'content' | 'color' | 'posX' | 'posY' | 'width' | 'height'>
-  const [clipboard, setClipboard] = useState<ClipCard[]>([])
+  const [clipboard, setClipboard] = useState<ClipboardCard[]>([])
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('klx_clipboard')
+      if (stored) setClipboard(JSON.parse(stored) as ClipboardCard[])
+    } catch {}
+  }, [])
 
   const [showFieldsPanel, setShowFieldsPanel] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -322,7 +328,11 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
       if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
         const sel = cards.filter((c) => selectedIds.has(c.id))
         if (sel.length === 0) return
-        setClipboard(sel.map(({ type, content, color, posX, posY, width, height }) => ({ type, content, color, posX, posY, width, height })))
+        const data: ClipboardCard[] = sel.map(({ type, content, color, posX, posY, width, height, layer, groupId, groupColor }) => ({
+          type, content, color, posX, posY, width, height, layer: layer ?? 1, groupId, groupColor,
+        }))
+        setClipboard(data)
+        try { localStorage.setItem('klx_clipboard', JSON.stringify(data)) } catch {}
         return
       }
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as HTMLElement).isContentEditable) return
@@ -367,18 +377,6 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     })
   }
 
-  function handlePasteCards(cb: ClipCard[], canvasX: number, canvasY: number) {
-    if (cb.length === 0) return
-    const minX = Math.min(...cb.map((c) => c.posX))
-    const minY = Math.min(...cb.map((c) => c.posY))
-    const maxX = Math.max(...cb.map((c) => c.posX + c.width))
-    const maxY = Math.max(...cb.map((c) => c.posY + c.height))
-    const dx = canvasX - (minX + maxX) / 2
-    const dy = canvasY - (minY + maxY) / 2
-    cb.forEach(({ type, content, color, posX, posY, width, height }) => {
-      addCard(posX + dx, posY + dy, type, content, color, width, height)
-    })
-  }
 
   const selectedCards = cards.filter((c) => selectedIds.has(c.id))
   const selectedGroupIds = new Set(selectedCards.map((c) => c.groupId).filter(Boolean))
@@ -907,7 +905,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           onSetFieldValue={setFieldValue}
           onClearFieldValue={clearFieldValue}
           onExitLinkCardsMode={() => setToolMode('select')}
-          onPasteCards={handlePasteCards}
+          onPasteCards={pasteCards}
           voteSession={activeVoteSession}
           voteCanVote={voteCanVote}
           currentUserId={currentUserId}
