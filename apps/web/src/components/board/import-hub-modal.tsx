@@ -2,12 +2,14 @@
 
 interface Props {
   onClose: () => void
-  onPickKlaxoon: () => void
+  // Klaxoon import is temporarily disabled (Bêta) — the prop is kept optional so the
+  // caller can keep wiring it and re-enabling is just dropping `disabled` on the tile.
+  onPickKlaxoon?: () => void
   onPickPdf: () => void
   onPickImage: () => void
 }
 
-export function ImportHubModal({ onClose, onPickKlaxoon, onPickPdf, onPickImage }: Props) {
+export function ImportHubModal({ onClose, onPickPdf, onPickImage }: Props) {
   return (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm"
@@ -33,7 +35,8 @@ export function ImportHubModal({ onClose, onPickKlaxoon, onPickPdf, onPickImage 
         {/* 2×2 grid */}
         <div className="grid grid-cols-2 gap-3">
           <Tile
-            onClick={onPickKlaxoon}
+            disabled
+            badge="Bêta"
             icon={
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />

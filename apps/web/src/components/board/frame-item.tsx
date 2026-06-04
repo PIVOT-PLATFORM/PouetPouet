@@ -21,9 +21,10 @@ interface Props {
   onUpdate: (id: string, title: string) => void
   onSetActive: (id: string, active: boolean) => void
   onDelete: (id: string) => void
+  onSetLayer?: (id: string, layer: number) => void
 }
 
-export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartDrag, onCommitDrag, onResizeBox, onStartResize, onCommitResize, onUpdate, onSetActive, onDelete }: Props) {
+export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartDrag, onCommitDrag, onResizeBox, onStartResize, onCommitResize, onUpdate, onSetActive, onDelete, onSetLayer }: Props) {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [title, setTitle] = useState(frame.title)
   const capturedRef = useRef<{ id: string; startX: number; startY: number; frameStartX: number; frameStartY: number }[]>([])
@@ -178,6 +179,27 @@ export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartD
               <rect x="8.5" y="8.5" width="7" height="7" rx="2" fill={frame.active ? 'currentColor' : 'none'} stroke="none" />
             </svg>
           </button>
+        )}
+
+        {/* Layer controls */}
+        {!isReadonly && onSetLayer && (
+          <div className="opacity-0 group-hover/frame:opacity-100 transition-opacity flex items-center rounded-full bg-white overflow-hidden border border-gray-200">
+            {([0, 1, 2] as const).map((l) => (
+              <button
+                key={l}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onSetLayer(frame.id, l) }}
+                title={l === 0 ? 'Arrière-plan' : l === 1 ? 'Plan principal' : 'Avant-plan'}
+                className={`w-5 h-5 flex items-center justify-center transition-colors ${(frame.layer ?? 1) === l ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-indigo-600'}`}
+              >
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {l === 0 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />}
+                  {l === 1 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14" />}
+                  {l === 2 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />}
+                </svg>
+              </button>
+            ))}
+          </div>
         )}
 
         {/* Delete button */}

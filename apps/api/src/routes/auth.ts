@@ -3,7 +3,7 @@ import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
-import { sendVerificationEmail } from '../lib/mailer.js'
+import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/mailer.js'
 
 const USER_SELECT = {
   id: true, email: true, name: true, avatar: true, bio: true, theme: true, emailVerified: true, createdAt: true,
@@ -14,6 +14,7 @@ const USER_SELECT = {
 const ALLOW_BYPASS = process.env.ALLOW_EMAIL_BYPASS === 'true'
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3000'
 const VERIFY_TTL_MS = 24 * 60 * 60 * 1000
+const RESET_TTL_MS = 60 * 60 * 1000 // 1 hour
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -48,6 +49,9 @@ const passwordSchema = z.object({
 const deleteAccountSchema = z.object({
   password: z.string(),
 })
+
+const forgotSchema = z.object({ email: z.string().email() })
+const resetSchema = z.object({ token: z.string().min(10), password: z.string().min(8) })
 
 // Issues a fresh verification token, persists it, and emails the link.
 // Returns whether the mail was actually sent over SMTP, plus a dev link to surface
@@ -177,6 +181,40 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     if (!valid) return reply.status(401).send({ error: 'Mot de passe actuel incorrect' })
     const hashed = await bcrypt.hash(body.next, 12)
     await prisma.user.update({ where: { id }, data: { password: hashed } })
+    return reply.send({ ok: true })
+  })
+
+  app.post('/forgot-password', async (request, reply) => {
+    const { email } = forgotSchema.parse(request.body)
+    const user = await prisma.user.findUnique({ where: { email } })
+    // Always reply ok so we never leak whether an account exists.
+    if (user) {
+      const token = crypto.randomBytes(32).toString('hex')
+      const expires = new Date(Date.now() + RESET_TTL_MS)
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { resetToken: token, resetTokenExpires: expires },
+      })
+      const link = `${FRONTEND_URL}/reset-password?token=${token}`
+      const sent = await sendPasswordResetEmail(user.email, user.name, link)
+      if (!sent && ALLOW_BYPASS) {
+        return reply.send({ ok: true, devLink: link })
+      }
+    }
+    return reply.send({ ok: true })
+  })
+
+  app.post('/reset-password', async (request, reply) => {
+    const { token, password } = resetSchema.parse(request.body)
+    const user = await prisma.user.findUnique({ where: { resetToken: token } })
+    if (!user || !user.resetTokenExpires || user.resetTokenExpires < new Date()) {
+      return reply.status(400).send({ error: 'Lien invalide ou expiré.', code: 'INVALID_TOKEN' })
+    }
+    const hashed = await bcrypt.hash(password, 12)
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashed, resetToken: null, resetTokenExpires: null },
+    })
     return reply.send({ ok: true })
   })
 

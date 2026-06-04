@@ -3,7 +3,7 @@
 import { use, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useBoard } from '@/hooks/useBoard'
-import type { Card } from '@/hooks/useBoard'
+import type { Card, ClipboardCard } from '@/hooks/useBoard'
 import { useSession } from '@/hooks/useSession'
 import { BoardCanvas } from '@/components/board/board-canvas'
 import type { BoardCanvasHandle } from '@/components/board/board-canvas'
@@ -30,6 +30,7 @@ import { TemplateDraftBanner } from '@/components/board/template-draft-banner'
 import { useAuthStore } from '@/store/auth'
 import { ColorPopover } from '@/components/ui/color-picker'
 import { GroupsPanel } from '@/components/board/groups-panel'
+import { useBoardSession } from '@/hooks/useBoardSession'
 
 export default function BoardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -38,6 +39,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     timerEndsAt, startTimer, stopTimer,
     activeVoteSession, lastVoteSession, startVote, castVote, uncastVote, stopVote, extendVote,
     lockCards, lockSelected,
+    setCardLayer, setFrameLayer, setLayerSelected,
     moveSelectedBy, arrangeSelected,
     updateBoardInfo,
     addCard, moveCard, resizeCard, resizeCardBox, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
@@ -49,6 +51,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     createField, updateField, deleteField,
     setFieldValue, clearFieldValue,
     selectCards,
+    pasteCards,
     undo, redo, canUndo, canRedo,
     resetBoard,
     importCount,
@@ -60,6 +63,8 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
   const currentUser = useAuthStore((s) => s.user)
   const currentUserId = currentUser?.id ?? ''
+
+  const boardSession = useBoardSession(id, currentUserId || undefined, userRole === 'OWNER')
 
   const router = useRouter()
   const { saveTemplateFromDraft, discardTemplateDraft } = useTemplates()
@@ -109,8 +114,13 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     }
   }
 
-  type ClipCard = Pick<Card, 'type' | 'content' | 'color' | 'posX' | 'posY' | 'width' | 'height'>
-  const [clipboard, setClipboard] = useState<ClipCard[]>([])
+  const [clipboard, setClipboard] = useState<ClipboardCard[]>([])
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('klx_clipboard')
+      if (stored) setClipboard(JSON.parse(stored) as ClipboardCard[])
+    } catch {}
+  }, [])
 
   const [showFieldsPanel, setShowFieldsPanel] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -140,6 +150,11 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const [showVoteResults, setShowVoteResults] = useState(false)
   const [showLastVote, setShowLastVote] = useState(false)
   const [showVoteEnd, setShowVoteEnd] = useState(false)
+  const [showVoteMenu, setShowVoteMenu] = useState(false)
+  const voteMenuContainerRef = useRef<HTMLDivElement>(null)
+  const [voteMenuRect, setVoteMenuRect] = useState<DOMRect | null>(null)
+  const [showOverflowMenu, setShowOverflowMenu] = useState(false)
+  const overflowMenuContainerRef = useRef<HTMLDivElement>(null)
   const [showTimerPicker, setShowTimerPicker] = useState(false)
   const [timerCustomMin, setTimerCustomMin] = useState('5')
   const [timerCustomSec, setTimerCustomSec] = useState('00')
@@ -201,7 +216,6 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     setTimeout(() => canvasApiRef.current?.fitToContent(), 100)
   }
   const timerPickerRef = useRef<HTMLDivElement>(null)
-  const timerPickerLeaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [timerPickerRect, setTimerPickerRect] = useState<DOMRect | null>(null)
 
   function launchCustomTimer() {
@@ -240,14 +254,38 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     }
   }, [voteTimerExpired, activeVoteSession])
 
-  function handleTimerPickerEnter() {
-    if (timerPickerLeaveTimer.current) clearTimeout(timerPickerLeaveTimer.current)
-    if (timerPickerRef.current) setTimerPickerRect(timerPickerRef.current.getBoundingClientRect())
-    setShowTimerPicker(true)
-  }
-  function handleTimerPickerLeave() {
-    timerPickerLeaveTimer.current = setTimeout(() => setShowTimerPicker(false), 150)
-  }
+  useEffect(() => {
+    if (!showVoteMenu) return
+    function handleClick(e: MouseEvent) {
+      if (voteMenuContainerRef.current && !voteMenuContainerRef.current.contains(e.target as Node)) {
+        setShowVoteMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showVoteMenu])
+
+  useEffect(() => {
+    if (!showOverflowMenu) return
+    function handleClick(e: MouseEvent) {
+      if (overflowMenuContainerRef.current && !overflowMenuContainerRef.current.contains(e.target as Node)) {
+        setShowOverflowMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showOverflowMenu])
+
+  useEffect(() => {
+    if (!showTimerPicker) return
+    function handleClick(e: MouseEvent) {
+      if (timerPickerRef.current && !timerPickerRef.current.contains(e.target as Node)) {
+        setShowTimerPicker(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showTimerPicker])
   const [confirmReset, setConfirmReset] = useState(false)
   const confirmResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -268,11 +306,25 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const [toolOpacity, setToolOpacity] = useState(0.3)
 
   function handleToolChange(tool: ToolMode, color?: string, stroke?: StrokeSize, fill?: boolean, opacity?: number) {
+    if (tool !== toolMode) selectCards(new Set())
     setToolMode(tool)
     if (color !== undefined) setToolColor(color)
     if (stroke !== undefined) setToolStroke(stroke)
     if (fill !== undefined) setToolFill(fill)
     if (opacity !== undefined) setToolOpacity(opacity)
+  }
+
+  function closeAllDropdowns() {
+    setShowVoteMenu(false)
+    setShowOverflowMenu(false)
+    setShowTimerPicker(false)
+  }
+  function closeAllOverlays() {
+    setShowVoteMenu(false)
+    setShowOverflowMenu(false)
+    setShowTimerPicker(false)
+    setShowGroupsPanel(false)
+    setHighlightedGroupId(null)
   }
 
   useEffect(() => {
@@ -293,7 +345,11 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
       if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
         const sel = cards.filter((c) => selectedIds.has(c.id))
         if (sel.length === 0) return
-        setClipboard(sel.map(({ type, content, color, posX, posY, width, height }) => ({ type, content, color, posX, posY, width, height })))
+        const data: ClipboardCard[] = sel.map(({ type, content, color, posX, posY, width, height, layer, groupId, groupColor }) => ({
+          type, content, color, posX, posY, width, height, layer: layer ?? 1, groupId, groupColor,
+        }))
+        setClipboard(data)
+        try { localStorage.setItem('klx_clipboard', JSON.stringify(data)) } catch {}
         return
       }
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as HTMLElement).isContentEditable) return
@@ -321,7 +377,15 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedIds.size > 0) deleteSelected()
       }
-      if (e.key === 'Escape') { setToolMode('select'); selectCards(new Set()); setHighlightedGroupId(null) }
+      if (e.key === 'Escape') {
+        setToolMode('select')
+        selectCards(new Set())
+        setShowVoteMenu(false)
+        setShowOverflowMenu(false)
+        setShowTimerPicker(false)
+        setShowGroupsPanel(false)
+        setHighlightedGroupId(null)
+      }
       if ((e.key === 'v' || e.key === 'V') && !e.ctrlKey && !e.metaKey) setToolMode('select')
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -338,18 +402,6 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     })
   }
 
-  function handlePasteCards(cb: ClipCard[], canvasX: number, canvasY: number) {
-    if (cb.length === 0) return
-    const minX = Math.min(...cb.map((c) => c.posX))
-    const minY = Math.min(...cb.map((c) => c.posY))
-    const maxX = Math.max(...cb.map((c) => c.posX + c.width))
-    const maxY = Math.max(...cb.map((c) => c.posY + c.height))
-    const dx = canvasX - (minX + maxX) / 2
-    const dy = canvasY - (minY + maxY) / 2
-    cb.forEach(({ type, content, color, posX, posY, width, height }) => {
-      addCard(posX + dx, posY + dy, type, content, color, width, height)
-    })
-  }
 
   const selectedCards = cards.filter((c) => selectedIds.has(c.id))
   const selectedGroupIds = new Set(selectedCards.map((c) => c.groupId).filter(Boolean))
@@ -434,6 +486,13 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             {isReadonly ? 'Lecture seule' : 'Éditeur'}
           </span>
         )}
+        {/* Session active badge for non-owner board members */}
+        {userRole !== 'OWNER' && boardSession.activeSession && (
+          <div className="flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            <span className="text-xs font-semibold text-indigo-600 font-mono tracking-widest">{boardSession.activeSession.code}</span>
+          </div>
+        )}
 
         {/* ── Group: share + settings (owner) ─────────────────────────────── */}
         {userRole === 'OWNER' && (
@@ -441,7 +500,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />
             <div className="flex items-center gap-0.5 shrink-0">
               <button
-                onClick={() => setShowImportHub(true)}
+                onClick={() => { closeAllOverlays(); setShowImportHub(true) }}
                 className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
                 title="Importer…"
               >
@@ -450,7 +509,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                 </svg>
               </button>
               <button
-                onClick={() => setShowExportHub(true)}
+                onClick={() => { closeAllOverlays(); setShowExportHub(true) }}
                 disabled={exporting}
                 className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-wait"
                 title="Exporter…"
@@ -467,7 +526,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                 )}
               </button>
               <button
-                onClick={() => setShowShareModal(true)}
+                onClick={() => { closeAllOverlays(); setShowShareModal(true) }}
                 className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
                 title="Partager le board"
               >
@@ -476,7 +535,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                 </svg>
               </button>
               <button
-                onClick={() => setShowSettingsModal(true)}
+                onClick={() => { closeAllOverlays(); setShowSettingsModal(true) }}
                 className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
                 title="Paramètres du board"
               >
@@ -517,7 +576,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
               <button
                 onClick={handleResetClick}
                 title={confirmReset ? 'Cliquer pour confirmer la réinitialisation' : 'Réinitialiser le board'}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
                   confirmReset
                     ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
                     : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
@@ -526,156 +585,6 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                {confirmReset ? 'Confirmer ?' : 'Reset'}
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* Selection badge */}
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2 rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-1.5 shrink-0">
-            <span className="text-xs font-medium text-indigo-700">
-              {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
-            </span>
-            {!isReadonly && (
-              <>
-                <div className="w-px h-4 bg-indigo-200" />
-                <ColorPopover
-                  value={selectedCards[0]?.color ?? '#eab308'}
-                  onChange={(c) => recolorSelected(c)}
-                  title="Colorier la sélection"
-                  align="left"
-                />
-                {(() => {
-                  // Drawings can't be locked — only count the lockable cards.
-                  const lockable = cards.filter((c) => selectedIds.has(c.id) && c.type !== 'DRAW')
-                  if (lockable.length === 0) return null
-                  const allLocked = lockable.every((c) => c.locked)
-                  const anyLocked = lockable.some((c) => c.locked)
-                  return (
-                    <>
-                      <div className="w-px h-4 bg-indigo-200" />
-                      <button
-                        onClick={() => lockSelected(allLocked ? false : true)}
-                        className={`flex items-center gap-1 text-xs font-medium transition-colors px-1 rounded ${anyLocked ? 'text-amber-600 hover:text-amber-700' : 'text-indigo-400 hover:text-indigo-600'}`}
-                        title={allLocked ? 'Déverrouiller la sélection' : 'Verrouiller la sélection'}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          {allLocked
-                            ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6-6h12a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2zm10-4a4 4 0 10-8 0v4h8V9z" />
-                            : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                          }
-                        </svg>
-                        {allLocked ? 'Déverr.' : 'Verr.'}
-                      </button>
-                    </>
-                  )
-                })()}
-                <div className="w-px h-4 bg-indigo-200" />
-                <button onClick={deleteSelected} className="text-red-400 hover:text-red-600 transition-colors" title="Supprimer (Suppr)">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Grouper */}
-        {canGroup && !isReadonly && (
-          <button onClick={groupSelected} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {allInSameGroup
-                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-16h2a2 2 0 012 2v2m-4 12h2a2 2 0 002-2v-2" />
-                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18M10 3v18M14 3v18" />
-              }
-            </svg>
-            {allInSameGroup ? 'Dégrouper' : 'Grouper'}
-          </button>
-        )}
-
-        {/* Arranger la sélection (colonne / ligne / grille) */}
-        {canGroup && !isReadonly && (
-          <div className="flex items-center gap-0.5 rounded-lg bg-gray-50 border border-gray-200 px-1 py-1 shrink-0">
-            <button
-              onClick={() => arrangeSelected('column')}
-              title="Aligner en colonne"
-              className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <rect x="8" y="3" width="8" height="5" rx="1" strokeWidth={2} />
-                <rect x="8" y="10" width="8" height="5" rx="1" strokeWidth={2} />
-                <rect x="8" y="17" width="8" height="5" rx="1" strokeWidth={2} />
-              </svg>
-            </button>
-            <button
-              onClick={() => arrangeSelected('row')}
-              title="Aligner en ligne"
-              className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <rect x="3" y="8" width="5" height="8" rx="1" strokeWidth={2} />
-                <rect x="10" y="8" width="5" height="8" rx="1" strokeWidth={2} />
-                <rect x="17" y="8" width="5" height="8" rx="1" strokeWidth={2} />
-              </svg>
-            </button>
-            <button
-              onClick={() => arrangeSelected('grid')}
-              title="Aligner en grille"
-              className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2} />
-                <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2} />
-                <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2} />
-                <rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={2} />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {/* ── Group: structure (frame / fields) ───────────────────────────── */}
-        {!isReadonly && (
-          <>
-            <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />
-            <div className="flex items-center gap-0.5 shrink-0">
-              <button
-                onClick={() => addFrame(200, 200)}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-                title="Ajouter un cadre"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2} strokeLinecap="round" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9h18M9 21V9" />
-                </svg>
-                Cadre
-              </button>
-              <button
-                ref={groupsBtnRef}
-                onMouseEnter={handleGroupsEnter}
-                onMouseLeave={handleGroupsLeave}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${showGroupsPanel || highlightedGroupId ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
-                title="Voir les groupes"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <circle cx="9" cy="7" r="3" strokeWidth={2} />
-                  <circle cx="15" cy="7" r="3" strokeWidth={2} />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 20c0-3.314 2.686-6 6-6s6 2.686 6 6" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 14c1.657 0 3 1.343 3 3v3" />
-                </svg>
-                Groupes{groupCount > 0 ? ` (${groupCount})` : ''}
-              </button>
-              <button
-                onClick={() => setShowFieldsPanel(true)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${fields.length > 0 ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
-                title="Gérer les champs personnalisés"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                Champs{fields.length > 0 ? ` (${fields.length})` : ''}
               </button>
             </div>
           </>
@@ -731,18 +640,59 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         ) : (
           <>
             {!isReadonly && (
-              <button
-                onClick={() => setShowVoteConfig(true)}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
-                title="Lancer un vote"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Vote
-              </button>
+              <div ref={voteMenuContainerRef} className="relative shrink-0">
+                <button
+                  onClick={() => {
+                    if (!showVoteMenu) {
+                      closeAllDropdowns()
+                      if (voteMenuContainerRef.current) setVoteMenuRect(voteMenuContainerRef.current.getBoundingClientRect())
+                    }
+                    setShowVoteMenu(!showVoteMenu)
+                  }}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${showVoteMenu ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                  title="Vote"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Vote
+                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showVoteMenu && voteMenuRect && (
+                  <div
+                    style={{ position: 'fixed', top: templateDraftOf ? 170 : 120, left: voteMenuRect.left }}
+                    className="w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-[200]"
+                  >
+                    <button
+                      onClick={() => { closeAllOverlays(); setShowVoteConfig(true) }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <svg className="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Lancer un vote
+                    </button>
+                    {lastVoteSession && (
+                      <>
+                        <div className="border-t border-gray-100 my-1" />
+                        <button
+                          onClick={() => { closeAllOverlays(); setShowLastVote(true) }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                        >
+                          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Dernier vote
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
-            {lastVoteSession && (
+            {lastVoteSession && isReadonly && (
               <button
                 onClick={() => setShowLastVote(true)}
                 className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
@@ -776,14 +726,16 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             )}
           </div>
         ) : !isReadonly && (
-          <div
-            ref={timerPickerRef}
-            className="relative shrink-0"
-            onMouseEnter={handleTimerPickerEnter}
-            onMouseLeave={handleTimerPickerLeave}
-          >
+          <div ref={timerPickerRef} className="relative shrink-0">
             <button
-              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              onClick={() => {
+                if (!showTimerPicker) {
+                  closeAllDropdowns()
+                  if (timerPickerRef.current) setTimerPickerRect(timerPickerRef.current.getBoundingClientRect())
+                }
+                setShowTimerPicker(!showTimerPicker)
+              }}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${showTimerPicker ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
               title="Lancer un timer"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -796,8 +748,6 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
               <div
                 style={{ position: 'fixed', top: templateDraftOf ? 170 : 120, left: timerPickerRect.left }}
                 className="w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-[200]"
-                onMouseEnter={handleTimerPickerEnter}
-                onMouseLeave={handleTimerPickerLeave}
               >
                 {/* Saisie libre */}
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-3 pb-2">Durée personnalisée</p>
@@ -874,6 +824,67 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             <span className="text-xs text-green-600">· {participantCount} 👤</span>
           </div>
         ))}
+
+        {/* ── Overflow menu ── */}
+        {!isReadonly && (
+          <>
+            <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />
+            <div ref={overflowMenuContainerRef} className="relative shrink-0">
+              <button
+                onClick={() => { if (!showOverflowMenu) closeAllDropdowns(); setShowOverflowMenu(!showOverflowMenu) }}
+                className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${showOverflowMenu || showGroupsPanel ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                title="Plus d'outils"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="5" r="1.5" />
+                  <circle cx="12" cy="12" r="1.5" />
+                  <circle cx="12" cy="19" r="1.5" />
+                </svg>
+                {(groupCount > 0 || fields.length > 0) && !showOverflowMenu && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-indigo-400" />
+                )}
+              </button>
+              {showOverflowMenu && overflowMenuContainerRef.current && (
+                <div
+                  style={{ position: 'fixed', top: templateDraftOf ? 170 : 120, right: window.innerWidth - overflowMenuContainerRef.current.getBoundingClientRect().right }}
+                  className="w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-[200]"
+                >
+                  <button
+                    onClick={() => {
+                      setShowOverflowMenu(false)
+                      if (overflowMenuContainerRef.current) setGroupsBtnRect(overflowMenuContainerRef.current.getBoundingClientRect())
+                      setShowGroupsPanel(true)
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${showGroupsPanel || highlightedGroupId ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle cx="9" cy="7" r="3" strokeWidth={2} />
+                      <circle cx="15" cy="7" r="3" strokeWidth={2} />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 20c0-3.314 2.686-6 6-6s6 2.686 6 6" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 14c1.657 0 3 1.343 3 3v3" />
+                    </svg>
+                    <span className="flex-1">Groupes</span>
+                    {groupCount > 0 && (
+                      <span className="text-xs font-bold text-indigo-500 bg-indigo-50 rounded-full px-1.5 py-0.5">{groupCount}</span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => { setShowOverflowMenu(false); setShowGroupsPanel(false); setShowFieldsPanel(true) }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${fields.length > 0 ? 'text-indigo-600' : 'text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span className="flex-1">Champs</span>
+                    {fields.length > 0 && (
+                      <span className="text-xs font-bold text-indigo-500 bg-indigo-50 rounded-full px-1.5 py-0.5">{fields.length}</span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Canvas area */}
@@ -932,15 +943,29 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           onSetFieldValue={setFieldValue}
           onClearFieldValue={clearFieldValue}
           onExitLinkCardsMode={() => setToolMode('select')}
-          onPasteCards={handlePasteCards}
+          onPasteCards={(clipCards, x, y) => {
+            pasteCards(clipCards, x, y)
+            setClipboard([])
+            try { localStorage.removeItem('klx_clipboard') } catch {}
+          }}
           voteSession={activeVoteSession}
           voteCanVote={voteCanVote}
           currentUserId={currentUserId}
           onCastVote={castVote}
           onUncastVote={uncastVote}
           onSetCardLocked={(id, locked) => lockCards([id], locked)}
+          onSetFrameLayer={setFrameLayer}
           highlightedGroupId={highlightedGroupId}
         />
+
+        {/* Activity overlay for authenticated board members (non-owner) */}
+        {userRole !== 'OWNER' && boardSession.activeSession && boardSession.currentActivity && (
+          <MemberActivityOverlay
+            activity={boardSession.currentActivity}
+            hasResponded={boardSession.hasResponded}
+            onRespond={boardSession.respond}
+          />
+        )}
 
         {timerExpired && (
           <TimerOverlay onDismiss={stopTimer} />
@@ -961,7 +986,125 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             toolOpacity={toolOpacity}
             minTop={templateDraftOf ? 170 : 120}
             onToolChange={handleToolChange}
+            onAddFrame={() => addFrame(200, 200)}
           />
+        )}
+
+        {/* Floating selection bar */}
+        {selectedIds.size > 0 && !isReadonly && (
+          <div data-popover-anchor className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[46] flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-2xl shadow-black/15 px-3 py-2">
+            <span className="text-xs font-medium text-gray-500 pr-0.5 shrink-0">
+              {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <div className="w-px h-4 bg-gray-200" />
+            <ColorPopover
+              value={selectedCards[0]?.color ?? '#eab308'}
+              onChange={(c) => recolorSelected(c)}
+              title="Colorier la sélection"
+              align="left"
+            />
+            {(() => {
+              const lockable = cards.filter((c) => selectedIds.has(c.id) && c.type !== 'DRAW')
+              if (lockable.length === 0) return null
+              const allLocked = lockable.every((c) => c.locked)
+              const anyLocked = lockable.some((c) => c.locked)
+              return (
+                <>
+                  <div className="w-px h-4 bg-gray-200" />
+                  <button
+                    onClick={() => lockSelected(allLocked ? false : true)}
+                    className={`flex items-center gap-1 text-xs font-medium transition-colors px-1.5 py-1 rounded-lg ${anyLocked ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+                    title={allLocked ? 'Déverrouiller la sélection' : 'Verrouiller la sélection'}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {allLocked
+                        ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6-6h12a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2zm10-4a4 4 0 10-8 0v4h8V9z" />
+                        : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                      }
+                    </svg>
+                    {allLocked ? 'Déverr.' : 'Verr.'}
+                  </button>
+                </>
+              )
+            })()}
+            {canGroup && (
+              <>
+                <div className="w-px h-4 bg-gray-200" />
+                <button
+                  onClick={groupSelected}
+                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
+                  title={allInSameGroup ? 'Dégrouper' : 'Grouper'}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {allInSameGroup
+                      ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-16h2a2 2 0 012 2v2m-4 12h2a2 2 0 002-2v-2" />
+                      : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18M10 3v18M14 3v18" />
+                    }
+                  </svg>
+                  {allInSameGroup ? 'Dégrouper' : 'Grouper'}
+                </button>
+                <div className="flex items-center gap-0.5 rounded-lg bg-gray-50 border border-gray-200 px-1 py-1 shrink-0">
+                  <button onClick={() => arrangeSelected('column')} title="Aligner en colonne" className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <rect x="8" y="3" width="8" height="5" rx="1" strokeWidth={2} />
+                      <rect x="8" y="10" width="8" height="5" rx="1" strokeWidth={2} />
+                      <rect x="8" y="17" width="8" height="5" rx="1" strokeWidth={2} />
+                    </svg>
+                  </button>
+                  <button onClick={() => arrangeSelected('row')} title="Aligner en ligne" className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <rect x="3" y="8" width="5" height="8" rx="1" strokeWidth={2} />
+                      <rect x="10" y="8" width="5" height="8" rx="1" strokeWidth={2} />
+                      <rect x="17" y="8" width="5" height="8" rx="1" strokeWidth={2} />
+                    </svg>
+                  </button>
+                  <button onClick={() => arrangeSelected('grid')} title="Aligner en grille" className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2} />
+                      <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2} />
+                      <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2} />
+                      <rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={2} />
+                    </svg>
+                  </button>
+                </div>
+              </>
+            )}
+            <div className="w-px h-4 bg-gray-200" />
+            {(() => {
+              const selLayer = (() => {
+                const layers = selectedCards.map((c) => c.layer ?? 1)
+                return layers.every((l) => l === layers[0]) ? layers[0] : null
+              })()
+              return (
+                <div className="flex items-center rounded-lg bg-gray-50 border border-gray-200 overflow-hidden shrink-0">
+                  {([0, 1, 2] as const).map((l) => (
+                    <button
+                      key={l}
+                      onClick={() => setLayerSelected(l)}
+                      title={l === 0 ? 'Arrière-plan' : l === 1 ? 'Plan principal' : 'Avant-plan'}
+                      className={`w-7 h-7 flex items-center justify-center transition-colors ${selLayer === l ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-100'}`}
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {l === 0 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />}
+                        {l === 1 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14" />}
+                        {l === 2 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />}
+                      </svg>
+                    </button>
+                  ))}
+                </div>
+              )
+            })()}
+            <div className="w-px h-4 bg-gray-200" />
+            <button
+              onClick={deleteSelected}
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+              title="Supprimer (Suppr)"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
         )}
       </div>
 
@@ -1070,6 +1213,89 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           onClose={() => setShowLastVote(false)}
         />
       )}
+    </div>
+  )
+}
+
+// ── Activity overlay for authenticated non-owner board members ────────────────
+
+interface MemberActivity {
+  id: string
+  type: string
+  title: string
+  config: Record<string, unknown>
+}
+
+function MemberActivityOverlay({
+  activity,
+  hasResponded,
+  onRespond,
+}: {
+  activity: MemberActivity
+  hasResponded: boolean
+  onRespond: (id: string, value: unknown) => void
+}) {
+  const [text, setText] = useState('')
+  const isPoll = activity.type === 'POLL' || activity.type === 'QUIZ'
+  const options = activity.config.options as string[] | undefined
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center pb-8 px-4 pointer-events-none">
+      <div className="pointer-events-auto w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+        {/* Header */}
+        <div className="bg-indigo-600 px-4 py-3">
+          <p className="text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-0.5">
+            {activity.type === 'QUIZ' ? 'Quiz' : activity.type === 'POLL' ? 'Sondage' : activity.type === 'WORDCLOUD' ? 'Nuage de mots' : 'Brainstorming'}
+          </p>
+          <h3 className="text-white font-semibold text-sm leading-snug">{activity.title}</h3>
+        </div>
+
+        {/* Body */}
+        <div className="p-4">
+          {hasResponded ? (
+            <div className="flex items-center gap-3 text-sm text-gray-600">
+              <span className="text-2xl">✅</span>
+              <div>
+                <p className="font-medium text-gray-800">Réponse envoyée !</p>
+                <p className="text-gray-400 text-xs">En attente de la prochaine activité…</p>
+              </div>
+            </div>
+          ) : isPoll && options ? (
+            <div className="flex flex-col gap-2">
+              {options.map((opt, i) => (
+                <button
+                  key={i}
+                  onClick={() => onRespond(activity.id, i)}
+                  className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-left hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+                >
+                  <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold shrink-0">
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  {opt}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <form onSubmit={(e) => { e.preventDefault(); if (text.trim()) onRespond(activity.id, text.trim()) }} className="flex gap-2">
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder={activity.type === 'WORDCLOUD' ? 'Un mot…' : 'Votre idée…'}
+                autoFocus
+                maxLength={activity.type === 'WORDCLOUD' ? 30 : 200}
+                className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <button
+                type="submit"
+                disabled={!text.trim()}
+                className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+              >
+                Envoyer
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

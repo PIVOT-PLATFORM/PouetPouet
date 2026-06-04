@@ -148,7 +148,10 @@ export function ColorPopover({ value, onChange, title = 'Couleur', align = 'righ
           ref={panelRef}
           style={{
             position: 'fixed',
-            top: rect.bottom + 8,
+            ...(rect.bottom > window.innerHeight * 0.6
+              ? { bottom: window.innerHeight - rect.top + 8 }
+              : { top: rect.bottom + 8 }
+            ),
             ...(align === 'right' ? { right: window.innerWidth - rect.right } : { left: rect.left }),
           }}
           className="z-[1200] bg-white rounded-2xl shadow-xl border border-gray-100 p-3"

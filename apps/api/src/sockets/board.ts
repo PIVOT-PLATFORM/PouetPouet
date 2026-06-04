@@ -88,7 +88,7 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
   })
 
   // ── Cards ─────────────────────────────────────────────────────────────────────
-  socket.on('card:create', async (data: { boardId: string; content: string; posX: number; posY: number; color?: string; type?: string; width?: number; height?: number }) => {
+  socket.on('card:create', async (data: { boardId: string; content: string; posX: number; posY: number; color?: string; type?: string; width?: number; height?: number; layer?: number }) => {
     if (!canWrite(socket, data.boardId)) return
     const card = await prisma.card.create({ data: data as never, include: { fieldValues: true } })
     io.to(`board:${data.boardId}`).emit('card:created', card)
@@ -125,8 +125,12 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
         select: { id: true },
       })
       if (remaining.length === 1) {
-        await prisma.card.update({ where: { id: remaining[0].id }, data: { groupId: null } })
-        io.to(`board:${data.boardId}`).emit('cards:ungrouped', deleted.groupId)
+        // The lone survivor may itself have been deleted by a concurrent
+        // card:delete (bulk/group deletion races) — tolerate the missing row.
+        const ungrouped = await ignoreMissing(
+          prisma.card.update({ where: { id: remaining[0].id }, data: { groupId: null } })
+        )
+        if (ungrouped) io.to(`board:${data.boardId}`).emit('cards:ungrouped', deleted.groupId)
       }
     }
   })
@@ -141,6 +145,12 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     if (!canWrite(socket, data.boardId)) return
     await prisma.card.updateMany({ where: { id: { in: data.ids }, boardId: data.boardId }, data: { locked: data.locked } })
     io.to(`board:${data.boardId}`).emit('cards:locked', { ids: data.ids, locked: data.locked })
+  })
+
+  socket.on('card:layer', async (data: { id: string; boardId: string; layer: number }) => {
+    if (!canWrite(socket, data.boardId)) return
+    const card = await ignoreMissing(prisma.card.update({ where: { id: data.id }, data: { layer: data.layer } }))
+    if (card) io.to(`board:${data.boardId}`).emit('card:layered', { id: data.id, layer: data.layer })
   })
 
   // ── Groups ────────────────────────────────────────────────────────────────────
@@ -227,6 +237,12 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     if (!canWrite(socket, data.boardId)) return
     await prisma.frame.delete({ where: { id: data.id } })
     io.to(`board:${data.boardId}`).emit('frame:deleted', data.id)
+  })
+
+  socket.on('frame:layer', async (data: { id: string; boardId: string; layer: number }) => {
+    if (!canWrite(socket, data.boardId)) return
+    const frame = await ignoreMissing(prisma.frame.update({ where: { id: data.id }, data: { layer: data.layer } }))
+    if (frame) io.to(`board:${data.boardId}`).emit('frame:layered', { id: data.id, layer: data.layer })
   })
 
   // ── Board fields ──────────────────────────────────────────────────────────────

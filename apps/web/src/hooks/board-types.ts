@@ -20,6 +20,7 @@ export interface Card {
   groupId: string | null
   groupColor: string | null
   locked: boolean
+  layer: number
   fieldValues: FieldValue[]
 }
 
@@ -53,6 +54,7 @@ export interface Frame {
   // When active, dragging the frame carries every unlocked card inside it.
   // When inactive (default), the frame moves alone and captures nothing.
   active: boolean
+  layer: number
 }
 
 export interface BoardField {

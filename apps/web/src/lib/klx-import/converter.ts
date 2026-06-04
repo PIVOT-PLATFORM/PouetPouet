@@ -82,6 +82,9 @@ export interface KlxCard {
   height: number
   zIndex: number
   locked: boolean
+  // Klaxoon group uuid this card belongs to (null = ungrouped). The API remaps
+  // each distinct key to a fresh server-side groupId on import.
+  groupKey: string | null
 }
 
 export interface KlxConnection {
@@ -101,6 +104,7 @@ export interface KlxImportStats {
   draws: number
   images: number
   links: number
+  groups: number
   skipped: number
 }
 
@@ -117,7 +121,7 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>): KlxIm
 
   const cards: KlxCard[] = []
   const connections: KlxConnection[] = []
-  const stats: KlxImportStats = { postits: 0, texts: 0, draws: 0, images: 0, links: 0, skipped: 0 }
+  const stats: KlxImportStats = { postits: 0, texts: 0, draws: 0, images: 0, links: 0, groups: 0, skipped: 0 }
 
   // --- Global offset: shift everything so top-left starts near (0, 0) ---
   let minX = Infinity, minY = Infinity
@@ -160,6 +164,7 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>): KlxIm
       height: Math.max(110, Math.round(POSTIT_BASE * scaleY)),
       zIndex: idea.z_index ?? 0,
       locked: idea.is_locked ?? false,
+      groupKey: null,
     })
     stats.postits++
   }
@@ -184,6 +189,7 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>): KlxIm
         height: 56,
         zIndex: item.z_index ?? 0,
         locked: item.is_locked ?? false,
+        groupKey: null,
       })
       stats.texts++
 
@@ -208,6 +214,7 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>): KlxIm
         height: cardH,
         zIndex: item.z_index ?? 0,
         locked: item.is_locked ?? false,
+        groupKey: null,
       })
       stats.draws++
 
@@ -235,6 +242,7 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>): KlxIm
         height: cardH,
         zIndex: item.z_index ?? 0,
         locked: item.is_locked ?? false,
+        groupKey: null,
       })
       stats.images++
 
@@ -268,6 +276,23 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>): KlxIm
       label: '',
     })
     stats.links++
+  }
+
+  // --- Groups → shared groupKey ---
+  // Tag each group's imported members with the Klaxoon group uuid. Only groups
+  // that keep at least 2 imported members are materialized: a lone member would
+  // be auto-dissolved by the app anyway. First-wins on overlap, since a card can
+  // hold only one group.
+  const byKlxId = new Map<string, KlxCard>()
+  for (const c of cards) byKlxId.set(c.klxId, c)
+
+  for (const group of data.groups ?? []) {
+    const members = (group.object_ids ?? [])
+      .map((oid: string) => byKlxId.get(oid))
+      .filter((c: KlxCard | undefined): c is KlxCard => !!c && c.groupKey === null)
+    if (members.length < 2) continue
+    for (const c of members) c.groupKey = group.uuid
+    stats.groups++
   }
 
   return { cards, connections, stats }

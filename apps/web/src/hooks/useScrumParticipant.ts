@@ -11,6 +11,10 @@ export function useScrumParticipant() {
   const [myVotes, setMyVotes] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   const socketRef = useRef(connectSocket())
+  // Stored for reconnect
+  const joinParamsRef = useRef<{ code: string; name: string } | null>(null)
+  const isJoinedRef = useRef(false)
+  isJoinedRef.current = isJoined
 
   function applyTicket(ticket: ScrumTicket) {
     setRoom((prev) => {
@@ -27,6 +31,14 @@ export function useScrumParticipant() {
 
   useEffect(() => {
     const socket = socketRef.current
+
+    // On reconnect, re-join automatically if already joined
+    const handleReconnect = () => {
+      if (isJoinedRef.current && joinParamsRef.current) {
+        socket.emit('scrum:join', { code: joinParamsRef.current.code, participantName: joinParamsRef.current.name })
+      }
+    }
+    socket.io.on('reconnect', handleReconnect)
 
     socket.on('scrum:joined', ({ room: r, participantName: name }: { room: ScrumRoom; participantName: string }) => {
       setRoom(r)
@@ -78,22 +90,24 @@ export function useScrumParticipant() {
     })
 
     return () => {
-      ['scrum:joined', 'scrum:error', 'scrum:participant_count', 'scrum:room:scale_updated',
-       'scrum:ticket:added', 'scrum:ticket:activated', 'scrum:vote:received',
-       'scrum:ticket:revealed', 'scrum:ticket:done', 'scrum:ticket:reset',
+      socket.io.off('reconnect', handleReconnect)
+      ;['scrum:joined', 'scrum:error', 'scrum:participant_count', 'scrum:room:scale_updated',
+        'scrum:ticket:added', 'scrum:ticket:activated', 'scrum:vote:received',
+        'scrum:ticket:revealed', 'scrum:ticket:done', 'scrum:ticket:reset',
       ].forEach((e) => socket.off(e))
     }
   }, [])
 
   const join = useCallback((code: string, name: string) => {
+    joinParamsRef.current = { code, name: name.trim() }
     setError(null)
     socketRef.current.emit('scrum:join', { code, participantName: name.trim() })
   }, [])
 
   const vote = useCallback((ticketId: string, value: string, roomId: string, scale: string) => {
     setMyVotes((prev) => ({ ...prev, [`${ticketId}:${scale}`]: value }))
-    socketRef.current.emit('scrum:vote', { ticketId, value, participantName, roomId, scale })
-  }, [participantName])
+    socketRef.current.emit('scrum:vote', { ticketId, value, participantName: joinParamsRef.current?.name ?? '', roomId, scale })
+  }, [])
 
   const activeTicket = room?.tickets.find((t) => t.status === 'VOTING' || t.status === 'REVEALED') ?? null
 

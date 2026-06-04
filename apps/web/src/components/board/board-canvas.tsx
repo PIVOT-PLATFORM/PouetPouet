@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect, forwardRef, useImperativeHandle } from 'react'
-import type { Card, Frame, BoardField, Connection, VoteSession } from '@/hooks/useBoard'
+import type { Card, Frame, BoardField, Connection, VoteSession, ClipboardCard } from '@/hooks/useBoard'
 import { groupColor } from '@/hooks/useBoard'
 import { BoardCard } from './board-card'
 import { FrameItem } from './frame-item'
@@ -11,7 +11,7 @@ import { ConnectionToolbar } from './connection-toolbar'
 import type { ConnectionPatch } from '@/hooks/useBoard'
 import type { ToolMode, StrokeSize } from './floating-toolbar'
 
-type ClipCard = Pick<Card, 'type' | 'content' | 'color' | 'posX' | 'posY' | 'width' | 'height'>
+type ClipCard = ClipboardCard
 
 interface Props {
   cards: Card[]
@@ -60,6 +60,7 @@ interface Props {
   onCastVote?: (cardId: string) => void
   onUncastVote?: (cardId: string) => void
   onSetCardLocked?: (id: string, locked: boolean) => void
+  onSetFrameLayer?: (id: string, layer: number) => void
   boardName?: string
   highlightedGroupId?: string | null
 }
@@ -95,6 +96,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   onUpdateFrame, onSetFrameActive, onDeleteFrame,
   onSetFieldValue, onClearFieldValue, onExitLinkCardsMode, onPasteCards,
   voteSession, voteCanVote = true, currentUserId, onCastVote, onUncastVote, onSetCardLocked,
+  onSetFrameLayer,
   boardName, highlightedGroupId,
 }: Props, ref) {
   // ── Refs ────────────────────────────────────────────────────────────────────
@@ -111,6 +113,9 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   const vpRef = useRef({ x: 0, y: 0, zoom: 1 })
   // React state — synced after interactions end so children receive correct zoom
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 })
+  // Board content stays hidden until the opening auto-fit has settled, so the user
+  // never sees the pre-fit/settling zoom changes — it just fades in already framed.
+  const [viewReady, setViewReady] = useState(false)
 
   const [detailCardId, setDetailCardId] = useState<string | null>(null)
 
@@ -298,6 +303,8 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
       if (isReadonly) return
+      // Board clipboard takes priority — if it has content, Ctrl+V is handled by keydown
+      if (clipboard.length > 0) return
       const active = document.activeElement
       if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || (active as HTMLElement)?.isContentEditable) return
 
@@ -337,7 +344,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     }
     window.addEventListener('paste', onPaste)
     return () => window.removeEventListener('paste', onPaste)
-  }, [isReadonly, onAddCard])
+  }, [isReadonly, onAddCard, clipboard])
 
   // ── Freehand draw (called from canvas or card bubble) ────────────────────────
   function startFreehandDraw(clientX: number, clientY: number) {
@@ -542,13 +549,32 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     return () => clearTimeout(t)
   }, [])
 
-  // Auto-center on the whole board the first time content is available after opening.
+  // Auto-center on the whole board the first time content is available, landing on
+  // the exact same view as the "fit" button. The initial layout can take a few frames
+  // to settle (and transiently mis-measure the container), so we re-fit as it settles
+  // — on every container resize and once more after a short grace delay — all while
+  // the content is hidden, then fade it in. The user never sees the zoom adjusting:
+  // the board simply appears already framed, identical to a manual fit.
   useEffect(() => {
-    if (didAutoFitRef.current) return
-    if (cards.length === 0 && frames.length === 0) return
-    didAutoFitRef.current = true
-    const raf = requestAnimationFrame(() => fitToContent())
-    return () => cancelAnimationFrame(raf)
+    if (didAutoFitRef.current) { setViewReady(true); return }
+    const el = containerRef.current
+    if ((cards.length === 0 && frames.length === 0) || !el) {
+      // Nothing to frame — reveal so an empty board (and later-added cards) stay visible.
+      setViewReady(true)
+      return
+    }
+
+    let raf = 0
+    const fit = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => { if (!didAutoFitRef.current) fitToContent() })
+    }
+    fit()                                              // first frame
+    const ro = new ResizeObserver(fit)                 // re-fit as the container settles/resizes
+    ro.observe(el)
+    const reveal = setTimeout(() => setViewReady(true), 220) // fade in once settled
+
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); clearTimeout(reveal) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cards.length, frames.length])
 
@@ -726,6 +752,72 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   const detailCard = detailCardId ? cards.find((c) => c.id === detailCardId) ?? null : null
   const zoom = viewport.zoom
 
+  // ── Layer rendering helpers ───────────────────────────────────────────────────
+  function renderFramesForLayer(layer: number) {
+    return frames.filter((f) => (f.layer ?? 1) === layer).map((frame) => (
+      <FrameItem
+        key={frame.id}
+        frame={frame}
+        cards={cards}
+        zoom={zoom}
+        isReadonly={isReadonly}
+        onMove={onMoveFrame}
+        onStartDrag={onStartDragFrame}
+        onCommitDrag={onCommitDragFrame}
+        onResizeBox={onResizeFrameBox}
+        onStartResize={onStartResizeFrame}
+        onCommitResize={onCommitResizeFrame}
+        onUpdate={onUpdateFrame}
+        onSetActive={onSetFrameActive}
+        onDelete={onDeleteFrame}
+        onSetLayer={onSetFrameLayer}
+      />
+    ))
+  }
+
+  function renderCardsForLayer(layer: number) {
+    return [
+      ...cards.filter((c) => c.type !== 'DRAW' && (c.layer ?? 1) === layer),
+      ...cards.filter((c) => c.type === 'DRAW' && (c.layer ?? 1) === layer),
+    ].map((card) => {
+      const dimmed = !!highlightedGroupId && card.groupId !== highlightedGroupId
+      return (
+        <div key={card.id} style={{ opacity: dimmed ? 0.12 : 1, transition: 'opacity 0.2s', pointerEvents: dimmed ? 'none' : undefined }}>
+          <BoardCard
+            card={card}
+            fields={fields}
+            zoom={zoom}
+            isSelected={selectedIds.has(card.id)}
+            isMultiSelect={selectedIds.size > 1}
+            groupColor={card.groupId ? (card.groupColor ?? groupColor(card.groupId)) : undefined}
+            drawMode={toolMode === 'draw'}
+            isReadonly={isReadonly}
+            onMove={onMoveCard}
+            onStartDrag={onStartDragCard}
+            onCommitDrag={onCommitDragCard}
+            onUpdate={onUpdateCard}
+            onRecolor={onRecolorCard}
+            onDelete={onDeleteCard}
+            onResize={onResizeCard}
+            onResizeBox={onResizeCardBox}
+            onStartResize={onStartResizeCard}
+            onCommitResize={onCommitResizeCard}
+            onSelect={handleSelect}
+            onOpenDetail={setDetailCardId}
+            onStartConnect={toolMode === 'select' ? handleStartConnect : undefined}
+            onSetLocked={onSetCardLocked}
+            linkCardsMode={toolMode === 'link-cards'}
+            isLinkSource={linkSourceId === card.id}
+            onLinkCardsClick={toolMode === 'link-cards' ? handleLinkCardClick : undefined}
+          />
+        </div>
+      )
+    })
+  }
+  // Dot-grid metrics derived from the synced viewport state, so a React re-render
+  // never resets the grid to an unzoomed/misaligned value behind applyTransform.
+  const dotD = DOT_SPACING * viewport.zoom
+
   const canvasCursor =
     spaceHeld ? CURSOR_HAND :
     isReadonly ? CURSOR_ARROW :
@@ -756,7 +848,8 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
         className="relative flex-1 overflow-hidden select-none"
         style={{
           backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)',
-          backgroundSize: `${DOT_SPACING}px ${DOT_SPACING}px`,
+          backgroundSize: `${dotD}px ${dotD}px`,
+          backgroundPosition: `${viewport.x % dotD}px ${viewport.y % dotD}px`,
           cursor: canvasCursor,
         }}
         onMouseDown={handleCanvasMouseDown}
@@ -766,28 +859,16 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
         {/* ── Transformed infinite canvas ── */}
         <div
           ref={canvasRef}
-          style={{ position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', willChange: 'transform' }}
+          style={{ position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', willChange: 'transform', opacity: viewReady ? 1 : 0, transition: 'opacity 0.2s ease' }}
         >
-          {frames.map((frame) => (
-            <FrameItem
-              key={frame.id}
-              frame={frame}
-              cards={cards}
-              zoom={zoom}
-              isReadonly={isReadonly}
-              onMove={onMoveFrame}
-              onStartDrag={onStartDragFrame}
-              onCommitDrag={onCommitDragFrame}
-              onResizeBox={onResizeFrameBox}
-              onStartResize={onStartResizeFrame}
-              onCommitResize={onCommitResizeFrame}
-              onUpdate={onUpdateFrame}
-              onSetActive={onSetFrameActive}
-              onDelete={onDeleteFrame}
-            />
-          ))}
+          {/* ── Layer 0: Background ── */}
+          {renderFramesForLayer(0)}
+          {renderCardsForLayer(0)}
 
-          {/* SVG: connections + connect ghost + source highlight (below cards) */}
+          {/* ── Layer 1: Main (default) — connections stay here ── */}
+          {renderFramesForLayer(1)}
+
+          {/* SVG: connections + connect ghost + source highlight */}
           <svg
             ref={connectionsSvgRef}
             style={{ position: 'absolute', left: -100000, top: -100000, width: 200000, height: 200000, overflow: 'visible', pointerEvents: 'none' }}
@@ -837,41 +918,11 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
             style={{ position: 'absolute', display: 'none', border: '1px solid #818cf8', background: 'rgba(99,102,241,0.08)', borderRadius: 3, pointerEvents: 'none' }}
           />
 
-          {/* Non-DRAW cards first, then DRAW cards on top */}
-          {[...cards.filter((c) => c.type !== 'DRAW'), ...cards.filter((c) => c.type === 'DRAW')].map((card) => {
-            const dimmed = !!highlightedGroupId && card.groupId !== highlightedGroupId
-            return (
-              <div key={card.id} style={{ opacity: dimmed ? 0.12 : 1, transition: 'opacity 0.2s', pointerEvents: dimmed ? 'none' : undefined }}>
-                <BoardCard
-                  card={card}
-                  fields={fields}
-                  zoom={zoom}
-                  isSelected={selectedIds.has(card.id)}
-                  isMultiSelect={selectedIds.size > 1}
-                  groupColor={card.groupId ? (card.groupColor ?? groupColor(card.groupId)) : undefined}
-                  drawMode={toolMode === 'draw'}
-                  isReadonly={isReadonly}
-                  onMove={onMoveCard}
-                  onStartDrag={onStartDragCard}
-                  onCommitDrag={onCommitDragCard}
-                  onUpdate={onUpdateCard}
-                  onRecolor={onRecolorCard}
-                  onDelete={onDeleteCard}
-                  onResize={onResizeCard}
-                  onResizeBox={onResizeCardBox}
-                  onStartResize={onStartResizeCard}
-                  onCommitResize={onCommitResizeCard}
-                  onSelect={handleSelect}
-                  onOpenDetail={setDetailCardId}
-                  onStartConnect={toolMode === 'select' ? handleStartConnect : undefined}
-                  onSetLocked={onSetCardLocked}
-                  linkCardsMode={toolMode === 'link-cards'}
-                  isLinkSource={linkSourceId === card.id}
-                  onLinkCardsClick={toolMode === 'link-cards' ? handleLinkCardClick : undefined}
-                />
-              </div>
-            )
-          })}
+          {renderCardsForLayer(1)}
+
+          {/* ── Layer 2: Foreground ── */}
+          {renderFramesForLayer(2)}
+          {renderCardsForLayer(2)}
 
           {/* Vote badges overlay */}
           {voteSession && cards.filter((c) => c.type !== 'DRAW').map((card) => {

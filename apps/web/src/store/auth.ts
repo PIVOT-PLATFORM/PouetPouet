@@ -35,6 +35,8 @@ interface AuthState {
   register: (name: string, email: string, password: string, bypass?: boolean) => Promise<RegisterResult>
   verifyEmail: (token: string) => Promise<void>
   resendVerification: (email: string) => Promise<{ devLink?: string }>
+  forgotPassword: (email: string) => Promise<{ devLink?: string }>
+  resetPassword: (token: string, password: string) => Promise<void>
   logout: () => void
   expireSession: () => void
   refreshSession: () => Promise<void>
@@ -93,6 +95,14 @@ export const useAuthStore = create<AuthState>()(
 
       resendVerification: async (email) => {
         return api.post<{ ok: true; devLink?: string }>('/api/auth/resend-verification', { email })
+      },
+
+      forgotPassword: async (email) => {
+        return api.post<{ ok: true; devLink?: string }>('/api/auth/forgot-password', { email })
+      },
+
+      resetPassword: async (token, password) => {
+        await api.post('/api/auth/reset-password', { token, password })
       },
 
       logout: () => {
