@@ -111,6 +111,9 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   const vpRef = useRef({ x: 0, y: 0, zoom: 1 })
   // React state — synced after interactions end so children receive correct zoom
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 })
+  // Board content stays hidden until the opening auto-fit has settled, so the user
+  // never sees the pre-fit/settling zoom changes — it just fades in already framed.
+  const [viewReady, setViewReady] = useState(false)
 
   const [detailCardId, setDetailCardId] = useState<string | null>(null)
 
@@ -542,13 +545,32 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     return () => clearTimeout(t)
   }, [])
 
-  // Auto-center on the whole board the first time content is available after opening.
+  // Auto-center on the whole board the first time content is available, landing on
+  // the exact same view as the "fit" button. The initial layout can take a few frames
+  // to settle (and transiently mis-measure the container), so we re-fit as it settles
+  // — on every container resize and once more after a short grace delay — all while
+  // the content is hidden, then fade it in. The user never sees the zoom adjusting:
+  // the board simply appears already framed, identical to a manual fit.
   useEffect(() => {
-    if (didAutoFitRef.current) return
-    if (cards.length === 0 && frames.length === 0) return
-    didAutoFitRef.current = true
-    const raf = requestAnimationFrame(() => fitToContent())
-    return () => cancelAnimationFrame(raf)
+    if (didAutoFitRef.current) { setViewReady(true); return }
+    const el = containerRef.current
+    if ((cards.length === 0 && frames.length === 0) || !el) {
+      // Nothing to frame — reveal so an empty board (and later-added cards) stay visible.
+      setViewReady(true)
+      return
+    }
+
+    let raf = 0
+    const fit = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => { if (!didAutoFitRef.current) fitToContent() })
+    }
+    fit()                                              // first frame
+    const ro = new ResizeObserver(fit)                 // re-fit as the container settles/resizes
+    ro.observe(el)
+    const reveal = setTimeout(() => setViewReady(true), 220) // fade in once settled
+
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); clearTimeout(reveal) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cards.length, frames.length])
 
@@ -725,6 +747,9 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
 
   const detailCard = detailCardId ? cards.find((c) => c.id === detailCardId) ?? null : null
   const zoom = viewport.zoom
+  // Dot-grid metrics derived from the synced viewport state, so a React re-render
+  // never resets the grid to an unzoomed/misaligned value behind applyTransform.
+  const dotD = DOT_SPACING * viewport.zoom
 
   const canvasCursor =
     spaceHeld ? CURSOR_HAND :
@@ -756,7 +781,8 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
         className="relative flex-1 overflow-hidden select-none"
         style={{
           backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)',
-          backgroundSize: `${DOT_SPACING}px ${DOT_SPACING}px`,
+          backgroundSize: `${dotD}px ${dotD}px`,
+          backgroundPosition: `${viewport.x % dotD}px ${viewport.y % dotD}px`,
           cursor: canvasCursor,
         }}
         onMouseDown={handleCanvasMouseDown}
@@ -766,7 +792,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
         {/* ── Transformed infinite canvas ── */}
         <div
           ref={canvasRef}
-          style={{ position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', willChange: 'transform' }}
+          style={{ position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', willChange: 'transform', opacity: viewReady ? 1 : 0, transition: 'opacity 0.2s ease' }}
         >
           {frames.map((frame) => (
             <FrameItem

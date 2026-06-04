@@ -59,6 +59,8 @@ export function useBoard(boardId: string) {
   const pendingFrameHistoryRef = useRef<Array<(frame: Frame) => void>>([])
   // Start positions for drag/resize (pushed to history only on commit)
   const cardDragStartRef = useRef<Map<string, { posX: number; posY: number }> | null>(null)
+  // Coalesces card:move socket emits to at most one batch per animation frame.
+  const moveEmitRef = useRef<{ raf: number | null; pending: Map<string, { posX: number; posY: number }> }>({ raf: null, pending: new Map() })
   const cardResizeStartRef = useRef<{ id: string; posX: number; posY: number; width: number; height: number } | null>(null)
   const frameDragStartRef = useRef<{
     frameId: string
@@ -283,11 +285,22 @@ export function useBoard(boardId: string) {
     socketRef.current.emit('card:create', emitParams)
   }
 
+  // Flushes the coalesced card:move emits (one socket message per moving card).
+  function flushMoveEmits() {
+    moveEmitRef.current.raf = null
+    const pending = moveEmitRef.current.pending
+    if (pending.size === 0) return
+    pending.forEach((p, cid) => socketRef.current.emit('card:move', { id: cid, boardId, posX: p.posX, posY: p.posY }))
+    pending.clear()
+  }
+  function scheduleMoveFlush() {
+    if (moveEmitRef.current.raf != null) return
+    moveEmitRef.current.raf = requestAnimationFrame(flushMoveEmits)
+  }
+
   function moveCard(id: string, posX: number, posY: number) {
     const card = cardsRef.current.find((c) => c.id === id)
     if (!card) return
-    const dx = posX - card.posX
-    const dy = posY - card.posY
 
     const selected = selectedIdsRef.current
     const useSelection = selected.size > 1 && selected.has(id)
@@ -301,17 +314,29 @@ export function useBoard(boardId: string) {
     // Locked cards never move, even when dragged as part of a group/selection.
     cardsRef.current.forEach((c) => { if (c.locked) followIds.delete(c.id) })
 
+    // Measure the displacement from the immutable drag-start snapshot rather than
+    // the live (and under rapid drags, stale) positions. This pins every follower
+    // to the grabbed card with no relative drift. Fall back to an incremental
+    // delta only when there's no snapshot (e.g. a programmatic move).
+    const starts = cardDragStartRef.current
+    const gs = starts?.get(id)
+    const dx = gs ? posX - gs.posX : posX - card.posX
+    const dy = gs ? posY - gs.posY : posY - card.posY
+
+    const nextPos = new Map<string, { posX: number; posY: number }>()
+    nextPos.set(id, { posX, posY })
+    followIds.forEach((fid) => {
+      const base = starts?.get(fid) ?? cardsRef.current.find((c) => c.id === fid)
+      if (base) nextPos.set(fid, { posX: base.posX + dx, posY: base.posY + dy })
+    })
+
     setCards((prev) => prev.map((c) => {
-      if (c.id === id) return { ...c, posX, posY }
-      if (followIds.has(c.id)) return { ...c, posX: c.posX + dx, posY: c.posY + dy }
-      return c
+      const p = nextPos.get(c.id)
+      return p ? { ...c, posX: p.posX, posY: p.posY } : c
     }))
 
-    socketRef.current.emit('card:move', { id, boardId, posX, posY })
-    followIds.forEach((fid) => {
-      const c = cardsRef.current.find((cc) => cc.id === fid)
-      if (c) socketRef.current.emit('card:move', { id: fid, boardId, posX: c.posX + dx, posY: c.posY + dy })
-    })
+    nextPos.forEach((p, cid) => moveEmitRef.current.pending.set(cid, p))
+    scheduleMoveFlush()
   }
 
   // Called at drag START — captures positions of all cards that will move together
@@ -335,6 +360,10 @@ export function useBoard(boardId: string) {
 
   // Called at drag END — compares start vs end positions and pushes undo entry if moved
   function commitDragCard(_id: string) {
+    // Emit the final positions now, in case the last coalesced frame never fired.
+    if (moveEmitRef.current.raf != null) { cancelAnimationFrame(moveEmitRef.current.raf); moveEmitRef.current.raf = null }
+    flushMoveEmits()
+
     const starts = cardDragStartRef.current
     cardDragStartRef.current = null
     if (!starts) return

@@ -140,6 +140,11 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const [showVoteResults, setShowVoteResults] = useState(false)
   const [showLastVote, setShowLastVote] = useState(false)
   const [showVoteEnd, setShowVoteEnd] = useState(false)
+  const [showVoteMenu, setShowVoteMenu] = useState(false)
+  const voteMenuContainerRef = useRef<HTMLDivElement>(null)
+  const [voteMenuRect, setVoteMenuRect] = useState<DOMRect | null>(null)
+  const [showOverflowMenu, setShowOverflowMenu] = useState(false)
+  const overflowMenuContainerRef = useRef<HTMLDivElement>(null)
   const [showTimerPicker, setShowTimerPicker] = useState(false)
   const [timerCustomMin, setTimerCustomMin] = useState('5')
   const [timerCustomSec, setTimerCustomSec] = useState('00')
@@ -201,7 +206,6 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     setTimeout(() => canvasApiRef.current?.fitToContent(), 100)
   }
   const timerPickerRef = useRef<HTMLDivElement>(null)
-  const timerPickerLeaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [timerPickerRect, setTimerPickerRect] = useState<DOMRect | null>(null)
 
   function launchCustomTimer() {
@@ -240,14 +244,38 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     }
   }, [voteTimerExpired, activeVoteSession])
 
-  function handleTimerPickerEnter() {
-    if (timerPickerLeaveTimer.current) clearTimeout(timerPickerLeaveTimer.current)
-    if (timerPickerRef.current) setTimerPickerRect(timerPickerRef.current.getBoundingClientRect())
-    setShowTimerPicker(true)
-  }
-  function handleTimerPickerLeave() {
-    timerPickerLeaveTimer.current = setTimeout(() => setShowTimerPicker(false), 150)
-  }
+  useEffect(() => {
+    if (!showVoteMenu) return
+    function handleClick(e: MouseEvent) {
+      if (voteMenuContainerRef.current && !voteMenuContainerRef.current.contains(e.target as Node)) {
+        setShowVoteMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showVoteMenu])
+
+  useEffect(() => {
+    if (!showOverflowMenu) return
+    function handleClick(e: MouseEvent) {
+      if (overflowMenuContainerRef.current && !overflowMenuContainerRef.current.contains(e.target as Node)) {
+        setShowOverflowMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showOverflowMenu])
+
+  useEffect(() => {
+    if (!showTimerPicker) return
+    function handleClick(e: MouseEvent) {
+      if (timerPickerRef.current && !timerPickerRef.current.contains(e.target as Node)) {
+        setShowTimerPicker(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showTimerPicker])
   const [confirmReset, setConfirmReset] = useState(false)
   const confirmResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -517,7 +545,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
               <button
                 onClick={handleResetClick}
                 title={confirmReset ? 'Cliquer pour confirmer la réinitialisation' : 'Réinitialiser le board'}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
                   confirmReset
                     ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
                     : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
@@ -526,156 +554,6 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                {confirmReset ? 'Confirmer ?' : 'Reset'}
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* Selection badge */}
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2 rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-1.5 shrink-0">
-            <span className="text-xs font-medium text-indigo-700">
-              {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
-            </span>
-            {!isReadonly && (
-              <>
-                <div className="w-px h-4 bg-indigo-200" />
-                <ColorPopover
-                  value={selectedCards[0]?.color ?? '#eab308'}
-                  onChange={(c) => recolorSelected(c)}
-                  title="Colorier la sélection"
-                  align="left"
-                />
-                {(() => {
-                  // Drawings can't be locked — only count the lockable cards.
-                  const lockable = cards.filter((c) => selectedIds.has(c.id) && c.type !== 'DRAW')
-                  if (lockable.length === 0) return null
-                  const allLocked = lockable.every((c) => c.locked)
-                  const anyLocked = lockable.some((c) => c.locked)
-                  return (
-                    <>
-                      <div className="w-px h-4 bg-indigo-200" />
-                      <button
-                        onClick={() => lockSelected(allLocked ? false : true)}
-                        className={`flex items-center gap-1 text-xs font-medium transition-colors px-1 rounded ${anyLocked ? 'text-amber-600 hover:text-amber-700' : 'text-indigo-400 hover:text-indigo-600'}`}
-                        title={allLocked ? 'Déverrouiller la sélection' : 'Verrouiller la sélection'}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          {allLocked
-                            ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6-6h12a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2zm10-4a4 4 0 10-8 0v4h8V9z" />
-                            : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                          }
-                        </svg>
-                        {allLocked ? 'Déverr.' : 'Verr.'}
-                      </button>
-                    </>
-                  )
-                })()}
-                <div className="w-px h-4 bg-indigo-200" />
-                <button onClick={deleteSelected} className="text-red-400 hover:text-red-600 transition-colors" title="Supprimer (Suppr)">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Grouper */}
-        {canGroup && !isReadonly && (
-          <button onClick={groupSelected} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {allInSameGroup
-                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-16h2a2 2 0 012 2v2m-4 12h2a2 2 0 002-2v-2" />
-                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18M10 3v18M14 3v18" />
-              }
-            </svg>
-            {allInSameGroup ? 'Dégrouper' : 'Grouper'}
-          </button>
-        )}
-
-        {/* Arranger la sélection (colonne / ligne / grille) */}
-        {canGroup && !isReadonly && (
-          <div className="flex items-center gap-0.5 rounded-lg bg-gray-50 border border-gray-200 px-1 py-1 shrink-0">
-            <button
-              onClick={() => arrangeSelected('column')}
-              title="Aligner en colonne"
-              className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <rect x="8" y="3" width="8" height="5" rx="1" strokeWidth={2} />
-                <rect x="8" y="10" width="8" height="5" rx="1" strokeWidth={2} />
-                <rect x="8" y="17" width="8" height="5" rx="1" strokeWidth={2} />
-              </svg>
-            </button>
-            <button
-              onClick={() => arrangeSelected('row')}
-              title="Aligner en ligne"
-              className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <rect x="3" y="8" width="5" height="8" rx="1" strokeWidth={2} />
-                <rect x="10" y="8" width="5" height="8" rx="1" strokeWidth={2} />
-                <rect x="17" y="8" width="5" height="8" rx="1" strokeWidth={2} />
-              </svg>
-            </button>
-            <button
-              onClick={() => arrangeSelected('grid')}
-              title="Aligner en grille"
-              className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2} />
-                <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2} />
-                <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2} />
-                <rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={2} />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {/* ── Group: structure (frame / fields) ───────────────────────────── */}
-        {!isReadonly && (
-          <>
-            <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />
-            <div className="flex items-center gap-0.5 shrink-0">
-              <button
-                onClick={() => addFrame(200, 200)}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-                title="Ajouter un cadre"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2} strokeLinecap="round" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9h18M9 21V9" />
-                </svg>
-                Cadre
-              </button>
-              <button
-                ref={groupsBtnRef}
-                onMouseEnter={handleGroupsEnter}
-                onMouseLeave={handleGroupsLeave}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${showGroupsPanel || highlightedGroupId ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
-                title="Voir les groupes"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <circle cx="9" cy="7" r="3" strokeWidth={2} />
-                  <circle cx="15" cy="7" r="3" strokeWidth={2} />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 20c0-3.314 2.686-6 6-6s6 2.686 6 6" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 14c1.657 0 3 1.343 3 3v3" />
-                </svg>
-                Groupes{groupCount > 0 ? ` (${groupCount})` : ''}
-              </button>
-              <button
-                onClick={() => setShowFieldsPanel(true)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${fields.length > 0 ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
-                title="Gérer les champs personnalisés"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                Champs{fields.length > 0 ? ` (${fields.length})` : ''}
               </button>
             </div>
           </>
@@ -731,18 +609,56 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         ) : (
           <>
             {!isReadonly && (
-              <button
-                onClick={() => setShowVoteConfig(true)}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
-                title="Lancer un vote"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Vote
-              </button>
+              <div ref={voteMenuContainerRef} className="relative shrink-0">
+                <button
+                  onClick={() => {
+                    if (voteMenuContainerRef.current) setVoteMenuRect(voteMenuContainerRef.current.getBoundingClientRect())
+                    setShowVoteMenu(!showVoteMenu)
+                  }}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${showVoteMenu ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                  title="Vote"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Vote
+                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showVoteMenu && voteMenuRect && (
+                  <div
+                    style={{ position: 'fixed', top: templateDraftOf ? 170 : 120, left: voteMenuRect.left }}
+                    className="w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-[200]"
+                  >
+                    <button
+                      onClick={() => { setShowVoteMenu(false); setShowVoteConfig(true) }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <svg className="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Lancer un vote
+                    </button>
+                    {lastVoteSession && (
+                      <>
+                        <div className="border-t border-gray-100 my-1" />
+                        <button
+                          onClick={() => { setShowVoteMenu(false); setShowLastVote(true) }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                        >
+                          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Dernier vote
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
-            {lastVoteSession && (
+            {lastVoteSession && isReadonly && (
               <button
                 onClick={() => setShowLastVote(true)}
                 className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
@@ -776,14 +692,13 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             )}
           </div>
         ) : !isReadonly && (
-          <div
-            ref={timerPickerRef}
-            className="relative shrink-0"
-            onMouseEnter={handleTimerPickerEnter}
-            onMouseLeave={handleTimerPickerLeave}
-          >
+          <div ref={timerPickerRef} className="relative shrink-0">
             <button
-              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              onClick={() => {
+                if (timerPickerRef.current) setTimerPickerRect(timerPickerRef.current.getBoundingClientRect())
+                setShowTimerPicker(!showTimerPicker)
+              }}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${showTimerPicker ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
               title="Lancer un timer"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -796,8 +711,6 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
               <div
                 style={{ position: 'fixed', top: templateDraftOf ? 170 : 120, left: timerPickerRect.left }}
                 className="w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-[200]"
-                onMouseEnter={handleTimerPickerEnter}
-                onMouseLeave={handleTimerPickerLeave}
               >
                 {/* Saisie libre */}
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-3 pb-2">Durée personnalisée</p>
@@ -874,6 +787,67 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             <span className="text-xs text-green-600">· {participantCount} 👤</span>
           </div>
         ))}
+
+        {/* ── Overflow menu ── */}
+        {!isReadonly && (
+          <>
+            <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />
+            <div ref={overflowMenuContainerRef} className="relative shrink-0">
+              <button
+                onClick={() => setShowOverflowMenu(!showOverflowMenu)}
+                className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${showOverflowMenu || showGroupsPanel ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                title="Plus d'outils"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="5" r="1.5" />
+                  <circle cx="12" cy="12" r="1.5" />
+                  <circle cx="12" cy="19" r="1.5" />
+                </svg>
+                {(groupCount > 0 || fields.length > 0) && !showOverflowMenu && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-indigo-400" />
+                )}
+              </button>
+              {showOverflowMenu && overflowMenuContainerRef.current && (
+                <div
+                  style={{ position: 'fixed', top: templateDraftOf ? 170 : 120, right: window.innerWidth - overflowMenuContainerRef.current.getBoundingClientRect().right }}
+                  className="w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-[200]"
+                >
+                  <button
+                    onClick={() => {
+                      setShowOverflowMenu(false)
+                      if (overflowMenuContainerRef.current) setGroupsBtnRect(overflowMenuContainerRef.current.getBoundingClientRect())
+                      setShowGroupsPanel(true)
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${showGroupsPanel || highlightedGroupId ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle cx="9" cy="7" r="3" strokeWidth={2} />
+                      <circle cx="15" cy="7" r="3" strokeWidth={2} />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 20c0-3.314 2.686-6 6-6s6 2.686 6 6" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 14c1.657 0 3 1.343 3 3v3" />
+                    </svg>
+                    <span className="flex-1">Groupes</span>
+                    {groupCount > 0 && (
+                      <span className="text-xs font-bold text-indigo-500 bg-indigo-50 rounded-full px-1.5 py-0.5">{groupCount}</span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => { setShowOverflowMenu(false); setShowFieldsPanel(true) }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${fields.length > 0 ? 'text-indigo-600' : 'text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span className="flex-1">Champs</span>
+                    {fields.length > 0 && (
+                      <span className="text-xs font-bold text-indigo-500 bg-indigo-50 rounded-full px-1.5 py-0.5">{fields.length}</span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Canvas area */}
@@ -961,7 +935,100 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             toolOpacity={toolOpacity}
             minTop={templateDraftOf ? 170 : 120}
             onToolChange={handleToolChange}
+            onAddFrame={() => addFrame(200, 200)}
           />
+        )}
+
+        {/* Floating selection bar */}
+        {selectedIds.size > 0 && !isReadonly && (
+          <div data-popover-anchor className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[46] flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-2xl shadow-black/15 px-3 py-2">
+            <span className="text-xs font-medium text-gray-500 pr-0.5 shrink-0">
+              {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <div className="w-px h-4 bg-gray-200" />
+            <ColorPopover
+              value={selectedCards[0]?.color ?? '#eab308'}
+              onChange={(c) => recolorSelected(c)}
+              title="Colorier la sélection"
+              align="left"
+            />
+            {(() => {
+              const lockable = cards.filter((c) => selectedIds.has(c.id) && c.type !== 'DRAW')
+              if (lockable.length === 0) return null
+              const allLocked = lockable.every((c) => c.locked)
+              const anyLocked = lockable.some((c) => c.locked)
+              return (
+                <>
+                  <div className="w-px h-4 bg-gray-200" />
+                  <button
+                    onClick={() => lockSelected(allLocked ? false : true)}
+                    className={`flex items-center gap-1 text-xs font-medium transition-colors px-1.5 py-1 rounded-lg ${anyLocked ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+                    title={allLocked ? 'Déverrouiller la sélection' : 'Verrouiller la sélection'}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {allLocked
+                        ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6-6h12a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2zm10-4a4 4 0 10-8 0v4h8V9z" />
+                        : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                      }
+                    </svg>
+                    {allLocked ? 'Déverr.' : 'Verr.'}
+                  </button>
+                </>
+              )
+            })()}
+            {canGroup && (
+              <>
+                <div className="w-px h-4 bg-gray-200" />
+                <button
+                  onClick={groupSelected}
+                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
+                  title={allInSameGroup ? 'Dégrouper' : 'Grouper'}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {allInSameGroup
+                      ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-16h2a2 2 0 012 2v2m-4 12h2a2 2 0 002-2v-2" />
+                      : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18M10 3v18M14 3v18" />
+                    }
+                  </svg>
+                  {allInSameGroup ? 'Dégrouper' : 'Grouper'}
+                </button>
+                <div className="flex items-center gap-0.5 rounded-lg bg-gray-50 border border-gray-200 px-1 py-1 shrink-0">
+                  <button onClick={() => arrangeSelected('column')} title="Aligner en colonne" className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <rect x="8" y="3" width="8" height="5" rx="1" strokeWidth={2} />
+                      <rect x="8" y="10" width="8" height="5" rx="1" strokeWidth={2} />
+                      <rect x="8" y="17" width="8" height="5" rx="1" strokeWidth={2} />
+                    </svg>
+                  </button>
+                  <button onClick={() => arrangeSelected('row')} title="Aligner en ligne" className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <rect x="3" y="8" width="5" height="8" rx="1" strokeWidth={2} />
+                      <rect x="10" y="8" width="5" height="8" rx="1" strokeWidth={2} />
+                      <rect x="17" y="8" width="5" height="8" rx="1" strokeWidth={2} />
+                    </svg>
+                  </button>
+                  <button onClick={() => arrangeSelected('grid')} title="Aligner en grille" className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-800 hover:bg-white transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2} />
+                      <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2} />
+                      <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2} />
+                      <rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={2} />
+                    </svg>
+                  </button>
+                </div>
+              </>
+            )}
+            <div className="w-px h-4 bg-gray-200" />
+            <button
+              onClick={deleteSelected}
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+              title="Supprimer (Suppr)"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
         )}
       </div>
 

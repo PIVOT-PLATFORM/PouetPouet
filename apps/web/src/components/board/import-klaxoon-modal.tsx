@@ -154,6 +154,7 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
               <StatRow icon="✏️" label="Dessins" value={stats.draws} />
               <StatRow icon="🖼️" label="Images" value={stats.images} />
               <StatRow icon="🔗" label="Liaisons" value={stats.links} />
+              <StatRow icon="🗂️" label="Groupes" value={stats.groups} />
               {stats.skipped > 0 && (
                 <StatRow icon="⏭️" label="Ignorés (inactifs…)" value={stats.skipped} muted />
               )}

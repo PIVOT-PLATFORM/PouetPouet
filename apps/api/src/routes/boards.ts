@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto'
+import { randomBytes, randomUUID } from 'crypto'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
@@ -476,6 +476,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
         height: z.number(),
         zIndex: z.number(),
         locked: z.boolean(),
+        groupKey: z.string().nullish(),
       })),
       connections: z.array(z.object({
         fromKlxId: z.string(),
@@ -489,10 +490,17 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
       })),
     }).parse(request.body)
 
+    // Remap each Klaxoon group key to a fresh server-side groupId so repeated
+    // imports stay isolated and never collide with existing groups on the board.
+    const groupIdMap = new Map<string, string>()
+    for (const c of body.cards) {
+      if (c.groupKey && !groupIdMap.has(c.groupKey)) groupIdMap.set(c.groupKey, randomUUID())
+    }
+
     const createdCards = await prisma.$transaction(
       body.cards.map((c) =>
         prisma.card.create({
-          data: { boardId: id, type: c.type as never, content: c.content, color: c.color, posX: c.posX, posY: c.posY, width: c.width, height: c.height, authorId: userId },
+          data: { boardId: id, type: c.type as never, content: c.content, color: c.color, posX: c.posX, posY: c.posY, width: c.width, height: c.height, groupId: c.groupKey ? groupIdMap.get(c.groupKey) : null, authorId: userId },
           include: { fieldValues: true },
         })
       )

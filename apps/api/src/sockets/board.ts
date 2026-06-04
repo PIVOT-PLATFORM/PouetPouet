@@ -125,8 +125,12 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
         select: { id: true },
       })
       if (remaining.length === 1) {
-        await prisma.card.update({ where: { id: remaining[0].id }, data: { groupId: null } })
-        io.to(`board:${data.boardId}`).emit('cards:ungrouped', deleted.groupId)
+        // The lone survivor may itself have been deleted by a concurrent
+        // card:delete (bulk/group deletion races) — tolerate the missing row.
+        const ungrouped = await ignoreMissing(
+          prisma.card.update({ where: { id: remaining[0].id }, data: { groupId: null } })
+        )
+        if (ungrouped) io.to(`board:${data.boardId}`).emit('cards:ungrouped', deleted.groupId)
       }
     }
   })

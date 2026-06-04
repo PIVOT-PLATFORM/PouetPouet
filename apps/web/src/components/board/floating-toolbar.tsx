@@ -15,6 +15,7 @@ interface Props {
   toolOpacity: number
   minTop?: number
   onToolChange: (tool: ToolMode, color?: string, stroke?: StrokeSize, fill?: boolean, opacity?: number) => void
+  onAddFrame?: () => void
 }
 
 const TOOLBAR_W = 48
@@ -36,7 +37,7 @@ function ShapeGlyph({ mode }: { mode: ShapeMode }) {
   }
 }
 
-export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, toolOpacity, minTop, onToolChange }: Props) {
+export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, toolOpacity, minTop, onToolChange, onAddFrame }: Props) {
   const MIN_Y = minTop ?? 120
   const [pos, setPos] = useState({ x: 16, y: MIN_Y })
   const [collapsed, setCollapsed] = useState(false)
@@ -150,6 +151,18 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </Btn>
+            {onAddFrame && (
+              <button
+                title="Ajouter un cadre"
+                onClick={(e) => { onAddFrame(); e.currentTarget.blur() }}
+                className="w-9 h-9 rounded-xl flex items-center justify-center transition-all focus:outline-none text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <rect x="3" y="3" width="18" height="18" rx="2" strokeLinecap="round" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 9h18M9 21V9" />
+                </svg>
+              </button>
+            )}
 
             <Sep />
 
