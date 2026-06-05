@@ -32,13 +32,23 @@ export function useScrumParticipant() {
   useEffect(() => {
     const socket = socketRef.current
 
-    // On reconnect, re-join automatically if already joined
-    const handleReconnect = () => {
-      if (isJoinedRef.current && joinParamsRef.current) {
+    // Fires on initial connect AND every reconnect.
+    // Guarantees scrum:join is sent AFTER the socket is fully connected (and
+    // therefore after this effect's other listeners are registered), avoiding
+    // the race condition where a buffered emit arrives before scrum:joined is
+    // registered (especially under React Strict Mode double-invoke).
+    const handleConnect = () => {
+      if (joinParamsRef.current) {
         socket.emit('scrum:join', { code: joinParamsRef.current.code, participantName: joinParamsRef.current.name })
       }
     }
-    socket.io.on('reconnect', handleReconnect)
+    socket.on('connect', handleConnect)
+
+    // Surface connection failures so the join form becomes interactive again.
+    const handleConnectError = () => {
+      setError('Connexion impossible. Réessayez dans un instant.')
+    }
+    socket.on('connect_error', handleConnectError)
 
     socket.on('scrum:joined', ({ room: r, participantName: name }: { room: ScrumRoom; participantName: string }) => {
       setRoom(r)
@@ -90,7 +100,8 @@ export function useScrumParticipant() {
     })
 
     return () => {
-      socket.io.off('reconnect', handleReconnect)
+      socket.off('connect', handleConnect)
+      socket.off('connect_error', handleConnectError)
       ;['scrum:joined', 'scrum:error', 'scrum:participant_count', 'scrum:room:scale_updated',
         'scrum:ticket:added', 'scrum:ticket:activated', 'scrum:vote:received',
         'scrum:ticket:revealed', 'scrum:ticket:done', 'scrum:ticket:reset',
@@ -101,7 +112,11 @@ export function useScrumParticipant() {
   const join = useCallback((code: string, name: string) => {
     joinParamsRef.current = { code, name: name.trim() }
     setError(null)
-    socketRef.current.emit('scrum:join', { code, participantName: name.trim() })
+    // If already connected, emit immediately; otherwise the 'connect' handler
+    // will emit as soon as the socket is ready (avoids the buffered-emit race).
+    if (socketRef.current.connected) {
+      socketRef.current.emit('scrum:join', { code, participantName: name.trim() })
+    }
   }, [])
 
   const vote = useCallback((ticketId: string, value: string, roomId: string, scale: string) => {
