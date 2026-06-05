@@ -56,7 +56,8 @@ export function voteSocketHandlers(io: Server, socket: Socket) {
   // Cast one vote on a card
   socket.on('vote:cast', async (data: { sessionId: string; boardId: string; cardId: string }) => {
     if (!canAccess(socket, data.boardId)) return
-    const userId = socket.data.userId as string
+    const userId = socket.data.userId as string | undefined
+    if (!userId) return
 
     const session = await prisma.boardVoteSession.findUnique({
       where: { id: data.sessionId },
@@ -78,7 +79,8 @@ export function voteSocketHandlers(io: Server, socket: Socket) {
   // Remove one vote from a card
   socket.on('vote:uncast', async (data: { sessionId: string; boardId: string; cardId: string }) => {
     if (!canAccess(socket, data.boardId)) return
-    const userId = socket.data.userId as string
+    const userId = socket.data.userId as string | undefined
+    if (!userId) return
 
     const existing = await prisma.boardVoteSession.findUnique({ where: { id: data.sessionId } })
     if (!existing || existing.status !== 'ACTIVE') return

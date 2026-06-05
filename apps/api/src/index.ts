@@ -61,16 +61,21 @@ const io = new Server(app.server, {
   },
 })
 
+// Auth is optional: anonymous participants (no account) must be able to join
+// sessions via /session/[code]. Privileged handlers (host_join, member_join,
+// activity:launch, …) verify socket.data.userId / isHost themselves.
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token
-  if (!token || typeof token !== 'string') return next(new Error('Unauthorized'))
-  try {
-    const payload = app.jwt.verify<{ id: string; email: string }>(token)
-    socket.data.userId = payload.id
-    next()
-  } catch {
-    next(new Error('Unauthorized'))
+  if (token && typeof token === 'string') {
+    try {
+      const payload = app.jwt.verify<{ id: string; email: string }>(token)
+      socket.data.userId = payload.id
+    } catch {
+      // Invalid/expired token → proceed as anonymous rather than refusing the
+      // connection, so a stale token never blocks the participant flow.
+    }
   }
+  next()
 })
 
 setIO(io)

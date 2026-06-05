@@ -35,7 +35,8 @@ async function broadcastPresence(io: Server, boardId: string) {
 export function boardSocketHandlers(io: Server, socket: Socket) {
   // ── Board state ───────────────────────────────────────────────────────────────
   socket.on('board:join', async (boardId: string) => {
-    const userId: string = socket.data.userId
+    const userId: string | undefined = socket.data.userId
+    if (!userId) { socket.emit('board:error', 'Accès refusé'); return }
     const board = await prisma.board.findUnique({ where: { id: boardId } })
     if (!board) { socket.emit('board:error', 'Board introuvable'); return }
 
