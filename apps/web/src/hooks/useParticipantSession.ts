@@ -85,6 +85,7 @@ export function useParticipantSession(code: string) {
     })
 
     socket.on('error', (msg: string) => setError(msg))
+    socket.on('connect_error', () => setError('Connexion impossible. Réessayez dans un instant.'))
 
     return () => {
       socket.off('session:joined')
@@ -95,6 +96,7 @@ export function useParticipantSession(code: string) {
       socket.off('activity:responses_updated')
       socket.off('session:closed')
       socket.off('error')
+      socket.off('connect_error')
     }
   }, [code])
 
