@@ -16,6 +16,7 @@ build
 # Local-only docs & backups (never merge)
 *.md
 *.pdf
+!apps/web/public/aide/*.pdf
 backup.sql
 ideatank.txt
 scripts/
