@@ -161,6 +161,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 Mes équipes
               </Link>
+              <Link
+                href="/capacity"
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  pathname.startsWith('/capacity')
+                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400'
+                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                Capacité
+              </Link>
             </nav>
           )}
 

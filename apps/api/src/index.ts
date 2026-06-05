@@ -10,6 +10,7 @@ import { sessionRoutes } from './routes/sessions.js'
 import { scrumRoutes } from './routes/scrum.js'
 import { dailyRoutes } from './routes/daily.js'
 import { wheelRoutes } from './routes/wheel.js'
+import { capacityRoutes } from './routes/capacity.js'
 import { templateRoutes } from './routes/templates.js'
 import { notificationRoutes } from './routes/notifications.js'
 import { registerSocketHandlers } from './sockets/index.js'
@@ -46,6 +47,7 @@ app.register(sessionRoutes, { prefix: '/api/sessions' })
 app.register(scrumRoutes, { prefix: '/api/scrum' })
 app.register(dailyRoutes, { prefix: '/api/daily' })
 app.register(wheelRoutes, { prefix: '/api/wheel' })
+app.register(capacityRoutes, { prefix: '/api/capacity' })
 app.register(templateRoutes, { prefix: '/api/templates' })
 app.register(notificationRoutes, { prefix: '/api/notifications' })
 
