@@ -1,0 +1,197 @@
+'use client'
+
+import Link from 'next/link'
+
+const MODULES = [
+  {
+    icon: '🗂️',
+    title: 'Boards collaboratifs',
+    href: '/dashboard',
+    desc: 'Tableaux blancs temps réel pour vos ateliers, rétrospectives et brainstormings.',
+    features: [
+      'Cartes texte, image, formes, dessins libres et libellés',
+      'Liaisons entre cartes (droites, courbes ou orthogonales)',
+      'Cadres actifs pour déplacer un groupe d\'objets d\'un bloc',
+      'Couches (fond · principal · avant-plan) pour organiser la profondeur',
+      'Groupes avec couleur de contour partagée entre participants',
+      'Import depuis Klaxoon (.klx), PDF ou image ; export PDF, PNG, Excel',
+      'Copier-coller d\'éléments entre boards',
+      'Annuler / Rétablir (Ctrl+Z / Ctrl+Y)',
+    ],
+  },
+  {
+    icon: '📡',
+    title: 'Sessions live',
+    href: '/dashboard',
+    desc: 'Animez des ateliers interactifs avec vos équipes en temps réel.',
+    features: [
+      'Créer une session depuis n\'importe quel board, partager le code ou le lien',
+      'Activités : Quiz, Sondage, Nuage de mots, Brainstorming, Q&A',
+      'Les membres authentifiés du board participent directement, sans lien distinct',
+      'Reconnexion automatique après une coupure réseau ou un rafraîchissement de page',
+    ],
+  },
+  {
+    icon: '🃏',
+    title: 'Scrum Poker',
+    href: '/scrum',
+    desc: 'Estimez vos tickets d\'équipe de façon anonyme, puis révélez les votes simultanément.',
+    features: [
+      'Échelle Fibonacci (1, 2, 3, 5, 8, 13…) ou Temps (0,5h, 1h, 2h…)',
+      'Vote masqué jusqu\'à la révélation groupée',
+      'Plusieurs rooms indépendantes avec leurs propres tickets',
+      'Reconnexion automatique en cours de session',
+    ],
+  },
+  {
+    icon: '⏱️',
+    title: 'Daily Standup',
+    href: '/daily',
+    desc: 'Animez vos réunions de suivi quotidien avec un timer par participant.',
+    features: [
+      'Équipes persistées, membres réordonnables',
+      'Timer individuel avec dépassement visible',
+      'Historique des sessions par équipe',
+      'Mode "Passer" pour sauter un participant absent',
+    ],
+  },
+  {
+    icon: '🎡',
+    title: 'La Roue',
+    href: '/wheel',
+    desc: 'Tirage aléatoire pondéré pour désigner des volontaires ou former des groupes.',
+    features: [
+      'Mode Équilibré : réduit la probabilité des personnes récemment tirées',
+      'Mode Aléatoire pur : probabilité identique pour tous',
+      'Exclusion temporaire de membres, réinitialisation en un clic',
+      'Historique des tirages et regroupement par événement',
+    ],
+  },
+  {
+    icon: '👤',
+    title: 'Compte & Profil',
+    href: '/profile',
+    desc: 'Gérez votre identité et vos préférences sur la plateforme.',
+    features: [
+      'Inscription avec vérification de l\'adresse email',
+      'Réinitialisation du mot de passe par email',
+      'Personnalisation : nom, bio, avatar',
+      'Thème clair ou sombre, synchronisé sur toute l\'interface',
+      'Notifications d\'activité (partage, changement de rôle) et notes de version',
+      'Suppression définitive du compte depuis le profil',
+    ],
+  },
+]
+
+const TEST_BOOKS = [
+  { module: 'Dashboard',       file: 'CT-v0.3.0-dashboard.pdf', tests: 27, pages: 2 },
+  { module: 'Boards éditeur',  file: 'CT-v0.3.0-boards.pdf',    tests: 61, pages: 4 },
+  { module: 'Sessions live',   file: 'CT-v0.3.0-sessions.pdf',  tests: 31, pages: 2 },
+  { module: 'Scrum Poker',     file: 'CT-v0.3.0-scrum.pdf',     tests: 27, pages: 2 },
+  { module: 'Daily Standup',   file: 'CT-v0.3.0-daily.pdf',     tests: 24, pages: 2 },
+  { module: 'La Roue',         file: 'CT-v0.3.0-roue.pdf',      tests: 37, pages: 3 },
+  { module: 'Compte / Profil', file: 'CT-v0.3.0-compte.pdf',    tests: 30, pages: 2 },
+]
+
+export default function AidePage() {
+  return (
+    <div className="space-y-12">
+
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Aide & Documentation</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Retrouvez ici le guide des fonctionnalités et les cahiers de tests téléchargeables.
+        </p>
+      </div>
+
+      {/* Modules overview */}
+      <section>
+        <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-4">Fonctionnalités</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {MODULES.map((m) => (
+            <div
+              key={m.title}
+              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 flex flex-col gap-3"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{m.icon}</span>
+                <span className="font-semibold text-gray-900 dark:text-white text-sm">{m.title}</span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{m.desc}</p>
+              <ul className="space-y-1">
+                {m.features.map((f) => (
+                  <li key={f} className="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+                    <span className="mt-0.5 shrink-0 text-indigo-400">·</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Guide complet download */}
+      <section>
+        <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-4">Guide complet</h2>
+        <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 rounded-xl p-5 flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="font-semibold text-indigo-900 dark:text-indigo-300 text-sm">Guide des fonctionnalités — v0.3.0</p>
+            <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">
+              Description détaillée de toutes les fonctionnalités de la plateforme.
+            </p>
+          </div>
+          <a
+            href="/aide/FEATURES.pdf"
+            download
+            className="shrink-0 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            <DownloadIcon />
+            Télécharger le PDF
+          </a>
+        </div>
+      </section>
+
+      {/* Test books */}
+      <section>
+        <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">Cahiers de tests</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          PDFs interactifs — cochez OK/KO et saisissez vos commentaires directement dans le fichier.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {TEST_BOOKS.map((t) => (
+            <div
+              key={t.file}
+              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex flex-col gap-3"
+            >
+              <div>
+                <p className="font-semibold text-gray-900 dark:text-white text-sm">{t.module}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  {t.tests} tests · {t.pages} page{t.pages > 1 ? 's' : ''}
+                </p>
+              </div>
+              <a
+                href={`/aide/${t.file}`}
+                download
+                className="inline-flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:hover:border-indigo-600 dark:hover:text-indigo-400 text-gray-600 dark:text-gray-400 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors mt-auto"
+              >
+                <DownloadIcon />
+                Télécharger
+              </a>
+            </div>
+          ))}
+        </div>
+      </section>
+
+    </div>
+  )
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+    </svg>
+  )
+}

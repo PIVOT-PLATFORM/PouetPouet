@@ -13,9 +13,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
   },
   "devDependencies": {
+    "prettier": "^3.5.3",
     "turbo": "^2.5.3",
-    "typescript": "^5.8.3",
-    "prettier": "^3.5.3"
+    "typescript": "^5.8.3"
   },
   "packageManager": "npm@11.13.0",
   "engines": {
@@ -23,5 +23,8 @@
   },
   "overrides": {
     "postcss": "^8.5.10"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
   }
 }

@@ -165,6 +165,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
 
           <div className="ml-auto flex items-center gap-3">
+            <Link
+              href="/aide"
+              title="Aide & Documentation"
+              className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold transition-colors ${
+                pathname.startsWith('/aide')
+                  ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
+                  : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-800'
+              }`}
+            >
+              ?
+            </Link>
             <NotificationBell />
             <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">{user.name}</span>
             <Link href="/profile" title="Mon profil" className="hover:opacity-80 transition-opacity">
