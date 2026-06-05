@@ -1,13 +1,6 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import * as pdfjsLib from 'pdfjs-dist'
-
-// Resolved by webpack via import.meta.url — runs in browser only
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString()
 
 export interface PdfPageData {
   dataUrl: string
@@ -35,6 +28,11 @@ export function ImportPdfModal({ onClose, onImport }: Props) {
     setStep('rendering')
     setProgress({ current: 0, total: 0 })
     try {
+      const pdfjsLib = await import('pdfjs-dist')
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+        'pdfjs-dist/build/pdf.worker.min.mjs',
+        import.meta.url,
+      ).toString()
       const arrayBuffer = await file.arrayBuffer()
       const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) })
       const pdf = await loadingTask.promise
