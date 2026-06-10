@@ -92,7 +92,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isBoardPage = pathname.startsWith('/boards/')
 
   return (
-    <div className={`bg-gray-50 dark:bg-gray-950 grid grid-rows-[auto_1fr_auto] ${isBoardPage ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+    // overflow-clip (pas hidden) sur les pages board : un conteneur overflow-hidden reste
+    // scrollable programmatiquement (focus/scrollIntoView), ce qui désynchronisait le
+    // viewport du board (getBoundingClientRect().left négatif). clip interdit tout scroll.
+    <div className={`bg-gray-50 dark:bg-gray-950 grid grid-rows-[auto_1fr_auto] ${isBoardPage ? 'h-screen overflow-clip' : 'min-h-screen'}`}>
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
         <div className={`flex items-center h-14 gap-4 ${isBoardPage ? 'px-4' : 'px-6 max-w-6xl mx-auto'}`}>
           {/* Logo with the app version as a small superscript, clickable to open the release notes. */}
