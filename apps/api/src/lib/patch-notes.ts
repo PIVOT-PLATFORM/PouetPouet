@@ -20,6 +20,40 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.4.0',
+    date: '2026-06-11',
+    title: 'Import Klaxoon complet, performances board & socle FORGE',
+    summary: "Formes et dessins Klaxoon importes fidelement, boards charges enfin fluides et nets, hub des modules, et durcissement multi-utilisateur de tous les ateliers.",
+    sections: [
+      {
+        heading: '✨ Nouveautés',
+        items: [
+          "Import Klaxoon : les rectangles deviennent de vraies formes editables, les dessins a segments droits sont reconstruits, et l'empilement d'origine (cadres sous les post-its) est preserve.",
+          "Import Klaxoon : les cartes sont dimensionnees selon leur texte, les grandes captures plafonnees et les petites icones gardent leur taille reelle ; les titres conservent leur hierarchie visuelle.",
+          "Hub des modules : nouvelle page regroupant tous les outils (icone grille dans la barre de navigation).",
+          "Etat de sante enrichi : /health verifie la base de donnees et Redis ; suivi d'erreurs Sentry optionnel cote API et web.",
+        ],
+      },
+      {
+        heading: '⚡ Performances',
+        items: [
+          "Boards charges : seules les cartes visibles a l'ecran sont rendues ; deplacer une carte ne redessine plus tout le board.",
+          "Nettete : le texte redevient net des la fin du zoom/deplacement, meme tres dezoome.",
+        ],
+      },
+      {
+        heading: '🐛 Corrections',
+        items: [
+          "Scrum Poker : seul l'animateur peut reveler, reinitialiser ou estimer ; le compteur de participants n'inclut plus l'animateur ; un vote survit au rafraichissement de la page.",
+          "Daily : seul le proprietaire pilote la session ; un double-clic sur Suivant ne saute plus de speaker.",
+          "Votes de board : impossible de depasser son quota de votes en cliquant tres vite.",
+          "Stabilite : la suppression simultanee d'objets par plusieurs utilisateurs ne provoque plus d'erreurs serveur.",
+          "Viewport board : plus de decalage du board au chargement initial.",
+        ],
+      },
+    ],
+  },
+  {
     version: '0.3.1',
     date: '2026-06-05',
     title: 'Correctifs sessions & Scrum Poker',
