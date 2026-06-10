@@ -161,12 +161,11 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
     minY = Math.min(minY, idea.coords?.top ?? 0)
   }
   for (const item of data.state ?? []) {
-    if (item.board_object_type === 'text') {
+    // Pens included: their coords (not path_commands) hold the board position —
+    // path coordinates live in a local drawing space.
+    if (item.board_object_type === 'text' || item.board_object_type === 'pen') {
       minX = Math.min(minX, item.coords?.left ?? 0)
       minY = Math.min(minY, item.coords?.top ?? 0)
-    } else if (item.board_object_type === 'pen' && item.path_commands) {
-      const bbox = getPathBbox(item.path_commands)
-      if (bbox) { minX = Math.min(minX, bbox.minX); minY = Math.min(minY, bbox.minY) }
     }
   }
   if (!isFinite(minX)) minX = 0
@@ -225,6 +224,12 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
       stats.texts++
 
     } else if (item.board_object_type === 'pen' && item.path_commands) {
+      // Pen position comes from coords (board space); path_commands coordinates
+      // live in a local drawing space — the same path is reused verbatim when a
+      // drawing is duplicated. The path bbox only provides the size.
+      const px = item.coords?.left
+      const py = item.coords?.top
+
       // Shape-tool rectangles become native SHAPE cards (editable, resizable).
       // Rotated ones keep the DRAW path since SHAPE rects can't be rotated.
       const rect = !item.angle ? detectRect(item.path_commands) : null
@@ -243,8 +248,8 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
           type: 'SHAPE',
           content: `rect|${strokeSize}|${hasFill}|${fillOpacity}`,
           color,
-          posX: Math.round(rect.x - ox),
-          posY: Math.round(rect.y - oy),
+          posX: Math.round((px ?? rect.x) - ox),
+          posY: Math.round((py ?? rect.y) - oy),
           width: Math.max(20, Math.round(rect.w)),
           height: Math.max(20, Math.round(rect.h)),
           zIndex: item.z_index ?? 0,
@@ -258,8 +263,8 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
       const bbox = getPathBbox(item.path_commands)
       if (!bbox) { stats.skipped++; continue }
 
-      const cardX = Math.round(bbox.minX - ox - DRAW_PAD)
-      const cardY = Math.round(bbox.minY - oy - DRAW_PAD)
+      const cardX = Math.round((px ?? bbox.minX) - ox - DRAW_PAD)
+      const cardY = Math.round((py ?? bbox.minY) - oy - DRAW_PAD)
       const cardW = Math.max(80, Math.round(bbox.maxX - bbox.minX + DRAW_PAD * 2))
       const cardH = Math.max(80, Math.round(bbox.maxY - bbox.minY + DRAW_PAD * 2))
       const d = generatePathD(item.path_commands, DRAW_PAD - bbox.minX, DRAW_PAD - bbox.minY)
