@@ -65,7 +65,7 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
         imageMap.set(path, dataUrl)
       }))
 
-      const { cards, connections, stats: s } = convertKlaxoon(data, imageMap)
+      const { cards, connections, stats: s } = convertKlaxoon(data, imageMap, process.env.NODE_ENV === 'development')
       pendingRef.current = { cards, connections }
       setStats(s)
       setStep('preview')

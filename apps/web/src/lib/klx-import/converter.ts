@@ -112,16 +112,20 @@ export interface KlxImportResult {
   cards: KlxCard[]
   connections: KlxConnection[]
   stats: KlxImportStats
+  // Unknown board_object_types encountered during import (one sample per type).
+  // Populated only when debug=true is passed. Used to identify new Klaxoon types.
+  unknownTypes?: Record<string, unknown>
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function convertKlaxoon(data: any, imageMap?: Map<string, string>): KlxImportResult {
+export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug = false): KlxImportResult {
   const colorMap = new Map<string, string>()
   for (const c of data.colors ?? []) colorMap.set(c.id, c.hexa)
 
   const cards: KlxCard[] = []
   const connections: KlxConnection[] = []
   const stats: KlxImportStats = { postits: 0, texts: 0, draws: 0, images: 0, links: 0, groups: 0, skipped: 0 }
+  const unknownTypes: Record<string, unknown> = {}
 
   // --- Global offset: shift everything so top-left starts near (0, 0) ---
   let minX = Infinity, minY = Infinity
@@ -247,7 +251,10 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>): KlxIm
       stats.images++
 
     } else {
-      stats.skipped++  // imageboard without map, or unknown types
+      stats.skipped++
+      if (debug && item.board_object_type && !unknownTypes[item.board_object_type]) {
+        unknownTypes[item.board_object_type] = item
+      }
     }
   }
 
@@ -295,5 +302,9 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>): KlxIm
     stats.groups++
   }
 
-  return { cards, connections, stats }
+  if (debug && Object.keys(unknownTypes).length > 0) {
+    console.info('[klx-import] unknown types (one sample each):', unknownTypes)
+  }
+
+  return { cards, connections, stats, ...(debug ? { unknownTypes } : {}) }
 }
