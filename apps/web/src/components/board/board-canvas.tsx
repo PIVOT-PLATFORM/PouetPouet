@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { useRef, useState, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react'
 import type { Card, Frame, BoardField, Connection, VoteSession, ClipboardCard } from '@/hooks/useBoard'
 import { groupColor } from '@/hooks/useBoard'
 import { BoardCard } from './board-card'
@@ -74,6 +74,19 @@ export interface BoardCanvasHandle {
 const MIN_ZOOM = 0.1
 const MAX_ZOOM = 3
 const DOT_SPACING = 24
+// Below this card count everything is mounted; above it, offscreen cards are
+// skipped (virtualization) to keep heavy boards fluid.
+const VIRTUALIZE_THRESHOLD = 100
+
+// Returns a referentially-stable function that always calls the latest `fn`.
+// Lets BoardCard stay memoized even though parent handlers are recreated on
+// every render (and avoids stale closures over changing state).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function useStableHandler<T extends (...args: any[]) => any>(fn: T): T {
+  const ref = useRef(fn)
+  ref.current = fn
+  return useCallback(((...args: Parameters<T>) => ref.current(...args)) as T, [])
+}
 
 // Custom cursors (white fill + black outline) so the pointer/hand stay visible on the
 // light canvas even when the OS cursor theme is white.
@@ -190,8 +203,22 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   }, [toolMode, linkSourceId, onExitLinkCardsMode])
 
   // ── DOM helpers ──────────────────────────────────────────────────────────────
+  // will-change: transform is only set while a pan/zoom gesture is running.
+  // Left on permanently, the browser keeps a rasterized texture of the canvas
+  // and rescales that bitmap — blurry when zoomed out. Dropping the hint after
+  // the gesture forces a crisp re-rasterization at the final scale.
+  const wcTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function bumpWillChange() {
+    if (canvasRef.current) canvasRef.current.style.willChange = 'transform'
+    if (wcTimerRef.current) clearTimeout(wcTimerRef.current)
+    wcTimerRef.current = setTimeout(() => {
+      if (canvasRef.current) canvasRef.current.style.willChange = 'auto'
+    }, 250)
+  }
+
   function applyTransform(vp: { x: number; y: number; zoom: number }) {
     vpRef.current = vp
+    bumpWillChange()
     if (canvasRef.current) {
       canvasRef.current.style.transform = `translate3d(${vp.x}px,${vp.y}px,0) scale(${vp.zoom})`
     }
@@ -215,8 +242,16 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     const ox = clientX - vpRef.current.x
     const oy = clientY - vpRef.current.y
     el.style.cursor = CURSOR_HAND
+    // Throttled state sync so virtualization mounts incoming cards during the
+    // pan instead of only at mouseup.
+    let lastSync = 0
     function onMove(ev: MouseEvent) {
       applyTransform({ ...vpRef.current, x: ev.clientX - ox, y: ev.clientY - oy })
+      const now = performance.now()
+      if (now - lastSync > 150) {
+        lastSync = now
+        setViewport({ ...vpRef.current })
+      }
     }
     function onUp() {
       el!.style.cursor = ''
@@ -749,8 +784,55 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     }
   }
 
-  const detailCard = detailCardId ? cards.find((c) => c.id === detailCardId) ?? null : null
   const zoom = viewport.zoom
+
+  // ── Perf: O(1) card lookups + stable handler identities + virtualization ─────
+  const cardById = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards])
+  const detailCard = detailCardId ? cardById.get(detailCardId) ?? null : null
+
+  // Stable identities so the memoized BoardCard skips re-renders: without this,
+  // every parent render recreates the handlers and defeats React.memo.
+  const hMoveCard       = useStableHandler(onMoveCard)
+  const hStartDragCard  = useStableHandler(onStartDragCard)
+  const hCommitDragCard = useStableHandler(onCommitDragCard)
+  const hUpdateCard     = useStableHandler(onUpdateCard)
+  const hRecolorCard    = useStableHandler(onRecolorCard)
+  const hDeleteCard     = useStableHandler(onDeleteCard)
+  const hResizeCard     = useStableHandler(onResizeCard)
+  const hResizeCardBox  = useStableHandler(onResizeCardBox)
+  const hStartResize    = useStableHandler(onStartResizeCard)
+  const hCommitResize   = useStableHandler(onCommitResizeCard)
+  const hSetCardLocked  = useStableHandler((id: string, locked: boolean) => onSetCardLocked?.(id, locked))
+  const hSelect         = useStableHandler(handleSelect)
+  const hStartConnect   = useStableHandler(handleStartConnect)
+  const hLinkCardsClick = useStableHandler(handleLinkCardClick)
+  const hOpenDetail     = useStableHandler((id: string) => setDetailCardId(id))
+
+  // Container size for the visibility window (virtualization).
+  const [containerSize, setContainerSize] = useState({ w: 1920, h: 1080 })
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setContainerSize({ w: el.clientWidth, h: el.clientHeight }))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // Cards intersecting the viewport, expanded by one screen on each side so
+  // panning reveals already-mounted cards. null = no virtualization (small board).
+  const visibleIds = useMemo(() => {
+    if (cards.length <= VIRTUALIZE_THRESHOLD) return null
+    const { x, y, zoom: z } = viewport
+    const vw = containerSize.w / z
+    const vh = containerSize.h / z
+    const x0 = -x / z - vw, y0 = -y / z - vh
+    const x1 = -x / z + vw * 2, y1 = -y / z + vh * 2
+    const ids = new Set<string>()
+    for (const c of cards) {
+      if (c.posX + c.width >= x0 && c.posX <= x1 && c.posY + c.height >= y0 && c.posY <= y1) ids.add(c.id)
+    }
+    return ids
+  }, [cards, viewport, containerSize])
 
   // ── Layer rendering helpers ───────────────────────────────────────────────────
   function renderFramesForLayer(layer: number) {
@@ -776,10 +858,13 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   }
 
   function renderCardsForLayer(layer: number) {
-    return [
-      ...cards.filter((c) => c.type !== 'DRAW' && (c.layer ?? 1) === layer),
-      ...cards.filter((c) => c.type === 'DRAW' && (c.layer ?? 1) === layer),
-    ].map((card) => {
+    // Selected cards stay mounted even offscreen (keeps drag/edit state alive).
+    const inWindow = (c: Card) => visibleIds === null || visibleIds.has(c.id) || selectedIds.has(c.id)
+    const pool = [
+      ...cards.filter((c) => c.type !== 'DRAW' && (c.layer ?? 1) === layer && inWindow(c)),
+      ...cards.filter((c) => c.type === 'DRAW' && (c.layer ?? 1) === layer && inWindow(c)),
+    ]
+    return pool.map((card) => {
       const dimmed = !!highlightedGroupId && card.groupId !== highlightedGroupId
       return (
         <div key={card.id} style={{ opacity: dimmed ? 0.12 : 1, transition: 'opacity 0.2s', pointerEvents: dimmed ? 'none' : undefined }}>
@@ -792,23 +877,23 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
             groupColor={card.groupId ? (card.groupColor ?? groupColor(card.groupId)) : undefined}
             drawMode={toolMode === 'draw'}
             isReadonly={isReadonly}
-            onMove={onMoveCard}
-            onStartDrag={onStartDragCard}
-            onCommitDrag={onCommitDragCard}
-            onUpdate={onUpdateCard}
-            onRecolor={onRecolorCard}
-            onDelete={onDeleteCard}
-            onResize={onResizeCard}
-            onResizeBox={onResizeCardBox}
-            onStartResize={onStartResizeCard}
-            onCommitResize={onCommitResizeCard}
-            onSelect={handleSelect}
-            onOpenDetail={setDetailCardId}
-            onStartConnect={toolMode === 'select' ? handleStartConnect : undefined}
-            onSetLocked={onSetCardLocked}
+            onMove={hMoveCard}
+            onStartDrag={hStartDragCard}
+            onCommitDrag={hCommitDragCard}
+            onUpdate={hUpdateCard}
+            onRecolor={hRecolorCard}
+            onDelete={hDeleteCard}
+            onResize={hResizeCard}
+            onResizeBox={hResizeCardBox}
+            onStartResize={hStartResize}
+            onCommitResize={hCommitResize}
+            onSelect={hSelect}
+            onOpenDetail={hOpenDetail}
+            onStartConnect={toolMode === 'select' ? hStartConnect : undefined}
+            onSetLocked={hSetCardLocked}
             linkCardsMode={toolMode === 'link-cards'}
             isLinkSource={linkSourceId === card.id}
-            onLinkCardsClick={toolMode === 'link-cards' ? handleLinkCardClick : undefined}
+            onLinkCardsClick={toolMode === 'link-cards' ? hLinkCardsClick : undefined}
           />
         </div>
       )
@@ -827,12 +912,12 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     toolMode !== 'select' ? 'cell' :
     CURSOR_ARROW
 
-  const sourceCard = linkSourceId ? cards.find((c) => c.id === linkSourceId) : null
+  const sourceCard = linkSourceId ? cardById.get(linkSourceId) : null
 
   // Selected connection + its contextual toolbar position (viewport/fixed coords).
   const selConn = selectedConnId ? connections.find((c) => c.id === selectedConnId) : null
-  const selConnFrom = selConn ? cards.find((c) => c.id === selConn.fromId) : null
-  const selConnTo = selConn ? cards.find((c) => c.id === selConn.toId) : null
+  const selConnFrom = selConn ? cardById.get(selConn.fromId) : null
+  const selConnTo = selConn ? cardById.get(selConn.toId) : null
   let connToolbarPos: { left: number; top: number } | null = null
   if (selConn && selConnFrom && selConnTo && containerRef.current) {
     const rect = containerRef.current.getBoundingClientRect()
@@ -845,7 +930,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     <>
       <div
         ref={containerRef}
-        className="relative flex-1 overflow-hidden select-none"
+        className="relative flex-1 overflow-clip select-none"
         style={{
           backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)',
           backgroundSize: `${dotD}px ${dotD}px`,
@@ -859,7 +944,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
         {/* ── Transformed infinite canvas ── */}
         <div
           ref={canvasRef}
-          style={{ position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', willChange: 'transform', opacity: viewReady ? 1 : 0, transition: 'opacity 0.2s ease' }}
+          style={{ position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', opacity: viewReady ? 1 : 0, transition: 'opacity 0.2s ease' }}
         >
           {/* ── Layer 0: Background ── */}
           {renderFramesForLayer(0)}
@@ -875,8 +960,8 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
             viewBox="-100000 -100000 200000 200000"
           >
             {connections.map((conn) => {
-              const from = cards.find((c) => c.id === conn.fromId)
-              const to = cards.find((c) => c.id === conn.toId)
+              const from = cardById.get(conn.fromId)
+              const to = cardById.get(conn.toId)
               if (!from || !to) return null
               // During group focus, dim links unless both endpoints are in the group.
               const dimmed = !!highlightedGroupId && !(from.groupId === highlightedGroupId && to.groupId === highlightedGroupId)
@@ -925,7 +1010,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
           {renderCardsForLayer(2)}
 
           {/* Vote badges overlay */}
-          {voteSession && cards.filter((c) => c.type !== 'DRAW').map((card) => {
+          {voteSession && cards.filter((c) => c.type !== 'DRAW' && (visibleIds === null || visibleIds.has(c.id))).map((card) => {
             const cardVotes = voteSession.votes.filter((v) => v.cardId === card.id)
             const myVotesOnCard = cardVotes.filter((v) => v.userId === currentUserId).length
             const totalVotes = cardVotes.length

@@ -1,5 +1,5 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../lib/prisma.js'
+﻿import type { FastifyPluginAsync } from 'fastify'
+import { prisma } from '../../lib/prisma.js'
 
 function generateCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -66,7 +66,7 @@ export const scrumRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(204).send()
   })
 
-  // Verify room by code (public — participants use this)
+  // Verify room by code (public â€” participants use this)
   app.get('/join/:code', async (request, reply) => {
     const { code } = request.params as { code: string }
     const room = await prisma.scrumRoom.findUnique({

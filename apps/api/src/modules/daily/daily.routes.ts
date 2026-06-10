@@ -1,5 +1,5 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../lib/prisma.js'
+﻿import type { FastifyPluginAsync } from 'fastify'
+import { prisma } from '../../lib/prisma.js'
 
 const TEAM_INCLUDE = {
   members: { orderBy: { order: 'asc' as const } },
@@ -7,7 +7,7 @@ const TEAM_INCLUDE = {
 }
 
 export const dailyRoutes: FastifyPluginAsync = async (app) => {
-  // ── Teams ─────────────────────────────────────────────────────────────────────
+  // â”€â”€ Teams â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   app.get('/teams', { preHandler: [app.authenticate] }, async (request) => {
     const { id: ownerId } = request.user as { id: string }
@@ -74,7 +74,7 @@ export const dailyRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(204).send()
   })
 
-  // ── Sessions ──────────────────────────────────────────────────────────────────
+  // â”€â”€ Sessions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   app.get('/sessions', { preHandler: [app.authenticate] }, async (request) => {
     const { id: ownerId } = request.user as { id: string }

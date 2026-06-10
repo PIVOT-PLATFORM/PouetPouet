@@ -36,6 +36,8 @@ model User {
   dailySessions  DailySession[]
   wheelEvents    WheelEvent[]
   wheelDraws     WheelDraw[]
+  capacityTeams  CapacityTeam[]
+  capacityEvents CapacityEvent[]
 }
 
 model Board {
@@ -420,6 +422,98 @@ enum DailyParticipantStatus {
 enum DrawMode {
   WEIGHTED
   RANDOM
+}
+
+// ── Capacity planning ─────────────────────────────────────────────────────────
+
+model CapacityTeam {
+  id          String   @id @default(cuid())
+  name        String
+  ownerId     String
+  color       String   @default("#6366f1")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner   User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members CapacityTeamMember[]
+  events  CapacityEvent[]
+}
+
+model CapacityTeamMember {
+  id     String  @id @default(cuid())
+  teamId String
+  name   String
+  role   String?
+  fte    Float   @default(1)
+  order  Int     @default(0)
+
+  team CapacityTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model CapacityEvent {
+  id                 String              @id @default(cuid())
+  name               String
+  ownerId            String
+  teamId             String?
+  parentId           String?
+  type               CapacityEventType   @default(SPRINT)
+  status             CapacityEventStatus @default(PLANNING)
+  startDate          DateTime
+  endDate            DateTime
+  workingDays        Int[]               @default([1, 2, 3, 4, 5])
+  hoursPerDay        Float               @default(8)
+  focusFactor        Float               @default(0.8)
+  pointsPerPersonDay Float?
+  committedPoints    Float?
+  completedPoints    Float?
+  notes              String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  owner    User                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  team     CapacityTeam?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  parent   CapacityEvent?        @relation("EventChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children CapacityEvent[]       @relation("EventChildren")
+  members  CapacityEventMember[]
+}
+
+model CapacityEventMember {
+  id          String  @id @default(cuid())
+  eventId     String
+  name        String
+  role        String?
+  fte         Float   @default(1)
+  focusFactor Float?
+  order       Int     @default(0)
+
+  event    CapacityEvent     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  absences CapacityAbsence[]
+}
+
+model CapacityAbsence {
+  id            String   @id @default(cuid())
+  eventMemberId String
+  startDate     DateTime
+  endDate       DateTime
+  fraction      Float    @default(1)
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  member CapacityEventMember @relation(fields: [eventMemberId], references: [id], onDelete: Cascade)
+}
+
+enum CapacityEventType {
+  PI_PLANNING
+  SPRINT
+  RELEASE
+  CUSTOM
+}
+
+enum CapacityEventStatus {
+  PLANNING
+  ACTIVE
+  DONE
 }
 
 // ── Board Voting ──────────────────────────────────────────────────────────────

@@ -1,10 +1,10 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../lib/prisma.js'
+﻿import type { FastifyPluginAsync } from 'fastify'
+import { prisma } from '../../lib/prisma.js'
 
 // Weighted pick without replacement.
 // Members drawn recently get a lower weight so they're less likely to be picked again.
 // The decay formula (1 / drawIndex+1) means the most recent draw weighs 1x, the one
-// before 0.5x, the one before that 0.33x, etc. — ensuring diversity without
+// before 0.5x, the one before that 0.33x, etc. â€” ensuring diversity without
 // eliminating anyone from the pool.
 function pickWeighted(pool: string[], recentScores: Record<string, number>, count: number): string[] {
   const arr = [...pool]
@@ -31,7 +31,7 @@ function pickWeighted(pool: string[], recentScores: Record<string, number>, coun
 }
 
 export const wheelRoutes: FastifyPluginAsync = async (app) => {
-  // ── Events ────────────────────────────────────────────────────────────────────
+  // â”€â”€ Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   app.get('/events', { preHandler: [app.authenticate] }, async (request) => {
     const { id: ownerId } = request.user as { id: string }
@@ -80,7 +80,7 @@ export const wheelRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(204).send()
   })
 
-  // ── Draws ─────────────────────────────────────────────────────────────────────
+  // â”€â”€ Draws â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   app.get('/draws', { preHandler: [app.authenticate] }, async (request) => {
     const { id: ownerId } = request.user as { id: string }

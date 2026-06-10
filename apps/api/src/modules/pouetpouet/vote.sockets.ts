@@ -1,5 +1,5 @@
-import type { Server, Socket } from 'socket.io'
-import { prisma } from '../lib/prisma.js'
+﻿import type { Server, Socket } from 'socket.io'
+import { prisma } from '../../lib/prisma.js'
 
 function canWrite(socket: Socket, boardId: string): boolean {
   const role = socket.data.boardRoles?.[boardId]
@@ -61,16 +61,24 @@ export function voteSocketHandlers(io: Server, socket: Socket) {
 
     const session = await prisma.boardVoteSession.findUnique({
       where: { id: data.sessionId },
-      include: { votes: { where: { userId } } },
     })
     if (!session || session.status !== 'ACTIVE') return
     if (session.timerEndsAt && session.timerEndsAt < new Date()) return
     if (!session.voterIds.includes(userId)) return
-    if (session.votes.length >= session.votesPerPerson) return
 
-    await prisma.boardVote.create({
-      data: { sessionId: data.sessionId, cardId: data.cardId, userId },
-    })
+    // Quota check + insert in one serializable transaction: two rapid casts
+    // would otherwise both pass the votes.length check and exceed the quota.
+    try {
+      const created = await prisma.$transaction(async (tx) => {
+        const count = await tx.boardVote.count({ where: { sessionId: data.sessionId, userId } })
+        if (count >= session.votesPerPerson) return false
+        await tx.boardVote.create({ data: { sessionId: data.sessionId, cardId: data.cardId, userId } })
+        return true
+      }, { isolationLevel: 'Serializable' })
+      if (!created) return
+    } catch {
+      return  // serialization conflict â€” the concurrent cast won, drop this one
+    }
 
     const updated = await fetchSession(data.sessionId)
     io.to(`board:${data.boardId}`).emit('vote:updated', updated)

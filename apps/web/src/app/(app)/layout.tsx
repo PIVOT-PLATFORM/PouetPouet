@@ -12,6 +12,7 @@ import { SessionCountdown } from '@/components/session-countdown'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useNotificationsStore } from '@/store/notifications'
 import { APP_VERSION } from '@/lib/version'
+import { FORGE_MODULES } from '@pouetpouet/shared'
 
 function Avatar({ name, src }: { name: string; src?: string | null }) {
   if (src) {
@@ -92,7 +93,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isBoardPage = pathname.startsWith('/boards/')
 
   return (
-    <div className={`bg-gray-50 dark:bg-gray-950 grid grid-rows-[auto_1fr_auto] ${isBoardPage ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+    // overflow-clip (pas hidden) sur les pages board : un conteneur overflow-hidden reste
+    // scrollable programmatiquement (focus/scrollIntoView), ce qui désynchronisait le
+    // viewport du board (getBoundingClientRect().left négatif). clip interdit tout scroll.
+    <div className={`bg-gray-50 dark:bg-gray-950 grid grid-rows-[auto_1fr_auto] ${isBoardPage ? 'h-screen overflow-clip' : 'min-h-screen'}`}>
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
         <div className={`flex items-center h-14 gap-4 ${isBoardPage ? 'px-4' : 'px-6 max-w-6xl mx-auto'}`}>
           {/* Logo with the app version as a small superscript, clickable to open the release notes. */}
@@ -110,57 +114,38 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           {!isBoardPage && (
+            /* FORGE F0 : la navigation du shell est rendue depuis les manifests
+               des modules — activer un module l'ajoute ici sans toucher au layout. */
             <nav className="flex items-center gap-1 ml-2">
               <Link
-                href="/dashboard"
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  pathname === '/dashboard'
+                href="/hub"
+                title="Tous les modules"
+                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+                  pathname === '/hub'
                     ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400'
-                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
+                    : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-800'
                 }`}
               >
-                Mes boards
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z" />
+                </svg>
               </Link>
-              <Link
-                href="/daily"
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  pathname.startsWith('/daily')
-                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400'
-                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
-                }`}
-              >
-                Mes dailys
-              </Link>
-              <Link
-                href="/scrum"
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  pathname.startsWith('/scrum')
-                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400'
-                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
-                }`}
-              >
-                Scrum Poker
-              </Link>
-              <Link
-                href="/wheel"
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  pathname.startsWith('/wheel')
-                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400'
-                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
-                }`}
-              >
-                La roue
-              </Link>
-              <Link
-                href="/equipes"
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  pathname.startsWith('/equipes')
-                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400'
-                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
-                }`}
-              >
-                Mes équipes
-              </Link>
+              {FORGE_MODULES.flatMap((m) => m.nav).map((link) => {
+                const active = link.match === 'exact' ? pathname === link.href : pathname.startsWith(link.match)
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      active
+                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400'
+                        : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                )
+              })}
             </nav>
           )}
 

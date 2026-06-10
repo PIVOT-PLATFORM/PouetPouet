@@ -1,6 +1,6 @@
-import type { FastifyPluginAsync } from 'fastify'
+﻿import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { prisma } from '../lib/prisma.js'
+import { prisma } from '../../lib/prisma.js'
 
 const templateCreateSchema = z.object({
   name: z.string().min(1),
@@ -51,7 +51,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
     if (body.fromBoardId) {
       const board = await prisma.board.findUnique({ where: { id: body.fromBoardId } })
       if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-      if (board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+      if (board.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
       const [bCards, bFrames, bConns, bFields] = await Promise.all([
         prisma.card.findMany({ where: { boardId: board.id } }),
         prisma.frame.findMany({ where: { boardId: board.id } }),
@@ -92,7 +92,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
     const body = templateUpdateSchema.parse(request.body)
     const tpl = await prisma.boardTemplate.findUnique({ where: { id } })
     if (!tpl) return reply.status(404).send({ error: 'Template introuvable' })
-    if (tpl.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (tpl.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     const updated = await prisma.boardTemplate.update({
       where: { id },
       data: {
@@ -113,19 +113,19 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
     const { id } = request.params as { id: string }
     const tpl = await prisma.boardTemplate.findUnique({ where: { id } })
     if (!tpl) return reply.status(404).send({ error: 'Template introuvable' })
-    if (tpl.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (tpl.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     await prisma.boardTemplate.delete({ where: { id } })
     return reply.status(204).send()
   })
 
-  // ── Template content edition via draft board ───────────────────────────────
+  // â”€â”€ Template content edition via draft board â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Create or reuse a draft board populated with the template's content
   app.post('/:id/edit-content', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const tpl = await prisma.boardTemplate.findUnique({ where: { id } })
     if (!tpl) return reply.status(404).send({ error: 'Template introuvable' })
-    if (tpl.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (tpl.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
 
     // Reuse existing draft if any
     const existing = await prisma.board.findFirst({ where: { ownerId: userId, templateDraftOf: id } })
@@ -209,10 +209,10 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
     const { id } = request.params as { id: string }
     const tpl = await prisma.boardTemplate.findUnique({ where: { id } })
     if (!tpl) return reply.status(404).send({ error: 'Template introuvable' })
-    if (tpl.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (tpl.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
 
     const draft = await prisma.board.findFirst({ where: { ownerId: userId, templateDraftOf: id } })
-    if (!draft) return reply.status(404).send({ error: 'Aucun brouillon trouvé' })
+    if (!draft) return reply.status(404).send({ error: 'Aucun brouillon trouvÃ©' })
 
     const [cards, frames, connections, fields] = await Promise.all([
       prisma.card.findMany({ where: { boardId: draft.id } }),
@@ -246,7 +246,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
     const { id } = request.params as { id: string }
     const tpl = await prisma.boardTemplate.findUnique({ where: { id } })
     if (!tpl) return reply.status(404).send({ error: 'Template introuvable' })
-    if (tpl.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (tpl.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     await prisma.board.deleteMany({ where: { ownerId: userId, templateDraftOf: id } })
     return reply.status(204).send()
   })

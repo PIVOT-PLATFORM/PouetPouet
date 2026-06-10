@@ -1,6 +1,6 @@
 {
   "name": "@pouetpouet/web",
-  "version": "0.3.1",
+  "version": "4.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
@@ -8,10 +8,12 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@pouetpouet/shared": "*",
+    "@sentry/nextjs": "^10.57.0",
     "fflate": "^0.8.3",
     "jspdf": "^4.2.1",
     "modern-screenshot": "^4.7.0",
@@ -25,6 +27,7 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4.1.6",
     "@types/node": "^22.15.17",
     "@types/react": "^19.1.4",

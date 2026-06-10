@@ -1,19 +1,19 @@
 import type { Server } from 'socket.io'
-import { boardSocketHandlers } from './board.js'
+import { API_MODULES } from '../modules/registry.js'
 import { sessionSocketHandlers } from './session.js'
-import { scrumSocketHandlers } from './scrum.js'
-import { dailySocketHandlers } from './daily.js'
-import { voteSocketHandlers } from './vote.js'
 
 export function registerSocketHandlers(io: Server) {
   io.on('connection', (socket) => {
     // Per-user room so account notifications can be pushed live, board-independent.
     const userId = socket.data.userId as string | undefined
     if (userId) socket.join(`user:${userId}`)
-    boardSocketHandlers(io, socket)
+
+    // Socle : sessions live (service transverse, pas un module)
     sessionSocketHandlers(io, socket)
-    scrumSocketHandlers(io, socket)
-    dailySocketHandlers(io, socket)
-    voteSocketHandlers(io, socket)
+
+    // Modules FORGE (cf. modules/registry.ts)
+    for (const mod of API_MODULES) {
+      for (const handlers of mod.socketHandlers) handlers(io, socket)
+    }
   })
 }

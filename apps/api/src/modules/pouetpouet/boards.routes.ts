@@ -1,11 +1,12 @@
-import { randomBytes, randomUUID } from 'crypto'
+﻿import { randomBytes, randomUUID } from 'crypto'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { prisma } from '../lib/prisma.js'
-import { getIO } from '../lib/io.js'
-import { notify } from '../lib/notify.js'
+import { prisma } from '../../lib/prisma.js'
+import { getIO } from '../../lib/io.js'
+import { notify } from '../../lib/notify.js'
+import { bus } from '../../lib/bus.js'
 
-const ROLE_LABEL = { VIEWER: 'lecteur', EDITOR: 'éditeur' } as const
+const ROLE_LABEL = { VIEWER: 'lecteur', EDITOR: 'Ã©diteur' } as const
 
 const boardSchema = z.object({
   name: z.string().min(1),
@@ -93,7 +94,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     if (templateId) {
       template = await prisma.boardTemplate.findUnique({ where: { id: templateId } })
       if (!template) return reply.status(404).send({ error: 'Template introuvable' })
-      if (template.ownerId !== id) return reply.status(403).send({ error: 'Accès refusé' })
+      if (template.ownerId !== id) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     }
 
     const board = await prisma.board.create({
@@ -178,7 +179,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const body = boardUpdateSchema.parse(request.body)
     const board = await prisma.board.findUnique({ where: { id } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (board.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     const updated = await prisma.board.update({
       where: { id },
       data: {
@@ -197,7 +198,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const role = await getUserBoardRole(id, userId)
-    if (!role) return reply.status(403).send({ error: 'Accès refusé' })
+    if (!role) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     await prisma.boardFavorite.upsert({
       where: { userId_boardId: { userId, boardId: id } },
       update: {},
@@ -218,7 +219,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const { id: userId } = request.user as { id: string }
     const { token } = z.object({ token: z.string() }).parse(request.body)
     const board = await prisma.board.findUnique({ where: { shareToken: token } })
-    if (!board) return reply.status(404).send({ error: 'Lien invalide ou expiré' })
+    if (!board) return reply.status(404).send({ error: 'Lien invalide ou expirÃ©' })
     if (board.ownerId === userId) return reply.send({ boardId: board.id, role: 'OWNER' })
     await prisma.boardShare.upsert({
       where: { boardId_userId: { boardId: board.id, userId } },
@@ -241,7 +242,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
     const role = await getUserBoardRole(id, userId)
-    if (!role) return reply.status(403).send({ error: 'Accès refusé' })
+    if (!role) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     return reply.send({ ...board, role })
   })
 
@@ -251,7 +252,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const { id } = request.params as { id: string }
     const board = await prisma.board.findUnique({ where: { id } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (board.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     // Capture who had access before the cascade wipes the shares, so we can notify them.
     const shares = await prisma.boardShare.findMany({ where: { boardId: id }, select: { userId: true } })
     await prisma.board.delete({ where: { id } })
@@ -260,8 +261,8 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
         notify({
           userId: s.userId,
           type: 'BOARD_DELETED',
-          title: `Le board « ${board.name} » a été supprimé`,
-          body: 'Son propriétaire a supprimé ce board partagé.',
+          title: `Le board Â« ${board.name} Â» a Ã©tÃ© supprimÃ©`,
+          body: 'Son propriÃ©taire a supprimÃ© ce board partagÃ©.',
           link: null,
         })
       )
@@ -269,14 +270,14 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(204).send()
   })
 
-  // ── Members ───────────────────────────────────────────────────────────────────
+  // â”€â”€ Members â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   // Get all members with access (any role)
   app.get('/:id/members', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const role = await getUserBoardRole(id, userId)
-    if (!role) return reply.status(403).send({ error: 'Accès refusé' })
+    if (!role) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     const board = await prisma.board.findUnique({
       where: { id },
       include: {
@@ -299,7 +300,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     ]
   })
 
-  // ── Share management ──────────────────────────────────────────────────────────
+  // â”€â”€ Share management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   // Get share info (owner only)
   app.get('/:id/shares', async (request, reply) => {
@@ -307,7 +308,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const { id } = request.params as { id: string }
     const board = await prisma.board.findUnique({ where: { id } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (board.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     const shares = await prisma.boardShare.findMany({
       where: { boardId: id },
       include: { user: { select: { id: true, name: true, email: true, avatar: true } } },
@@ -323,7 +324,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const { role } = z.object({ role: roleSchema.default('VIEWER') }).parse(request.body)
     const board = await prisma.board.findUnique({ where: { id } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (board.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     const shareToken = randomBytes(16).toString('hex')
     const updated = await prisma.board.update({
       where: { id },
@@ -339,7 +340,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const { role } = z.object({ role: roleSchema }).parse(request.body)
     const board = await prisma.board.findUnique({ where: { id } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (board.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     const updated = await prisma.board.update({ where: { id }, data: { shareLinkRole: role } })
     return reply.send({ shareToken: updated.shareToken, shareLinkRole: updated.shareLinkRole })
   })
@@ -350,7 +351,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const { id } = request.params as { id: string }
     const board = await prisma.board.findUnique({ where: { id } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (board.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     await prisma.board.update({ where: { id }, data: { shareToken: null } })
     return reply.status(204).send()
   })
@@ -362,11 +363,11 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const { email, role } = z.object({ email: z.string().email(), role: roleSchema.default('VIEWER') }).parse(request.body)
     const board = await prisma.board.findUnique({ where: { id } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (board.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     const invitedUser = await prisma.user.findUnique({ where: { email } })
-    if (!invitedUser) return reply.status(404).send({ error: 'Aucun compte trouvé avec cet email' })
-    if (invitedUser.id === userId) return reply.status(400).send({ error: 'Vous ne pouvez pas vous inviter vous-même' })
-    if (invitedUser.id === board.ownerId) return reply.status(400).send({ error: 'Cet utilisateur est déjà propriétaire du board' })
+    if (!invitedUser) return reply.status(404).send({ error: 'Aucun compte trouvÃ© avec cet email' })
+    if (invitedUser.id === userId) return reply.status(400).send({ error: 'Vous ne pouvez pas vous inviter vous-mÃªme' })
+    if (invitedUser.id === board.ownerId) return reply.status(400).send({ error: 'Cet utilisateur est dÃ©jÃ  propriÃ©taire du board' })
     const existing = await prisma.boardShare.findUnique({
       where: { boardId_userId: { boardId: id, userId: invitedUser.id } },
     })
@@ -380,16 +381,16 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
       await notify({
         userId: invitedUser.id,
         type: 'BOARD_SHARED',
-        title: `« ${board.name} » a été partagé avec vous`,
-        body: `Vous avez accès en tant que ${ROLE_LABEL[role]}.`,
+        title: `Â« ${board.name} Â» a Ã©tÃ© partagÃ© avec vous`,
+        body: `Vous avez accÃ¨s en tant que ${ROLE_LABEL[role]}.`,
         link: `/boards/${board.id}`,
       })
     } else if (existing.role !== role) {
       await notify({
         userId: invitedUser.id,
         type: 'ROLE_CHANGED',
-        title: `Votre rôle sur « ${board.name} » a changé`,
-        body: `Vous êtes désormais ${ROLE_LABEL[role]}.`,
+        title: `Votre rÃ´le sur Â« ${board.name} Â» a changÃ©`,
+        body: `Vous Ãªtes dÃ©sormais ${ROLE_LABEL[role]}.`,
         link: `/boards/${board.id}`,
       })
     }
@@ -403,7 +404,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const { role } = z.object({ role: roleSchema }).parse(request.body)
     const board = await prisma.board.findUnique({ where: { id } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (board.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     const share = await prisma.boardShare.update({
       where: { id: shareId },
       data: { role },
@@ -412,8 +413,8 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     await notify({
       userId: share.userId,
       type: 'ROLE_CHANGED',
-      title: `Votre rôle sur « ${board.name} » a changé`,
-      body: `Vous êtes désormais ${ROLE_LABEL[role]}.`,
+      title: `Votre rÃ´le sur Â« ${board.name} Â» a changÃ©`,
+      body: `Vous Ãªtes dÃ©sormais ${ROLE_LABEL[role]}.`,
       link: `/boards/${board.id}`,
     })
     return reply.send(share)
@@ -425,14 +426,14 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const { id, shareId } = request.params as { id: string; shareId: string }
     const board = await prisma.board.findUnique({ where: { id } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (board.ownerId !== userId) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     const share = await prisma.boardShare.findUnique({ where: { id: shareId }, select: { userId: true } })
     await prisma.boardShare.delete({ where: { id: shareId } })
     if (share) {
       await notify({
         userId: share.userId,
         type: 'ACCESS_REVOKED',
-        title: `Votre accès à « ${board.name} » a été retiré`,
+        title: `Votre accÃ¨s Ã  Â« ${board.name} Â» a Ã©tÃ© retirÃ©`,
         body: null,
         link: null,
       })
@@ -440,14 +441,14 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(204).send()
   })
 
-  // ── Vote sessions ─────────────────────────────────────────────────────────────
+  // â”€â”€ Vote sessions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   // Active vote session (any role)
   app.get('/:id/vote/current', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const role = await getUserBoardRole(id, userId)
-    if (!role) return reply.status(403).send({ error: 'Accès refusé' })
+    if (!role) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     const session = await prisma.boardVoteSession.findFirst({
       where: { boardId: id, status: 'ACTIVE' },
       include: { votes: true },
@@ -456,18 +457,18 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     return reply.send(session ?? null)
   })
 
-  // ── Klaxoon import ───────────────────────────────────────────────────────────
+  // â”€â”€ Klaxoon import â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   app.post('/:id/import/klaxoon', { bodyLimit: 50 * 1024 * 1024 }, async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const role = await getUserBoardRole(id, userId)
-    if (!role || role === 'VIEWER') return reply.status(403).send({ error: 'Accès refusé' })
+    if (!role || role === 'VIEWER') return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
 
     const body = z.object({
       cards: z.array(z.object({
         klxId: z.string(),
-        type: z.enum(['TEXT', 'LABEL', 'DRAW', 'IMAGE']),
+        type: z.enum(['TEXT', 'LABEL', 'DRAW', 'IMAGE', 'SHAPE']),
         content: z.string(),
         color: z.string(),
         posX: z.number(),
@@ -506,7 +507,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
       )
     )
 
-    // Build klxId → real card id map
+    // Build klxId â†’ real card id map
     const idMap = new Map<string, string>()
     body.cards.forEach((c, i) => idMap.set(c.klxId, createdCards[i].id))
 
@@ -536,6 +537,13 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const io = getIO()
     io?.to(`board:${id}`).emit('board:imported', { cards: createdCards, connections: createdConns })
 
+    bus.publish({
+      type: 'pouetpouet.board.imported',
+      module: 'pouetpouet',
+      actorId: userId,
+      payload: { boardId: id, source: 'klaxoon', cards: createdCards.length, connections: createdConns.length },
+    })
+
     return reply.status(201).send({ cards: createdCards.length, connections: createdConns.length })
   })
 
@@ -544,7 +552,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const role = await getUserBoardRole(id, userId)
-    if (!role) return reply.status(403).send({ error: 'Accès refusé' })
+    if (!role) return reply.status(403).send({ error: 'AccÃ¨s refusÃ©' })
     const session = await prisma.boardVoteSession.findFirst({
       where: { boardId: id, status: 'CLOSED' },
       include: { votes: true },

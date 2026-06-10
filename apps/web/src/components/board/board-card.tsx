@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { memo, useState, useRef, useEffect } from 'react'
 import type { Card, BoardField } from '@/hooks/useBoard'
 import { parseLabelFmt, parseTextFmt, serializeTextFmt, formatFieldValue, type LabelFmt, type TextFmt } from '@/lib/card-format'
 import { ConnectHandles, LinkCardsOverlay, FmtBtn, BorderResizeHandles, type ResizeDir } from './board-card-parts'
@@ -39,7 +39,10 @@ interface Props {
   onLinkCardsClick?: (cardId: string, additive: boolean) => void
 }
 
-export function BoardCard({
+// Memoized: on large boards every card re-rendering on each drag frame is the
+// main source of lag. Handler props must be referentially stable (the canvas
+// wraps them in useStableHandler) for the memo to be effective.
+export const BoardCard = memo(function BoardCard({
   card, fields, zoom = 1, isSelected, isMultiSelect, groupColor, drawMode, isReadonly,
   onMove, onStartDrag, onCommitDrag, onUpdate, onRecolor, onDelete,
   onResize, onResizeBox, onStartResize, onCommitResize,
@@ -629,5 +632,5 @@ export function BoardCard({
         )}
     </div>
   )
-}
+})
 

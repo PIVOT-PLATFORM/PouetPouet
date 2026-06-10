@@ -23,3 +23,10 @@ scripts/
 docs/
 
 apps/web/src/lib/klx-import/samples/
+
+# Playwright artifacts
+test-results/
+playwright-report/
+
+# Sentry Config File
+.env.sentry-build-plugin

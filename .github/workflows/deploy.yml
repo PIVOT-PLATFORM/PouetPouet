@@ -62,6 +62,7 @@ jobs:
             --set-secrets SMTP_USER=SMTP_USER:latest \
             --set-secrets SMTP_PASS=SMTP_PASS:latest \
             --set-secrets MAIL_FROM=SMTP_USER:latest \
+            --set-secrets SENTRY_DSN=SENTRY_DSN_API:latest \
             --set-env-vars NODE_ENV=production,SMTP_HOST=smtp.gmail.com,SMTP_PORT=587,SMTP_SECURE=false
 
       - name: Get API URL
@@ -102,6 +103,7 @@ jobs:
           docker build -f apps/web/Dockerfile \
             --build-arg NEXT_PUBLIC_API_URL=${{ needs.deploy-api.outputs.url }} \
             --build-arg NEXT_PUBLIC_SOCKET_URL=${{ needs.deploy-api.outputs.url }} \
+            --build-arg NEXT_PUBLIC_SENTRY_DSN=${{ secrets.SENTRY_DSN_WEB }} \
             -t ${{ env.REPO }}/web:${{ github.sha }} \
             -t ${{ env.REPO }}/web:latest \
             .

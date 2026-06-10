@@ -65,7 +65,7 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
         imageMap.set(path, dataUrl)
       }))
 
-      const { cards, connections, stats: s } = convertKlaxoon(data, imageMap)
+      const { cards, connections, stats: s } = convertKlaxoon(data, imageMap, process.env.NODE_ENV === 'development')
       pendingRef.current = { cards, connections }
       setStats(s)
       setStep('preview')
@@ -152,6 +152,7 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
               <StatRow icon="🗒️" label="Notes (postits)" value={stats.postits} />
               <StatRow icon="🔤" label="Zones de texte" value={stats.texts} />
               <StatRow icon="✏️" label="Dessins" value={stats.draws} />
+              <StatRow icon="⬛" label="Formes" value={stats.shapes} />
               <StatRow icon="🖼️" label="Images" value={stats.images} />
               <StatRow icon="🔗" label="Liaisons" value={stats.links} />
               <StatRow icon="🗂️" label="Groupes" value={stats.groups} />
