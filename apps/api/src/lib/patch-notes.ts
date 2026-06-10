@@ -20,14 +20,15 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
-    version: '0.4.0',
+    version: '4.0.0',
     date: '2026-06-11',
-    title: 'Import Klaxoon complet, performances board & socle FORGE',
-    summary: "Formes et dessins Klaxoon importes fidelement, boards charges enfin fluides et nets, hub des modules, et durcissement multi-utilisateur de tous les ateliers.",
+    title: 'Capacité, import Klaxoon complet, performances board & socle FORGE',
+    summary: "Nouveau module Capacité, formes et dessins Klaxoon importes fidelement, boards charges enfin fluides et nets, hub des modules, et durcissement multi-utilisateur de tous les ateliers.",
     sections: [
       {
         heading: '✨ Nouveautés',
         items: [
+          "Module Capacité : planification de capacite d'equipe par PI / sprint / release — membres (FTE, role), absences, focus factor, calcul live jours-homme / heures / points, indicateurs engage vs realise et retour des PI precedents.",
           "Import Klaxoon : les rectangles deviennent de vraies formes editables, les dessins a segments droits sont reconstruits, et l'empilement d'origine (cadres sous les post-its) est preserve.",
           "Import Klaxoon : les cartes sont dimensionnees selon leur texte, les grandes captures plafonnees et les petites icones gardent leur taille reelle ; les titres conservent leur hierarchie visuelle.",
           "Hub des modules : nouvelle page regroupant tous les outils (icone grille dans la barre de navigation).",
