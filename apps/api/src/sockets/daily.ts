@@ -5,6 +5,19 @@ function roomKey(sessionId: string) {
   return `daily:${sessionId}`
 }
 
+// Daily sessions are owner-driven; every handler must gate on the
+// authenticated userId itself (the socket middleware never rejects).
+async function isOwner(socket: Socket, sessionId: string): Promise<boolean> {
+  const userId = socket.data.userId as string | undefined
+  if (!userId) return false
+  const cache: Record<string, boolean> = (socket.data.dailyOwner ??= {})
+  if (cache[sessionId] === undefined) {
+    const session = await prisma.dailySession.findUnique({ where: { id: sessionId }, select: { ownerId: true } })
+    cache[sessionId] = !!session && session.ownerId === userId
+  }
+  return cache[sessionId]
+}
+
 async function broadcastState(io: Server, sessionId: string) {
   const session = await prisma.dailySession.findUnique({
     where: { id: sessionId },
@@ -24,10 +37,14 @@ async function advanceSpeaker(io: Server, sessionId: string, skip: boolean) {
   if (!current) return
 
   const now = new Date()
-  await prisma.dailyParticipant.update({
-    where: { id: current.id },
+  // Conditional update guards against a double daily:next (double-click or two
+  // host tabs): the second call sees 0 rows updated and bails out instead of
+  // advancing twice and skipping a speaker.
+  const advanced = await prisma.dailyParticipant.updateMany({
+    where: { id: current.id, status: 'SPEAKING' },
     data: { status: skip ? 'SKIPPED' : 'DONE', doneSpeaking: now },
   })
+  if (advanced.count === 0) return
 
   const nextOrder = current.order + 1
   const next = session.participants.find((p) => p.order === nextOrder)
@@ -54,12 +71,14 @@ async function advanceSpeaker(io: Server, sessionId: string, skip: boolean) {
 export function dailySocketHandlers(io: Server, socket: Socket) {
   // ── Host joins session room ───────────────────────────────────────────────────
   socket.on('daily:host_join', async (sessionId: string) => {
+    if (!(await isOwner(socket, sessionId))) return
     await socket.join(roomKey(sessionId))
     await broadcastState(io, sessionId)
   })
 
   // ── Shuffle participant order (PENDING only) ──────────────────────────────────
   socket.on('daily:shuffle', async (sessionId: string) => {
+    if (!(await isOwner(socket, sessionId))) return
     const participants = await prisma.dailyParticipant.findMany({
       where: { sessionId },
       orderBy: { order: 'asc' },
@@ -75,6 +94,7 @@ export function dailySocketHandlers(io: Server, socket: Socket) {
 
   // ── Start session ─────────────────────────────────────────────────────────────
   socket.on('daily:start', async (sessionId: string) => {
+    if (!(await isOwner(socket, sessionId))) return
     const now = new Date()
     const first = await prisma.dailyParticipant.findFirst({
       where: { sessionId },
@@ -93,13 +113,20 @@ export function dailySocketHandlers(io: Server, socket: Socket) {
   })
 
   // ── Pass to next ──────────────────────────────────────────────────────────────
-  socket.on('daily:next', (sessionId: string) => advanceSpeaker(io, sessionId, false))
+  socket.on('daily:next', async (sessionId: string) => {
+    if (!(await isOwner(socket, sessionId))) return
+    await advanceSpeaker(io, sessionId, false)
+  })
 
   // ── Skip current speaker ──────────────────────────────────────────────────────
-  socket.on('daily:skip', (sessionId: string) => advanceSpeaker(io, sessionId, true))
+  socket.on('daily:skip', async (sessionId: string) => {
+    if (!(await isOwner(socket, sessionId))) return
+    await advanceSpeaker(io, sessionId, true)
+  })
 
   // ── End session manually ──────────────────────────────────────────────────────
   socket.on('daily:end', async (sessionId: string) => {
+    if (!(await isOwner(socket, sessionId))) return
     const now = new Date()
     await prisma.dailyParticipant.updateMany({
       where: { sessionId, status: 'SPEAKING' },
