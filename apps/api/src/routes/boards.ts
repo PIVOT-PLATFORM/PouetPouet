@@ -467,7 +467,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const body = z.object({
       cards: z.array(z.object({
         klxId: z.string(),
-        type: z.enum(['TEXT', 'LABEL', 'DRAW', 'IMAGE']),
+        type: z.enum(['TEXT', 'LABEL', 'DRAW', 'IMAGE', 'SHAPE']),
         content: z.string(),
         color: z.string(),
         posX: z.number(),

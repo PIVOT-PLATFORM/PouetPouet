@@ -11,7 +11,7 @@ const C_MAP: Record<string, string> = {
   c9: '#ec4899', c10: '#f59e0b', c11: '#10b981', c12: '#3b82f6',
   c13: '#8b5cf6', c14: '#e11d48', c15: '#64748b', c16: '#374151',
   c17: '#9ca3af', c18: '#6b7280', c19: '#d1d5db', c20: '#f3f4f6',
-  c51: '#6366f1',
+  c38: '#5bc2e7', c51: '#6366f1', c52: '#eef2ff',
 }
 function cColor(code: string): string {
   return C_MAP[code] ?? '#9ca3af'
@@ -33,12 +33,13 @@ interface PathCmd {
   x2?: number; y2?: number
 }
 
+// Klaxoon path command types: 2 = moveTo, 16 = lineTo, 32 = bezierCurveTo, 1 = closePath
 function getPathBbox(raw: string): { minX: number; minY: number; maxX: number; maxY: number } | null {
   let cmds: PathCmd[]
   try { cmds = JSON.parse(raw) } catch { return null }
   const xs: number[] = [], ys: number[] = []
   for (const c of cmds) {
-    if (c.type === 2 || c.type === 32) {
+    if (c.type === 2 || c.type === 16 || c.type === 32) {
       if (c.x !== undefined) xs.push(c.x)
       if (c.y !== undefined) ys.push(c.y)
       if (c.type === 32) {
@@ -60,6 +61,8 @@ function generatePathD(raw: string, tx: number, ty: number): string {
   for (const c of cmds) {
     if (c.type === 2 && c.x !== undefined && c.y !== undefined) {
       d += `M${(c.x + tx).toFixed(1)},${(c.y + ty).toFixed(1)} `
+    } else if (c.type === 16 && c.x !== undefined && c.y !== undefined) {
+      d += `L${(c.x + tx).toFixed(1)},${(c.y + ty).toFixed(1)} `
     } else if (c.type === 32 && c.x !== undefined && c.y !== undefined) {
       d += `C${((c.x1 ?? c.x) + tx).toFixed(1)},${((c.y1 ?? c.y) + ty).toFixed(1)} `
       d += `${((c.x2 ?? c.x) + tx).toFixed(1)},${((c.y2 ?? c.y) + ty).toFixed(1)} `
@@ -71,9 +74,32 @@ function generatePathD(raw: string, tx: number, ty: number): string {
   return d.trim()
 }
 
+// Detects an axis-aligned rectangle: moveTo + 4 lineTo closing back on the start
+// point, each segment strictly horizontal or vertical. Klaxoon's shape tool
+// emits rectangles this way; freehand strokes use bezier commands instead.
+function detectRect(raw: string): { x: number; y: number; w: number; h: number } | null {
+  let cmds: PathCmd[]
+  try { cmds = JSON.parse(raw) } catch { return null }
+  if (cmds.length !== 6 || cmds[0].type !== 2 || cmds[5].type !== 1) return null
+  const pts = cmds.slice(0, 5)
+  if (pts.some((c, i) => (i > 0 && c.type !== 16) || c.x === undefined || c.y === undefined)) return null
+  const eps = 0.01
+  if (Math.abs(pts[0].x! - pts[4].x!) > eps || Math.abs(pts[0].y! - pts[4].y!) > eps) return null
+  for (let i = 0; i < 4; i++) {
+    const dx = Math.abs(pts[i + 1].x! - pts[i].x!)
+    const dy = Math.abs(pts[i + 1].y! - pts[i].y!)
+    if (dx > eps && dy > eps) return null
+  }
+  const xs = pts.map((c) => c.x!), ys = pts.map((c) => c.y!)
+  const x = Math.min(...xs), y = Math.min(...ys)
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y
+  if (w < eps || h < eps) return null
+  return { x, y, w, h }
+}
+
 export interface KlxCard {
   klxId: string
-  type: 'TEXT' | 'LABEL' | 'DRAW' | 'IMAGE'
+  type: 'TEXT' | 'LABEL' | 'DRAW' | 'IMAGE' | 'SHAPE'
   content: string
   color: string
   posX: number
@@ -102,6 +128,7 @@ export interface KlxImportStats {
   postits: number
   texts: number
   draws: number
+  shapes: number
   images: number
   links: number
   groups: number
@@ -124,7 +151,7 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
 
   const cards: KlxCard[] = []
   const connections: KlxConnection[] = []
-  const stats: KlxImportStats = { postits: 0, texts: 0, draws: 0, images: 0, links: 0, groups: 0, skipped: 0 }
+  const stats: KlxImportStats = { postits: 0, texts: 0, draws: 0, shapes: 0, images: 0, links: 0, groups: 0, skipped: 0 }
   const unknownTypes: Record<string, unknown> = {}
 
   // --- Global offset: shift everything so top-left starts near (0, 0) ---
@@ -198,6 +225,36 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
       stats.texts++
 
     } else if (item.board_object_type === 'pen' && item.path_commands) {
+      // Shape-tool rectangles become native SHAPE cards (editable, resizable).
+      // Rotated ones keep the DRAW path since SHAPE rects can't be rotated.
+      const rect = !item.angle ? detectRect(item.path_commands) : null
+      if (rect) {
+        const sw = item.stroke_width ?? 4
+        const strokeSize = sw <= 2 ? 'thin' : sw >= 6 ? 'thick' : 'medium'
+        const hasFill = !!item.fill_color
+        const fillOpacity = item.fill_color_opacity ?? 1
+        // PouetPouet shapes have a single color for stroke + fill. When the
+        // Klaxoon rect is filled, the fill is the dominant visual — use it.
+        const color = hasFill ? cColor(item.fill_color)
+          : item.color ? cColor(item.color) : '#374151'
+
+        cards.push({
+          klxId: item.uuid,
+          type: 'SHAPE',
+          content: `rect|${strokeSize}|${hasFill}|${fillOpacity}`,
+          color,
+          posX: Math.round(rect.x - ox),
+          posY: Math.round(rect.y - oy),
+          width: Math.max(20, Math.round(rect.w)),
+          height: Math.max(20, Math.round(rect.h)),
+          zIndex: item.z_index ?? 0,
+          locked: item.is_locked ?? false,
+          groupKey: null,
+        })
+        stats.shapes++
+        continue
+      }
+
       const bbox = getPathBbox(item.path_commands)
       if (!bbox) { stats.skipped++; continue }
 
@@ -284,6 +341,12 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
     })
     stats.links++
   }
+
+  // --- Stacking order ---
+  // The board renders cards in creation order (no per-card z-index server side),
+  // and the API creates them in array order. Sort by Klaxoon z_index so big
+  // container shapes (low z) end up below the postits they frame.
+  cards.sort((a, b) => a.zIndex - b.zIndex)
 
   // --- Groups → shared groupKey ---
   // Tag each group's imported members with the Klaxoon group uuid. Only groups
