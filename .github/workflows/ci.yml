@@ -28,3 +28,6 @@ jobs:
 
       - name: Lint (tsc + eslint)
         run: npm run lint
+
+      - name: Tests (vitest)
+        run: npm run test

@@ -9,6 +9,8 @@
     "start": "node dist/index.js",
     "start:prod": "npx prisma migrate deploy && node dist/index.js",
     "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"
@@ -32,6 +34,7 @@
     "@types/node": "^22.15.17",
     "prisma": "^6.8.2",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.8"
   }
 }
