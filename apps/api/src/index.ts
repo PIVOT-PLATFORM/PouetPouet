@@ -1,3 +1,7 @@
+// Sentry doit s'initialiser avant le reste (instrumentation des imports suivants)
+import { Sentry } from './lib/sentry.js'
+
+import { readFileSync } from 'node:fs'
 import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
@@ -14,10 +18,27 @@ import { templateRoutes } from './routes/templates.js'
 import { notificationRoutes } from './routes/notifications.js'
 import { registerSocketHandlers } from './sockets/index.js'
 import { setIO } from './lib/io.js'
+import { prisma } from './lib/prisma.js'
+import { redis } from './lib/redis.js'
 
 const PORT = Number(process.env.PORT ?? 4000)
 
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+  version: string
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ])
+}
+
 const app = Fastify({ logger: { level: 'info' } })
+
+if (process.env.SENTRY_DSN) {
+  Sentry.setupFastifyErrorHandler(app)
+}
 
 await app.register(cors, {
   origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
@@ -49,7 +70,22 @@ app.register(wheelRoutes, { prefix: '/api/wheel' })
 app.register(templateRoutes, { prefix: '/api/templates' })
 app.register(notificationRoutes, { prefix: '/api/notifications' })
 
-app.get('/health', async () => ({ status: 'ok' }))
+// La DB est critique (503 si down) ; Redis est optionnel à ce stade → 'degraded' seulement
+app.get('/health', async (_request, reply) => {
+  const [database, cache] = await Promise.all([
+    withTimeout(prisma.$queryRaw`SELECT 1`, 2000).then(
+      () => 'ok' as const,
+      () => 'unavailable' as const,
+    ),
+    withTimeout(redis.ping(), 2000).then(
+      () => 'ok' as const,
+      () => 'unavailable' as const,
+    ),
+  ])
+  const status = database !== 'ok' ? 'unhealthy' : cache !== 'ok' ? 'degraded' : 'ok'
+  reply.code(database === 'ok' ? 200 : 503)
+  return { status, version: pkg.version, checks: { database, redis: cache } }
+})
 
 // Attendre que Fastify soit prêt avant d'attacher Socket.io
 await app.ready()
