@@ -16,6 +16,7 @@ import { authRoutes } from './routes/auth.js'
 import { sessionRoutes } from './routes/sessions.js'
 import { notificationRoutes } from './routes/notifications.js'
 import { hubRoutes } from './routes/hub.js'
+import { teamRoutes } from './routes/teams.js'
 import { webhookRoutes, deliverWebhooks } from './routes/webhooks.js'
 import { registerModuleRoutes } from './modules/registry.js'
 import { registerSocketHandlers } from './sockets/index.js'
@@ -122,6 +123,7 @@ app.register(authRoutes, { prefix: '/api/auth' })
 app.register(sessionRoutes, { prefix: '/api/sessions' })
 app.register(notificationRoutes, { prefix: '/api/notifications' })
 app.register(hubRoutes, { prefix: '/api/hub' })
+app.register(teamRoutes, { prefix: '/api/teams' })
 app.register(webhookRoutes, { prefix: '/api/webhooks' })
 
 // Modules FORGE : montés depuis le registre (cf. modules/registry.ts)
