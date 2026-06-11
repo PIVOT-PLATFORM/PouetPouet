@@ -59,7 +59,7 @@ export const WHEEL_MODULE: ModuleManifest = {
   apiPrefix: '/api/wheel',
   ownedEntities: ['WheelEvent', 'WheelDraw'],
   referencedPivots: ['Team'],
-  emits: ['wheel.spin.done'],
+  emits: ['wheel.draw.completed'],
   listensTo: [],
 }
 
