@@ -40,6 +40,7 @@ model User {
   capacityEvents CapacityEvent[]
   apiKeys        ApiKey[]
   webhooks       Webhook[]
+  auditLogs      AuditLog[]
 }
 
 model ApiKey {
@@ -302,6 +303,22 @@ model Notification {
   link      String?
   readAt    DateTime?
   createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// Journal des actions sensibles du compte (sécurité / conformité).
+// Cascade à la suppression du compte : pas de PII orpheline (RGPD).
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  resource  String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
