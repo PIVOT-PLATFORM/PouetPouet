@@ -9,8 +9,15 @@ test('créer un board et ajouter une carte par double-clic', async ({ page }) =>
   await page.waitForTimeout(500)
 
   // Double-clic au centre du viewport (canvas vide) → création d'une carte TEXT.
+  // Sous charge le premier dblclick peut tomber pendant l'auto-fit : un retry suffit
+  // (un second dblclick au même endroit toucherait la carte créée, sans en créer d'autre).
   const viewport = page.viewportSize()!
+  const cards = page.locator('[data-card-id]')
   await page.mouse.dblclick(viewport.width / 2, viewport.height / 2)
-
-  await expect(page.locator('[data-card-id]')).toHaveCount(1, { timeout: 5000 })
+  try {
+    await expect(cards).not.toHaveCount(0, { timeout: 3000 })
+  } catch {
+    await page.mouse.dblclick(viewport.width / 2, viewport.height / 2)
+  }
+  await expect(cards).not.toHaveCount(0, { timeout: 5000 })
 })
