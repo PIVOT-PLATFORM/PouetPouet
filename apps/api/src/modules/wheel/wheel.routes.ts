@@ -1,5 +1,6 @@
 ﻿import type { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../../lib/prisma.js'
+import { bus } from '../../lib/bus.js'
 
 // Weighted pick without replacement.
 // Members drawn recently get a lower weight so they're less likely to be picked again.
@@ -156,6 +157,14 @@ export const wheelRoutes: FastifyPluginAsync = async (app) => {
         excluded: excludedNames,
       },
     })
+
+    bus.publish({
+      type: 'wheel.draw.completed',
+      module: 'wheel',
+      actorId: ownerId,
+      payload: { drawId: draw.id, teamId, teamName: team.name, results, count, mode: drawMode },
+    })
+
     return reply.status(201).send(draw)
   })
 

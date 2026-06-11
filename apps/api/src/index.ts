@@ -172,6 +172,19 @@ bus.subscribe('scrum.ticket.estimated', async (e) => {
   }
 })
 
+bus.subscribe('wheel.draw.completed', async (e) => {
+  const { teamName, results } = e.payload as { teamName: string; results: string[]; count: number }
+  if (!e.actorId) return
+  const label = results.length === 1 ? results[0] : `${results.slice(0, 2).join(', ')}${results.length > 2 ? '…' : ''}`
+  await notify({
+    userId: e.actorId,
+    type: 'WHEEL_DRAW',
+    title: 'Tirage effectué',
+    body: `${teamName} → ${label}`,
+    link: '/wheel',
+  })
+})
+
 // La DB est critique (503 si down) ; Redis est optionnel à ce stade → 'degraded' seulement
 app.get('/health', async (_request, reply) => {
   const [database, cache] = await Promise.all([
