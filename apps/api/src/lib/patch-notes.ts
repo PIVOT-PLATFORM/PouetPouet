@@ -20,7 +20,7 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
-    version: '4.5.0',
+    version: '0.4.5',
     date: '2026-06-11',
     title: 'Webhooks sortants & activité récente dans le hub',
     summary: 'Abonnez-vous aux événements PouetPouet via webhooks signés HMAC. Le hub affiche maintenant votre activité récente cross-modules.',
@@ -43,7 +43,7 @@ export const PATCH_NOTES: PatchNote[] = [
     ],
   },
   {
-    version: '4.4.0',
+    version: '0.4.4',
     date: '2026-06-11',
     title: 'FORGE F3 — Liaisons inter-modules & favoris hub',
     summary: 'Scrum Poker alimente désormais la Capacité via le pivot Équipe. Marquez vos modules favoris dans le hub. Notifications enrichies pour tous les événements.',
@@ -60,7 +60,7 @@ export const PATCH_NOTES: PatchNote[] = [
     ],
   },
   {
-    version: '4.3.0',
+    version: '0.4.3',
     date: '2026-06-11',
     title: 'Clés API',
     summary: 'Générez des clés API pour accéder à PouetPouet depuis vos scripts et outils CI. Gestion complète depuis votre profil.',
@@ -76,7 +76,7 @@ export const PATCH_NOTES: PatchNote[] = [
     ],
   },
   {
-    version: '4.2.0',
+    version: '0.4.2',
     date: '2026-06-11',
     title: 'Curseurs temps réel, RGPD, sécurité CSP, fix viewport',
     summary: 'Voyez les curseurs de vos collaborateurs en direct sur le board. Export RGPD des données personnelles. En-têtes de sécurité CSP. Correction du décalage de viewport au chargement.',
@@ -103,7 +103,7 @@ export const PATCH_NOTES: PatchNote[] = [
     ],
   },
   {
-    version: '4.1.0',
+    version: '0.4.1',
     date: '2026-06-11',
     title: 'FORGE F3-F4 : pivot Équipes, Redis multi-instance, Hub unifié',
     summary: 'Les modules Capacité et Daily partagent désormais un pivot Équipe unique. Le hub devient la page d\'accueil. Les serveurs peuvent scaler horizontalement grâce à Redis.',
@@ -141,7 +141,7 @@ export const PATCH_NOTES: PatchNote[] = [
     ],
   },
   {
-    version: '4.0.0',
+    version: '0.4.0',
     date: '2026-06-11',
     title: 'Capacité, import Klaxoon complet, performances board & socle FORGE',
     summary: "Nouveau module Capacité, formes et dessins Klaxoon importes fidelement, boards charges enfin fluides et nets, hub des modules, et durcissement multi-utilisateur de tous les ateliers.",
