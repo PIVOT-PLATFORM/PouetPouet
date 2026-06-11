@@ -168,6 +168,15 @@ export function useBoard(boardId: string) {
 
     socket.on('board:presence', (users: PresenceUser[]) => {
       setPresence(users)
+      // Remove cursors for users who left the board
+      const activeIds = new Set(users.map((u) => u.id))
+      setCursors((prev) => {
+        const next = new Map(prev)
+        for (const uid of next.keys()) {
+          if (!activeIds.has(uid)) next.delete(uid)
+        }
+        return next
+      })
     })
 
     socket.on('board:cursor', (data: { userId: string; name: string; avatar: string | null; x: number; y: number }) => {

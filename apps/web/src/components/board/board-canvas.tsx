@@ -1001,8 +1001,9 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
               </rect>
             )}
 
-            {/* Remote cursors — rendered in canvas space so they move with the viewport */}
-            {cursors && Array.from(cursors.entries()).filter(([uid]) => uid !== currentUserId).map(([uid, c]) => (
+            {/* Remote cursors — rendered in canvas space so they move with the viewport.
+                Stale cursors (>5s without update) are hidden — user left the window. */}
+            {cursors && Array.from(cursors.entries()).filter(([uid, c]) => uid !== currentUserId && Date.now() - c.ts < 5000).map(([uid, c]) => (
               <g key={uid} style={{ pointerEvents: 'none' }}>
                 <path d="M0,0 L0,16 L4.5,12.5 L7,18 L9,17 L6.5,11.5 L11,11.5 Z" fill="white" stroke={`hsl(${(uid.charCodeAt(0) * 47) % 360},70%,45%)`} strokeWidth="1.5" transform={`translate(${c.x}, ${c.y})`} />
                 <rect x={c.x + 13} y={c.y + 3} width={c.name.length * 6.5 + 8} height={18} rx={4} fill={`hsl(${(uid.charCodeAt(0) * 47) % 360},70%,45%)`} />
