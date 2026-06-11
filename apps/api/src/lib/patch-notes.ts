@@ -20,6 +20,28 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.5.0',
+    date: '2026-06-12',
+    title: 'Historique des webhooks & fiabilité',
+    summary: 'Chaque livraison de webhook est maintenant tracée : statut, erreur et durée visibles depuis votre profil. Sous le capot : tests d\'intégration et corrections de déploiement.',
+    sections: [
+      {
+        heading: '✨ Nouveautés',
+        items: [
+          'Webhooks — historique des livraisons : bouton 🕐 sur chaque webhook pour consulter les 50 dernières tentatives (statut HTTP, message d\'erreur, durée, date).',
+          'Équipes — gestion centralisée : les équipes créées dans Daily, Capacité ou Scrum sont désormais un seul et même objet partagé entre tous les modules.',
+        ],
+      },
+      {
+        heading: '🔧 Corrections',
+        items: [
+          'Numérotation des versions rétablie en 0.x (les versions 4.x affichées précédemment correspondent aux 0.4.x).',
+          'Déploiement : correction du packaging Docker de l\'API et d\'une migration corrompue qui bloquaient les mises en production.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.4.5',
     date: '2026-06-11',
     title: 'Webhooks sortants & activité récente dans le hub',
