@@ -64,10 +64,14 @@ async function advanceSpeaker(io: Server, sessionId: string, skip: boolean) {
       where: { id: sessionId },
       data: { status: 'DONE', endedAt: now, currentIndex: nextOrder },
     })
+    const participantCount = session.participants.length
+    const durationSeconds = session.startedAt
+      ? Math.round((now.getTime() - session.startedAt.getTime()) / 1000)
+      : null
     bus.publish({
       type: 'daily.session.ended',
       module: 'daily',
-      payload: { sessionId, endedAt: now.toISOString() },
+      payload: { sessionId, endedAt: now.toISOString(), participantCount, durationSeconds },
     })
   }
 
@@ -142,11 +146,14 @@ export function dailySocketHandlers(io: Server, socket: Socket) {
       where: { id: sessionId },
       data: { status: 'DONE', endedAt: now },
     })
+    const participantCount = await prisma.dailyParticipant.count({ where: { sessionId } })
+    const session = await prisma.dailySession.findUnique({ where: { id: sessionId }, select: { startedAt: true } })
+    const durationSeconds = session?.startedAt ? Math.round((now.getTime() - session.startedAt.getTime()) / 1000) : null
     bus.publish({
       type: 'daily.session.ended',
       module: 'daily',
       actorId: socket.data.userId as string | undefined,
-      payload: { sessionId, endedAt: now.toISOString() },
+      payload: { sessionId, endedAt: now.toISOString(), participantCount, durationSeconds },
     })
     await broadcastState(io, sessionId)
   })

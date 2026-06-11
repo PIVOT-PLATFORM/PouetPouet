@@ -35,7 +35,7 @@ import { useBoardSession } from '@/hooks/useBoardSession'
 export default function BoardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const {
-    board, cards, connections, frames, fields, selectedIds, isLoading, userRole, isReadonly, accessDenied, presence, members,
+    board, cards, connections, frames, fields, selectedIds, isLoading, userRole, isReadonly, accessDenied, presence, members, cursors,
     timerEndsAt, startTimer, stopTimer,
     activeVoteSession, lastVoteSession, startVote, castVote, uncastVote, stopVote, extendVote,
     lockCards, lockSelected,
@@ -55,6 +55,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     undo, redo, canUndo, canRedo,
     resetBoard,
     importCount,
+    emitCursor,
   } = useBoard(id)
   const {
     session, participantCount, currentActivity, activityResponses, isLoading: sessionLoading,
@@ -956,6 +957,8 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           onSetCardLocked={(id, locked) => lockCards([id], locked)}
           onSetFrameLayer={setFrameLayer}
           highlightedGroupId={highlightedGroupId}
+          cursors={cursors}
+          onCursorMove={(x, y) => emitCursor(id, x, y)}
         />
 
         {/* Activity overlay for authenticated board members (non-owner) */}

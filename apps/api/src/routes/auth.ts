@@ -6,7 +6,7 @@ import { prisma } from '../lib/prisma.js'
 import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/mailer.js'
 
 const USER_SELECT = {
-  id: true, email: true, name: true, avatar: true, bio: true, theme: true, emailVerified: true, createdAt: true,
+  id: true, email: true, name: true, avatar: true, bio: true, theme: true, emailVerified: true, favoriteModules: true, createdAt: true,
 } as const
 
 // Test-only shortcut, controlled by env, so the email step can be skipped while building.
@@ -69,7 +69,7 @@ async function issueVerification(user: { id: string; email: string; name: string
 }
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
-  app.post('/register', async (request, reply) => {
+  app.post('/register', { config: { rateLimit: { max: 5, timeWindow: '1 hour' } } }, async (request, reply) => {
     const body = registerSchema.parse(request.body)
     const existing = await prisma.user.findUnique({ where: { email: body.email } })
     if (existing) return reply.status(409).send({ error: 'Email déjà utilisé' })
@@ -94,7 +94,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({ pending: true, email: user.email, emailSent: sent, devLink })
   })
 
-  app.post('/login', async (request, reply) => {
+  app.post('/login', { config: { rateLimit: { max: 10, timeWindow: '5 minutes' } } }, async (request, reply) => {
     const body = loginSchema.parse(request.body)
     const user = await prisma.user.findUnique({ where: { email: body.email } })
     if (!user) return reply.status(401).send({ error: 'Identifiants invalides' })
@@ -130,7 +130,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({ user: updated, token: jwt })
   })
 
-  app.post('/resend-verification', async (request, reply) => {
+  app.post('/resend-verification', { config: { rateLimit: { max: 3, timeWindow: '1 hour' } } }, async (request, reply) => {
     const { email } = resendSchema.parse(request.body)
     const user = await prisma.user.findUnique({ where: { email } })
     // Always answer ok so we never leak whether an account exists or is already verified.
@@ -184,7 +184,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({ ok: true })
   })
 
-  app.post('/forgot-password', async (request, reply) => {
+  app.post('/forgot-password', { config: { rateLimit: { max: 3, timeWindow: '1 hour' } } }, async (request, reply) => {
     const { email } = forgotSchema.parse(request.body)
     const user = await prisma.user.findUnique({ where: { email } })
     // Always reply ok so we never leak whether an account exists.
@@ -229,5 +229,82 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     if (!valid) return reply.status(401).send({ error: 'Mot de passe incorrect' })
     await prisma.user.delete({ where: { id } })
     return reply.send({ ok: true })
+  })
+
+  // RGPD export — dumps all personal data owned by the caller as JSON.
+  // Passwords and tokens are always excluded from the export.
+  app.get('/export', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.user as { id: string }
+    const [user, boards, scrumRooms, dailySessions, capacityEvents, wheelEvents, notifications] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id },
+        select: { id: true, email: true, name: true, avatar: true, bio: true, theme: true, emailVerified: true, createdAt: true, updatedAt: true },
+      }),
+      prisma.board.findMany({ where: { ownerId: id }, select: { id: true, name: true, description: true, createdAt: true } }),
+      prisma.scrumRoom.findMany({ where: { ownerId: id }, select: { id: true, name: true, code: true, createdAt: true } }),
+      prisma.dailySession.findMany({ where: { ownerId: id }, select: { id: true, name: true, createdAt: true } }),
+      prisma.capacityEvent.findMany({ where: { ownerId: id }, select: { id: true, name: true, type: true, startDate: true, endDate: true, createdAt: true } }),
+      prisma.wheelEvent.findMany({ where: { ownerId: id }, select: { id: true, name: true, createdAt: true } }),
+      prisma.notification.findMany({ where: { userId: id }, select: { id: true, type: true, title: true, body: true, createdAt: true } }),
+    ])
+    const filename = `pouetpouet-export-${new Date().toISOString().slice(0, 10)}.json`
+    reply.header('Content-Disposition', `attachment; filename="${filename}"`)
+    reply.header('Content-Type', 'application/json')
+    return reply.send(JSON.stringify({ exportedAt: new Date().toISOString(), user, boards, scrumRooms, dailySessions, capacityEvents, wheelEvents, notifications }, null, 2))
+  })
+
+  // ── API Keys ──────────────────────────────────────────────────────────────────
+  // Keys use the format pp_<64 hex chars>. Only the SHA-256 hash is stored.
+  // The prefix (first 8 chars after "pp_") is stored in plain text for display.
+
+  const apiKeyNameSchema = z.object({ name: z.string().min(1).max(64) })
+
+  app.get('/keys', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.user as { id: string }
+    const keys = await prisma.apiKey.findMany({
+      where: { userId: id },
+      select: { id: true, name: true, prefix: true, lastUsedAt: true, expiresAt: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    return reply.send(keys)
+  })
+
+  app.post('/keys', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.user as { id: string }
+    const { name } = apiKeyNameSchema.parse(request.body)
+
+    const count = await prisma.apiKey.count({ where: { userId: id } })
+    if (count >= 10) return reply.status(429).send({ error: 'Maximum 10 clés API par compte.' })
+
+    const raw = `pp_${crypto.randomBytes(32).toString('hex')}`
+    const keyHash = crypto.createHash('sha256').update(raw).digest('hex')
+    const prefix = raw.slice(3, 11)
+
+    await prisma.apiKey.create({ data: { userId: id, name, keyHash, prefix } })
+    return reply.status(201).send({ key: raw, name, prefix })
+  })
+
+  app.delete('/keys/:keyId', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.user as { id: string }
+    const { keyId } = request.params as { keyId: string }
+    const key = await prisma.apiKey.findFirst({ where: { id: keyId, userId: id } })
+    if (!key) return reply.status(404).send({ error: 'Clé introuvable.' })
+    await prisma.apiKey.delete({ where: { id: keyId } })
+    return reply.send({ ok: true })
+  })
+
+  // ── Module favorites ─────────────────────────────────────────────────────────
+  const favModuleSchema = z.object({ moduleId: z.string().min(1).max(64) })
+
+  app.post('/favorites/modules', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.user as { id: string }
+    const { moduleId } = favModuleSchema.parse(request.body)
+    const user = await prisma.user.findUnique({ where: { id }, select: { favoriteModules: true } })
+    if (!user) return reply.status(404).send({ error: 'Utilisateur introuvable.' })
+    const next = user.favoriteModules.includes(moduleId)
+      ? user.favoriteModules.filter((m) => m !== moduleId)
+      : [...user.favoriteModules, moduleId]
+    const updated = await prisma.user.update({ where: { id }, data: { favoriteModules: next }, select: USER_SELECT })
+    return reply.send(updated)
   })
 }

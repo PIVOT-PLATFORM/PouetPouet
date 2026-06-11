@@ -1,8 +1,7 @@
 import type { ModuleManifest } from './manifest.js'
 
 // Registre déclaratif des modules FORGE.
-// L'état actuel du code fait foi : les pivots (Team, User) sont encore dupliqués
-// ou portés par un module — leur extraction vers le socle est l'objet de F3.
+// F3.1 accompli : Team est un pivot du socle partagé par Daily, La Roue et Capacité.
 
 export const POUETPOUET_MODULE: ModuleManifest = {
   id: 'pouetpouet',
@@ -44,9 +43,8 @@ export const DAILY_MODULE: ModuleManifest = {
     { label: 'Mes équipes', href: '/equipes', match: '/equipes' },
   ],
   apiPrefix: '/api/daily',
-  // Team est destiné à devenir un pivot du socle (F3) : aujourd'hui Daily le possède.
-  ownedEntities: ['DailySession', 'DailyParticipant', 'DailyTeam'],
-  referencedPivots: ['User'],
+  ownedEntities: ['DailySession', 'DailyParticipant'],
+  referencedPivots: ['User', 'Team'],
   emits: ['daily.session.ended'],
   listensTo: [],
 }
@@ -59,9 +57,9 @@ export const WHEEL_MODULE: ModuleManifest = {
   color: '#ec4899',
   nav: [{ label: 'La roue', href: '/wheel', match: '/wheel' }],
   apiPrefix: '/api/wheel',
-  ownedEntities: [],
+  ownedEntities: ['WheelEvent', 'WheelDraw'],
   referencedPivots: ['Team'],
-  emits: ['wheel.spin.done'],
+  emits: ['wheel.draw.completed'],
   listensTo: [],
 }
 
@@ -73,9 +71,7 @@ export const CAPACITY_MODULE: ModuleManifest = {
   color: '#10b981',
   nav: [{ label: 'Capacité', href: '/capacity', match: '/capacity' }],
   apiPrefix: '/api/capacity',
-  ownedEntities: ['CapacityTeam', 'CapacityTeamMember', 'CapacityEvent', 'CapacityEventMember', 'CapacityAbsence'],
-  // F3 : Team deviendra le pivot partagé avec Daily ; la vélocité réelle
-  // pourra être alimentée par scrum.ticket.estimated
+  ownedEntities: ['CapacityEvent', 'CapacityEventMember', 'CapacityAbsence'],
   referencedPivots: ['User', 'Team'],
   emits: [],
   listensTo: ['scrum.ticket.estimated'],

@@ -63,6 +63,8 @@ interface Props {
   onSetFrameLayer?: (id: string, layer: number) => void
   boardName?: string
   highlightedGroupId?: string | null
+  cursors?: Map<string, { name: string; avatar: string | null; x: number; y: number; ts: number }>
+  onCursorMove?: (x: number, y: number) => void
 }
 
 export interface BoardCanvasHandle {
@@ -111,6 +113,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   voteSession, voteCanVote = true, currentUserId, onCastVote, onUncastVote, onSetCardLocked,
   onSetFrameLayer,
   boardName, highlightedGroupId,
+  cursors, onCursorMove,
 }: Props, ref) {
   // ── Refs ────────────────────────────────────────────────────────────────────
   const containerRef     = useRef<HTMLDivElement>(null)
@@ -306,15 +309,17 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   }, [])
 
   // ── Track mouse position in canvas coordinates ───────────────────────────────
+  const onCursorMoveRef = useRef(onCursorMove)
+  onCursorMoveRef.current = onCursorMove
   useEffect(() => {
     const el = containerRef.current!
     function onMove(e: MouseEvent) {
       const rect = el.getBoundingClientRect()
       const { x, y, zoom } = vpRef.current
-      mousePosRef.current = {
-        x: (e.clientX - rect.left - x) / zoom,
-        y: (e.clientY - rect.top - y) / zoom,
-      }
+      const cx = (e.clientX - rect.left - x) / zoom
+      const cy = (e.clientY - rect.top - y) / zoom
+      mousePosRef.current = { x: cx, y: cy }
+      onCursorMoveRef.current?.(cx, cy)
     }
     el.addEventListener('mousemove', onMove)
     return () => el.removeEventListener('mousemove', onMove)
@@ -602,7 +607,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     let raf = 0
     const fit = () => {
       cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(() => { if (!didAutoFitRef.current) fitToContent() })
+      raf = requestAnimationFrame(() => requestAnimationFrame(() => { if (!didAutoFitRef.current) fitToContent() }))
     }
     fit()                                              // first frame
     const ro = new ResizeObserver(fit)                 // re-fit as the container settles/resizes
@@ -930,7 +935,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     <>
       <div
         ref={containerRef}
-        className="relative flex-1 overflow-clip select-none"
+        className="relative flex-1 overflow-hidden select-none"
         style={{
           backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)',
           backgroundSize: `${dotD}px ${dotD}px`,
@@ -995,6 +1000,16 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
                 <animate attributeName="stroke-dashoffset" from="0" to="20" dur="0.6s" repeatCount="indefinite" />
               </rect>
             )}
+
+            {/* Remote cursors — rendered in canvas space so they move with the viewport.
+                Stale cursors (>5s without update) are hidden — user left the window. */}
+            {cursors && Array.from(cursors.entries()).filter(([uid, c]) => uid !== currentUserId && Date.now() - c.ts < 5000).map(([uid, c]) => (
+              <g key={uid} style={{ pointerEvents: 'none' }}>
+                <path d="M0,0 L0,16 L4.5,12.5 L7,18 L9,17 L6.5,11.5 L11,11.5 Z" fill="white" stroke={`hsl(${(uid.charCodeAt(0) * 47) % 360},70%,45%)`} strokeWidth="1.5" transform={`translate(${c.x}, ${c.y})`} />
+                <rect x={c.x + 13} y={c.y + 3} width={c.name.length * 6.5 + 8} height={18} rx={4} fill={`hsl(${(uid.charCodeAt(0) * 47) % 360},70%,45%)`} />
+                <text x={c.x + 17} y={c.y + 15} fontSize={11} fill="white" fontFamily="system-ui, sans-serif" style={{ userSelect: 'none' }}>{c.name}</text>
+              </g>
+            ))}
           </svg>
 
           {/* Rubber band */}

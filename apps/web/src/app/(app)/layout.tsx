@@ -101,7 +101,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className={`flex items-center h-14 gap-4 ${isBoardPage ? 'px-4' : 'px-6 max-w-6xl mx-auto'}`}>
           {/* Logo with the app version as a small superscript, clickable to open the release notes. */}
           <div className="flex items-start gap-0.5">
-            <Link href="/dashboard">
+            <Link href="/hub">
               <Logo />
             </Link>
             <button

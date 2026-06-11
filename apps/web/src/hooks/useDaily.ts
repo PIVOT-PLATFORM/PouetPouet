@@ -16,7 +16,7 @@ export interface DailyTeam {
   color: string
   description: string | null
   members: DailyTeamMember[]
-  _count?: { sessions: number; wheelDraws: number }
+  _count?: { dailySessions: number; wheelDraws: number; scrumRooms: number; capacityEvents: number }
   createdAt: string
   updatedAt: string
 }
@@ -56,26 +56,26 @@ export function useTeams() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    api.get<DailyTeam[]>('/api/daily/teams').then((t) => {
+    api.get<DailyTeam[]>('/api/teams').then((t) => {
       setTeams(t)
       setIsLoading(false)
     }).catch(() => setIsLoading(false))
   }, [])
 
   const createTeam = useCallback(async (name: string, members: string[], color?: string, description?: string) => {
-    const team = await api.post<DailyTeam>('/api/daily/teams', { name, members, color, description })
+    const team = await api.post<DailyTeam>('/api/teams', { name, members, color, description })
     setTeams((prev) => [...prev, team])
     return team
   }, [])
 
   const updateTeam = useCallback(async (id: string, name: string, members: string[], color?: string, description?: string) => {
-    const team = await api.put<DailyTeam>(`/api/daily/teams/${id}`, { name, members, color, description })
+    const team = await api.put<DailyTeam>(`/api/teams/${id}`, { name, members, color, description })
     setTeams((prev) => prev.map((t) => (t.id === id ? team : t)))
     return team
   }, [])
 
   const deleteTeam = useCallback(async (id: string) => {
-    await api.delete(`/api/daily/teams/${id}`)
+    await api.delete(`/api/teams/${id}`)
     setTeams((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
@@ -117,15 +117,25 @@ export function useDailySession(sessionId: string) {
   const [tick, setTick] = useState(0)
   const socketRef = useRef(connectSocket())
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Store sessionId in a ref so the connect handler always has the latest value
+  const sessionIdRef = useRef(sessionId)
+  sessionIdRef.current = sessionId
 
   useEffect(() => {
     const socket = socketRef.current
-    socket.emit('daily:host_join', sessionId)
 
+    function joinSession() {
+      socket.emit('daily:host_join', sessionIdRef.current)
+    }
+
+    socket.on('connect', joinSession)
     socket.on('daily:state', (s: DailySession) => {
       setSession(s)
       setIsLoading(false)
     })
+
+    // Emit immediately if already connected; otherwise the connect handler fires
+    if (socket.connected) joinSession()
 
     intervalRef.current = setInterval(() => setTick((t) => t + 1), 1000)
 
@@ -135,6 +145,7 @@ export function useDailySession(sessionId: string) {
     }).catch(() => {})
 
     return () => {
+      socket.off('connect', joinSession)
       socket.off('daily:state')
       if (intervalRef.current) clearInterval(intervalRef.current)
     }

@@ -11,7 +11,10 @@ export const scrumRoutes: FastifyPluginAsync = async (app) => {
     const { id: ownerId } = request.user as { id: string }
     return prisma.scrumRoom.findMany({
       where: { ownerId },
-      include: { tickets: { select: { id: true, status: true } } },
+      include: {
+        tickets: { select: { id: true, status: true } },
+        team: { select: { id: true, name: true } },
+      },
       orderBy: { updatedAt: 'desc' },
     })
   })
@@ -19,11 +22,17 @@ export const scrumRoutes: FastifyPluginAsync = async (app) => {
   // Create room (authenticated)
   app.post('/', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id: ownerId } = request.user as { id: string }
-    const { name, scale } = request.body as { name: string; scale?: string }
+    const { name, scale, teamId } = request.body as { name: string; scale?: string; teamId?: string }
     if (!name?.trim()) return reply.status(400).send({ error: 'Name required' })
 
     const validScales = ['FIBONACCI', 'TIME']
     const roomScale = validScales.includes(scale ?? '') ? scale! : 'FIBONACCI'
+
+    // Validate teamId ownership if provided
+    if (teamId) {
+      const team = await prisma.team.findFirst({ where: { id: teamId, ownerId } })
+      if (!team) return reply.status(404).send({ error: 'Équipe introuvable.' })
+    }
 
     let code = generateCode()
     let attempts = 0
@@ -33,8 +42,8 @@ export const scrumRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const room = await prisma.scrumRoom.create({
-      data: { name: name.trim(), code, ownerId, scale: roomScale },
-      include: { tickets: true },
+      data: { name: name.trim(), code, ownerId, scale: roomScale, teamId: teamId ?? null },
+      include: { tickets: true, team: { select: { id: true, name: true } } },
     })
     return reply.status(201).send(room)
   })

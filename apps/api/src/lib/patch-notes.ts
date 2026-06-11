@@ -20,7 +20,150 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
-    version: '4.0.0',
+    version: '0.5.0',
+    date: '2026-06-12',
+    title: 'Historique des webhooks & fiabilité',
+    summary: 'Chaque livraison de webhook est maintenant tracée : statut, erreur et durée visibles depuis votre profil. Sous le capot : tests d\'intégration et corrections de déploiement.',
+    sections: [
+      {
+        heading: '✨ Nouveautés',
+        items: [
+          'Webhooks — historique des livraisons : bouton 🕐 sur chaque webhook pour consulter les 50 dernières tentatives (statut HTTP, message d\'erreur, durée, date).',
+          'Équipes — gestion centralisée : les équipes créées dans Daily, Capacité ou Scrum sont désormais un seul et même objet partagé entre tous les modules.',
+        ],
+      },
+      {
+        heading: '🔧 Corrections',
+        items: [
+          'Numérotation des versions rétablie en 0.x (les versions 4.x affichées précédemment correspondent aux 0.4.x).',
+          'Déploiement : correction du packaging Docker de l\'API et d\'une migration corrompue qui bloquaient les mises en production.',
+        ],
+      },
+    ],
+  },
+  {
+    version: '0.4.5',
+    date: '2026-06-11',
+    title: 'Webhooks sortants & activité récente dans le hub',
+    summary: 'Abonnez-vous aux événements PouetPouet via webhooks signés HMAC. Le hub affiche maintenant votre activité récente cross-modules.',
+    sections: [
+      {
+        heading: '✨ Nouveautés',
+        items: [
+          'Webhooks sortants : créez jusqu\'à 20 webhooks pour recevoir des événements (import board, daily terminé, Scrum estimé, tirage roue) sur votre endpoint HTTP. Signature HMAC-SHA256 dans l\'en-tête X-Webhook-Signature.',
+          'Test de webhook : bouton ⚡ pour envoyer un ping signé et vérifier la connectivité en temps réel.',
+          'Hub — activité récente : section "Récent" listant vos derniers boards modifiés, dailys, salles Scrum et tirages.',
+          'Daily — enrichissement du payload de fin de session (nombre de participants, durée) sur l\'auto-fin comme sur la fin manuelle.',
+        ],
+      },
+      {
+        heading: '🔧 Corrections',
+        items: [
+          'Daily : la fin automatique (dernier participant) n\'incluait pas le nombre de participants ni la durée dans la notification — corrigé.',
+        ],
+      },
+    ],
+  },
+  {
+    version: '0.4.4',
+    date: '2026-06-11',
+    title: 'FORGE F3 — Liaisons inter-modules & favoris hub',
+    summary: 'Scrum Poker alimente désormais la Capacité via le pivot Équipe. Marquez vos modules favoris dans le hub. Notifications enrichies pour tous les événements.',
+    sections: [
+      {
+        heading: '✨ Nouveautés',
+        items: [
+          'Scrum → Capacité : liez une salle Scrum Poker à une équipe — quand tous les tickets sont estimés, le total de points remplit automatiquement le sprint en planification.',
+          'Hub — modules favoris : cliquez l\'étoile sur une tuile pour la mettre en favori ; les favoris apparaissent en premier.',
+          'Notifications enrichies : import de board (résumé cartes + connexions), Scrum terminé (total story points), tirage Roue (résultat).',
+          'Scrum Poker — recherche par équipe dans la liste des salles.',
+        ],
+      },
+    ],
+  },
+  {
+    version: '0.4.3',
+    date: '2026-06-11',
+    title: 'Clés API',
+    summary: 'Générez des clés API pour accéder à PouetPouet depuis vos scripts et outils CI. Gestion complète depuis votre profil.',
+    sections: [
+      {
+        heading: '✨ Nouveautés',
+        items: [
+          'Clés API — créez jusqu\'à 10 clés par compte, révoquez-les à tout moment depuis votre profil',
+          'Authentification par header X-API-Key en complément du JWT pour les appels programmatiques',
+          'Suivi de la dernière utilisation par clé',
+        ],
+      },
+    ],
+  },
+  {
+    version: '0.4.2',
+    date: '2026-06-11',
+    title: 'Curseurs temps réel, RGPD, sécurité CSP, fix viewport',
+    summary: 'Voyez les curseurs de vos collaborateurs en direct sur le board. Export RGPD des données personnelles. En-têtes de sécurité CSP. Correction du décalage de viewport au chargement.',
+    sections: [
+      {
+        heading: '✨ Nouveautés',
+        items: [
+          'Curseurs collaboratifs : les positions de tous les membres actifs d\'un board s\'affichent en temps réel (nom + curseur coloré, throttlé à 20 fps).',
+          'Export RGPD : bouton "Exporter mes données" dans le profil → télécharge un JSON complet (profil, boards, dailys, salles, équipes, tirages, notifications).',
+        ],
+      },
+      {
+        heading: '🔒 Sécurité',
+        items: [
+          'En-têtes HTTP de sécurité : Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, HSTS (prod).',
+        ],
+      },
+      {
+        heading: '🐛 Correctifs',
+        items: [
+          'Viewport board : overflow-hidden + double requestAnimationFrame corrigent le décalage de toCanvas() / fitToContent() au chargement initial.',
+        ],
+      },
+    ],
+  },
+  {
+    version: '0.4.1',
+    date: '2026-06-11',
+    title: 'FORGE F3-F4 : pivot Équipes, Redis multi-instance, Hub unifié',
+    summary: 'Les modules Capacité et Daily partagent désormais un pivot Équipe unique. Le hub devient la page d\'accueil. Les serveurs peuvent scaler horizontalement grâce à Redis.',
+    sections: [
+      {
+        heading: '✨ Nouveautés',
+        items: [
+          'Hub : page d\'accueil par défaut après connexion, avec compteurs cross-modules en temps réel.',
+          'Pivot Équipe (F3.1) : les équipes Daily et Capacité sont unifiées en un seul objet Équipe partagé entre les modules.',
+          'Liaisons événementielles (F3.2) : notification automatique quand un daily se termine ou quand tous les tickets Scrum sont estimés.',
+          'Nouvelles icônes dans la cloche pour les types de notifications DAILY_SESSION_ENDED et SCRUM_ALL_ESTIMATED.',
+        ],
+      },
+      {
+        heading: '⚡ Performances & Scalabilité',
+        items: [
+          'Redis Socket.io adapter (F4) : les événements socket se propagent entre instances — le service peut maintenant scaler horizontalement (max-instances=10).',
+          'Présence board mise en cache dans Redis hash — plus de fetchSockets() O(n) sur toutes les instances.',
+          'Participants Scrum Poker stockés dans Redis hash (TTL 24h) — registry partagé entre instances, fallback Map en dev.',
+        ],
+      },
+      {
+        heading: '🔒 Sécurité',
+        items: [
+          'Rate limiting activé en production : inscription (5/h), connexion (10/5min), renvoi vérification (3/h), mot de passe oublié (3/h), import Klaxoon (5/min).',
+        ],
+      },
+      {
+        heading: '🧪 Qualité',
+        items: [
+          '61 tests unitaires : bus d\'événements FORGE, mailer, calculs de capacité (22 cas), patch-notes, JWT, formats.',
+          'Typecheck strict maintenu sur API et Web.',
+        ],
+      },
+    ],
+  },
+  {
+    version: '0.4.0',
     date: '2026-06-11',
     title: 'Capacité, import Klaxoon complet, performances board & socle FORGE',
     summary: "Nouveau module Capacité, formes et dessins Klaxoon importes fidelement, boards charges enfin fluides et nets, hub des modules, et durcissement multi-utilisateur de tous les ateliers.",

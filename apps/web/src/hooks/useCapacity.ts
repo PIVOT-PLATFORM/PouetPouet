@@ -32,25 +32,25 @@ export function useCapacityTeams() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    api.get<CapacityTeam[]>('/api/capacity/teams')
+    api.get<CapacityTeam[]>('/api/teams')
       .then((t) => { setTeams(t); setIsLoading(false) })
       .catch(() => setIsLoading(false))
   }, [])
 
   const createTeam = useCallback(async (name: string, members: MemberInput[], color?: string, description?: string) => {
-    const team = await api.post<CapacityTeam>('/api/capacity/teams', { name, members, color, description })
+    const team = await api.post<CapacityTeam>('/api/teams', { name, members, color, description })
     setTeams((prev) => [...prev, team])
     return team
   }, [])
 
   const updateTeam = useCallback(async (id: string, name: string, members: MemberInput[], color?: string, description?: string) => {
-    const team = await api.put<CapacityTeam>(`/api/capacity/teams/${id}`, { name, members, color, description })
+    const team = await api.put<CapacityTeam>(`/api/teams/${id}`, { name, members, color, description })
     setTeams((prev) => prev.map((t) => (t.id === id ? team : t)))
     return team
   }, [])
 
   const deleteTeam = useCallback(async (id: string) => {
-    await api.delete(`/api/capacity/teams/${id}`)
+    await api.delete(`/api/teams/${id}`)
     setTeams((prev) => prev.filter((t) => t.id !== id))
   }, [])
 

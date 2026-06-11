@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { ESTIMATION_SCALES } from '@/hooks/useScrum'
 
+interface TeamSummary {
+  id: string
+  name: string
+}
+
 interface RoomSummary {
   id: string
   name: string
@@ -13,22 +18,29 @@ interface RoomSummary {
   createdAt: string
   updatedAt: string
   tickets: { id: string; status: string }[]
+  team: TeamSummary | null
 }
 
 export default function ScrumPage() {
   const [rooms, setRooms] = useState<RoomSummary[]>([])
+  const [teams, setTeams] = useState<TeamSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [newName, setNewName] = useState('')
   const [newScale, setNewScale] = useState('FIBONACCI')
+  const [newTeamId, setNewTeamId] = useState('')
   const [creating, setCreating] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const router = useRouter()
 
   useEffect(() => {
-    api.get<RoomSummary[]>('/api/scrum').then((data) => {
-      setRooms(data)
+    Promise.all([
+      api.get<RoomSummary[]>('/api/scrum'),
+      api.get<TeamSummary[]>('/api/teams').catch(() => [] as TeamSummary[]),
+    ]).then(([roomData, teamData]) => {
+      setRooms(roomData)
+      setTeams(teamData)
       setIsLoading(false)
     })
   }, [])
@@ -38,10 +50,15 @@ export default function ScrumPage() {
     if (!newName.trim()) return
     setCreating(true)
     try {
-      const room = await api.post<RoomSummary>('/api/scrum', { name: newName.trim(), scale: newScale })
+      const room = await api.post<RoomSummary>('/api/scrum', {
+        name: newName.trim(),
+        scale: newScale,
+        ...(newTeamId ? { teamId: newTeamId } : {}),
+      })
       setRooms((prev) => [room, ...prev])
       setNewName('')
       setNewScale('FIBONACCI')
+      setNewTeamId('')
       setShowModal(false)
       router.push(`/scrum/${room.id}`)
     } finally {
@@ -63,7 +80,7 @@ export default function ScrumPage() {
 
   const q = search.trim().toLowerCase()
   const filteredRooms = q
-    ? rooms.filter((r) => r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q))
+    ? rooms.filter((r) => r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q) || r.team?.name.toLowerCase().includes(q))
     : rooms
 
   return (
@@ -163,11 +180,12 @@ export default function ScrumPage() {
                     </svg>
                   </button>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-gray-400 dark:text-gray-500 truncate">
                     {done}/{room.tickets.length} ticket{room.tickets.length !== 1 ? 's' : ''} estimé{done !== 1 ? 's' : ''}
+                    {room.team && <span className="ml-1.5 text-indigo-400">· {room.team.name}</span>}
                   </span>
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400">
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 shrink-0">
                     {scaleInfo.label}
                   </span>
                 </div>
@@ -193,10 +211,10 @@ export default function ScrumPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <form
             onSubmit={handleCreate}
-            className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 flex flex-col gap-4"
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 flex flex-col gap-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-bold text-gray-900">Nouvelle salle Scrum Poker</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Nouvelle salle Scrum Poker</h2>
 
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Nom</label>
@@ -206,7 +224,7 @@ export default function ScrumPage() {
                 placeholder="Nom de la salle…"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
             </div>
 
@@ -221,7 +239,7 @@ export default function ScrumPage() {
                     className={`flex-1 py-2 rounded-xl text-sm font-medium border-2 transition-all ${
                       newScale === key
                         ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'
                     }`}
                   >
                     {info.label}
@@ -233,11 +251,29 @@ export default function ScrumPage() {
               </p>
             </div>
 
+            {teams.length > 0 && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                  Équipe <span className="font-normal normal-case text-gray-400">(optionnel — alimente la Capacité)</span>
+                </label>
+                <select
+                  value={newTeamId}
+                  onChange={(e) => setNewTeamId(e.target.value)}
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                >
+                  <option value="">Aucune équipe</option>
+                  {teams.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="flex gap-2 justify-end">
               <button
                 type="button"
-                onClick={() => { setShowModal(false); setNewName(''); setNewScale('FIBONACCI') }}
-                className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
+                onClick={() => { setShowModal(false); setNewName(''); setNewScale('FIBONACCI'); setNewTeamId('') }}
+                className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
               >
                 Annuler
               </button>

@@ -25,7 +25,7 @@ function TeamModal({
   const [description, setDescription] = useState(team?.description ?? '')
   const [color, setColor] = useState(team?.color ?? '#6366f1')
   const [members, setMembers] = useState<TeamMemberDraft[]>(
-    team?.members.map((m) => ({ name: m.name, role: m.role ?? '', fte: m.fte })) ?? [{ name: '', role: '', fte: 1 }],
+    team?.members.map((m) => ({ name: m.name, role: m.role ?? '', fte: m.fte ?? 1 })) ?? [{ name: '', role: '', fte: 1 }],
   )
   const [saving, setSaving] = useState(false)
 

@@ -459,7 +459,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
 
   // â”€â”€ Klaxoon import â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  app.post('/:id/import/klaxoon', { bodyLimit: 50 * 1024 * 1024 }, async (request, reply) => {
+  app.post('/:id/import/klaxoon', { bodyLimit: 50 * 1024 * 1024, config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const role = await getUserBoardRole(id, userId)

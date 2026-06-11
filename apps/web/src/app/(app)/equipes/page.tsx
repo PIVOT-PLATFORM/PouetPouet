@@ -214,8 +214,10 @@ function TeamCard({
   onDelete: (id: string) => void
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const sessions = team._count?.sessions ?? 0
+  const sessions = team._count?.dailySessions ?? 0
   const draws = team._count?.wheelDraws ?? 0
+  const scrums = team._count?.scrumRooms ?? 0
+  const sprints = team._count?.capacityEvents ?? 0
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
@@ -294,16 +296,31 @@ function TeamCard({
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center gap-4 pt-2 border-t border-gray-50 dark:border-gray-800 mt-auto">
-          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-            <span>📅</span>
-            <span>{sessions} daily{sessions !== 1 ? 's' : ''}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-            <span>🎲</span>
-            <span>{draws} tirage{draws !== 1 ? 's' : ''}</span>
-          </div>
+        {/* Stats FORGE — cross-module usage of this team pivot */}
+        <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-gray-50 dark:border-gray-800 mt-auto">
+          {sessions > 0 && (
+            <div className="flex items-center gap-1 text-xs text-gray-400" title="Daily Standup">
+              <span>☀️</span><span>{sessions}</span>
+            </div>
+          )}
+          {draws > 0 && (
+            <div className="flex items-center gap-1 text-xs text-gray-400" title="Tirages Roue">
+              <span>🎡</span><span>{draws}</span>
+            </div>
+          )}
+          {scrums > 0 && (
+            <div className="flex items-center gap-1 text-xs text-gray-400" title="Salles Scrum Poker">
+              <span>🃏</span><span>{scrums}</span>
+            </div>
+          )}
+          {sprints > 0 && (
+            <div className="flex items-center gap-1 text-xs text-gray-400" title="Sprints Capacité">
+              <span>📊</span><span>{sprints}</span>
+            </div>
+          )}
+          {sessions === 0 && draws === 0 && scrums === 0 && sprints === 0 && (
+            <span className="text-xs text-gray-300 dark:text-gray-600 italic">Non utilisée</span>
+          )}
         </div>
       </div>
     </div>

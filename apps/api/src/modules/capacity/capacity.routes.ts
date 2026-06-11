@@ -12,11 +12,6 @@ const EVENT_INCLUDE = {
   },
 }
 
-const TEAM_INCLUDE = {
-  members: { orderBy: { order: 'asc' as const } },
-  _count: { select: { events: true } },
-}
-
 interface MemberInput {
   name: string
   role?: string | null
@@ -35,87 +30,6 @@ export const capacityRoutes: FastifyPluginAsync = async (app) => {
     if (!member || member.event.ownerId !== ownerId) return null
     return member
   }
-
-  // ── Teams ─────────────────────────────────────────────────────────────────────
-
-  app.get('/teams', { preHandler: [app.authenticate] }, async (request) => {
-    const { id: ownerId } = request.user as { id: string }
-    return prisma.capacityTeam.findMany({
-      where: { ownerId },
-      include: TEAM_INCLUDE,
-      orderBy: { createdAt: 'asc' },
-    })
-  })
-
-  app.post('/teams', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const { id: ownerId } = request.user as { id: string }
-    const { name, color, description, members } = request.body as {
-      name: string
-      color?: string
-      description?: string
-      members?: MemberInput[]
-    }
-    if (!name?.trim()) return reply.status(400).send({ error: 'Nom requis' })
-    const team = await prisma.capacityTeam.create({
-      data: {
-        name: name.trim(),
-        ownerId,
-        color: color ?? '#6366f1',
-        description: description?.trim() || null,
-        members: {
-          create: (members ?? []).map((m, i) => ({
-            name: m.name.trim(),
-            role: m.role?.trim() || null,
-            fte: m.fte ?? 1,
-            order: m.order ?? i,
-          })),
-        },
-      },
-      include: TEAM_INCLUDE,
-    })
-    return reply.status(201).send(team)
-  })
-
-  app.put('/teams/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
-    const { name, color, description, members } = request.body as {
-      name: string
-      color?: string
-      description?: string
-      members?: MemberInput[]
-    }
-    const team = await prisma.capacityTeam.findFirst({ where: { id, ownerId } })
-    if (!team) return reply.status(404).send({ error: 'Équipe introuvable' })
-    await prisma.capacityTeamMember.deleteMany({ where: { teamId: id } })
-    const updated = await prisma.capacityTeam.update({
-      where: { id },
-      data: {
-        name: name?.trim() || team.name,
-        color: color ?? team.color,
-        description: description !== undefined ? (description?.trim() || null) : team.description,
-        members: {
-          create: (members ?? []).map((m, i) => ({
-            name: m.name.trim(),
-            role: m.role?.trim() || null,
-            fte: m.fte ?? 1,
-            order: m.order ?? i,
-          })),
-        },
-      },
-      include: TEAM_INCLUDE,
-    })
-    return updated
-  })
-
-  app.delete('/teams/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
-    const team = await prisma.capacityTeam.findFirst({ where: { id, ownerId } })
-    if (!team) return reply.status(404).send({ error: 'Équipe introuvable' })
-    await prisma.capacityTeam.delete({ where: { id } })
-    return reply.status(204).send()
-  })
 
   // ── Events ──────────────────────────────────────────────────────────────────
 
@@ -156,7 +70,7 @@ export const capacityRoutes: FastifyPluginAsync = async (app) => {
 
     // Validate optional team / parent ownership.
     if (body.teamId) {
-      const team = await prisma.capacityTeam.findFirst({ where: { id: body.teamId, ownerId } })
+      const team = await prisma.team.findFirst({ where: { id: body.teamId, ownerId } })
       if (!team) return reply.status(400).send({ error: 'Équipe invalide' })
     }
     if (body.parentId) {
@@ -167,11 +81,11 @@ export const capacityRoutes: FastifyPluginAsync = async (app) => {
     // Seed members either from the explicit list or from the linked team roster.
     let seeded: MemberInput[] = body.members ?? []
     if ((!seeded || seeded.length === 0) && body.seedFromTeam && body.teamId) {
-      const roster = await prisma.capacityTeamMember.findMany({
+      const roster = await prisma.teamMember.findMany({
         where: { teamId: body.teamId },
         orderBy: { order: 'asc' },
       })
-      seeded = roster.map((m, i) => ({ name: m.name, role: m.role, fte: m.fte, order: i }))
+      seeded = roster.map((m, i) => ({ name: m.name, role: m.role, fte: m.fte ?? 1, order: i }))
     }
 
     const event = await prisma.capacityEvent.create({

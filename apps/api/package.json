@@ -1,6 +1,6 @@
 {
   "name": "@pouetpouet/api",
-  "version": "4.0.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"
@@ -19,9 +20,13 @@
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^10.0.2",
     "@fastify/jwt": "^10.0.0",
+    "@fastify/rate-limit": "^11.0.0",
+    "@fastify/swagger": "^9.7.0",
+    "@fastify/swagger-ui": "^6.0.0",
     "@pouetpouet/shared": "*",
     "@prisma/client": "^6.8.2",
     "@sentry/node": "^10.57.0",
+    "@socket.io/redis-adapter": "^8.3.0",
     "@types/nodemailer": "^8.0.0",
     "bcryptjs": "^3.0.2",
     "fastify": "^5.3.2",

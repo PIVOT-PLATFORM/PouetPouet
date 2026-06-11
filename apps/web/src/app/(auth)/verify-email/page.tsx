@@ -11,7 +11,7 @@ function VerifyEmailInner() {
   const verifyEmail = useAuthStore((s) => s.verifyEmail)
 
   // 'verifying' → calling the API; 'error' → bad/expired link.
-  // On success the (auth) layout sees the new token and redirects to /dashboard.
+  // On success the (auth) layout sees the new token and redirects to /hub.
   const [state, setState] = useState<'verifying' | 'error'>('verifying')
   const [message, setMessage] = useState('')
   const ran = useRef(false)

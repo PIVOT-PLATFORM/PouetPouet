@@ -35,7 +35,7 @@ export default function LoginPage() {
     if (!validate()) return
     try {
       await login(email, password)
-      router.push('/dashboard')
+      router.push('/hub')
     } catch (err) {
       if (err instanceof ApiError && err.code === 'EMAIL_NOT_VERIFIED') {
         setNeedsVerification(true)

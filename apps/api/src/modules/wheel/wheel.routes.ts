@@ -1,5 +1,6 @@
 ﻿import type { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../../lib/prisma.js'
+import { bus } from '../../lib/bus.js'
 
 // Weighted pick without replacement.
 // Members drawn recently get a lower weight so they're less likely to be picked again.
@@ -105,7 +106,7 @@ export const wheelRoutes: FastifyPluginAsync = async (app) => {
     if (!teamId) return reply.status(400).send({ error: 'teamId required' })
     if (!count || count < 1) return reply.status(400).send({ error: 'count must be >= 1' })
 
-    const team = await prisma.dailyTeam.findFirst({
+    const team = await prisma.team.findFirst({
       where: { id: teamId, ownerId },
       include: { members: true },
     })
@@ -156,6 +157,14 @@ export const wheelRoutes: FastifyPluginAsync = async (app) => {
         excluded: excludedNames,
       },
     })
+
+    bus.publish({
+      type: 'wheel.draw.completed',
+      module: 'wheel',
+      actorId: ownerId,
+      payload: { drawId: draw.id, teamId, teamName: team.name, results, count, mode: drawMode },
+    })
+
     return reply.status(201).send(draw)
   })
 

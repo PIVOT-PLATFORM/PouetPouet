@@ -12,6 +12,7 @@ export interface User {
   bio: string | null
   theme: 'light' | 'dark'
   emailVerified: boolean
+  favoriteModules: string[]
   createdAt: string
 }
 
@@ -45,6 +46,7 @@ interface AuthState {
   updateAvatar: (avatar: string | null) => Promise<void>
   changePassword: (current: string, next: string) => Promise<void>
   deleteAccount: (password: string) => Promise<void>
+  toggleModuleFavorite: (moduleId: string) => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -143,6 +145,22 @@ export const useAuthStore = create<AuthState>()(
         await api.post('/api/auth/delete-account', { password })
         localStorage.removeItem('token')
         set({ user: null, token: null, sessionExpired: false })
+      },
+
+      toggleModuleFavorite: async (moduleId) => {
+        // Optimistic update
+        set((state) => {
+          if (!state.user) return state
+          const favs = state.user.favoriteModules
+          const next = favs.includes(moduleId) ? favs.filter((m) => m !== moduleId) : [...favs, moduleId]
+          return { user: { ...state.user, favoriteModules: next } }
+        })
+        try {
+          const updated = await api.post<User>('/api/auth/favorites/modules', { moduleId })
+          set((state) => ({ user: state.user ? { ...state.user, ...updated } : null }))
+        } catch {
+          // Revert on failure by refetching
+        }
       },
     }),
     {
