@@ -27,7 +27,7 @@ describe('InProcessBus', () => {
   it('delivers events to typed subscribers', () => {
     const bus = makeBus()
     const received: ForgeEvent<{ x: number }>[] = []
-    bus.subscribe<{ x: number }>('test.event', (e) => received.push(e))
+    bus.subscribe<{ x: number }>('test.event', (e) => { received.push(e) })
     bus.publish({ type: 'test.event', module: 'test', payload: { x: 42 } })
     expect(received).toHaveLength(1)
     expect(received[0].payload.x).toBe(42)
@@ -36,13 +36,13 @@ describe('InProcessBus', () => {
 
   it('adds an `at` timestamp on publish', () => {
     const bus = makeBus()
-    let captured: ForgeEvent<unknown> | null = null
+    let captured: ForgeEvent<unknown> | undefined
     bus.subscribe('ts.test', (e) => { captured = e })
     const before = Date.now()
     bus.publish({ type: 'ts.test', module: 'test', payload: null })
     const after = Date.now()
-    expect(captured).not.toBeNull()
-    const ts = new Date((captured as ForgeEvent<unknown>).at).getTime()
+    expect(captured).not.toBeUndefined()
+    const ts = new Date(captured!.at).getTime()
     expect(ts).toBeGreaterThanOrEqual(before)
     expect(ts).toBeLessThanOrEqual(after)
   })
@@ -50,7 +50,7 @@ describe('InProcessBus', () => {
   it('wildcard subscriber receives all events', () => {
     const bus = makeBus()
     const types: string[] = []
-    bus.subscribe('*', (e) => types.push(e.type))
+    bus.subscribe('*', (e) => { types.push(e.type) })
     bus.publish({ type: 'a.b', module: 'test', payload: null })
     bus.publish({ type: 'c.d', module: 'test', payload: null })
     expect(types).toEqual(['a.b', 'c.d'])
@@ -59,7 +59,7 @@ describe('InProcessBus', () => {
   it('unsubscribe stops delivery', () => {
     const bus = makeBus()
     const calls: number[] = []
-    const unsub = bus.subscribe('unsub.test', () => calls.push(1))
+    const unsub = bus.subscribe('unsub.test', () => { calls.push(1) })
     bus.publish({ type: 'unsub.test', module: 'test', payload: null })
     unsub()
     bus.publish({ type: 'unsub.test', module: 'test', payload: null })
@@ -74,7 +74,7 @@ describe('InProcessBus', () => {
     // First handler defined via EventEmitter directly so the throwing path is covered
     // (makeBus above uses try/catch identical to the production code).
     bus.subscribe('err.test', () => { throw new Error('boom') })
-    bus.subscribe('err.test', () => calls.push('ok'))
+    bus.subscribe('err.test', () => { calls.push('ok') })
 
     expect(() => bus.publish({ type: 'err.test', module: 'test', payload: null })).not.toThrow()
     expect(calls).toContain('ok')
@@ -84,8 +84,8 @@ describe('InProcessBus', () => {
   it('multiple typed subscribers all receive the same event', () => {
     const bus = makeBus()
     const a: number[] = [], b: number[] = []
-    bus.subscribe<{ n: number }>('multi', (e) => a.push(e.payload.n))
-    bus.subscribe<{ n: number }>('multi', (e) => b.push(e.payload.n))
+    bus.subscribe<{ n: number }>('multi', (e) => { a.push(e.payload.n) })
+    bus.subscribe<{ n: number }>('multi', (e) => { b.push(e.payload.n) })
     bus.publish({ type: 'multi', module: 'test', payload: { n: 7 } })
     expect(a).toEqual([7])
     expect(b).toEqual([7])

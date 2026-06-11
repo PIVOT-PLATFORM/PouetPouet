@@ -1,6 +1,7 @@
 ﻿import { randomUUID } from 'crypto'
 import type { Server, Socket } from 'socket.io'
 import { prisma } from '../../lib/prisma.js'
+import { redis } from '../../lib/redis.js'
 
 function canWrite(socket: Socket, boardId: string): boolean {
   const role = socket.data.boardRoles?.[boardId]
@@ -21,17 +22,41 @@ async function ignoreMissing<T>(op: Promise<T>): Promise<T | null> {
   }
 }
 
+// Presence cache — Redis hash when available, in-memory via fetchSockets as fallback.
+//
+// Redis layout: board:presence:{boardId}  Hash  userId → JSON { id, name, avatar }
+// TTL is refreshed on each join (1 hour). On leave/disconnect the field is removed.
+
+const PRESENCE_TTL = 3600
+
+async function addPresence(boardId: string, user: { id: string; name: string; avatar: string | null }) {
+  if (redis.status !== 'ready') return
+  const key = `board:presence:${boardId}`
+  await redis.hset(key, user.id, JSON.stringify(user))
+  await redis.expire(key, PRESENCE_TTL)
+}
+
+async function removePresence(boardId: string, userId: string) {
+  if (redis.status !== 'ready') return
+  await redis.hdel(`board:presence:${boardId}`, userId)
+}
+
 async function broadcastPresence(io: Server, boardId: string) {
-  const sockets = await io.in(`board:${boardId}`).fetchSockets()
-  const seen = new Set<string>()
-  const users: { id: string; name: string; avatar: string | null }[] = []
-  for (const s of sockets) {
-    const info = s.data.userInfo as { id: string; name: string; avatar: string | null } | undefined
-    if (info && !seen.has(info.id)) {
-      seen.add(info.id)
-      users.push(info)
+  let users: { id: string; name: string; avatar: string | null }[]
+
+  if (redis.status === 'ready') {
+    const vals = await redis.hvals(`board:presence:${boardId}`)
+    users = vals.map((v) => JSON.parse(v) as { id: string; name: string; avatar: string | null })
+  } else {
+    const sockets = await io.in(`board:${boardId}`).fetchSockets()
+    const seen = new Set<string>()
+    users = []
+    for (const s of sockets) {
+      const info = s.data.userInfo as { id: string; name: string; avatar: string | null } | undefined
+      if (info && !seen.has(info.id)) { seen.add(info.id); users.push(info) }
     }
   }
+
   io.to(`board:${boardId}`).emit('board:presence', users)
 }
 
@@ -75,18 +100,23 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
       prisma.boardField.findMany({ where: { boardId }, orderBy: { order: 'asc' } }),
     ])
     socket.emit('board:state', { cards, connections, frames, fields, role })
+    if (socket.data.userInfo) await addPresence(boardId, socket.data.userInfo as { id: string; name: string; avatar: string | null })
     await broadcastPresence(io, boardId)
   })
 
   socket.on('board:leave', async (boardId: string) => {
     socket.leave(`board:${boardId}`)
+    const info = socket.data.userInfo as { id: string } | undefined
+    if (info) await removePresence(boardId, info.id)
     await broadcastPresence(io, boardId)
   })
 
   socket.on('disconnect', async () => {
     const boardRoles = socket.data.boardRoles as Record<string, string> | undefined
     if (!boardRoles) return
+    const info = socket.data.userInfo as { id: string } | undefined
     for (const boardId of Object.keys(boardRoles)) {
+      if (info) await removePresence(boardId, info.id)
       await broadcastPresence(io, boardId)
     }
   })
