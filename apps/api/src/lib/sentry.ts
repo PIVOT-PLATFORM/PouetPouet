@@ -7,6 +7,13 @@ if (process.env.SENTRY_DSN) {
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV ?? 'development',
     tracesSampleRate: 0.1,
+    // Les erreurs HTTP 4xx (JWT expiré, 401, validation…) sont des réponses
+    // normales au client, pas des bugs serveur — on ne les envoie pas à Sentry.
+    beforeSend(event, hint) {
+      const err = hint?.originalException as { statusCode?: number } | undefined
+      if (err && typeof err.statusCode === 'number' && err.statusCode < 500) return null
+      return event
+    },
   })
 }
 

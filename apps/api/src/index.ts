@@ -61,6 +61,9 @@ if (process.env.NODE_ENV === 'production') {
   await app.register(rateLimit, {
     global: false, // les limites sont déclarées par route dans auth.ts et boards.routes.ts
     redis,
+    // Sans Redis joignable (pas de Memorystore), on laisse passer plutôt que
+    // de 500 sur login/register — le rate limiting redevient actif avec Redis.
+    skipOnError: true,
     keyGenerator: (req) => req.ip,
     errorResponseBuilder: (_req, ctx) => ({
       statusCode: 429,

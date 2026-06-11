@@ -20,6 +20,21 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.6.1',
+    date: '2026-06-12',
+    title: 'Correctif connexion',
+    summary: 'La connexion échouait en erreur serveur sur l\'instance de production — corrigé.',
+    sections: [
+      {
+        heading: '🔧 Corrections',
+        items: [
+          'Connexion / inscription : le limiteur de requêtes plantait quand le cache Redis est indisponible (erreur 500 systématique au login depuis la v0.5.0) — il s\'efface désormais proprement.',
+          'Supervision : les erreurs normales de session expirée ne sont plus remontées comme des bugs.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.6.0',
     date: '2026-06-12',
     title: 'Connexion SSO & journal de sécurité',
