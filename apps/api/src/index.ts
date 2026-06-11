@@ -13,6 +13,7 @@ import { Server } from 'socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
 
 import { authRoutes } from './routes/auth.js'
+import { oidcRoutes } from './routes/oidc.js'
 import { sessionRoutes } from './routes/sessions.js'
 import { notificationRoutes } from './routes/notifications.js'
 import { hubRoutes } from './routes/hub.js'
@@ -130,6 +131,7 @@ app.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply
 
 // Socle : identité, notifications, sessions live (services transverses)
 app.register(authRoutes, { prefix: '/api/auth' })
+app.register(oidcRoutes, { prefix: '/api/auth/oidc' })
 app.register(sessionRoutes, { prefix: '/api/sessions' })
 app.register(notificationRoutes, { prefix: '/api/notifications' })
 app.register(hubRoutes, { prefix: '/api/hub' })
