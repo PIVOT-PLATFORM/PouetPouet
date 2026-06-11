@@ -312,17 +312,19 @@ const io = new Server(app.server, {
 
 // Redis adapter : active si Redis est connecté (prod avec REDIS_HOST).
 // En dev/test (pas de Redis), l'adapteur in-memory par défaut est conservé.
-if (redis.status === 'ready') {
-  const subRedis = redis.duplicate()
+// Le client subscriber NE doit PAS hériter de lazyConnect/enableOfflineQueue:false :
+// son psubscribe partirait avant la connexion et échouerait définitivement.
+function attachRedisAdapter(label: string) {
+  const subRedis = redis.duplicate({ lazyConnect: false, enableOfflineQueue: true })
+  subRedis.on('error', () => {})
   io.adapter(createAdapter(redis, subRedis))
-  app.log.info('socket.io redis adapter active')
+  app.log.info(`socket.io redis adapter active${label}`)
+}
+if (redis.status === 'ready') {
+  attachRedisAdapter('')
 } else {
   // Écoute la connexion différée (Redis pas encore prêt au démarrage)
-  redis.once('ready', () => {
-    const subRedis = redis.duplicate()
-    io.adapter(createAdapter(redis, subRedis))
-    app.log.info('socket.io redis adapter active (deferred)')
-  })
+  redis.once('ready', () => attachRedisAdapter(' (deferred)'))
 }
 
 // Auth is optional: anonymous participants (no account) must be able to join

@@ -179,10 +179,15 @@ export function useBoard(boardId: string) {
       })
     })
 
-    socket.on('board:cursor', (data: { userId: string; name: string; avatar: string | null; x: number; y: number }) => {
+    // Batch 20 Hz côté serveur : un seul setState par tick quel que soit le
+    // nombre de participants (vs un render par curseur reçu auparavant).
+    socket.on('board:cursors', (batch: { userId: string; name: string; avatar: string | null; x: number; y: number }[]) => {
+      const now = Date.now()
       setCursors((prev) => {
         const next = new Map(prev)
-        next.set(data.userId, { name: data.name, avatar: data.avatar, x: data.x, y: data.y, ts: Date.now() })
+        for (const c of batch) {
+          next.set(c.userId, { name: c.name, avatar: c.avatar, x: c.x, y: c.y, ts: now })
+        }
         return next
       })
     })
@@ -289,7 +294,7 @@ export function useBoard(boardId: string) {
     return () => {
       socket.io.off('reconnect', handleReconnect)
       socket.emit('board:leave', boardId)
-      ;['board:state', 'board:error', 'board:presence', 'board:cursor', 'timer:started', 'timer:stopped',
+      ;['board:state', 'board:error', 'board:presence', 'board:cursors', 'timer:started', 'timer:stopped',
         'vote:session:started', 'vote:updated', 'vote:session:closed',
         'cards:locked', 'card:layered', 'frame:layered',
         'card:created', 'card:moved', 'card:resized', 'card:updated', 'card:deleted', 'card:recolored',
