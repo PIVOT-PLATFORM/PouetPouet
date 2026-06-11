@@ -20,6 +20,44 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '4.1.0',
+    date: '2026-06-11',
+    title: 'FORGE F3-F4 : pivot Équipes, Redis multi-instance, Hub unifié',
+    summary: 'Les modules Capacité et Daily partagent désormais un pivot Équipe unique. Le hub devient la page d\'accueil. Les serveurs peuvent scaler horizontalement grâce à Redis.',
+    sections: [
+      {
+        heading: '✨ Nouveautés',
+        items: [
+          'Hub : page d\'accueil par défaut après connexion, avec compteurs cross-modules en temps réel.',
+          'Pivot Équipe (F3.1) : les équipes Daily et Capacité sont unifiées en un seul objet Équipe partagé entre les modules.',
+          'Liaisons événementielles (F3.2) : notification automatique quand un daily se termine ou quand tous les tickets Scrum sont estimés.',
+          'Nouvelles icônes dans la cloche pour les types de notifications DAILY_SESSION_ENDED et SCRUM_ALL_ESTIMATED.',
+        ],
+      },
+      {
+        heading: '⚡ Performances & Scalabilité',
+        items: [
+          'Redis Socket.io adapter (F4) : les événements socket se propagent entre instances — le service peut maintenant scaler horizontalement (max-instances=10).',
+          'Présence board mise en cache dans Redis hash — plus de fetchSockets() O(n) sur toutes les instances.',
+          'Participants Scrum Poker stockés dans Redis hash (TTL 24h) — registry partagé entre instances, fallback Map en dev.',
+        ],
+      },
+      {
+        heading: '🔒 Sécurité',
+        items: [
+          'Rate limiting activé en production : inscription (5/h), connexion (10/5min), renvoi vérification (3/h), mot de passe oublié (3/h), import Klaxoon (5/min).',
+        ],
+      },
+      {
+        heading: '🧪 Qualité',
+        items: [
+          '61 tests unitaires : bus d\'événements FORGE, mailer, calculs de capacité (22 cas), patch-notes, JWT, formats.',
+          'Typecheck strict maintenu sur API et Web.',
+        ],
+      },
+    ],
+  },
+  {
     version: '4.0.0',
     date: '2026-06-11',
     title: 'Capacité, import Klaxoon complet, performances board & socle FORGE',
