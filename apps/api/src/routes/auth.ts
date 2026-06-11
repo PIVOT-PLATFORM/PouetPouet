@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/mailer.js'
+import { audit } from '../lib/audit.js'
 
 const USER_SELECT = {
   id: true, email: true, name: true, avatar: true, bio: true, theme: true, emailVerified: true, favoriteModules: true, createdAt: true,
@@ -100,7 +101,10 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     if (!user) return reply.status(401).send({ error: 'Identifiants invalides' })
 
     const valid = await bcrypt.compare(body.password, user.password)
-    if (!valid) return reply.status(401).send({ error: 'Identifiants invalides' })
+    if (!valid) {
+      audit(user.id, 'auth.login_failed', request)
+      return reply.status(401).send({ error: 'Identifiants invalides' })
+    }
 
     if (!user.emailVerified) {
       return reply.status(403).send({
@@ -110,6 +114,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const token = app.jwt.sign({ id: user.id, email: user.email })
+    audit(user.id, 'auth.login', request)
     const { password: _, verifyToken: __, verifyTokenExpires: ___, ...safeUser } = user
     return reply.send({ user: safeUser, token })
   })
@@ -181,6 +186,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     if (!valid) return reply.status(401).send({ error: 'Mot de passe actuel incorrect' })
     const hashed = await bcrypt.hash(body.next, 12)
     await prisma.user.update({ where: { id }, data: { password: hashed } })
+    audit(id, 'auth.password_changed', request)
     return reply.send({ ok: true })
   })
 
@@ -215,6 +221,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       where: { id: user.id },
       data: { password: hashed, resetToken: null, resetTokenExpires: null },
     })
+    audit(user.id, 'auth.password_reset', request)
     return reply.send({ ok: true })
   })
 
@@ -250,7 +257,19 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const filename = `pouetpouet-export-${new Date().toISOString().slice(0, 10)}.json`
     reply.header('Content-Disposition', `attachment; filename="${filename}"`)
     reply.header('Content-Type', 'application/json')
+    audit(id, 'account.exported', request)
     return reply.send(JSON.stringify({ exportedAt: new Date().toISOString(), user, boards, scrumRooms, dailySessions, capacityEvents, wheelEvents, notifications }, null, 2))
+  })
+
+  // Journal de sécurité — dernières actions sensibles du compte (audit trail).
+  app.get('/security-log', { preHandler: [app.authenticate] }, async (request) => {
+    const { id } = request.user as { id: string }
+    return prisma.auditLog.findMany({
+      where: { userId: id },
+      select: { id: true, action: true, resource: true, ip: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    })
   })
 
   // ── API Keys ──────────────────────────────────────────────────────────────────
@@ -281,6 +300,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const prefix = raw.slice(3, 11)
 
     await prisma.apiKey.create({ data: { userId: id, name, keyHash, prefix } })
+    audit(id, 'apikey.created', request, name)
     return reply.status(201).send({ key: raw, name, prefix })
   })
 
@@ -290,6 +310,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const key = await prisma.apiKey.findFirst({ where: { id: keyId, userId: id } })
     if (!key) return reply.status(404).send({ error: 'Clé introuvable.' })
     await prisma.apiKey.delete({ where: { id: keyId } })
+    audit(id, 'apikey.revoked', request, key.name)
     return reply.send({ ok: true })
   })
 

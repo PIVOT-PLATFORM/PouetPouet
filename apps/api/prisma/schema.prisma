@@ -40,6 +40,24 @@ model User {
   capacityEvents CapacityEvent[]
   apiKeys        ApiKey[]
   webhooks       Webhook[]
+  auditLogs      AuditLog[]
+  oauthAccounts  OAuthAccount[]
+}
+
+// Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
+// plusieurs providers ; un (provider, sujet) ne mappe qu'un seul compte.
+model OAuthAccount {
+  id         String   @id @default(cuid())
+  userId     String
+  provider   String // issuer URL ou alias (ex. "keycloak", "google")
+  subject    String // claim "sub" du token OIDC
+  email      String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, subject])
+  @@index([userId])
 }
 
 model ApiKey {
@@ -302,6 +320,22 @@ model Notification {
   link      String?
   readAt    DateTime?
   createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// Journal des actions sensibles du compte (sécurité / conformité).
+// Cascade à la suppression du compte : pas de PII orpheline (RGPD).
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  resource  String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -40,6 +40,26 @@ interface WebhookDeliveryMeta {
   createdAt: string
 }
 
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  'auth.login': 'Connexion',
+  'auth.login_failed': 'Tentative de connexion échouée',
+  'auth.password_changed': 'Mot de passe modifié',
+  'auth.password_reset': 'Mot de passe réinitialisé',
+  'account.exported': 'Export des données (RGPD)',
+  'apikey.created': 'Clé API créée',
+  'apikey.revoked': 'Clé API révoquée',
+  'webhook.created': 'Webhook créé',
+  'webhook.deleted': 'Webhook supprimé',
+}
+
+interface AuditEntry {
+  id: string
+  action: string
+  resource: string | null
+  ip: string | null
+  createdAt: string
+}
+
 function resizeImage(file: File, maxPx: number): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image()
@@ -142,6 +162,15 @@ export default function ProfilePage() {
   const [wkSecretCopied, setWkSecretCopied] = useState(false)
   const [expandedWkId, setExpandedWkId] = useState<string | null>(null)
   const [wkDeliveries, setWkDeliveries] = useState<Record<string, WebhookDeliveryMeta[]>>({})
+
+  // ── Journal de sécurité ────────────────────────────────────────────────────
+  const [auditLog, setAuditLog] = useState<AuditEntry[]>([])
+  const [showAuditLog, setShowAuditLog] = useState(false)
+
+  useEffect(() => {
+    if (!showAuditLog) return
+    api.get<AuditEntry[]>('/api/auth/security-log').then(setAuditLog).catch(() => {})
+  }, [showAuditLog])
 
   const loadWebhooks = useCallback(async () => {
     try { setWebhooks(await api.get<WebhookMeta[]>('/api/webhooks')) } catch { /* silent */ }
@@ -783,6 +812,38 @@ export default function ProfilePage() {
           </div>
         ) : !showWebhookForm && (
           <p className="text-sm text-gray-400 dark:text-gray-500">Aucun webhook configuré.</p>
+        )}
+      </SectionCard>
+
+      {/* ── Journal de sécurité ── */}
+      <SectionCard title="Journal de sécurité">
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+          Les 50 dernières actions sensibles de votre compte : connexions, changements de mot de passe, clés API, webhooks.
+        </p>
+        {!showAuditLog ? (
+          <button
+            onClick={() => setShowAuditLog(true)}
+            className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+            Afficher le journal
+          </button>
+        ) : auditLog.length === 0 ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500">Aucune action enregistrée pour le moment.</p>
+        ) : (
+          <div className="space-y-1 max-h-64 overflow-y-auto">
+            {auditLog.map((entry) => (
+              <div key={entry.id} className="flex items-center gap-2 text-xs py-1.5 border-b border-gray-50 dark:border-gray-800 last:border-0">
+                <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${entry.action === 'auth.login_failed' ? 'bg-red-400' : 'bg-emerald-400'}`} />
+                <span className="text-gray-700 dark:text-gray-200 font-medium">{AUDIT_ACTION_LABELS[entry.action] ?? entry.action}</span>
+                {entry.resource && <span className="text-gray-400 dark:text-gray-500 truncate">« {entry.resource} »</span>}
+                <span className="ml-auto shrink-0 text-gray-400 dark:text-gray-500">{entry.ip ?? ''}</span>
+                <span className="shrink-0 text-gray-400 dark:text-gray-500">
+                  {new Date(entry.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </SectionCard>
 

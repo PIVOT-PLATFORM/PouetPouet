@@ -98,4 +98,31 @@ describe('/api/auth (integration)', () => {
     expect(body.token).toBeTruthy()
     expect(body.user.emailVerified).toBe(true)
   })
+
+  it('records logins and failed attempts in the security log', async () => {
+    // Successful login, then a failed one (audit writes are fire-and-forget → poll)
+    const ok = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: `bypass${SUFFIX}`, password: 'Password123!' },
+    })
+    expect(ok.statusCode).toBe(200)
+    const token = ok.json().token
+    await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: `bypass${SUFFIX}`, password: 'Wrong!' },
+    })
+
+    await expect
+      .poll(async () => {
+        const res = await app.inject({
+          method: 'GET',
+          url: '/api/auth/security-log',
+          headers: { authorization: `Bearer ${token}` },
+        })
+        return res.json().map((e: { action: string }) => e.action)
+      }, { timeout: 3000 })
+      .toEqual(expect.arrayContaining(['auth.login', 'auth.login_failed']))
+  })
 })

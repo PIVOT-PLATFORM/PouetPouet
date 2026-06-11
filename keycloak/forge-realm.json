@@ -1,0 +1,31 @@
+{
+  "realm": "forge",
+  "enabled": true,
+  "registrationAllowed": false,
+  "clients": [
+    {
+      "clientId": "pouetpouet",
+      "name": "PouetPouet (FORGE)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "pouetpouet-dev-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:4000/api/auth/oidc/callback"],
+      "webOrigins": ["http://localhost:3000"],
+      "attributes": { "pkce.code.challenge.method": "S256" }
+    }
+  ],
+  "users": [
+    {
+      "username": "sso-user",
+      "enabled": true,
+      "email": "sso-user@forge.local",
+      "emailVerified": true,
+      "firstName": "SSO",
+      "lastName": "User",
+      "credentials": [{ "type": "password", "value": "sso-password", "temporary": false }]
+    }
+  ]
+}

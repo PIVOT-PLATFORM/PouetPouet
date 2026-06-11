@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import crypto from 'node:crypto'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
+import { audit } from '../lib/audit.js'
 
 // Events that can be subscribed to via webhook
 export const WEBHOOK_EVENTS = [
@@ -46,6 +47,7 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
       data: { userId, name: body.name, url: body.url, events: body.events, secret },
       select: { id: true, name: true, url: true, events: true, active: true, secret: true, createdAt: true },
     })
+    audit(userId, 'webhook.created', request, body.name)
     return reply.status(201).send(webhook)
   })
 
@@ -69,6 +71,7 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
     const existing = await prisma.webhook.findFirst({ where: { id, userId } })
     if (!existing) return reply.status(404).send({ error: 'Webhook introuvable.' })
     await prisma.webhook.delete({ where: { id } })
+    audit(userId, 'webhook.deleted', request, existing.name)
     return reply.send({ ok: true })
   })
 

@@ -35,6 +35,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string, bypass?: boolean) => Promise<RegisterResult>
   verifyEmail: (token: string) => Promise<void>
+  adoptToken: (token: string) => Promise<void>
   resendVerification: (email: string) => Promise<{ devLink?: string }>
   forgotPassword: (email: string) => Promise<{ devLink?: string }>
   resetPassword: (token: string, password: string) => Promise<void>
@@ -93,6 +94,14 @@ export const useAuthStore = create<AuthState>()(
         const data = await api.post<AuthResponse>('/api/auth/verify-email', { token })
         localStorage.setItem('token', data.token)
         set({ user: data.user, token: data.token, isLoading: false, sessionExpired: false })
+      },
+
+      // SSO : adopte un JWT émis par le callback OIDC (l'utilisateur est chargé depuis l'API).
+      adoptToken: async (token) => {
+        localStorage.setItem('token', token)
+        set({ token, sessionExpired: false })
+        const user = await api.get<User>('/api/auth/me')
+        set({ user })
       },
 
       resendVerification: async (email) => {

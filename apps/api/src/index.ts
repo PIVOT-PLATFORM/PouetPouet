@@ -13,6 +13,7 @@ import { Server } from 'socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
 
 import { authRoutes } from './routes/auth.js'
+import { oidcRoutes } from './routes/oidc.js'
 import { sessionRoutes } from './routes/sessions.js'
 import { notificationRoutes } from './routes/notifications.js'
 import { hubRoutes } from './routes/hub.js'
@@ -25,6 +26,7 @@ import { bus } from './lib/bus.js'
 import { notify } from './lib/notify.js'
 import { prisma } from './lib/prisma.js'
 import { redis } from './lib/redis.js'
+import { scheduleRetention } from './lib/retention.js'
 
 const PORT = Number(process.env.PORT ?? 4000)
 
@@ -129,6 +131,7 @@ app.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply
 
 // Socle : identité, notifications, sessions live (services transverses)
 app.register(authRoutes, { prefix: '/api/auth' })
+app.register(oidcRoutes, { prefix: '/api/auth/oidc' })
 app.register(sessionRoutes, { prefix: '/api/sessions' })
 app.register(notificationRoutes, { prefix: '/api/notifications' })
 app.register(hubRoutes, { prefix: '/api/hub' })
@@ -338,5 +341,8 @@ io.use((socket, next) => {
 
 setIO(io)
 registerSocketHandlers(io)
+
+// Purge quotidienne des données inactives (sessions fermées, notifs lues, audit)
+scheduleRetention(app.log)
 
 await app.listen({ port: PORT, host: '0.0.0.0' })

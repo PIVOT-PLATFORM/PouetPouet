@@ -19,8 +19,8 @@ build
 !apps/web/public/aide/*.pdf
 backup.sql
 ideatank.txt
-scripts/
-docs/
+/scripts/
+/docs/
 
 apps/web/src/lib/klx-import/samples/
 
