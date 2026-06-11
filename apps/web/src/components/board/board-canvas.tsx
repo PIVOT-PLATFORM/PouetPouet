@@ -602,7 +602,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     let raf = 0
     const fit = () => {
       cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(() => { if (!didAutoFitRef.current) fitToContent() })
+      raf = requestAnimationFrame(() => requestAnimationFrame(() => { if (!didAutoFitRef.current) fitToContent() }))
     }
     fit()                                              // first frame
     const ro = new ResizeObserver(fit)                 // re-fit as the container settles/resizes
@@ -930,7 +930,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     <>
       <div
         ref={containerRef}
-        className="relative flex-1 overflow-clip select-none"
+        className="relative flex-1 overflow-hidden select-none"
         style={{
           backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)',
           backgroundSize: `${dotD}px ${dotD}px`,
