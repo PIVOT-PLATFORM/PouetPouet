@@ -14,6 +14,23 @@ interface ApiKeyMeta {
   createdAt: string
 }
 
+const WEBHOOK_EVENT_LABELS: Record<string, string> = {
+  'board.imported': 'Board importé',
+  'daily.session.ended': 'Daily terminé',
+  'scrum.ticket.estimated': 'Scrum — tous estimés',
+  'wheel.draw.completed': 'Tirage Roue',
+}
+const WEBHOOK_EVENTS_LIST = Object.keys(WEBHOOK_EVENT_LABELS)
+
+interface WebhookMeta {
+  id: string
+  name: string
+  url: string
+  events: string[]
+  active: boolean
+  createdAt: string
+}
+
 function resizeImage(file: File, maxPx: number): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image()
@@ -101,6 +118,61 @@ export default function ProfilePage() {
   }, [])
 
   useEffect(() => { loadApiKeys() }, [loadApiKeys])
+
+  // ── Webhooks ──────────────────────────────────────────────────────────────
+  const [webhooks, setWebhooks] = useState<WebhookMeta[]>([])
+  const [showWebhookForm, setShowWebhookForm] = useState(false)
+  const [wkName, setWkName] = useState('')
+  const [wkUrl, setWkUrl] = useState('')
+  const [wkEvents, setWkEvents] = useState<string[]>([])
+  const [creatingWk, setCreatingWk] = useState(false)
+  const [deletingWkId, setDeletingWkId] = useState<string | null>(null)
+  const [newWkSecret, setNewWkSecret] = useState<string | null>(null)
+  const [wkSecretCopied, setWkSecretCopied] = useState(false)
+
+  const loadWebhooks = useCallback(async () => {
+    try { setWebhooks(await api.get<WebhookMeta[]>('/api/webhooks')) } catch { /* silent */ }
+  }, [])
+
+  useEffect(() => { loadWebhooks() }, [loadWebhooks])
+
+  async function handleCreateWebhook(e: React.FormEvent) {
+    e.preventDefault()
+    if (!wkName.trim() || !wkUrl.trim() || wkEvents.length === 0) return
+    setCreatingWk(true)
+    try {
+      const res = await api.post<WebhookMeta & { secret: string }>('/api/webhooks', { name: wkName.trim(), url: wkUrl.trim(), events: wkEvents })
+      setNewWkSecret(res.secret)
+      setWkName(''); setWkUrl(''); setWkEvents([])
+      setShowWebhookForm(false)
+      await loadWebhooks()
+    } finally {
+      setCreatingWk(false)
+    }
+  }
+
+  async function handleToggleWebhook(id: string, active: boolean) {
+    await api.patch(`/api/webhooks/${id}`, { active }).catch(() => {})
+    setWebhooks((prev) => prev.map((w) => w.id === id ? { ...w, active } : w))
+  }
+
+  async function handleDeleteWebhook(id: string) {
+    setDeletingWkId(id)
+    try {
+      await api.delete(`/api/webhooks/${id}`)
+      setWebhooks((prev) => prev.filter((w) => w.id !== id))
+    } finally {
+      setDeletingWkId(null)
+    }
+  }
+
+  function copyWkSecret() {
+    if (!newWkSecret) return
+    navigator.clipboard.writeText(newWkSecret).then(() => {
+      setWkSecretCopied(true)
+      setTimeout(() => setWkSecretCopied(false), 2000)
+    })
+  }
 
   async function handleCreateKey(e: React.FormEvent) {
     e.preventDefault()
@@ -504,6 +576,125 @@ export default function ProfilePage() {
             <p className="text-xs text-gray-400 dark:text-gray-500 italic">Aucune clé API active.</p>
           )}
         </div>
+      </SectionCard>
+
+      {/* ── Webhooks ── */}
+      <SectionCard title="Webhooks">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          Recevez des notifications HTTP lorsque des événements se produisent dans FORGE. Chaque livraison est signée avec un secret HMAC-SHA256 dans l'en-tête <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">X-Webhook-Signature</code>.
+        </p>
+
+        {newWkSecret && (
+          <div className="mb-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1">Secret généré — copiez-le maintenant, il ne sera plus affiché</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs font-mono bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 overflow-x-auto text-amber-800 dark:text-amber-200 select-all break-all">
+                {newWkSecret}
+              </code>
+              <button onClick={copyWkSecret} className="shrink-0 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium transition-colors">
+                {wkSecretCopied ? '✓ Copié' : 'Copier'}
+              </button>
+            </div>
+            <button onClick={() => setNewWkSecret(null)} className="mt-2 text-xs text-amber-500 hover:text-amber-700 transition-colors">
+              J'ai bien copié le secret ×
+            </button>
+          </div>
+        )}
+
+        {/* Formulaire de création */}
+        {showWebhookForm ? (
+          <form onSubmit={handleCreateWebhook} className="mb-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 flex flex-col gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nom</label>
+              <input
+                autoFocus
+                value={wkName}
+                onChange={(e) => setWkName(e.target.value)}
+                placeholder="Mon webhook CI"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">URL</label>
+              <input
+                value={wkUrl}
+                onChange={(e) => setWkUrl(e.target.value)}
+                placeholder="https://example.com/webhook"
+                type="url"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Événements</label>
+              <div className="flex flex-wrap gap-2">
+                {WEBHOOK_EVENTS_LIST.map((ev) => (
+                  <label key={ev} className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={wkEvents.includes(ev)}
+                      onChange={(e) => setWkEvents((prev) => e.target.checked ? [...prev, ev] : prev.filter((x) => x !== ev))}
+                      className="rounded"
+                    />
+                    <span className="text-xs text-gray-700 dark:text-gray-300">{WEBHOOK_EVENT_LABELS[ev]}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button type="button" onClick={() => { setShowWebhookForm(false); setWkName(''); setWkUrl(''); setWkEvents([]) }} className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                Annuler
+              </button>
+              <button type="submit" disabled={creatingWk || !wkName.trim() || !wkUrl.trim() || wkEvents.length === 0} className="px-3 py-1.5 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                {creatingWk ? 'Création…' : 'Créer'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button onClick={() => setShowWebhookForm(true)} className="mb-4 flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            Ajouter un webhook
+          </button>
+        )}
+
+        {webhooks.length > 0 ? (
+          <div className="space-y-2">
+            {webhooks.map((wk) => (
+              <div key={wk.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{wk.name}</span>
+                    <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${wk.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                      {wk.active ? 'Actif' : 'Inactif'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{wk.url}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{wk.events.map((ev) => WEBHOOK_EVENT_LABELS[ev] ?? ev).join(', ')}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => handleToggleWebhook(wk.id, !wk.active)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors"
+                    title={wk.active ? 'Désactiver' : 'Activer'}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={wk.active ? 'M10 9v6m4-6v6' : 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z'} /></svg>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteWebhook(wk.id)}
+                    disabled={deletingWkId === wk.id}
+                    className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                    title="Supprimer"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : !showWebhookForm && (
+          <p className="text-sm text-gray-400 dark:text-gray-500">Aucun webhook configuré.</p>
+        )}
       </SectionCard>
 
       {/* ── Zone de danger ── */}

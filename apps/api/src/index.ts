@@ -16,6 +16,7 @@ import { authRoutes } from './routes/auth.js'
 import { sessionRoutes } from './routes/sessions.js'
 import { notificationRoutes } from './routes/notifications.js'
 import { hubRoutes } from './routes/hub.js'
+import { webhookRoutes, deliverWebhooks } from './routes/webhooks.js'
 import { registerModuleRoutes } from './modules/registry.js'
 import { registerSocketHandlers } from './sockets/index.js'
 import { setIO } from './lib/io.js'
@@ -121,6 +122,7 @@ app.register(authRoutes, { prefix: '/api/auth' })
 app.register(sessionRoutes, { prefix: '/api/sessions' })
 app.register(notificationRoutes, { prefix: '/api/notifications' })
 app.register(hubRoutes, { prefix: '/api/hub' })
+app.register(webhookRoutes, { prefix: '/api/webhooks' })
 
 // Modules FORGE : montés depuis le registre (cf. modules/registry.ts)
 registerModuleRoutes(app)
@@ -138,13 +140,16 @@ bus.subscribe('daily.session.ended', async (e) => {
     select: { ownerId: true, name: true },
   })
   if (session) {
-    await notify({
-      userId: session.ownerId,
-      type: 'DAILY_SESSION_ENDED',
-      title: 'Daily terminé',
-      body: `"${session.name}" est terminé.`,
-      link: '/daily',
-    })
+    await Promise.all([
+      notify({
+        userId: session.ownerId,
+        type: 'DAILY_SESSION_ENDED',
+        title: 'Daily terminé',
+        body: `"${session.name}" est terminé.`,
+        link: '/daily',
+      }),
+      deliverWebhooks('daily.session.ended', session.ownerId, e.payload as Record<string, unknown>),
+    ])
   }
 })
 
@@ -183,13 +188,16 @@ bus.subscribe('scrum.ticket.estimated', async (e) => {
         }
       }
 
-      await notify({
-        userId: room.ownerId,
-        type: 'SCRUM_ALL_ESTIMATED',
-        title: 'Tous les tickets estimés',
-        body: `"${room.name}" — ${tickets.length} ticket${tickets.length > 1 ? 's' : ''}${pointsStr}.`,
-        link: `/scrum`,
-      })
+      await Promise.all([
+        notify({
+          userId: room.ownerId,
+          type: 'SCRUM_ALL_ESTIMATED',
+          title: 'Tous les tickets estimés',
+          body: `"${room.name}" — ${tickets.length} ticket${tickets.length > 1 ? 's' : ''}${pointsStr}.`,
+          link: `/scrum`,
+        }),
+        deliverWebhooks('scrum.ticket.estimated', room.ownerId, { ...e.payload as Record<string, unknown>, totalPoints }),
+      ])
     }
   }
 })
@@ -199,26 +207,32 @@ bus.subscribe('pouetpouet.board.imported', async (e) => {
   const { boardId, cards, connections } = e.payload as { boardId: string; cards: number; connections: number }
   const board = await prisma.board.findUnique({ where: { id: boardId }, select: { name: true } })
   if (!board) return
-  await notify({
-    userId: e.actorId,
-    type: 'BOARD_IMPORTED',
-    title: 'Import terminé',
-    body: `"${board.name}" — ${cards} carte${cards !== 1 ? 's' : ''}${connections > 0 ? `, ${connections} connexion${connections !== 1 ? 's' : ''}` : ''}.`,
-    link: `/dashboard`,
-  })
+  await Promise.all([
+    notify({
+      userId: e.actorId,
+      type: 'BOARD_IMPORTED',
+      title: 'Import terminé',
+      body: `"${board.name}" — ${cards} carte${cards !== 1 ? 's' : ''}${connections > 0 ? `, ${connections} connexion${connections !== 1 ? 's' : ''}` : ''}.`,
+      link: `/dashboard`,
+    }),
+    deliverWebhooks('board.imported', e.actorId, e.payload as Record<string, unknown>),
+  ])
 })
 
 bus.subscribe('wheel.draw.completed', async (e) => {
   const { teamName, results } = e.payload as { teamName: string; results: string[]; count: number }
   if (!e.actorId) return
   const label = results.length === 1 ? results[0] : `${results.slice(0, 2).join(', ')}${results.length > 2 ? '…' : ''}`
-  await notify({
-    userId: e.actorId,
-    type: 'WHEEL_DRAW',
-    title: 'Tirage effectué',
-    body: `${teamName} → ${label}`,
-    link: '/wheel',
-  })
+  await Promise.all([
+    notify({
+      userId: e.actorId,
+      type: 'WHEEL_DRAW',
+      title: 'Tirage effectué',
+      body: `${teamName} → ${label}`,
+      link: '/wheel',
+    }),
+    deliverWebhooks('wheel.draw.completed', e.actorId, e.payload as Record<string, unknown>),
+  ])
 })
 
 // La DB est critique (503 si down) ; Redis est optionnel à ce stade → 'degraded' seulement
