@@ -43,6 +43,12 @@ jobs:
             .
           docker push ${{ env.REPO }}/api --all-tags
 
+      - name: Remove legacy SENTRY_DSN secret binding
+        run: |
+          gcloud run services update pouetpouet-api \
+            --region ${{ env.REGION }} \
+            --remove-secrets=SENTRY_DSN || true
+
       - name: Deploy API to Cloud Run
         run: |
           gcloud run deploy pouetpouet-api \
@@ -62,7 +68,6 @@ jobs:
             --set-secrets SMTP_USER=SMTP_USER:latest \
             --set-secrets SMTP_PASS=SMTP_PASS:latest \
             --set-secrets MAIL_FROM=SMTP_USER:latest \
-            --remove-secrets=SENTRY_DSN \
             --set-env-vars NODE_ENV=production,SMTP_HOST=smtp.gmail.com,SMTP_PORT=587,SMTP_SECURE=false,SENTRY_DSN=${{ secrets.SENTRY_DSN_API }}
 
       - name: Get API URL
