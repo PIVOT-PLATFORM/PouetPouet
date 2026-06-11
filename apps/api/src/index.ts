@@ -134,20 +134,22 @@ bus.subscribe('*', (e) => {
 
 // F3.2 — liaisons événementielles : les modules notifient leurs propriétaires via le bus.
 bus.subscribe('daily.session.ended', async (e) => {
-  const { sessionId } = e.payload as { sessionId: string }
+  const { sessionId, participantCount, durationSeconds } = e.payload as { sessionId: string; participantCount?: number; durationSeconds?: number | null }
   const session = await prisma.dailySession.findUnique({
     where: { id: sessionId },
     select: { ownerId: true, name: true },
   })
   if (session) {
+    const parts: string[] = []
+    if (participantCount) parts.push(`${participantCount} participant${participantCount > 1 ? 's' : ''}`)
+    if (durationSeconds) {
+      const m = Math.floor(durationSeconds / 60)
+      const s = durationSeconds % 60
+      parts.push(m > 0 ? `${m}m${s > 0 ? `${s}s` : ''}` : `${s}s`)
+    }
+    const body = `"${session.name}" est terminé${parts.length > 0 ? ` — ${parts.join(', ')}` : ''}.`
     await Promise.all([
-      notify({
-        userId: session.ownerId,
-        type: 'DAILY_SESSION_ENDED',
-        title: 'Daily terminé',
-        body: `"${session.name}" est terminé.`,
-        link: '/daily',
-      }),
+      notify({ userId: session.ownerId, type: 'DAILY_SESSION_ENDED', title: 'Daily terminé', body, link: '/daily' }),
       deliverWebhooks('daily.session.ended', session.ownerId, e.payload as Record<string, unknown>),
     ])
   }

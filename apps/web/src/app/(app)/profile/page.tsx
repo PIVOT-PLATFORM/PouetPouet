@@ -127,6 +127,8 @@ export default function ProfilePage() {
   const [wkEvents, setWkEvents] = useState<string[]>([])
   const [creatingWk, setCreatingWk] = useState(false)
   const [deletingWkId, setDeletingWkId] = useState<string | null>(null)
+  const [testingWkId, setTestingWkId] = useState<string | null>(null)
+  const [testWkResult, setTestWkResult] = useState<Record<string, { ok: boolean; status?: number; error?: string }>>({})
   const [newWkSecret, setNewWkSecret] = useState<string | null>(null)
   const [wkSecretCopied, setWkSecretCopied] = useState(false)
 
@@ -172,6 +174,17 @@ export default function ProfilePage() {
       setWkSecretCopied(true)
       setTimeout(() => setWkSecretCopied(false), 2000)
     })
+  }
+
+  async function handleTestWebhook(id: string) {
+    setTestingWkId(id)
+    try {
+      const res = await api.post<{ ok: boolean; status?: number; error?: string }>(`/api/webhooks/${id}/test`, {})
+      setTestWkResult((prev) => ({ ...prev, [id]: res }))
+      setTimeout(() => setTestWkResult((prev) => { const next = { ...prev }; delete next[id]; return next }), 5000)
+    } finally {
+      setTestingWkId(null)
+    }
   }
 
   async function handleCreateKey(e: React.FormEvent) {
@@ -671,6 +684,19 @@ export default function ProfilePage() {
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{wk.events.map((ev) => WEBHOOK_EVENT_LABELS[ev] ?? ev).join(', ')}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  {testWkResult[wk.id] && (
+                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${testWkResult[wk.id].ok ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                      {testWkResult[wk.id].ok ? `✓ ${testWkResult[wk.id].status}` : '✗'}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => handleTestWebhook(wk.id)}
+                    disabled={testingWkId === wk.id}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"
+                    title="Tester"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </button>
                   <button
                     onClick={() => handleToggleWebhook(wk.id, !wk.active)}
                     className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors"

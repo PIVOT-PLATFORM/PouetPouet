@@ -71,6 +71,36 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
     await prisma.webhook.delete({ where: { id } })
     return reply.send({ ok: true })
   })
+
+  // Test endpoint: sends a synthetic ping to the webhook and returns the HTTP status received.
+  app.post('/:id/test', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const hook = await prisma.webhook.findFirst({ where: { id, userId } })
+    if (!hook) return reply.status(404).send({ error: 'Webhook introuvable.' })
+    const payload = JSON.stringify({
+      event: 'ping',
+      timestamp: new Date().toISOString(),
+      payload: { message: 'Test de connexion depuis PouetPouet' },
+    })
+    const sig = crypto.createHmac('sha256', hook.secret).update(payload).digest('hex')
+    try {
+      const res = await fetch(hook.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Signature': `sha256=${sig}`,
+          'X-Webhook-Id': hook.id,
+          'User-Agent': 'PouetPouet-Webhook/1.0',
+        },
+        body: payload,
+        signal: AbortSignal.timeout(10000),
+      })
+      return reply.send({ ok: res.ok, status: res.status })
+    } catch (err) {
+      return reply.send({ ok: false, error: (err as Error).message })
+    }
+  })
 }
 
 // Delivers a webhook payload to all active subscribers for the given event.
