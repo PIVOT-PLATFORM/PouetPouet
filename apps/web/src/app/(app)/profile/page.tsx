@@ -348,6 +348,26 @@ export default function ProfilePage() {
         </div>
       </SectionCard>
 
+      {/* ── Données personnelles ── */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-6">
+        <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-5">Mes données (RGPD)</h2>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Exporter mes données</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              Télécharge toutes vos données personnelles (profil, boards, dailys, équipes…) au format JSON.
+            </p>
+          </div>
+          <a
+            href="/api/auth/export"
+            download
+            className="shrink-0 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            Exporter
+          </a>
+        </div>
+      </div>
+
       {/* ── Zone de danger ── */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-red-200 dark:border-red-900/50 shadow-sm p-6">
         <h2 className="text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider mb-5">Zone de danger</h2>

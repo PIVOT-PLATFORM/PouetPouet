@@ -230,4 +230,26 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     await prisma.user.delete({ where: { id } })
     return reply.send({ ok: true })
   })
+
+  // RGPD export — dumps all personal data owned by the caller as JSON.
+  // Passwords and tokens are always excluded from the export.
+  app.get('/export', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.user as { id: string }
+    const [user, boards, scrumRooms, dailySessions, capacityEvents, wheelEvents, notifications] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id },
+        select: { id: true, email: true, name: true, avatar: true, bio: true, theme: true, emailVerified: true, createdAt: true, updatedAt: true },
+      }),
+      prisma.board.findMany({ where: { ownerId: id }, select: { id: true, name: true, description: true, createdAt: true } }),
+      prisma.scrumRoom.findMany({ where: { ownerId: id }, select: { id: true, name: true, code: true, createdAt: true } }),
+      prisma.dailySession.findMany({ where: { ownerId: id }, select: { id: true, name: true, createdAt: true } }),
+      prisma.capacityEvent.findMany({ where: { ownerId: id }, select: { id: true, name: true, type: true, startDate: true, endDate: true, createdAt: true } }),
+      prisma.wheelEvent.findMany({ where: { ownerId: id }, select: { id: true, name: true, createdAt: true } }),
+      prisma.notification.findMany({ where: { userId: id }, select: { id: true, type: true, title: true, body: true, createdAt: true } }),
+    ])
+    const filename = `pouetpouet-export-${new Date().toISOString().slice(0, 10)}.json`
+    reply.header('Content-Disposition', `attachment; filename="${filename}"`)
+    reply.header('Content-Type', 'application/json')
+    return reply.send(JSON.stringify({ exportedAt: new Date().toISOString(), user, boards, scrumRooms, dailySessions, capacityEvents, wheelEvents, notifications }, null, 2))
+  })
 }
