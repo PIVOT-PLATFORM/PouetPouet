@@ -117,15 +117,25 @@ export function useDailySession(sessionId: string) {
   const [tick, setTick] = useState(0)
   const socketRef = useRef(connectSocket())
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Store sessionId in a ref so the connect handler always has the latest value
+  const sessionIdRef = useRef(sessionId)
+  sessionIdRef.current = sessionId
 
   useEffect(() => {
     const socket = socketRef.current
-    socket.emit('daily:host_join', sessionId)
 
+    function joinSession() {
+      socket.emit('daily:host_join', sessionIdRef.current)
+    }
+
+    socket.on('connect', joinSession)
     socket.on('daily:state', (s: DailySession) => {
       setSession(s)
       setIsLoading(false)
     })
+
+    // Emit immediately if already connected; otherwise the connect handler fires
+    if (socket.connected) joinSession()
 
     intervalRef.current = setInterval(() => setTick((t) => t + 1), 1000)
 
@@ -135,6 +145,7 @@ export function useDailySession(sessionId: string) {
     }).catch(() => {})
 
     return () => {
+      socket.off('connect', joinSession)
       socket.off('daily:state')
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
