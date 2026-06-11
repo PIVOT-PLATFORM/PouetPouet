@@ -121,6 +121,16 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     }
   })
 
+  // Cursor presence (relay only)
+  // Server relays canvas-space coords to other board members; client throttles to 20 fps.
+  socket.on("board:cursor", (data: { boardId: string; x: number; y: number }) => {
+    const info = socket.data.userInfo as { id: string; name: string; avatar: string | null } | undefined
+    if (!info || !socket.data.boardRoles?.[data.boardId]) return
+    socket.to(`board:${data.boardId}`).emit("board:cursor", {
+      userId: info.id, name: info.name, avatar: info.avatar, x: data.x, y: data.y,
+    })
+  })
+
   // â”€â”€ Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   socket.on('card:create', async (data: { boardId: string; content: string; posX: number; posY: number; color?: string; type?: string; width?: number; height?: number; layer?: number }) => {
     if (!canWrite(socket, data.boardId)) return

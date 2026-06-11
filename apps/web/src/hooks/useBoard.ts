@@ -49,6 +49,7 @@ export function useBoard(boardId: string) {
   const [accessDenied, setAccessDenied] = useState(false)
   const [presence, setPresence] = useState<PresenceUser[]>([])
   const [members, setMembers] = useState<BoardMember[]>([])
+  const [cursors, setCursors] = useState<Map<string, { name: string; avatar: string | null; x: number; y: number; ts: number }>>(new Map())
   const [timerEndsAt, setTimerEndsAt] = useState<number | null>(null)
   const [activeVoteSession, setActiveVoteSession] = useState<VoteSession | null>(null)
   const [lastVoteSession, setLastVoteSession] = useState<VoteSession | null>(null)
@@ -169,6 +170,14 @@ export function useBoard(boardId: string) {
       setPresence(users)
     })
 
+    socket.on('board:cursor', (data: { userId: string; name: string; avatar: string | null; x: number; y: number }) => {
+      setCursors((prev) => {
+        const next = new Map(prev)
+        next.set(data.userId, { name: data.name, avatar: data.avatar, x: data.x, y: data.y, ts: Date.now() })
+        return next
+      })
+    })
+
     socket.on('timer:started', ({ endsAt }: { endsAt: number }) => setTimerEndsAt(endsAt))
     socket.on('timer:stopped', () => setTimerEndsAt(null))
 
@@ -271,7 +280,7 @@ export function useBoard(boardId: string) {
     return () => {
       socket.io.off('reconnect', handleReconnect)
       socket.emit('board:leave', boardId)
-      ;['board:state', 'board:error', 'board:presence', 'timer:started', 'timer:stopped',
+      ;['board:state', 'board:error', 'board:presence', 'board:cursor', 'timer:started', 'timer:stopped',
         'vote:session:started', 'vote:updated', 'vote:session:closed',
         'cards:locked', 'card:layered', 'frame:layered',
         'card:created', 'card:moved', 'card:resized', 'card:updated', 'card:deleted', 'card:recolored',
@@ -1144,8 +1153,16 @@ export function useBoard(boardId: string) {
 
   const isReadonly = userRole === 'VIEWER'
 
+  const cursorThrottleRef = useRef(0)
+  function emitCursor(boardId: string, x: number, y: number) {
+    const now = Date.now()
+    if (now - cursorThrottleRef.current < 50) return
+    cursorThrottleRef.current = now
+    socketRef.current.emit('board:cursor', { boardId, x, y })
+  }
+
   return {
-    board, cards, connections, frames, fields, selectedIds, isLoading, userRole, isReadonly, accessDenied, presence, members,
+    board, cards, connections, frames, fields, selectedIds, isLoading, userRole, isReadonly, accessDenied, presence, members, cursors,
     timerEndsAt, startTimer, stopTimer,
     activeVoteSession, lastVoteSession, startVote, castVote, uncastVote, stopVote, extendVote,
     lockCards, lockSelected,
@@ -1165,5 +1182,6 @@ export function useBoard(boardId: string) {
     undo, redo, canUndo, canRedo,
     resetBoard,
     importCount,
+    emitCursor,
   }
 }
