@@ -16,7 +16,7 @@ export interface DailyTeam {
   color: string
   description: string | null
   members: DailyTeamMember[]
-  _count?: { dailySessions: number; wheelDraws: number }
+  _count?: { dailySessions: number; wheelDraws: number; scrumRooms: number; capacityEvents: number }
   createdAt: string
   updatedAt: string
 }

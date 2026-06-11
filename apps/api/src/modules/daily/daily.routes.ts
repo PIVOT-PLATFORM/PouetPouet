@@ -3,7 +3,7 @@ import { prisma } from '../../lib/prisma.js'
 
 const TEAM_INCLUDE = {
   members: { orderBy: { order: 'asc' as const } },
-  _count: { select: { dailySessions: true, wheelDraws: true } },
+  _count: { select: { dailySessions: true, wheelDraws: true, scrumRooms: true, capacityEvents: true } },
 }
 
 export const dailyRoutes: FastifyPluginAsync = async (app) => {
