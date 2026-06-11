@@ -8,6 +8,7 @@ import jwt from '@fastify/jwt'
 import cookie from '@fastify/cookie'
 import rateLimit from '@fastify/rate-limit'
 import { Server } from 'socket.io'
+import { createAdapter } from '@socket.io/redis-adapter'
 
 import { authRoutes } from './routes/auth.js'
 import { sessionRoutes } from './routes/sessions.js'
@@ -44,7 +45,7 @@ if (process.env.SENTRY_DSN) {
 if (process.env.NODE_ENV === 'production') {
   await app.register(rateLimit, {
     global: false, // les limites sont déclarées par route dans auth.ts et boards.routes.ts
-    redis: redis.status === 'ready' ? redis : undefined,
+    redis,
     keyGenerator: (req) => req.ip,
     errorResponseBuilder: (_req, ctx) => ({
       statusCode: 429,
@@ -157,6 +158,21 @@ const io = new Server(app.server, {
     credentials: true,
   },
 })
+
+// Redis adapter : active si Redis est connecté (prod avec REDIS_HOST).
+// En dev/test (pas de Redis), l'adapteur in-memory par défaut est conservé.
+if (redis.status === 'ready') {
+  const subRedis = redis.duplicate()
+  io.adapter(createAdapter(redis, subRedis))
+  app.log.info('socket.io redis adapter active')
+} else {
+  // Écoute la connexion différée (Redis pas encore prêt au démarrage)
+  redis.once('ready', () => {
+    const subRedis = redis.duplicate()
+    io.adapter(createAdapter(redis, subRedis))
+    app.log.info('socket.io redis adapter active (deferred)')
+  })
+}
 
 // Auth is optional: anonymous participants (no account) must be able to join
 // sessions via /session/[code]. Privileged handlers (host_join, member_join,
