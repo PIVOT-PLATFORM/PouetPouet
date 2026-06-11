@@ -20,7 +20,7 @@ import { teamRoutes } from './routes/teams.js'
 import { webhookRoutes, deliverWebhooks } from './routes/webhooks.js'
 import { registerModuleRoutes } from './modules/registry.js'
 import { registerSocketHandlers } from './sockets/index.js'
-import { setIO } from './lib/io.js'
+import { setIO, getIO } from './lib/io.js'
 import { bus } from './lib/bus.js'
 import { notify } from './lib/notify.js'
 import { prisma } from './lib/prisma.js'
@@ -237,6 +237,35 @@ bus.subscribe('wheel.draw.completed', async (e) => {
     }),
     deliverWebhooks('wheel.draw.completed', e.actorId, e.payload as Record<string, unknown>),
   ])
+})
+
+// Prometheus-compatible metrics — only exposed when METRICS_TOKEN is set in env.
+// Scraped by e.g. a Cloud Run sidecar or an external Prometheus instance.
+app.get('/metrics', async (request, reply) => {
+  const token = process.env.METRICS_TOKEN
+  if (token) {
+    const auth = request.headers.authorization
+    if (auth !== `Bearer ${token}`) return reply.status(401).send('Unauthorized')
+  }
+  const io = getIO()
+  const connections = io?.engine.clientsCount ?? 0
+  const rooms = io ? io.sockets.adapter.rooms.size : 0
+  const mem = process.memoryUsage()
+  const lines = [
+    '# HELP forge_socket_connections_active Active WebSocket connections',
+    '# TYPE forge_socket_connections_active gauge',
+    `forge_socket_connections_active ${connections}`,
+    '# HELP forge_socket_rooms_active Active socket rooms (boards + users + sessions)',
+    '# TYPE forge_socket_rooms_active gauge',
+    `forge_socket_rooms_active ${rooms}`,
+    '# HELP forge_process_heap_bytes Node.js heap used (bytes)',
+    '# TYPE forge_process_heap_bytes gauge',
+    `forge_process_heap_bytes ${mem.heapUsed}`,
+    '# HELP forge_process_rss_bytes Node.js RSS memory (bytes)',
+    '# TYPE forge_process_rss_bytes gauge',
+    `forge_process_rss_bytes ${mem.rss}`,
+  ]
+  reply.type('text/plain; version=0.0.4').send(lines.join('\n') + '\n')
 })
 
 // La DB est critique (503 si down) ; Redis est optionnel à ce stade → 'degraded' seulement
