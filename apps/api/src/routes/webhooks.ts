@@ -84,6 +84,7 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
       payload: { message: 'Test de connexion depuis PouetPouet' },
     })
     const sig = crypto.createHmac('sha256', hook.secret).update(payload).digest('hex')
+    const started = Date.now()
     try {
       const res = await fetch(hook.url, {
         method: 'POST',
@@ -96,11 +97,61 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
         body: payload,
         signal: AbortSignal.timeout(10000),
       })
+      await recordDelivery(hook.id, 'ping', { statusCode: res.status }, Date.now() - started)
       return reply.send({ ok: res.ok, status: res.status })
     } catch (err) {
+      await recordDelivery(hook.id, 'ping', { error: (err as Error).message }, Date.now() - started)
       return reply.send({ ok: false, error: (err as Error).message })
     }
   })
+
+  // Delivery history (most recent first, capped at MAX_DELIVERIES_PER_HOOK by pruning).
+  app.get('/:id/deliveries', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const hook = await prisma.webhook.findFirst({ where: { id, userId }, select: { id: true } })
+    if (!hook) return reply.status(404).send({ error: 'Webhook introuvable.' })
+    return prisma.webhookDelivery.findMany({
+      where: { webhookId: id },
+      select: { id: true, event: true, statusCode: true, error: true, durationMs: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    })
+  })
+}
+
+// Keep the delivery log bounded: only the most recent entries per webhook.
+const MAX_DELIVERIES_PER_HOOK = 50
+
+async function recordDelivery(
+  webhookId: string,
+  event: string,
+  result: { statusCode?: number; error?: string },
+  durationMs: number,
+): Promise<void> {
+  try {
+    await prisma.webhookDelivery.create({
+      data: {
+        webhookId,
+        event,
+        statusCode: result.statusCode ?? null,
+        error: result.error?.slice(0, 500) ?? null,
+        durationMs,
+      },
+    })
+    // Prune beyond the cap. Deliveries are rare, so the extra query is fine.
+    const excess = await prisma.webhookDelivery.findMany({
+      where: { webhookId },
+      orderBy: { createdAt: 'desc' },
+      skip: MAX_DELIVERIES_PER_HOOK,
+      select: { id: true },
+    })
+    if (excess.length > 0) {
+      await prisma.webhookDelivery.deleteMany({ where: { id: { in: excess.map((d) => d.id) } } })
+    }
+  } catch {
+    // Logging must never break delivery.
+  }
 }
 
 // Delivers a webhook payload to all active subscribers for the given event.
@@ -120,8 +171,9 @@ export async function deliverWebhooks(
   await Promise.allSettled(
     hooks.map(async (hook) => {
       const sig = crypto.createHmac('sha256', hook.secret).update(body).digest('hex')
+      const started = Date.now()
       try {
-        await fetch(hook.url, {
+        const res = await fetch(hook.url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -132,8 +184,9 @@ export async function deliverWebhooks(
           body,
           signal: AbortSignal.timeout(10000),
         })
-      } catch {
-        // Delivery failures are silently ignored (no retry for MVP)
+        await recordDelivery(hook.id, event, { statusCode: res.status }, Date.now() - started)
+      } catch (err) {
+        await recordDelivery(hook.id, event, { error: (err as Error).message }, Date.now() - started)
       }
     }),
   )

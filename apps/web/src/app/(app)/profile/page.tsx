@@ -31,6 +31,15 @@ interface WebhookMeta {
   createdAt: string
 }
 
+interface WebhookDeliveryMeta {
+  id: string
+  event: string
+  statusCode: number | null
+  error: string | null
+  durationMs: number
+  createdAt: string
+}
+
 function resizeImage(file: File, maxPx: number): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image()
@@ -131,6 +140,8 @@ export default function ProfilePage() {
   const [testWkResult, setTestWkResult] = useState<Record<string, { ok: boolean; status?: number; error?: string }>>({})
   const [newWkSecret, setNewWkSecret] = useState<string | null>(null)
   const [wkSecretCopied, setWkSecretCopied] = useState(false)
+  const [expandedWkId, setExpandedWkId] = useState<string | null>(null)
+  const [wkDeliveries, setWkDeliveries] = useState<Record<string, WebhookDeliveryMeta[]>>({})
 
   const loadWebhooks = useCallback(async () => {
     try { setWebhooks(await api.get<WebhookMeta[]>('/api/webhooks')) } catch { /* silent */ }
@@ -182,9 +193,27 @@ export default function ProfilePage() {
       const res = await api.post<{ ok: boolean; status?: number; error?: string }>(`/api/webhooks/${id}/test`, {})
       setTestWkResult((prev) => ({ ...prev, [id]: res }))
       setTimeout(() => setTestWkResult((prev) => { const next = { ...prev }; delete next[id]; return next }), 5000)
+      // Refresh the delivery panel if it is open for this webhook
+      if (expandedWkId === id) {
+        api.get<WebhookDeliveryMeta[]>(`/api/webhooks/${id}/deliveries`)
+          .then((d) => setWkDeliveries((prev) => ({ ...prev, [id]: d })))
+          .catch(() => {})
+      }
     } finally {
       setTestingWkId(null)
     }
+  }
+
+  async function handleToggleDeliveries(id: string) {
+    if (expandedWkId === id) {
+      setExpandedWkId(null)
+      return
+    }
+    setExpandedWkId(id)
+    try {
+      const deliveries = await api.get<WebhookDeliveryMeta[]>(`/api/webhooks/${id}/deliveries`)
+      setWkDeliveries((prev) => ({ ...prev, [id]: deliveries }))
+    } catch { /* silent */ }
   }
 
   async function handleCreateKey(e: React.FormEvent) {
@@ -672,7 +701,8 @@ export default function ProfilePage() {
         {webhooks.length > 0 ? (
           <div className="space-y-2">
             {webhooks.map((wk) => (
-              <div key={wk.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+              <div key={wk.id} className="rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3 p-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{wk.name}</span>
@@ -689,6 +719,13 @@ export default function ProfilePage() {
                       {testWkResult[wk.id].ok ? `✓ ${testWkResult[wk.id].status}` : '✗'}
                     </span>
                   )}
+                  <button
+                    onClick={() => handleToggleDeliveries(wk.id)}
+                    className={`p-1.5 rounded-lg transition-colors ${expandedWkId === wk.id ? 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950' : 'text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950'}`}
+                    title="Historique des livraisons"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </button>
                   <button
                     onClick={() => handleTestWebhook(wk.id)}
                     disabled={testingWkId === wk.id}
@@ -715,6 +752,32 @@ export default function ProfilePage() {
                     </svg>
                   </button>
                 </div>
+              </div>
+              {expandedWkId === wk.id && (
+                <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-2">
+                  {!wkDeliveries[wk.id] ? (
+                    <p className="text-xs text-gray-400 dark:text-gray-500 py-1">Chargement…</p>
+                  ) : wkDeliveries[wk.id].length === 0 ? (
+                    <p className="text-xs text-gray-400 dark:text-gray-500 py-1">Aucune livraison enregistrée.</p>
+                  ) : (
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {wkDeliveries[wk.id].map((d) => (
+                        <div key={d.id} className="flex items-center gap-2 text-xs py-0.5">
+                          <span className={`shrink-0 w-12 text-center px-1 py-0.5 rounded font-medium ${d.statusCode !== null && d.statusCode < 400 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400'}`}>
+                            {d.statusCode ?? 'ERR'}
+                          </span>
+                          <span className="text-gray-600 dark:text-gray-300 truncate">{WEBHOOK_EVENT_LABELS[d.event] ?? d.event}</span>
+                          {d.error && <span className="text-red-500 dark:text-red-400 truncate" title={d.error}>{d.error}</span>}
+                          <span className="ml-auto shrink-0 text-gray-400 dark:text-gray-500">{d.durationMs} ms</span>
+                          <span className="shrink-0 text-gray-400 dark:text-gray-500">
+                            {new Date(d.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               </div>
             ))}
           </div>
