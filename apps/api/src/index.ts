@@ -7,6 +7,8 @@ import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
 import cookie from '@fastify/cookie'
 import rateLimit from '@fastify/rate-limit'
+import swagger from '@fastify/swagger'
+import swaggerUi from '@fastify/swagger-ui'
 import { Server } from 'socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
 
@@ -66,6 +68,22 @@ await app.register(jwt, {
 })
 
 await app.register(cookie)
+
+// OpenAPI docs — disponibles uniquement hors production (/documentation)
+if (process.env.NODE_ENV !== 'production') {
+  await app.register(swagger, {
+    openapi: {
+      info: { title: 'PouetPouet API', version: pkg.version, description: 'FORGE — suite collaborative data-centric' },
+      components: {
+        securitySchemes: {
+          bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        },
+      },
+      security: [{ bearerAuth: [] }],
+    },
+  })
+  await app.register(swaggerUi, { routePrefix: '/documentation' })
+}
 
 // Décorateur d'authentification utilisé comme preHandler dans les routes
 app.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
