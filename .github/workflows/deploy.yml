@@ -58,7 +58,7 @@ jobs:
             --allow-unauthenticated \
             --port 8080 \
             --min-instances=1 \
-            --max-instances=1 \
+            --max-instances=10 \
             --timeout=3600 \
             --session-affinity \
             --add-cloudsql-instances ${{ secrets.GCP_PROJECT_ID }}:${{ env.REGION }}:pouetpouet-db \
