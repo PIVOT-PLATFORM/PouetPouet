@@ -20,6 +20,33 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '4.2.0',
+    date: '2026-06-11',
+    title: 'Curseurs temps réel, RGPD, sécurité CSP, fix viewport',
+    summary: 'Voyez les curseurs de vos collaborateurs en direct sur le board. Export RGPD des données personnelles. En-têtes de sécurité CSP. Correction du décalage de viewport au chargement.',
+    sections: [
+      {
+        heading: '✨ Nouveautés',
+        items: [
+          'Curseurs collaboratifs : les positions de tous les membres actifs d\'un board s\'affichent en temps réel (nom + curseur coloré, throttlé à 20 fps).',
+          'Export RGPD : bouton "Exporter mes données" dans le profil → télécharge un JSON complet (profil, boards, dailys, salles, équipes, tirages, notifications).',
+        ],
+      },
+      {
+        heading: '🔒 Sécurité',
+        items: [
+          'En-têtes HTTP de sécurité : Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, HSTS (prod).',
+        ],
+      },
+      {
+        heading: '🐛 Correctifs',
+        items: [
+          'Viewport board : overflow-hidden + double requestAnimationFrame corrigent le décalage de toCanvas() / fitToContent() au chargement initial.',
+        ],
+      },
+    ],
+  },
+  {
     version: '4.1.0',
     date: '2026-06-11',
     title: 'FORGE F3-F4 : pivot Équipes, Redis multi-instance, Hub unifié',
