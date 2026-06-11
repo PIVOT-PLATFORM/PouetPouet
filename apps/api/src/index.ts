@@ -39,7 +39,16 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ])
 }
 
-const app = Fastify({ logger: { level: 'info' } })
+const app = Fastify({
+  logger: {
+    level: process.env.LOG_LEVEL ?? 'info',
+    // Redact PII so passwords and tokens never appear in production logs.
+    redact: {
+      paths: ['req.headers.authorization', 'req.headers.cookie', '*.password', '*.token', '*.secret'],
+      censor: '[REDACTED]',
+    },
+  },
+})
 
 if (process.env.SENTRY_DSN) {
   Sentry.setupFastifyErrorHandler(app)
