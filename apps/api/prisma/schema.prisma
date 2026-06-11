@@ -32,11 +32,10 @@ model User {
   boardTemplates BoardTemplate[]
   sessions       SessionParticipant[]
   scrumRooms     ScrumRoom[]
-  dailyTeams     DailyTeam[]
+  teams          Team[]
   dailySessions  DailySession[]
   wheelEvents    WheelEvent[]
   wheelDraws     WheelDraw[]
-  capacityTeams  CapacityTeam[]
   capacityEvents CapacityEvent[]
 }
 
@@ -350,9 +349,11 @@ enum ScrumTicketStatus {
   DONE
 }
 
-// ── Daily Standup ─────────────────────────────────────────────────────────────
+// ── Team pivot (socle FORGE F3) ───────────────────────────────────────────────
+// Remplace DailyTeam et CapacityTeam. Une équipe est un pivot partagé par Daily,
+// La Roue et Capacité. Les membres ont role/fte optionnels (Daily ne les utilise pas).
 
-model DailyTeam {
+model Team {
   id          String   @id @default(cuid())
   name        String
   ownerId     String
@@ -361,20 +362,25 @@ model DailyTeam {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  owner      User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  members    DailyTeamMember[]
-  wheelDraws WheelDraw[]
-  sessions   DailySession[]
+  owner          User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members        TeamMember[]
+  wheelDraws     WheelDraw[]
+  dailySessions  DailySession[]
+  capacityEvents CapacityEvent[]
 }
 
-model DailyTeamMember {
-  id     String @id @default(cuid())
+model TeamMember {
+  id     String  @id @default(cuid())
   teamId String
   name   String
-  order  Int    @default(0)
+  role   String?
+  fte    Float?
+  order  Int     @default(0)
 
-  team DailyTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 }
+
+// ── Daily Standup ─────────────────────────────────────────────────────────────
 
 model DailySession {
   id            String      @id @default(cuid())
@@ -390,7 +396,7 @@ model DailySession {
   updatedAt     DateTime    @updatedAt
 
   owner        User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  team         DailyTeam?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  team         Team?              @relation(fields: [teamId], references: [id], onDelete: SetNull)
   participants DailyParticipant[]
 }
 
@@ -426,31 +432,6 @@ enum DrawMode {
 
 // ── Capacity planning ─────────────────────────────────────────────────────────
 
-model CapacityTeam {
-  id          String   @id @default(cuid())
-  name        String
-  ownerId     String
-  color       String   @default("#6366f1")
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  owner   User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  members CapacityTeamMember[]
-  events  CapacityEvent[]
-}
-
-model CapacityTeamMember {
-  id     String  @id @default(cuid())
-  teamId String
-  name   String
-  role   String?
-  fte    Float   @default(1)
-  order  Int     @default(0)
-
-  team CapacityTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
-}
-
 model CapacityEvent {
   id                 String              @id @default(cuid())
   name               String
@@ -472,7 +453,7 @@ model CapacityEvent {
   updatedAt          DateTime            @updatedAt
 
   owner    User                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  team     CapacityTeam?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  team     Team?                 @relation(fields: [teamId], references: [id], onDelete: SetNull)
   parent   CapacityEvent?        @relation("EventChildren", fields: [parentId], references: [id], onDelete: SetNull)
   children CapacityEvent[]       @relation("EventChildren")
   members  CapacityEventMember[]
@@ -576,6 +557,6 @@ model WheelDraw {
   createdAt DateTime  @default(now())
 
   owner User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  team  DailyTeam?  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  team  Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
   event WheelEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
 }

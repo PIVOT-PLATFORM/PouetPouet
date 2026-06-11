@@ -105,7 +105,7 @@ export const wheelRoutes: FastifyPluginAsync = async (app) => {
     if (!teamId) return reply.status(400).send({ error: 'teamId required' })
     if (!count || count < 1) return reply.status(400).send({ error: 'count must be >= 1' })
 
-    const team = await prisma.dailyTeam.findFirst({
+    const team = await prisma.team.findFirst({
       where: { id: teamId, ownerId },
       include: { members: true },
     })

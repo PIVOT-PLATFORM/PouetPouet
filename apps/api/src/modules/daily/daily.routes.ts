@@ -1,17 +1,17 @@
-﻿import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../../lib/prisma.js'
 
 const TEAM_INCLUDE = {
   members: { orderBy: { order: 'asc' as const } },
-  _count: { select: { sessions: true, wheelDraws: true } },
+  _count: { select: { dailySessions: true, wheelDraws: true } },
 }
 
 export const dailyRoutes: FastifyPluginAsync = async (app) => {
-  // â”€â”€ Teams â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Teams ────────────────────────────────────────────────────────────────────
 
   app.get('/teams', { preHandler: [app.authenticate] }, async (request) => {
     const { id: ownerId } = request.user as { id: string }
-    return prisma.dailyTeam.findMany({
+    return prisma.team.findMany({
       where: { ownerId },
       include: TEAM_INCLUDE,
       orderBy: { createdAt: 'asc' },
@@ -27,7 +27,7 @@ export const dailyRoutes: FastifyPluginAsync = async (app) => {
       description?: string
     }
     if (!name?.trim()) return reply.status(400).send({ error: 'Name required' })
-    const team = await prisma.dailyTeam.create({
+    const team = await prisma.team.create({
       data: {
         name: name.trim(),
         ownerId,
@@ -49,10 +49,10 @@ export const dailyRoutes: FastifyPluginAsync = async (app) => {
       color?: string
       description?: string
     }
-    const team = await prisma.dailyTeam.findFirst({ where: { id, ownerId } })
+    const team = await prisma.team.findFirst({ where: { id, ownerId } })
     if (!team) return reply.status(404).send({ error: 'Team not found' })
-    await prisma.dailyTeamMember.deleteMany({ where: { teamId: id } })
-    const updated = await prisma.dailyTeam.update({
+    await prisma.teamMember.deleteMany({ where: { teamId: id } })
+    const updated = await prisma.team.update({
       where: { id },
       data: {
         name: name.trim(),
@@ -68,13 +68,13 @@ export const dailyRoutes: FastifyPluginAsync = async (app) => {
   app.delete('/teams/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { id: ownerId } = request.user as { id: string }
-    const team = await prisma.dailyTeam.findFirst({ where: { id, ownerId } })
+    const team = await prisma.team.findFirst({ where: { id, ownerId } })
     if (!team) return reply.status(404).send({ error: 'Team not found' })
-    await prisma.dailyTeam.delete({ where: { id } })
+    await prisma.team.delete({ where: { id } })
     return reply.status(204).send()
   })
 
-  // â”€â”€ Sessions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Sessions ──────────────────────────────────────────────────────────────────
 
   app.get('/sessions', { preHandler: [app.authenticate] }, async (request) => {
     const { id: ownerId } = request.user as { id: string }

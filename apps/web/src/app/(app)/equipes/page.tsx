@@ -214,7 +214,7 @@ function TeamCard({
   onDelete: (id: string) => void
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const sessions = team._count?.sessions ?? 0
+  const sessions = team._count?.dailySessions ?? 0
   const draws = team._count?.wheelDraws ?? 0
 
   return (

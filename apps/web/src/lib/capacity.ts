@@ -43,7 +43,7 @@ export interface CapacityTeamMember {
   teamId: string
   name: string
   role: string | null
-  fte: number
+  fte: number | null
   order: number
 }
 
@@ -54,7 +54,7 @@ export interface CapacityTeam {
   color: string
   description: string | null
   members: CapacityTeamMember[]
-  _count?: { events: number }
+  _count?: { capacityEvents: number }
   createdAt: string
   updatedAt: string
 }
