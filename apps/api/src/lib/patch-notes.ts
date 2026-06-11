@@ -20,6 +20,29 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.6.0',
+    date: '2026-06-12',
+    title: 'Connexion SSO & journal de sécurité',
+    summary: 'Connectez-vous via votre fournisseur d\'identité (Keycloak, Google, Azure AD…). Votre profil affiche désormais le journal des actions sensibles de votre compte.',
+    sections: [
+      {
+        heading: '✨ Nouveautés',
+        items: [
+          'Connexion SSO (OIDC) : si votre instance est reliée à un fournisseur d\'identité, un bouton "Se connecter avec…" apparaît sur la page de connexion. Votre compte local est lié automatiquement par email.',
+          'Journal de sécurité : consultez depuis votre profil les 50 dernières actions sensibles (connexions, tentatives échouées, mots de passe, clés API, webhooks).',
+        ],
+      },
+      {
+        heading: '🛡️ Fiabilité',
+        items: [
+          'Nettoyage automatique : les sessions fermées (30 j), notifications lues (90 j) et entrées d\'audit (180 j) sont purgées quotidiennement.',
+          'Tenue de charge validée : 100 participants simultanés sur un même board (latence p99 < 100 ms).',
+          'Reconnexion : rafraîchir la page pendant un vote Scrum ou une session live re-connecte automatiquement, désormais couvert par des tests.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.5.0',
     date: '2026-06-12',
     title: 'Historique des webhooks & fiabilité',
