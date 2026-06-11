@@ -3,7 +3,7 @@
 import { create } from 'zustand'
 import { api } from '@/lib/api'
 
-export type NotificationType = 'BOARD_SHARED' | 'ROLE_CHANGED' | 'ACCESS_REVOKED' | 'BOARD_DELETED'
+export type NotificationType = 'BOARD_SHARED' | 'ROLE_CHANGED' | 'ACCESS_REVOKED' | 'BOARD_DELETED' | 'DAILY_SESSION_ENDED' | 'SCRUM_ALL_ESTIMATED'
 
 export interface ActivityNotification {
   id: string

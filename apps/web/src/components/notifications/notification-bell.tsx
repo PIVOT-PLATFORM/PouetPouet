@@ -33,6 +33,8 @@ const TYPE_ICON: Record<NotificationType, { color: string; path: string }> = {
   ROLE_CHANGED: { color: 'text-amber-500 bg-amber-50 dark:bg-amber-950', path: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z' },
   ACCESS_REVOKED: { color: 'text-rose-500 bg-rose-50 dark:bg-rose-950', path: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' },
   BOARD_DELETED: { color: 'text-gray-500 bg-gray-100 dark:bg-gray-800', path: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' },
+  DAILY_SESSION_ENDED: { color: 'text-sky-500 bg-sky-50 dark:bg-sky-950', path: 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z' },
+  SCRUM_ALL_ESTIMATED: { color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950', path: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
 }
 
 function ActivityRow({

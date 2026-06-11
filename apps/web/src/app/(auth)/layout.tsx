@@ -12,7 +12,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter()
 
   useEffect(() => {
-    if (hydrated && token) router.replace('/dashboard')
+    if (hydrated && token) router.replace('/hub')
   }, [hydrated, token, router])
 
   return (

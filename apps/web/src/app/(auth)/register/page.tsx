@@ -37,7 +37,7 @@ export default function RegisterPage() {
     try {
       const result = await register(name, email, password, bypass)
       if (result.status === 'logged-in') {
-        router.push('/dashboard')
+        router.push('/hub')
       } else {
         setPending({ email: result.email, emailSent: result.emailSent, devLink: result.devLink })
       }
