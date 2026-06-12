@@ -42,6 +42,8 @@ test('accessibilité : pages applicatives', async ({ page }) => {
   await checkA11y(page, '/daily')
   await page.goto('/profile')
   await checkA11y(page, '/profile')
+  await page.goto('/aide')
+  await checkA11y(page, '/aide')
 })
 
 test('accessibilité : pages modules', async ({ page }) => {
