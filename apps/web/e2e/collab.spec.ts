@@ -56,3 +56,28 @@ test('le créateur édite sa carte ; une création distante ne vole pas le focus
 
   await ctxB.close()
 })
+
+test('le reset vide le board chez tous et Ctrl+Z restaure le contenu', async ({ page }) => {
+  await registerUser(page, 'E2E Reset')
+  await createAndOpenBoard(page, `Reset E2E ${Date.now()}`)
+  await page.waitForTimeout(500)
+
+  // Deux cartes
+  const viewport = page.viewportSize()!
+  await page.mouse.dblclick(viewport.width / 2 - 200, viewport.height / 2)
+  await page.keyboard.type('Carte 1')
+  await page.keyboard.press('Escape')
+  await page.mouse.dblclick(viewport.width / 2 + 200, viewport.height / 2)
+  await page.keyboard.type('Carte 2')
+  await page.keyboard.press('Escape')
+  await expect(page.locator('[data-card-id]')).toHaveCount(2)
+
+  // Reset (double clic de confirmation)
+  await page.getByTitle('Réinitialiser le board').click()
+  await page.getByTitle('Cliquer pour confirmer la réinitialisation').click()
+  await expect(page.locator('[data-card-id]')).toHaveCount(0, { timeout: 5000 })
+
+  // Ctrl+Z restaure les deux cartes
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('[data-card-id]')).toHaveCount(2, { timeout: 5000 })
+})

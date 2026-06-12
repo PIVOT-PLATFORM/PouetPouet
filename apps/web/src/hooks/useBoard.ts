@@ -170,6 +170,14 @@ export function useBoard(boardId: string) {
       if (msg === 'Accès refusé') setAccessDenied(true)
     })
 
+    // Reset atomique : l'état local est vidé d'un coup chez tous les clients.
+    socket.on('board:resetted', () => {
+      setCards([])
+      setConnections([])
+      setFrames([])
+      setSelectedIds(new Set())
+    })
+
     socket.on('board:presence', (users: PresenceUser[]) => {
       setPresence(users)
       // Quelqu'un de connecté mais absent de la liste des membres (premier accès
@@ -312,7 +320,7 @@ export function useBoard(boardId: string) {
     return () => {
       socket.io.off('reconnect', handleReconnect)
       socket.emit('board:leave', boardId)
-      ;['board:state', 'board:error', 'board:presence', 'board:cursors', 'timer:started', 'timer:stopped',
+      ;['board:state', 'board:error', 'board:resetted', 'board:presence', 'board:cursors', 'timer:started', 'timer:stopped',
         'vote:session:started', 'vote:updated', 'vote:session:closed',
         'cards:locked', 'card:layered', 'frame:layered',
         'card:created', 'card:moved', 'card:resized', 'card:updated', 'card:deleted', 'card:recolored',
@@ -897,15 +905,49 @@ export function useBoard(boardId: string) {
   }
 
   // ── Reset ─────────────────────────────────────────────────────────────────────
+  // Recrée le contenu d'un snapshot pris avant reset. Les IDs serveur changent :
+  // on mappe ancien → nouveau via la file pendingCardHistory pour rebrancher les
+  // connexions. (Les styles de connexions et valeurs de champs ne sont pas restaurés.)
+  function restoreSnapshot(cards: Card[], conns: Connection[], frames: Frame[]) {
+    const idMap = new Map<string, string>()
+    let remaining = cards.length
+    cards.forEach((c) => {
+      pendingCardHistoryRef.current.push((newCard: Card) => {
+        idMap.set(c.id, newCard.id)
+        remaining--
+        if (remaining === 0) {
+          conns.forEach((cn) => {
+            const fromId = idMap.get(cn.fromId)
+            const toId = idMap.get(cn.toId)
+            if (fromId && toId) socketRef.current.emit('connection:create', { boardId, fromId, toId })
+          })
+        }
+      })
+      socketRef.current.emit('card:create', {
+        boardId, content: c.content, posX: c.posX, posY: c.posY, color: c.color,
+        type: c.type, width: c.width, height: c.height, layer: c.layer,
+        groupId: c.groupId, groupColor: c.groupColor, locked: c.locked,
+      })
+    })
+    frames.forEach((f) => socketRef.current.emit('frame:create', {
+      boardId, posX: f.posX, posY: f.posY, title: f.title, color: f.color, width: f.width, height: f.height,
+    }))
+  }
+
+  // Reset atomique côté serveur (board:reset) + snapshot dans l'historique :
+  // Ctrl+Z après un reset restaure cartes, connexions et cadres.
   function resetBoard() {
-    cardsRef.current.forEach((c) => socketRef.current.emit('card:delete', { id: c.id, boardId }))
-    connectionsRef.current.forEach((c) => socketRef.current.emit('connection:delete', { id: c.id, boardId }))
-    framesRef.current.forEach((f) => socketRef.current.emit('frame:delete', { id: f.id, boardId }))
+    const snapCards = cardsRef.current.map((c) => ({ ...c }))
+    const snapConns = connectionsRef.current.map((c) => ({ ...c }))
+    const snapFrames = framesRef.current.map((f) => ({ ...f }))
+    if (snapCards.length > 0 || snapConns.length > 0 || snapFrames.length > 0) {
+      pushHistory({
+        undo: () => restoreSnapshot(snapCards, snapConns, snapFrames),
+        redo: () => socketRef.current.emit('board:reset', { boardId }),
+      })
+    }
+    socketRef.current.emit('board:reset', { boardId })
     setSelectedIds(new Set())
-    // Clear history — post-reset state is the new baseline
-    undoStackRef.current = []
-    redoStackRef.current = []
-    bumpHistory()
   }
 
   // ── Board fields ──────────────────────────────────────────────────────────────

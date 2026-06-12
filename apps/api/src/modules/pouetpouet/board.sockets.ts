@@ -293,6 +293,18 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     io.to(`board:${data.boardId}`).emit('frame:created', frame)
   })
 
+  // Reset atomique : une transaction serveur au lieu d'un déluge d'événements
+  // de suppression unitaires côté client (pertes possibles, état partiel).
+  socket.on('board:reset', async (data: { boardId: string }) => {
+    if (!canWrite(socket, data.boardId)) return
+    await prisma.$transaction([
+      prisma.cardConnection.deleteMany({ where: { boardId: data.boardId } }),
+      prisma.card.deleteMany({ where: { boardId: data.boardId } }),
+      prisma.frame.deleteMany({ where: { boardId: data.boardId } }),
+    ])
+    io.to(`board:${data.boardId}`).emit('board:resetted')
+  })
+
   socket.on('frame:move', async (data: { id: string; boardId: string; posX: number; posY: number }) => {
     if (!canWrite(socket, data.boardId)) return
     const frame = await ignoreMissing(prisma.frame.update({ where: { id: data.id }, data: { posX: data.posX, posY: data.posY } }))
