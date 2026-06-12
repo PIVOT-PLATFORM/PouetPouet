@@ -42,7 +42,7 @@ function CircleTimer({ elapsed, total, children }: { elapsed: number; total: num
 function ParticipantPill({ p, index, isCurrent }: { p: DailyParticipant; index: number; isCurrent: boolean }) {
   const statusIcon = {
     WAITING: <span className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />,
-    SPEAKING: <span className="w-5 h-5 rounded-full bg-indigo-500 animate-pulse shrink-0" />,
+    SPEAKING: <span className="w-5 h-5 rounded-full bg-primary-500 animate-pulse shrink-0" />,
     DONE: <span className="w-5 h-5 rounded-full bg-green-400 flex items-center justify-center text-white text-xs shrink-0">✓</span>,
     SKIPPED: <span className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs shrink-0">→</span>,
   }[p.status]
@@ -50,13 +50,13 @@ function ParticipantPill({ p, index, isCurrent }: { p: DailyParticipant; index: 
   return (
     <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
       isCurrent
-        ? 'bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800'
+        ? 'bg-primary-50 dark:bg-primary-950 border border-primary-200 dark:border-primary-800'
         : p.status === 'DONE' || p.status === 'SKIPPED'
         ? 'opacity-50'
         : 'bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800'
     }`}>
       {statusIcon}
-      <span className={`text-sm font-medium flex-1 ${isCurrent ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-300'}`}>
+      <span className={`text-sm font-medium flex-1 ${isCurrent ? 'text-primary-700 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300'}`}>
         {index + 1}. {p.name}
       </span>
       {(p.status === 'DONE' || p.status === 'SKIPPED') && p.speakingAt && p.doneSpeaking && (
@@ -91,7 +91,7 @@ export default function DailySessionPage({ params }: { params: Promise<{ id: str
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <p className="text-gray-500">Session introuvable.</p>
-          <button onClick={() => router.push('/daily')} className="mt-4 text-indigo-600 text-sm font-medium">
+          <button onClick={() => router.push('/daily')} className="mt-4 text-primary-600 text-sm font-medium">
             Retour aux dailys
           </button>
         </div>
@@ -161,7 +161,7 @@ export default function DailySessionPage({ params }: { params: Promise<{ id: str
             </button>
             <button
               onClick={start}
-              className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors"
+              className="flex items-center gap-2 px-6 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
             >
               ▶ Démarrer le daily
             </button>
@@ -174,11 +174,11 @@ export default function DailySessionPage({ params }: { params: Promise<{ id: str
         <>
           {/* Current speaker */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-8 flex flex-col items-center gap-4">
-            <p className="text-xs font-semibold text-indigo-500 uppercase tracking-widest">En train de parler</p>
+            <p className="text-xs font-semibold text-primary-500 uppercase tracking-widest">En train de parler</p>
 
             <CircleTimer elapsed={speakerElapsed} total={session.timePerPerson}>
               <span className="text-2xl font-bold text-gray-900 dark:text-white leading-none">{currentSpeaker.name}</span>
-              <span className={`text-3xl font-bold font-mono mt-1 ${isOverTime ? 'text-red-500' : 'text-indigo-600'}`}>
+              <span className={`text-3xl font-bold font-mono mt-1 ${isOverTime ? 'text-red-500' : 'text-primary-600'}`}>
                 {isOverTime ? '+' : ''}{formatTime(Math.abs(speakerRemaining))}
               </span>
               {isOverTime && (
@@ -209,7 +209,7 @@ export default function DailySessionPage({ params }: { params: Promise<{ id: str
                 className={`px-6 py-2 rounded-xl text-white text-sm font-semibold transition-colors ${
                   isLastSpeaker
                     ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-indigo-600 hover:bg-indigo-700'
+                    : 'bg-primary-600 hover:bg-primary-700'
                 }`}
               >
                 {isLastSpeaker ? '✓ Terminer le daily' : 'Passer la parole →'}
@@ -248,7 +248,7 @@ export default function DailySessionPage({ params }: { params: Promise<{ id: str
           </div>
           <button
             onClick={() => router.push('/daily')}
-            className="mt-2 px-5 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors"
+            className="mt-2 px-5 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
           >
             Retour aux dailys
           </button>

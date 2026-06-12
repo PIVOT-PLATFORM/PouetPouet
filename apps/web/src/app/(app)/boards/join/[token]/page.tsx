@@ -26,14 +26,14 @@ export default function JoinBoardPage({ params }: { params: Promise<{ token: str
         </div>
         <h2 className="text-lg font-semibold text-gray-900">Lien invalide</h2>
         <p className="text-sm text-gray-500">{error}</p>
-        <Link href="/dashboard" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">← Retour au dashboard</Link>
+        <Link href="/dashboard" className="text-sm text-primary-600 hover:text-primary-700 font-medium">← Retour au dashboard</Link>
       </div>
     )
   }
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-3">
-      <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
       <p className="text-sm text-gray-500">Connexion au board…</p>
     </div>
   )

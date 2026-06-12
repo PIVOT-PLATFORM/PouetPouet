@@ -130,7 +130,7 @@ export function BoardSettingsModal({ board, onClose, onSave }: Props) {
                       onClick={() => toggleActivity(opt.key)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all ${
                         active
-                          ? 'border-indigo-300 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40'
+                          ? 'border-primary-300 bg-primary-50 text-primary-700 dark:bg-primary-950/40'
                           : 'border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 text-gray-500'
                       }`}
                     >
@@ -149,7 +149,7 @@ export function BoardSettingsModal({ board, onClose, onSave }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowTemplateForm(true)}
-                  className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5"
+                  className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1.5"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -164,13 +164,13 @@ export function BoardSettingsModal({ board, onClose, onSave }: Props) {
                       value={templateName}
                       onChange={(e) => setTemplateName(e.target.value)}
                       placeholder="Ex : Rétro sprint"
-                      className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                     <button
                       type="button"
                       onClick={handleSaveAsTemplate}
                       disabled={savingTemplate || !templateName.trim()}
-                      className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                      className="rounded-lg bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
                     >
                       {savingTemplate ? '…' : 'Enregistrer'}
                     </button>

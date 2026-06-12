@@ -60,7 +60,7 @@ function TeamModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Mon équipe"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
             />
           </div>
 
@@ -73,7 +73,7 @@ function TeamModal({
                     value={m}
                     onChange={(e) => updateMember(i, e.target.value)}
                     placeholder={`Membre ${i + 1}`}
-                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
                   />
                   {members.length > 1 && (
                     <button
@@ -90,7 +90,7 @@ function TeamModal({
             <button
               type="button"
               onClick={addMember}
-              className="mt-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+              className="mt-2 text-sm text-primary-600 hover:text-primary-800 font-medium"
             >
               + Ajouter un membre
             </button>
@@ -107,7 +107,7 @@ function TeamModal({
             <button
               type="submit"
               disabled={saving || !name.trim()}
-              className="flex-1 rounded-xl bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+              className="flex-1 rounded-xl bg-primary-600 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
             >
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </button>
@@ -191,7 +191,7 @@ function CreateSessionModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Daily du lundi, Sprint 42…"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
             />
           </div>
 
@@ -206,8 +206,8 @@ function CreateSessionModal({
                   onClick={() => { setTimePerPerson(p.value); setCustomTime('') }}
                   className={`px-4 py-1.5 rounded-xl text-sm font-medium border transition-colors ${
                     !customTime && timePerPerson === p.value
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'border-gray-200 text-gray-600 hover:border-indigo-400'
+                      ? 'bg-primary-600 text-white border-primary-600'
+                      : 'border-gray-200 text-gray-600 hover:border-primary-400'
                   }`}
                 >
                   {p.label}
@@ -234,7 +234,7 @@ function CreateSessionModal({
               <select
                 value={selectedTeamId}
                 onChange={(e) => setSelectedTeamId(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
               >
                 <option value="">— Aucune équipe —</option>
                 {teams.map((t) => (
@@ -256,7 +256,7 @@ function CreateSessionModal({
                       <button
                         type="button"
                         onClick={() => toggleAllTeam(team)}
-                        className="text-xs text-indigo-600 hover:text-indigo-800"
+                        className="text-xs text-primary-600 hover:text-primary-800"
                       >
                         {team.members.every((m) => checkedMembers[m.id]) ? 'Tout décocher' : 'Tout cocher'}
                       </button>
@@ -267,7 +267,7 @@ function CreateSessionModal({
                           key={m.id}
                           className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm cursor-pointer border transition-colors ${
                             checkedMembers[m.id]
-                              ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                              ? 'bg-primary-50 border-primary-300 text-primary-700'
                               : 'border-gray-200 text-gray-600 hover:border-gray-300'
                           }`}
                         >
@@ -297,7 +297,7 @@ function CreateSessionModal({
                     value={e}
                     onChange={(ev) => updateExtra(i, ev.target.value)}
                     placeholder="Prénom"
-                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
                   />
                   <button
                     type="button"
@@ -311,7 +311,7 @@ function CreateSessionModal({
               <button
                 type="button"
                 onClick={addExtra}
-                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium text-left"
+                className="text-sm text-primary-600 hover:text-primary-800 font-medium text-left"
               >
                 + Ajouter une personne
               </button>
@@ -346,7 +346,7 @@ function CreateSessionModal({
           <button
             onClick={handleSubmit}
             disabled={saving || !name.trim() || !allParticipants.length}
-            className="flex-1 rounded-xl bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="flex-1 rounded-xl bg-primary-600 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
           >
             {saving ? 'Création…' : 'Lancer le daily'}
           </button>
@@ -389,7 +389,7 @@ export default function DailyPage() {
         </div>
         <button
           onClick={() => setShowCreateSession(true)}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+          className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 active:scale-95 transition-all shadow-sm shadow-primary-200"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -413,7 +413,7 @@ export default function DailyPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Rechercher un daily…"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all"
               />
               {search && (
                 <button
@@ -449,10 +449,10 @@ export default function DailyPage() {
                 return (
                   <div
                     key={session.id}
-                    className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-4 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors cursor-pointer"
+                    className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-4 hover:border-primary-200 dark:hover:border-primary-800 transition-colors cursor-pointer"
                     onClick={() => router.push(`/daily/${session.id}`)}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center text-xl shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-xl shrink-0">
                       📅
                     </div>
                     <div className="flex-1 min-w-0">
@@ -489,7 +489,7 @@ export default function DailyPage() {
             <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Équipes</h2>
             <button
               onClick={() => setTeamModal({ open: true, team: null })}
-              className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold dark:text-indigo-400"
+              className="text-xs text-primary-600 hover:text-primary-800 font-semibold dark:text-primary-400"
             >
               + Nouvelle
             </button>
@@ -512,7 +512,7 @@ export default function DailyPage() {
                     <div className="flex gap-1">
                       <button
                         onClick={() => setTeamModal({ open: true, team })}
-                        className="text-xs text-gray-400 hover:text-indigo-600 px-1.5 py-0.5 rounded transition-colors"
+                        className="text-xs text-gray-400 hover:text-primary-600 px-1.5 py-0.5 rounded transition-colors"
                       >
                         Modifier
                       </button>

@@ -133,7 +133,7 @@ export function ShareModal({ boardId, onClose }: Props) {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <>
@@ -145,7 +145,7 @@ export function ShareModal({ boardId, onClose }: Props) {
                   <select
                     value={info?.shareLinkRole ?? 'VIEWER'}
                     onChange={(e) => handleLinkRoleChange(e.target.value as 'VIEWER' | 'EDITOR')}
-                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"
                   >
                     <option value="VIEWER">Lecture</option>
                     <option value="EDITOR">Édition</option>
@@ -162,7 +162,7 @@ export function ShareModal({ boardId, onClose }: Props) {
                     <button
                       onClick={handleGenerateLink}
                       disabled={linkLoading}
-                      className="text-xs text-indigo-600 hover:text-indigo-700 font-medium disabled:opacity-50"
+                      className="text-xs text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50"
                     >
                       Activer
                     </button>
@@ -175,7 +175,7 @@ export function ShareModal({ boardId, onClose }: Props) {
                   <span className="flex-1 text-xs text-gray-500 truncate font-mono">{shareUrl}</span>
                   <button
                     onClick={handleCopy}
-                    className="shrink-0 text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+                    className="shrink-0 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors"
                   >
                     {copied ? 'Copié !' : 'Copier'}
                   </button>
@@ -196,12 +196,12 @@ export function ShareModal({ boardId, onClose }: Props) {
                   value={inviteEmail}
                   onChange={(e) => { setInviteEmail(e.target.value); setInviteError(null) }}
                   placeholder="email@exemple.com"
-                  className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                  className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
                 />
                 <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as 'VIEWER' | 'EDITOR' | 'OWNER')}
-                  className="text-sm border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  className="text-sm border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:ring-1 focus:ring-primary-400"
                 >
                   <option value="VIEWER">Lecture</option>
                   <option value="EDITOR">Édition</option>
@@ -210,7 +210,7 @@ export function ShareModal({ boardId, onClose }: Props) {
                 <button
                   type="submit"
                   disabled={inviting || !inviteEmail.trim()}
-                  className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {inviting ? '…' : 'Inviter'}
                 </button>
@@ -228,11 +228,11 @@ export function ShareModal({ boardId, onClose }: Props) {
                   <span className="text-sm font-medium text-gray-700 mb-1">Accès partagés</span>
                   {info.shares.map((share) => (
                     <div key={share.id} className="flex items-center gap-3 py-2 px-3 rounded-xl hover:bg-gray-50 group">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center shrink-0">
                         {share.user.avatar ? (
                           <img src={share.user.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
                         ) : (
-                          <span className="text-xs font-semibold text-indigo-600">
+                          <span className="text-xs font-semibold text-primary-600">
                             {share.user.name.charAt(0).toUpperCase()}
                           </span>
                         )}
@@ -244,7 +244,7 @@ export function ShareModal({ boardId, onClose }: Props) {
                       <select
                         value={share.role}
                         onChange={(e) => handleChangeRole(share.id, e.target.value as 'VIEWER' | 'EDITOR' | 'OWNER')}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"
                       >
                         <option value="VIEWER">Lecture</option>
                         <option value="EDITOR">Édition</option>

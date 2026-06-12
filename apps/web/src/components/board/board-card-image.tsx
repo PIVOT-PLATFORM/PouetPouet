@@ -75,7 +75,7 @@ export function ImageCard({
             }}
             className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors backdrop-blur-sm ${
               hasBorder
-                ? 'bg-indigo-600/80 text-white hover:bg-indigo-700/80'
+                ? 'bg-primary-600/80 text-white hover:bg-primary-700/80'
                 : 'bg-black/35 text-white/80 hover:bg-black/55'
             }`}
             title={hasBorder ? 'Retirer le contour' : 'Ajouter un contour'}

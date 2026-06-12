@@ -30,7 +30,7 @@ export default function SsoPage() {
 
   return (
     <div className="flex flex-col items-center gap-3 py-8">
-      <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
       <p className="text-sm text-gray-500">Connexion en cours…</p>
     </div>
   )

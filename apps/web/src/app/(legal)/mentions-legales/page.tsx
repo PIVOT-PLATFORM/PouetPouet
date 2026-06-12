@@ -21,7 +21,7 @@ export default function MentionsLegalesPage() {
         </p>
         <p>
           L&apos;éditeur peut être contacté par email à l&apos;adresse{' '}
-          <a href="mailto:pouetpouetsupport@gmail.com" className="text-indigo-600 hover:underline dark:text-indigo-400">pouetpouetsupport@gmail.com</a>
+          <a href="mailto:pouetpouetsupport@gmail.com" className="text-primary-600 hover:underline dark:text-primary-400">pouetpouetsupport@gmail.com</a>
           .
         </p>
       </Section>
@@ -29,7 +29,7 @@ export default function MentionsLegalesPage() {
       <Section title="Directeur de la publication">
         <p>
           Le directeur de la publication est l&apos;éditeur du site, joignable à l&apos;adresse{' '}
-          <a href="mailto:pouetpouetsupport@gmail.com" className="text-indigo-600 hover:underline dark:text-indigo-400">pouetpouetsupport@gmail.com</a>
+          <a href="mailto:pouetpouetsupport@gmail.com" className="text-primary-600 hover:underline dark:text-primary-400">pouetpouetsupport@gmail.com</a>
           .
         </p>
       </Section>
@@ -63,7 +63,7 @@ export default function MentionsLegalesPage() {
       <Section title="Contact">
         <p>
           Pour toute question relative au site, vous pouvez écrire à{' '}
-          <a href="mailto:pouetpouetsupport@gmail.com" className="text-indigo-600 hover:underline dark:text-indigo-400">pouetpouetsupport@gmail.com</a>
+          <a href="mailto:pouetpouetsupport@gmail.com" className="text-primary-600 hover:underline dark:text-primary-400">pouetpouetsupport@gmail.com</a>
           .
         </p>
       </Section>

@@ -444,7 +444,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" />
       </div>
     )
   }
@@ -459,7 +459,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         </div>
         <h2 className="text-lg font-semibold text-gray-900">Accès refusé</h2>
         <p className="text-sm text-gray-500">Tu n'as pas accès à ce board. Demande au propriétaire de te partager le lien.</p>
-        <Link href="/dashboard" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">← Retour au dashboard</Link>
+        <Link href="/dashboard" className="text-sm text-primary-600 hover:text-primary-700 font-medium">← Retour au dashboard</Link>
       </div>
     )
   }
@@ -489,7 +489,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
               if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur() }
               else if (e.key === 'Escape') { setEditingName(false) }
             }}
-            className="font-semibold text-gray-900 flex-1 max-w-md truncate min-w-0 bg-white border border-indigo-300 rounded-lg px-2 py-1 -my-1 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+            className="font-semibold text-gray-900 flex-1 max-w-md truncate min-w-0 bg-white border border-primary-300 rounded-lg px-2 py-1 -my-1 outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400"
           />
         ) : (
           <h1
@@ -515,9 +515,9 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         )}
         {/* Session active badge for non-owner board members */}
         {userRole !== 'OWNER' && boardSession.activeSession && (
-          <div className="flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-            <span className="text-xs font-semibold text-indigo-600 font-mono tracking-widest">{boardSession.activeSession.code}</span>
+          <div className="flex items-center gap-1.5 rounded-full bg-primary-50 border border-primary-200 px-3 py-1 shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary-400 animate-pulse" />
+            <span className="text-xs font-semibold text-primary-600 font-mono tracking-widest">{boardSession.activeSession.code}</span>
           </div>
         )}
 
@@ -625,22 +625,22 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
         {/* Vote */}
         {activeVoteSession ? (
-          <div className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 shrink-0 ${voteTimerSecondsLeft !== null && voteTimerSecondsLeft <= 10 ? 'bg-red-50 border-red-200' : voteTimerSecondsLeft !== null && voteTimerSecondsLeft <= 30 ? 'bg-orange-50 border-orange-200' : 'bg-purple-50 border-purple-200'}`}>
-            <span className={`w-2 h-2 rounded-full animate-pulse shrink-0 ${voteTimerSecondsLeft !== null && voteTimerSecondsLeft <= 10 ? 'bg-red-400' : voteTimerSecondsLeft !== null && voteTimerSecondsLeft <= 30 ? 'bg-orange-400' : 'bg-purple-400'}`} />
-            <span className={`text-xs font-semibold ${voteTimerSecondsLeft !== null && voteTimerSecondsLeft <= 10 ? 'text-red-700' : voteTimerSecondsLeft !== null && voteTimerSecondsLeft <= 30 ? 'text-orange-700' : 'text-purple-700'}`}>Vote en cours</span>
+          <div className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 shrink-0 ${voteTimerSecondsLeft !== null && voteTimerSecondsLeft <= 10 ? 'bg-red-50 border-red-200' : voteTimerSecondsLeft !== null && voteTimerSecondsLeft <= 30 ? 'bg-orange-50 border-orange-200' : 'bg-secondary-50 border-secondary-200'}`}>
+            <span className={`w-2 h-2 rounded-full animate-pulse shrink-0 ${voteTimerSecondsLeft !== null && voteTimerSecondsLeft <= 10 ? 'bg-red-400' : voteTimerSecondsLeft !== null && voteTimerSecondsLeft <= 30 ? 'bg-orange-400' : 'bg-secondary-400'}`} />
+            <span className={`text-xs font-semibold ${voteTimerSecondsLeft !== null && voteTimerSecondsLeft <= 10 ? 'text-red-700' : voteTimerSecondsLeft !== null && voteTimerSecondsLeft <= 30 ? 'text-orange-700' : 'text-secondary-700'}`}>Vote en cours</span>
             {voteTimerSecondsLeft !== null && (
-              <span className={`text-xs font-mono font-bold tabular-nums ${voteTimerSecondsLeft <= 10 ? 'text-red-600' : voteTimerSecondsLeft <= 30 ? 'text-orange-600' : 'text-purple-500'}`}>
+              <span className={`text-xs font-mono font-bold tabular-nums ${voteTimerSecondsLeft <= 10 ? 'text-red-600' : voteTimerSecondsLeft <= 30 ? 'text-orange-600' : 'text-secondary-500'}`}>
                 {String(Math.floor(voteTimerSecondsLeft / 60)).padStart(2, '0')}:{String(voteTimerSecondsLeft % 60).padStart(2, '0')}
               </span>
             )}
             {isEligibleVoter && (
-              <span className="text-xs text-purple-500 font-medium">
+              <span className="text-xs text-secondary-500 font-medium">
                 {voteRemaining} restant{voteRemaining !== 1 ? 's' : ''}
               </span>
             )}
             <button
               onClick={() => setShowVoteResults(true)}
-              className="text-xs text-purple-500 hover:text-purple-700 font-medium underline-offset-2 hover:underline"
+              className="text-xs text-secondary-500 hover:text-secondary-700 font-medium underline-offset-2 hover:underline"
             >
               Résultats
             </button>
@@ -650,7 +650,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                   <button
                     key={min}
                     onClick={() => extendVote(min * 60)}
-                    className="text-[10px] font-bold text-purple-500 hover:text-purple-700 hover:bg-purple-100 rounded px-1 py-0.5 transition-colors"
+                    className="text-[10px] font-bold text-secondary-500 hover:text-secondary-700 hover:bg-secondary-100 rounded px-1 py-0.5 transition-colors"
                     title={`Ajouter ${min} minute${min > 1 ? 's' : ''}`}
                   >
                     +{min}m
@@ -660,7 +660,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             )}
             {!isReadonly && (
               <button onClick={stopVote} className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity" title="Terminer le vote">
-                <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -698,7 +698,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                       onClick={() => { closeAllOverlays(); setShowVoteConfig(true) }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
                     >
-                      <svg className="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       Lancer un vote
@@ -738,7 +738,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
         {/* Timer */}
         {timerSecondsLeft !== null ? (
-          <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 shrink-0 ${timerSecondsLeft <= 10 ? 'bg-red-50 text-red-600' : timerSecondsLeft <= 30 ? 'bg-orange-50 text-orange-600' : 'bg-indigo-50 text-indigo-600'}`}>
+          <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 shrink-0 ${timerSecondsLeft <= 10 ? 'bg-red-50 text-red-600' : timerSecondsLeft <= 30 ? 'bg-orange-50 text-orange-600' : 'bg-primary-50 text-primary-600'}`}>
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="9" strokeWidth={2} />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 7v5l3 3" />
@@ -788,7 +788,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                     value={timerCustomMin}
                     onChange={(e) => setTimerCustomMin(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && launchCustomTimer()}
-                    className="w-14 text-center text-sm font-mono font-semibold border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-14 text-center text-sm font-mono font-semibold border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-400"
                     placeholder="mm"
                   />
                   <span className="text-gray-400 font-bold">:</span>
@@ -799,12 +799,12 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                     value={timerCustomSec}
                     onChange={(e) => setTimerCustomSec(e.target.value.padStart(2, '0'))}
                     onKeyDown={(e) => e.key === 'Enter' && launchCustomTimer()}
-                    className="w-14 text-center text-sm font-mono font-semibold border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-14 text-center text-sm font-mono font-semibold border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-400"
                     placeholder="ss"
                   />
                   <button
                     onClick={launchCustomTimer}
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg py-1.5 transition-colors"
+                    className="flex-1 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg py-1.5 transition-colors"
                   >
                     Go
                   </button>
@@ -818,7 +818,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                       <button
                         key={min}
                         onClick={() => { startTimer(min * 60); setShowTimerPicker(false) }}
-                        className="text-xs font-medium text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg py-1.5 transition-colors"
+                        className="text-xs font-medium text-gray-600 hover:bg-primary-50 hover:text-primary-700 rounded-lg py-1.5 transition-colors"
                       >
                         {min}m
                       </button>
@@ -838,7 +838,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           <button
             onClick={startSession}
             disabled={sessionLoading}
-            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors disabled:opacity-50 shrink-0"
+            className="flex items-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700 transition-colors disabled:opacity-50 shrink-0"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -861,7 +861,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             <div ref={overflowMenuContainerRef} className="relative shrink-0">
               <button
                 onClick={() => { if (!showOverflowMenu) closeAllDropdowns(); setShowOverflowMenu(!showOverflowMenu) }}
-                className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${showOverflowMenu || showGroupsPanel ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${showOverflowMenu || showGroupsPanel ? 'text-primary-600 bg-primary-50 hover:bg-primary-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
                 title="Plus d'outils"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -870,7 +870,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                   <circle cx="12" cy="19" r="1.5" />
                 </svg>
                 {(groupCount > 0 || fields.length > 0) && !showOverflowMenu && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-indigo-400" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary-400" />
                 )}
               </button>
               {showOverflowMenu && overflowMenuContainerRef.current && (
@@ -884,7 +884,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                       if (overflowMenuContainerRef.current) setGroupsBtnRect(overflowMenuContainerRef.current.getBoundingClientRect())
                       setShowGroupsPanel(true)
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${showGroupsPanel || highlightedGroupId ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-50'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${showGroupsPanel || highlightedGroupId ? 'text-primary-600 bg-primary-50' : 'text-gray-700 hover:bg-gray-50'}`}
                   >
                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <circle cx="9" cy="7" r="3" strokeWidth={2} />
@@ -894,19 +894,19 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                     </svg>
                     <span className="flex-1">Groupes</span>
                     {groupCount > 0 && (
-                      <span className="text-xs font-bold text-indigo-500 bg-indigo-50 rounded-full px-1.5 py-0.5">{groupCount}</span>
+                      <span className="text-xs font-bold text-primary-500 bg-primary-50 rounded-full px-1.5 py-0.5">{groupCount}</span>
                     )}
                   </button>
                   <button
                     onClick={() => { setShowOverflowMenu(false); setShowGroupsPanel(false); setShowFieldsPanel(true) }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${fields.length > 0 ? 'text-indigo-600' : 'text-gray-700 hover:bg-gray-50'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${fields.length > 0 ? 'text-primary-600' : 'text-gray-700 hover:bg-gray-50'}`}
                   >
                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
                     <span className="flex-1">Champs</span>
                     {fields.length > 0 && (
-                      <span className="text-xs font-bold text-indigo-500 bg-indigo-50 rounded-full px-1.5 py-0.5">{fields.length}</span>
+                      <span className="text-xs font-bold text-primary-500 bg-primary-50 rounded-full px-1.5 py-0.5">{fields.length}</span>
                     )}
                   </button>
                 </div>
@@ -1119,7 +1119,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                       key={l}
                       onClick={() => setLayerSelected(l)}
                       title={l === 0 ? 'Arrière-plan' : l === 1 ? 'Plan principal' : 'Avant-plan'}
-                      className={`w-7 h-7 flex items-center justify-center transition-colors ${selLayer === l ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-100'}`}
+                      className={`w-7 h-7 flex items-center justify-center transition-colors ${selLayer === l ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-primary-600 hover:bg-gray-100'}`}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         {l === 0 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />}
@@ -1280,8 +1280,8 @@ function MemberActivityOverlay({
     <div className="fixed inset-0 z-50 flex items-end justify-center pb-8 px-4 pointer-events-none">
       <div className="pointer-events-auto w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
         {/* Header */}
-        <div className="bg-indigo-600 px-4 py-3">
-          <p className="text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-0.5">
+        <div className="bg-primary-600 px-4 py-3">
+          <p className="text-xs font-semibold text-primary-200 uppercase tracking-widest mb-0.5">
             {activity.type === 'QUIZ' ? 'Quiz' : activity.type === 'POLL' ? 'Sondage' : activity.type === 'WORDCLOUD' ? 'Nuage de mots' : 'Brainstorming'}
           </p>
           <h3 className="text-white font-semibold text-sm leading-snug">{activity.title}</h3>
@@ -1303,9 +1303,9 @@ function MemberActivityOverlay({
                 <button
                   key={i}
                   onClick={() => onRespond(activity.id, i)}
-                  className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-left hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+                  className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-left hover:border-primary-300 hover:bg-primary-50 transition-colors"
                 >
-                  <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold shrink-0">
+                  <span className="w-6 h-6 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-xs font-bold shrink-0">
                     {String.fromCharCode(65 + i)}
                   </span>
                   {opt}
@@ -1320,12 +1320,12 @@ function MemberActivityOverlay({
                 placeholder={activity.type === 'WORDCLOUD' ? 'Un mot…' : 'Votre idée…'}
                 autoFocus
                 maxLength={activity.type === 'WORDCLOUD' ? 30 : 200}
-                className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               <button
                 type="submit"
                 disabled={!text.trim()}
-                className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+                className="rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-40 transition-colors"
               >
                 Envoyer
               </button>

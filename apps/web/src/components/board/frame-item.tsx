@@ -150,11 +150,11 @@ export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartD
             onBlur={handleTitleBlur}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') handleTitleBlur() }}
             onMouseDown={(e) => e.stopPropagation()}
-            className="text-xs font-semibold text-indigo-700 bg-white border border-indigo-300 rounded px-2 py-0.5 focus:outline-none w-32"
+            className="text-xs font-semibold text-primary-700 bg-white border border-primary-300 rounded px-2 py-0.5 focus:outline-none w-32"
           />
         ) : (
           <span
-            className="text-xs font-semibold text-indigo-600 bg-white/80 rounded px-2 py-0.5 cursor-text hover:bg-white transition-colors"
+            className="text-xs font-semibold text-primary-600 bg-white/80 rounded px-2 py-0.5 cursor-text hover:bg-white transition-colors"
             onDoubleClick={(e) => { e.stopPropagation(); if (!isReadonly) setIsEditingTitle(true) }}
           >
             {title}
@@ -166,8 +166,8 @@ export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartD
           <button
             className={`transition-all w-5 h-5 rounded-full flex items-center justify-center ${
               frame.active
-                ? 'bg-indigo-600 text-white opacity-100'
-                : 'bg-white text-gray-400 opacity-0 group-hover/frame:opacity-100 hover:text-indigo-600'
+                ? 'bg-primary-600 text-white opacity-100'
+                : 'bg-white text-gray-400 opacity-0 group-hover/frame:opacity-100 hover:text-primary-600'
             }`}
             title={frame.active ? 'Cadre actif : déplace son contenu. Cliquer pour désactiver.' : 'Cadre inactif : se déplace seul. Cliquer pour activer.'}
             onMouseDown={(e) => e.stopPropagation()}
@@ -190,7 +190,7 @@ export function FrameItem({ frame, cards, zoom = 1, isReadonly, onMove, onStartD
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onSetLayer(frame.id, l) }}
                 title={l === 0 ? 'Arrière-plan' : l === 1 ? 'Plan principal' : 'Avant-plan'}
-                className={`w-5 h-5 flex items-center justify-center transition-colors ${(frame.layer ?? 1) === l ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-indigo-600'}`}
+                className={`w-5 h-5 flex items-center justify-center transition-colors ${(frame.layer ?? 1) === l ? 'bg-primary-600 text-white' : 'text-gray-400 hover:text-primary-600'}`}
               >
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {l === 0 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />}

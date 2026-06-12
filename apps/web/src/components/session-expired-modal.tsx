@@ -15,7 +15,7 @@ export function SessionExpiredModal() {
         </p>
         <button
           onClick={() => window.location.reload()}
-          className="w-full px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors"
+          className="w-full px-5 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
         >
           Recharger la page
         </button>

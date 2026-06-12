@@ -96,7 +96,7 @@ function Tile({
       className={`relative flex flex-col items-start gap-2 p-4 rounded-xl border text-left transition-all ${
         disabled
           ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
-          : 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/40 text-gray-600 hover:text-indigo-700'
+          : 'border-gray-200 hover:border-primary-300 hover:bg-primary-50/40 text-gray-600 hover:text-primary-700'
       }`}
     >
       {badge && (
@@ -104,7 +104,7 @@ function Tile({
           {badge}
         </span>
       )}
-      <span className={disabled ? 'text-gray-300' : 'text-indigo-500'}>{icon}</span>
+      <span className={disabled ? 'text-gray-300' : 'text-primary-500'}>{icon}</span>
       <span className="text-sm font-semibold">{label}</span>
       <span className="text-xs text-gray-400 leading-tight">{desc}</span>
     </button>

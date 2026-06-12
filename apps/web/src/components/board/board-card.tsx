@@ -513,7 +513,7 @@ export const BoardCard = memo(function BoardCard({
     >
       {/* ── Verrou doux : badge "Untel écrit…" ── */}
       {remoteEditor && (
-        <div className="absolute -top-2.5 left-2 z-10 flex items-center gap-1 bg-indigo-600 text-white rounded-full px-2 py-0.5 shadow-md pointer-events-none">
+        <div className="absolute -top-2.5 left-2 z-10 flex items-center gap-1 bg-primary-600 text-white rounded-full px-2 py-0.5 shadow-md pointer-events-none">
           <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
           <span className="text-[10px] font-semibold whitespace-nowrap">{remoteEditor.name} écrit…</span>
         </div>
@@ -537,7 +537,7 @@ export const BoardCard = memo(function BoardCard({
               <button
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onOpenDetail(card.id) }}
-                className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500/60 hover:text-indigo-600 hover:bg-indigo-100/60 transition-colors"
+                className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500/60 hover:text-primary-600 hover:bg-primary-100/60 transition-colors"
                 title="Détail"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

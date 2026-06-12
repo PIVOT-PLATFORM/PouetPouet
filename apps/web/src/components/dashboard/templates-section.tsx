@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 const TEMPLATE_THEMES = [
-  { gradient: 'from-violet-500 to-indigo-600', light: 'bg-violet-50', text: 'text-violet-600' },
+  { gradient: 'from-violet-500 to-primary-600', light: 'bg-violet-50', text: 'text-violet-600' },
   { gradient: 'from-blue-500 to-cyan-600', light: 'bg-blue-50', text: 'text-blue-600' },
   { gradient: 'from-emerald-500 to-teal-600', light: 'bg-emerald-50', text: 'text-emerald-600' },
   { gradient: 'from-orange-500 to-amber-500', light: 'bg-orange-50', text: 'text-orange-600' },
   { gradient: 'from-pink-500 to-rose-500', light: 'bg-pink-50', text: 'text-pink-600' },
-  { gradient: 'from-purple-500 to-fuchsia-600', light: 'bg-purple-50', text: 'text-purple-600' },
+  { gradient: 'from-secondary-500 to-fuchsia-600', light: 'bg-secondary-50', text: 'text-secondary-600' },
 ]
 
 function getTheme(id: string) {
@@ -94,7 +94,7 @@ export function TemplatesSection({ templates, onCreate, onDelete, onEditContent,
         </h2>
         <button
           onClick={() => setShowNew(true)}
-          className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+          className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -225,7 +225,7 @@ function NewTemplateModal({
             <select
               value={fromBoardId}
               onChange={(e) => setFromBoardId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
               <option value="">Template vierge</option>
               {ownedBoards.map((b) => (

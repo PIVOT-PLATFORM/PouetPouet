@@ -4,6 +4,8 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { api, setOnUnauthorized } from '@/lib/api'
 
+export type Palette = 'default' | 'fde-bleu-vert' | 'fde-orange-vert' | 'fde-bleu-orange' | 'amethyste' | 'ocean' | 'rubis'
+
 export interface User {
   id: string
   email: string
@@ -11,6 +13,7 @@ export interface User {
   avatar: string | null
   bio: string | null
   theme: 'light' | 'dark'
+  palette: Palette
   emailVerified: boolean
   favoriteModules: string[]
   createdAt: string
@@ -43,7 +46,7 @@ interface AuthState {
   expireSession: () => void
   refreshSession: () => Promise<void>
   clearError: () => void
-  updateProfile: (data: { name?: string; bio?: string | null; theme?: 'light' | 'dark' }) => Promise<void>
+  updateProfile: (data: { name?: string; bio?: string | null; theme?: 'light' | 'dark'; palette?: Palette }) => Promise<void>
   updateAvatar: (avatar: string | null) => Promise<void>
   changePassword: (current: string, next: string) => Promise<void>
   deleteAccount: (password: string) => Promise<void>
@@ -136,7 +139,7 @@ export const useAuthStore = create<AuthState>()(
 
       clearError: () => set({ error: null }),
 
-      updateProfile: async (data: { name?: string; bio?: string | null; theme?: 'light' | 'dark' }) => {
+      updateProfile: async (data: { name?: string; bio?: string | null; theme?: 'light' | 'dark'; palette?: Palette }) => {
         const updated = await api.patch<User>('/api/auth/profile', data)
         set((state) => ({ user: state.user ? { ...state.user, ...updated } : null }))
       },

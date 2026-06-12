@@ -36,7 +36,7 @@ export function ColorPicker({ value, onChange, columns = 7 }: ColorPickerProps) 
         className="relative w-full aspect-square rounded-full transition-transform hover:scale-110"
         style={{ background: c, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
       >
-        {selected && <span className="absolute -inset-0.5 rounded-full ring-2 ring-indigo-500" />}
+        {selected && <span className="absolute -inset-0.5 rounded-full ring-2 ring-primary-500" />}
       </button>
     )
   }
@@ -81,7 +81,7 @@ export function ColorPicker({ value, onChange, columns = 7 }: ColorPickerProps) 
               onChange={onChange}
               onBlur={commitRecent}
               prefixed
-              className="flex-1 min-w-0 rounded-md border border-gray-200 px-2 py-1 text-xs uppercase text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="flex-1 min-w-0 rounded-md border border-gray-200 px-2 py-1 text-xs uppercase text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400"
             />
           </div>
         </div>

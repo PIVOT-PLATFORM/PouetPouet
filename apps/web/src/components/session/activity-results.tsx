@@ -20,7 +20,7 @@ export function ActivityResults({ activity, responses, participantCount, onClose
           <p className="text-xs text-gray-400 uppercase tracking-wide">{reportMode ? 'Résultats' : 'Activité en cours'}</p>
           <p className="text-sm font-semibold text-gray-800 mt-0.5">{activity.title}</p>
         </div>
-        <span className="text-xs bg-indigo-100 text-indigo-700 rounded-full px-2 py-0.5 font-medium">
+        <span className="text-xs bg-primary-100 text-primary-700 rounded-full px-2 py-0.5 font-medium">
           {reportMode ? `${responses.length} réponse${responses.length !== 1 ? 's' : ''}` : `${responses.length}/${participantCount}`}
         </span>
       </div>
@@ -70,7 +70,7 @@ function PollResults({ activity, responses, showCorrect = false }: { activity: A
             </div>
             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${isCorrect ? 'bg-green-500' : 'bg-indigo-500'}`}
+                className={`h-full rounded-full transition-all duration-500 ${isCorrect ? 'bg-green-500' : 'bg-primary-500'}`}
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -103,7 +103,7 @@ function WordcloudResults({ responses }: { responses: unknown[] }) {
         return (
           <span
             key={word}
-            className="font-semibold text-indigo-600 transition-all"
+            className="font-semibold text-primary-600 transition-all"
             style={{ fontSize: size, opacity }}
           >
             {word}

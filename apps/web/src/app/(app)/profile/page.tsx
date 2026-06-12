@@ -40,6 +40,18 @@ interface WebhookDeliveryMeta {
   createdAt: string
 }
 
+// Palettes disponibles — les variables CSS correspondantes vivent dans globals.css.
+// swatch = [primary-600, secondary-500] pour l'aperçu.
+const PALETTES: { id: import('@/store/auth').Palette; label: string; hint?: string; swatch: [string, string] }[] = [
+  { id: 'default', label: 'Défaut', hint: 'Indigo & violet', swatch: ['#4f46e5', '#a855f7'] },
+  { id: 'fde-bleu-vert', label: 'FDE Bleu-Vert', hint: 'Charte FDE', swatch: ['#1057c8', '#88d910'] },
+  { id: 'fde-orange-vert', label: 'FDE Orange-Vert', hint: 'Charte FDE', swatch: ['#fe5716', '#88d910'] },
+  { id: 'fde-bleu-orange', label: 'FDE Bleu-Orange', hint: 'Charte FDE', swatch: ['#1057c8', '#ff861d'] },
+  { id: 'amethyste', label: 'Améthyste', hint: 'Violet & fuchsia', swatch: ['#7c3aed', '#d946ef'] },
+  { id: 'ocean', label: 'Océan', hint: 'Teal & cyan', swatch: ['#0d9488', '#06b6d4'] },
+  { id: 'rubis', label: 'Rubis', hint: 'Rose & ambre', swatch: ['#e11d48', '#f59e0b'] },
+]
+
 const AUDIT_ACTION_LABELS: Record<string, string> = {
   'auth.login': 'Connexion',
   'auth.login_failed': 'Tentative de connexion échouée',
@@ -91,7 +103,7 @@ function SaveButton({ saving, label = 'Sauvegarder' }: { saving: boolean; label?
     <button
       type="submit"
       disabled={saving}
-      className="px-5 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+      className="px-5 py-2 rounded-xl bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
     >
       {saving ? 'Sauvegarde…' : label}
     </button>
@@ -372,7 +384,7 @@ export default function ProfilePage() {
             {user.avatar ? (
               <img src={user.avatar} alt={user.name} className="w-20 h-20 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700" />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-bold ring-2 ring-gray-100 dark:ring-gray-700">
+              <div className="w-20 h-20 rounded-full bg-primary-600 flex items-center justify-center text-white text-2xl font-bold ring-2 ring-gray-100 dark:ring-gray-700">
                 {avatarInitials}
               </div>
             )}
@@ -387,7 +399,7 @@ export default function ProfilePage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={avatarLoading}
-              className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 w-fit"
+              className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 w-fit"
             >
               Changer la photo
             </button>
@@ -420,7 +432,7 @@ export default function ProfilePage() {
               required
               minLength={2}
               aria-label="Nom"
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
@@ -445,7 +457,7 @@ export default function ProfilePage() {
               rows={3}
               maxLength={500}
               placeholder="Quelques mots sur vous…"
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
             />
             <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 text-right">{bio.length}/500</p>
           </div>
@@ -469,8 +481,8 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={handleThemeToggle}
-              className={`relative shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
-                user.theme === 'dark' ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'
+              className={`relative shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
+                user.theme === 'dark' ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'
               }`}
               role="switch"
               aria-checked={user.theme === 'dark'}
@@ -482,6 +494,37 @@ export default function ProfilePage() {
                 }`}
               />
             </button>
+          </div>
+
+          {/* Palette de couleurs */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Palette de couleurs</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5 mb-3">S&apos;applique à toute l&apos;interface, et se combine avec le mode nuit.</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {PALETTES.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => updateProfile({ palette: p.id })}
+                  aria-label={`Palette ${p.label}`}
+                  aria-pressed={user.palette === p.id}
+                  className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                    user.palette === p.id
+                      ? 'border-primary-500 ring-1 ring-primary-500 bg-primary-50/50 dark:bg-primary-950/30'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <span className="flex shrink-0 -space-x-1">
+                    <span className="w-5 h-5 rounded-full ring-2 ring-white dark:ring-gray-900" style={{ background: p.swatch[0] }} />
+                    <span className="w-5 h-5 rounded-full ring-2 ring-white dark:ring-gray-900" style={{ background: p.swatch[1] }} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{p.label}</span>
+                    {p.hint && <span className="block text-[10px] text-gray-500 dark:text-gray-500 truncate">{p.hint}</span>}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </SectionCard>
@@ -497,7 +540,7 @@ export default function ProfilePage() {
               onChange={(e) => setCurrentPwd(e.target.value)}
               autoComplete="current-password"
               aria-label="Mot de passe actuel"
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
@@ -509,7 +552,7 @@ export default function ProfilePage() {
               onChange={(e) => setNewPwd(e.target.value)}
               autoComplete="new-password"
               aria-label="Nouveau mot de passe"
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
@@ -521,7 +564,7 @@ export default function ProfilePage() {
               onChange={(e) => setConfirmPwd(e.target.value)}
               autoComplete="new-password"
               aria-label="Confirmer le mot de passe"
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
@@ -590,12 +633,12 @@ export default function ProfilePage() {
               onChange={(e) => setApiKeyName(e.target.value)}
               placeholder="Nom de la clé (ex: CI, script export…)"
               maxLength={64}
-              className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
+              className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
             />
             <button
               type="submit"
               disabled={creatingKey || !apiKeyName.trim()}
-              className="shrink-0 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              className="shrink-0 px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
             >
               {creatingKey ? 'Création…' : 'Créer'}
             </button>
@@ -688,7 +731,7 @@ export default function ProfilePage() {
                 value={wkName}
                 onChange={(e) => setWkName(e.target.value)}
                 placeholder="Mon webhook CI"
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-400"
               />
             </div>
             <div>
@@ -698,7 +741,7 @@ export default function ProfilePage() {
                 onChange={(e) => setWkUrl(e.target.value)}
                 placeholder="https://example.com/webhook"
                 type="url"
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-400"
               />
             </div>
             <div>
@@ -721,13 +764,13 @@ export default function ProfilePage() {
               <button type="button" onClick={() => { setShowWebhookForm(false); setWkName(''); setWkUrl(''); setWkEvents([]) }} className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                 Annuler
               </button>
-              <button type="submit" disabled={creatingWk || !wkName.trim() || !wkUrl.trim() || wkEvents.length === 0} className="px-3 py-1.5 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+              <button type="submit" disabled={creatingWk || !wkName.trim() || !wkUrl.trim() || wkEvents.length === 0} className="px-3 py-1.5 text-sm font-semibold bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors">
                 {creatingWk ? 'Création…' : 'Créer'}
               </button>
             </div>
           </form>
         ) : (
-          <button onClick={() => setShowWebhookForm(true)} className="mb-4 flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition-colors">
+          <button onClick={() => setShowWebhookForm(true)} className="mb-4 flex items-center gap-2 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             Ajouter un webhook
           </button>
@@ -756,7 +799,7 @@ export default function ProfilePage() {
                   )}
                   <button
                     onClick={() => handleToggleDeliveries(wk.id)}
-                    className={`p-1.5 rounded-lg transition-colors ${expandedWkId === wk.id ? 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950' : 'text-gray-500 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950'}`}
+                    className={`p-1.5 rounded-lg transition-colors ${expandedWkId === wk.id ? 'text-primary-500 bg-primary-50 dark:bg-primary-950' : 'text-gray-500 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950'}`}
                     title="Historique des livraisons"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -771,7 +814,7 @@ export default function ProfilePage() {
                   </button>
                   <button
                     onClick={() => handleToggleWebhook(wk.id, !wk.active)}
-                    className="p-1.5 rounded-lg text-gray-500 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors"
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors"
                     title={wk.active ? 'Désactiver' : 'Activer'}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={wk.active ? 'M10 9v6m4-6v6' : 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z'} /></svg>
@@ -829,7 +872,7 @@ export default function ProfilePage() {
         {!showAuditLog ? (
           <button
             onClick={() => setShowAuditLog(true)}
-            className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition-colors"
+            className="flex items-center gap-2 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
             Afficher le journal

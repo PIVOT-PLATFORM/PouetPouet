@@ -57,8 +57,8 @@ export default function RegisterPage() {
   if (pending) {
     return (
       <div className="text-center">
-        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50">
-          <svg className="h-7 w-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50">
+          <svg className="h-7 w-7 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
         </div>
@@ -81,7 +81,7 @@ export default function RegisterPage() {
         <div className="mt-6 flex flex-col gap-3">
           <button
             onClick={handleResend}
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+            className="text-sm font-medium text-primary-600 hover:text-primary-700"
           >
             {resent ? 'Email renvoyé ✓' : 'Renvoyer l\'email'}
           </button>
@@ -149,11 +149,11 @@ export default function RegisterPage() {
 
         <p className="text-xs text-center text-gray-500 leading-relaxed">
           En créant un compte, vous acceptez nos{' '}
-          <Link href="/cgu" className="text-indigo-600 hover:text-indigo-700 underline">
+          <Link href="/cgu" className="text-primary-600 hover:text-primary-700 underline">
             conditions générales d&apos;utilisation
           </Link>{' '}
           et notre{' '}
-          <Link href="/confidentialite" className="text-indigo-600 hover:text-indigo-700 underline">
+          <Link href="/confidentialite" className="text-primary-600 hover:text-primary-700 underline">
             politique de confidentialité
           </Link>
           .
@@ -162,7 +162,7 @@ export default function RegisterPage() {
 
       <p className="mt-6 text-center text-sm text-gray-500">
         Déjà un compte ?{' '}
-        <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-700">
+        <Link href="/login" className="font-medium text-primary-600 hover:text-primary-700">
           Se connecter
         </Link>
       </p>

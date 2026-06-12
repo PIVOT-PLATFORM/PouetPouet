@@ -174,7 +174,7 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
               title="Formes"
               onClick={(e) => { onToolChange(lastShape, isShape ? toolColor : DEFAULT_SHAPE_COLOR); e.currentTarget.blur() }}
               className={`relative w-9 h-9 rounded-xl flex items-center justify-center transition-all focus:outline-none ${
-                isShape ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+                isShape ? 'bg-primary-600 text-white shadow-md shadow-primary-200' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
               }`}
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -232,7 +232,7 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
                     title={SHAPE_LABELS[s]}
                     onClick={() => { setLastShape(s); onToolChange(s, toolColor) }}
                     className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
-                      toolMode === s ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-100'
+                      toolMode === s ? 'bg-primary-600 text-white' : 'text-gray-500 hover:bg-gray-100'
                     }`}
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -259,7 +259,7 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
                     title={s === 'thin' ? 'Trait fin' : s === 'medium' ? 'Trait moyen' : 'Trait épais'}
                     onClick={() => onToolChange(toolMode, undefined, s)}
                     className={`w-10 h-6 rounded-lg flex items-center justify-center transition-all ${
-                      toolStroke === s ? 'bg-indigo-600' : 'text-gray-500 hover:bg-gray-100'
+                      toolStroke === s ? 'bg-primary-600' : 'text-gray-500 hover:bg-gray-100'
                     }`}
                   >
                     <div
@@ -278,7 +278,7 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
                 onClick={() => onToolChange(toolMode, undefined, undefined, !toolFill)}
                 className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
                   toolFill
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                    ? 'bg-primary-600 text-white shadow-md shadow-primary-200'
                     : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
                 }`}
               >
@@ -321,7 +321,7 @@ const Btn = forwardRef<HTMLButtonElement, {
       onClick={(e) => { onClick(); e.currentTarget.blur() }}
       className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all focus:outline-none ${
         mode === current
-          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+          ? 'bg-primary-600 text-white shadow-md shadow-primary-200'
           : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
       }`}
     >

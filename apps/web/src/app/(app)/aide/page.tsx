@@ -190,7 +190,7 @@ export default function AidePage() {
               <ul className="space-y-1">
                 {m.features.map((f) => (
                   <li key={f} className="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-400">
-                    <span className="mt-0.5 shrink-0 text-indigo-400">·</span>
+                    <span className="mt-0.5 shrink-0 text-primary-400">·</span>
                     {f}
                   </li>
                 ))}
@@ -240,17 +240,17 @@ export default function AidePage() {
 
       {/* Guide complet download */}
       <CollapsibleSection title="Guide complet">
-        <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 rounded-xl p-5 flex items-center justify-between gap-4 flex-wrap">
+        <div className="bg-primary-50 dark:bg-primary-950/40 border border-primary-100 dark:border-primary-900 rounded-xl p-5 flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <p className="font-semibold text-indigo-900 dark:text-indigo-300 text-sm">Guide des fonctionnalités — v0.3.0</p>
-            <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">
+            <p className="font-semibold text-primary-900 dark:text-primary-300 text-sm">Guide des fonctionnalités — v0.3.0</p>
+            <p className="text-xs text-primary-600 dark:text-primary-400 mt-0.5">
               Description détaillée de toutes les fonctionnalités de la plateforme.
             </p>
           </div>
           <a
             href="/aide/FEATURES.pdf"
             download
-            className="shrink-0 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors"
+            className="shrink-0 inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors"
           >
             <DownloadIcon />
             Télécharger le PDF
@@ -278,7 +278,7 @@ export default function AidePage() {
               <a
                 href={`/aide/${t.file}`}
                 download
-                className="inline-flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:hover:border-indigo-600 dark:hover:text-indigo-400 text-gray-600 dark:text-gray-400 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors mt-auto"
+                className="inline-flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:text-primary-600 dark:hover:border-primary-600 dark:hover:text-primary-400 text-gray-600 dark:text-gray-400 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors mt-auto"
               >
                 <DownloadIcon />
                 Télécharger

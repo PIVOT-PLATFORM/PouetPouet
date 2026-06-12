@@ -7,7 +7,7 @@ import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/mailer.js'
 import { audit } from '../lib/audit.js'
 
 const USER_SELECT = {
-  id: true, email: true, name: true, avatar: true, bio: true, theme: true, emailVerified: true, favoriteModules: true, createdAt: true,
+  id: true, email: true, name: true, avatar: true, bio: true, theme: true, palette: true, emailVerified: true, favoriteModules: true, createdAt: true,
 } as const
 
 // Test-only shortcut, controlled by env, so the email step can be skipped while building.
@@ -36,6 +36,7 @@ const profileSchema = z.object({
   name: z.string().min(2).optional(),
   bio: z.string().max(500).nullable().optional(),
   theme: z.enum(['light', 'dark']).optional(),
+  palette: z.enum(['default', 'fde-bleu-vert', 'fde-orange-vert', 'fde-bleu-orange', 'amethyste', 'ocean', 'rubis']).optional(),
 })
 
 const avatarSchema = z.object({

@@ -16,6 +16,30 @@ test('le hub affiche une tuile par module FORGE', async ({ page }) => {
   await page.waitForURL('**/dashboard')
 })
 
+test('le changement de palette s\'applique et persiste', async ({ page }) => {
+  await registerUser(page, 'E2E Palette')
+  await page.goto('/profile')
+
+  // Sélection de la palette FDE Bleu-Vert → data-palette posé sur <html>
+  await page.getByRole('button', { name: 'Palette FDE Bleu-Vert' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'fde-bleu-vert')
+
+  // La couleur primaire a réellement changé (bouton Sauvegarder = bg-primary-600).
+  // poll : le bouton a une transition-colors, on attend la fin de l'animation.
+  await expect
+    .poll(async () => page.getByRole('button', { name: 'Sauvegarder' }).first()
+      .evaluate((el) => getComputedStyle(el).backgroundColor), { timeout: 3000 })
+    .toBe('rgb(16, 87, 200)') // #1057c8 — FDE bleu moyen
+
+  // Persiste après rechargement
+  await page.reload()
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'fde-bleu-vert')
+
+  // Retour au défaut
+  await page.getByRole('button', { name: 'Palette Défaut' }).click()
+  await expect(page.locator('html')).not.toHaveAttribute('data-palette', /./)
+})
+
 test('la page aide affiche la matrice des rôles (section dépliable)', async ({ page }) => {
   await registerUser(page, 'E2E Aide')
   await page.goto('/aide')

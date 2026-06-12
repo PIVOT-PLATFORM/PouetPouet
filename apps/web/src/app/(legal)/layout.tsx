@@ -27,7 +27,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
                 href={l.href}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   pathname === l.href
-                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400'
+                    ? 'bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-400'
                     : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
                 }`}
               >

@@ -78,7 +78,7 @@ function EmojiPicker({ value, onChange }: { value: string; onChange: (v: string)
         type="button"
         onClick={() => setOpen((v) => !v)}
         title="Choisir un emoji"
-        className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-xl hover:border-indigo-300 hover:bg-indigo-50 transition-colors select-none"
+        className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-xl hover:border-primary-300 hover:bg-primary-50 transition-colors select-none"
       >
         {value || <span className="text-gray-300 text-sm">+</span>}
       </button>
@@ -95,7 +95,7 @@ function EmojiPicker({ value, onChange }: { value: string; onChange: (v: string)
                       key={emoji}
                       type="button"
                       onClick={() => { onChange(emoji); setOpen(false) }}
-                      className={`w-6 h-6 flex items-center justify-center text-base rounded hover:bg-indigo-50 transition-colors ${value === emoji ? 'bg-indigo-100 ring-1 ring-indigo-400' : ''}`}
+                      className={`w-6 h-6 flex items-center justify-center text-base rounded hover:bg-primary-50 transition-colors ${value === emoji ? 'bg-primary-100 ring-1 ring-primary-400' : ''}`}
                     >
                       {emoji}
                     </button>
@@ -196,7 +196,7 @@ export function BoardFieldsPanel({ fields, onCreate, onUpdate, onDelete, onClose
                     <button
                       key={preset.name}
                       onClick={() => applyPreset(preset)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 transition-colors"
                     >
                       <span>{preset.emoji}</span>
                       <span>{preset.name}</span>
@@ -226,7 +226,7 @@ export function BoardFieldsPanel({ fields, onCreate, onUpdate, onDelete, onClose
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter') handleUpdate(field); if (e.key === 'Escape') setEditingId(null) }}
-                            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                           />
                         </div>
                         {field.type === 'SELECT' && (
@@ -234,11 +234,11 @@ export function BoardFieldsPanel({ fields, onCreate, onUpdate, onDelete, onClose
                             value={editOptions}
                             onChange={(e) => setEditOptions(e.target.value)}
                             placeholder="Option A, Option B, Option C"
-                            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
                           />
                         )}
                         <div className="flex gap-2">
-                          <button onClick={() => handleUpdate(field)} className="text-xs bg-indigo-600 text-white rounded-lg px-3 py-1 hover:bg-indigo-700">Enregistrer</button>
+                          <button onClick={() => handleUpdate(field)} className="text-xs bg-primary-600 text-white rounded-lg px-3 py-1 hover:bg-primary-700">Enregistrer</button>
                           <button onClick={() => setEditingId(null)} className="text-xs text-gray-500 hover:text-gray-700">Annuler</button>
                         </div>
                       </div>
@@ -255,7 +255,7 @@ export function BoardFieldsPanel({ fields, onCreate, onUpdate, onDelete, onClose
                           )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          <button onClick={() => startEdit(field)} className="text-gray-400 hover:text-indigo-600 transition-colors p-1">
+                          <button onClick={() => startEdit(field)} className="text-gray-400 hover:text-primary-600 transition-colors p-1">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                           </button>
                           <button onClick={() => onDelete(field.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1">
@@ -280,12 +280,12 @@ export function BoardFieldsPanel({ fields, onCreate, onUpdate, onDelete, onClose
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
                 placeholder="Nom du champ…"
-                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               <select
                 value={newType}
                 onChange={(e) => setNewType(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                className="text-sm border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
               >
                 {FIELD_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
@@ -295,13 +295,13 @@ export function BoardFieldsPanel({ fields, onCreate, onUpdate, onDelete, onClose
                 value={newOptions}
                 onChange={(e) => setNewOptions(e.target.value)}
                 placeholder="Option A, Option B, Option C"
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             )}
             <button
               onClick={handleCreate}
               disabled={!newName.trim()}
-              className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+              className="w-full rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-40 transition-colors"
             >
               Ajouter le champ
             </button>

@@ -19,7 +19,7 @@ export default function ConfidentialitePage() {
       <Section title="Responsable du traitement">
         <p>
           Le responsable du traitement des données est l&apos;éditeur du site, joignable à l&apos;adresse{' '}
-          <a href="mailto:pouetpouetsupport@gmail.com" className="text-indigo-600 hover:underline dark:text-indigo-400">pouetpouetsupport@gmail.com</a>
+          <a href="mailto:pouetpouetsupport@gmail.com" className="text-primary-600 hover:underline dark:text-primary-400">pouetpouetsupport@gmail.com</a>
           .
         </p>
       </Section>
@@ -69,7 +69,7 @@ export default function ConfidentialitePage() {
         </List>
         <p>
           Pour exercer ces droits, contactez{' '}
-          <a href="mailto:pouetpouetsupport@gmail.com" className="text-indigo-600 hover:underline dark:text-indigo-400">pouetpouetsupport@gmail.com</a>
+          <a href="mailto:pouetpouetsupport@gmail.com" className="text-primary-600 hover:underline dark:text-primary-400">pouetpouetsupport@gmail.com</a>
           . Vous pouvez également introduire une réclamation auprès de la CNIL (www.cnil.fr).
         </p>
       </Section>

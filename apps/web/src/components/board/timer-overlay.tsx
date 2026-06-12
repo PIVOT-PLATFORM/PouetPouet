@@ -44,7 +44,7 @@ export function TimerOverlay({ onDismiss }: Props) {
         <div className="timer-card-in flex flex-col items-center gap-5 text-center">
 
           {/* Carte principale — même style que les cartes de vote */}
-          <div className="w-36 h-48 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center shadow-2xl gap-3">
+          <div className="w-36 h-48 rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-600 flex flex-col items-center justify-center shadow-2xl gap-3">
             <svg className="w-12 h-12 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="9" strokeWidth={1.8} />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 7v5l3.5 3.5" />

@@ -137,11 +137,11 @@ export default function HubPage() {
               <Link
                 key={b.id}
                 href={`/dashboard/${b.id}`}
-                className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-sm transition-all"
+                className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm transition-all"
               >
                 <span className="text-lg shrink-0">🧀</span>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                     {b.name}
                   </p>
                   <p className="text-[11px] text-gray-400 dark:text-gray-500">{timeAgo(b.updatedAt)}</p>
@@ -152,11 +152,11 @@ export default function HubPage() {
               <Link
                 key={d.id}
                 href="/daily"
-                className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-sm transition-all"
+                className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm transition-all"
               >
                 <span className="text-lg shrink-0">☀️</span>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                     {d.name}
                   </p>
                   <p className="text-[11px] text-gray-400 dark:text-gray-500">
@@ -173,11 +173,11 @@ export default function HubPage() {
               <Link
                 key={r.id}
                 href={`/scrum/${r.code}`}
-                className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-sm transition-all"
+                className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm transition-all"
               >
                 <span className="text-lg shrink-0">🃏</span>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                     {r.name}
                   </p>
                   <p className="text-[11px] text-gray-400 dark:text-gray-500">
@@ -191,11 +191,11 @@ export default function HubPage() {
               <Link
                 key={w.id}
                 href="/wheel"
-                className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-sm transition-all"
+                className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm transition-all"
               >
                 <span className="text-lg shrink-0">🎡</span>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                     {w.teamName ?? 'Tirage'}
                   </p>
                   <p className="text-[11px] text-gray-400 dark:text-gray-500">
@@ -229,7 +229,7 @@ export default function HubPage() {
                   {mod.icon}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                     {mod.name}
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{mod.description}</p>
@@ -239,7 +239,7 @@ export default function HubPage() {
                         <Link
                           key={link.href}
                           href={link.href}
-                          className="text-xs px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950 dark:hover:text-indigo-400 transition-colors"
+                          className="text-xs px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-primary-950 dark:hover:text-primary-400 transition-colors"
                         >
                           {link.label}
                         </Link>

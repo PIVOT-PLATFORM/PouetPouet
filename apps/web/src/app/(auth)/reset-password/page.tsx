@@ -25,7 +25,7 @@ function ResetPasswordForm() {
       <>
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Lien invalide</h2>
         <p className="text-sm text-gray-500 mb-6">Ce lien de réinitialisation est invalide ou a expiré.</p>
-        <Link href="/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-700 text-sm">
+        <Link href="/forgot-password" className="font-medium text-primary-600 hover:text-primary-700 text-sm">
           Demander un nouveau lien
         </Link>
       </>
@@ -75,7 +75,7 @@ function ResetPasswordForm() {
         </p>
         <Link
           href="/login"
-          className="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2.5 rounded-xl transition-colors"
+          className="block w-full text-center bg-primary-600 hover:bg-primary-700 text-white font-medium text-sm py-2.5 rounded-xl transition-colors"
         >
           Se connecter
         </Link>

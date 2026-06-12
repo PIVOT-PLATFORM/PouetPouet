@@ -55,7 +55,7 @@ function MemberRow({
         value={name}
         onChange={(e) => onChange(e.target.value)}
         placeholder={`Membre ${index + 1}`}
-        className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:bg-gray-800 dark:text-white"
+        className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-800 dark:text-white"
       />
       <button
         type="button"
@@ -134,7 +134,7 @@ function TeamModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Squad Alpha"
-              className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:bg-gray-800 dark:text-white"
+              className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-800 dark:text-white"
             />
           </div>
 
@@ -145,7 +145,7 @@ function TeamModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Ex: Équipe back-end, sprint 3"
-              className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:bg-gray-800 dark:text-white"
+              className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-800 dark:text-white"
             />
           </div>
 
@@ -174,7 +174,7 @@ function TeamModal({
               <button
                 type="button"
                 onClick={() => setMembers((prev) => [...prev, ''])}
-                className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium text-left py-1"
+                className="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 font-medium text-left py-1"
               >
                 + Ajouter un membre
               </button>
@@ -192,7 +192,7 @@ function TeamModal({
           <button
             onClick={handleSave}
             disabled={!name.trim() || saving}
-            className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-50 transition-colors"
           >
             {saving ? 'Enregistrement…' : initial ? 'Enregistrer' : 'Créer l\'équipe'}
           </button>
@@ -244,7 +244,7 @@ function TeamCard({
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => onEdit(team)}
-              className="text-xs text-gray-400 hover:text-indigo-600 transition-colors px-2 py-1 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950"
+              className="text-xs text-gray-400 hover:text-primary-600 transition-colors px-2 py-1 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-950"
             >
               Modifier
             </button>
@@ -386,7 +386,7 @@ export default function EquipesPage() {
             </div>
             <button
               onClick={openCreate}
-              className="flex items-center gap-2 shrink-0 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+              className="flex items-center gap-2 shrink-0 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 active:scale-95 transition-all shadow-sm shadow-primary-200"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -405,7 +405,7 @@ export default function EquipesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher une équipe…"
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all"
             />
             {search && (
               <button
@@ -423,7 +423,7 @@ export default function EquipesPage() {
         {/* Grid */}
         {teams.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center text-3xl">
+            <div className="w-16 h-16 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-3xl">
               👥
             </div>
             <div className="text-center">
@@ -432,7 +432,7 @@ export default function EquipesPage() {
             </div>
             <button
               onClick={openCreate}
-              className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors"
+              className="px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors"
             >
               Créer une équipe
             </button>
@@ -453,7 +453,7 @@ export default function EquipesPage() {
             {/* Add card */}
             <button
               onClick={openCreate}
-              className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-2 py-10 text-gray-400 hover:text-indigo-600 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors min-h-[180px]"
+              className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-2 py-10 text-gray-400 hover:text-primary-600 hover:border-primary-300 dark:hover:border-primary-700 transition-colors min-h-[180px]"
             >
               <span className="text-3xl">+</span>
               <span className="text-sm font-medium">Nouvelle équipe</span>

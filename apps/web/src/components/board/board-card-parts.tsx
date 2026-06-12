@@ -27,7 +27,7 @@ export function ConnectHandles({ cardId, onStart }: { cardId: string; onStart?: 
           onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
           title="Tirer pour relier à une autre carte"
         >
-          <div className="w-3 h-3 rounded-full bg-white border-2 border-indigo-500 shadow-md hover:scale-150 hover:bg-indigo-100 transition-all pointer-events-none" />
+          <div className="w-3 h-3 rounded-full bg-white border-2 border-primary-500 shadow-md hover:scale-150 hover:bg-primary-100 transition-all pointer-events-none" />
         </div>
       ))}
     </>
@@ -88,7 +88,7 @@ export function FmtBtn({ active, onClick, title, children }: {
     <button
       title={title}
       onClick={onClick}
-      className={`w-5 h-5 rounded flex items-center justify-center transition-all ${active ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+      className={`w-5 h-5 rounded flex items-center justify-center transition-all ${active ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
     >
       {children}
     </button>

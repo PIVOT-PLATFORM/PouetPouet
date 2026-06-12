@@ -12,7 +12,7 @@ import { EventSection, StandaloneDrawsSection } from '@/components/wheel/wheel-h
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const CARD_COLORS = [
-  'from-indigo-500 to-purple-600',
+  'from-primary-500 to-secondary-600',
   'from-pink-500 to-rose-600',
   'from-amber-400 to-orange-500',
   'from-emerald-400 to-teal-600',
@@ -149,7 +149,7 @@ export default function WheelPage() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Équipe</label>
                 {teams.length === 0 ? (
                   <p className="text-sm text-gray-500">
-                    Aucune équipe. Créez-en une dans <Link href="/daily" className="text-indigo-700 underline hover:text-indigo-900">Mes dailys</Link>.
+                    Aucune équipe. Créez-en une dans <Link href="/daily" className="text-primary-700 underline hover:text-primary-900">Mes dailys</Link>.
                   </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
@@ -159,8 +159,8 @@ export default function WheelPage() {
                         onClick={() => setSelectedTeam(t)}
                         className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
                           selectedTeam?.id === t.id
-                            ? 'bg-indigo-600 text-white border-indigo-600'
-                            : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-indigo-400'
+                            ? 'bg-primary-600 text-white border-primary-600'
+                            : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-primary-400'
                         }`}
                       >
                         {t.name}
@@ -189,8 +189,8 @@ export default function WheelPage() {
                           disabled={n > available.length}
                           className={`w-11 h-11 rounded-xl text-sm font-bold border transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                             count === n
-                              ? 'bg-indigo-600 text-white border-indigo-600'
-                              : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-indigo-400'
+                              ? 'bg-primary-600 text-white border-primary-600'
+                              : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-primary-400'
                           }`}
                         >
                           {n}
@@ -206,7 +206,7 @@ export default function WheelPage() {
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           Exclus du prochain tirage
                         </label>
-                        <button onClick={clearExclusions} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                        <button onClick={clearExclusions} className="text-xs text-primary-600 hover:text-primary-800 font-medium">
                           Réinitialiser
                         </button>
                       </div>
@@ -269,7 +269,7 @@ export default function WheelPage() {
                     disabled={spinning || available.length === 0}
                     className={`w-full py-4 rounded-2xl text-white text-lg font-bold shadow-lg hover:opacity-95 disabled:opacity-50 transition-all active:scale-98 ${
                       drawMode === 'WEIGHTED'
-                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:shadow-violet-200 dark:hover:shadow-violet-900'
+                        ? 'bg-gradient-to-r from-violet-600 to-primary-600 hover:shadow-violet-200 dark:hover:shadow-violet-900'
                         : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-amber-200 dark:hover:shadow-amber-900'
                     }`}
                   >
@@ -329,7 +329,7 @@ export default function WheelPage() {
                       className={`px-3 py-1.5 rounded-xl text-sm font-medium border transition-colors cursor-pointer select-none ${
                         excluded.includes(m.name)
                           ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 line-through'
-                          : 'bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300'
+                          : 'bg-primary-50 dark:bg-primary-950 border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300'
                       }`}
                       onClick={() =>
                         setExcluded((prev) =>

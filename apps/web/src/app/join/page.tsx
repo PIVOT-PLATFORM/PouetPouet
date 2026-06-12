@@ -17,14 +17,14 @@ function JoinForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-800 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur mb-4">
             <span className="text-3xl">🎯</span>
           </div>
           <h1 className="text-2xl font-bold text-white">PouetPouet</h1>
-          <p className="text-indigo-200 text-sm mt-1">Rejoindre une session</p>
+          <p className="text-primary-200 text-sm mt-1">Rejoindre une session</p>
         </div>
 
         <div className="bg-white rounded-2xl p-7 shadow-2xl">
@@ -45,11 +45,11 @@ function JoinForm() {
               maxLength={6}
               placeholder="ABC123"
               autoFocus
-              className="text-center text-3xl font-bold tracking-[0.35em] font-mono uppercase rounded-xl border border-gray-200 px-4 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="text-center text-3xl font-bold tracking-[0.35em] font-mono uppercase rounded-xl border border-gray-200 px-4 py-4 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
             <button
               type="submit"
-              className="w-full rounded-xl bg-indigo-600 px-4 py-3.5 text-sm font-semibold text-white hover:bg-indigo-700 active:scale-95 transition-all"
+              className="w-full rounded-xl bg-primary-600 px-4 py-3.5 text-sm font-semibold text-white hover:bg-primary-700 active:scale-95 transition-all"
             >
               Rejoindre →
             </button>

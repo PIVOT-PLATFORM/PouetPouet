@@ -29,7 +29,7 @@ function timeAgo(iso: string): string {
 }
 
 const TYPE_ICON: Record<NotificationType, { color: string; path: string }> = {
-  BOARD_SHARED: { color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950', path: 'M13 7l5 5m0 0l-5 5m5-5H6' },
+  BOARD_SHARED: { color: 'text-primary-500 bg-primary-50 dark:bg-primary-950', path: 'M13 7l5 5m0 0l-5 5m5-5H6' },
   ROLE_CHANGED: { color: 'text-amber-500 bg-amber-50 dark:bg-amber-950', path: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z' },
   ACCESS_REVOKED: { color: 'text-rose-500 bg-rose-50 dark:bg-rose-950', path: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' },
   BOARD_DELETED: { color: 'text-gray-500 bg-gray-100 dark:bg-gray-800', path: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' },
@@ -53,10 +53,10 @@ function ActivityRow({
     <div
       onClick={() => onActivate(n)}
       className={`group relative flex gap-3 px-4 py-3 cursor-pointer transition-colors ${
-        n.readAt === null ? 'bg-indigo-50/50 dark:bg-indigo-950/30' : ''
+        n.readAt === null ? 'bg-primary-50/50 dark:bg-primary-950/30' : ''
       } hover:bg-gray-50 dark:hover:bg-gray-800/60`}
     >
-      {n.readAt === null && <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-indigo-500" />}
+      {n.readAt === null && <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary-500" />}
       <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${icon.color}`}>
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon.path} />
@@ -119,7 +119,7 @@ function PatchNoteModal({
         <div className="flex items-start gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-800">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400">v{pn.version}</span>
+              <span className="text-sm font-mono font-bold text-primary-600 dark:text-primary-400">v{pn.version}</span>
               {isNew(pn.date) && (
                 <span className="text-[10px] font-bold uppercase tracking-wide text-rose-600 bg-rose-50 dark:bg-rose-950 dark:text-rose-400 rounded px-1.5 py-0.5">Nouveau</span>
               )}
@@ -147,7 +147,7 @@ function PatchNoteModal({
               <ul className="space-y-1.5">
                 {sec.items.map((item, i) => (
                   <li key={i} className="flex gap-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                    <span className="text-indigo-400 mt-1 shrink-0">•</span>
+                    <span className="text-primary-400 mt-1 shrink-0">•</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -161,7 +161,7 @@ function PatchNoteModal({
           <button
             disabled={!hasPrev}
             onClick={() => hasPrev && onNavigate(index - 1)}
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 enabled:hover:text-indigo-600 dark:enabled:hover:text-indigo-400 disabled:opacity-30 disabled:cursor-default transition-colors"
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 enabled:hover:text-primary-600 dark:enabled:hover:text-primary-400 disabled:opacity-30 disabled:cursor-default transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -172,7 +172,7 @@ function PatchNoteModal({
           <button
             disabled={!hasNext}
             onClick={() => hasNext && onNavigate(index + 1)}
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 enabled:hover:text-indigo-600 dark:enabled:hover:text-indigo-400 disabled:opacity-30 disabled:cursor-default transition-colors"
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 enabled:hover:text-primary-600 dark:enabled:hover:text-primary-400 disabled:opacity-30 disabled:cursor-default transition-colors"
           >
             {hasNext ? `v${notes[index + 1].version}` : 'Plus ancien'}
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -289,22 +289,22 @@ export function NotificationBell() {
             <button
               onClick={() => setTab('activity')}
               className={`relative flex-1 py-2.5 text-sm font-medium transition-colors ${
-                tab === 'activity' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                tab === 'activity' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
               Activité
               {unreadActivity > 0 && <span className="ml-1.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold align-middle">{unreadActivity}</span>}
-              {tab === 'activity' && <span className="absolute bottom-0 inset-x-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />}
+              {tab === 'activity' && <span className="absolute bottom-0 inset-x-0 h-0.5 bg-primary-600 dark:bg-primary-400" />}
             </button>
             <button
               onClick={openPatchTab}
               className={`relative flex-1 py-2.5 text-sm font-medium transition-colors ${
-                tab === 'patch' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                tab === 'patch' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
               Nouveautés
               {hasUnreadPatchNotes && tab !== 'patch' && <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-rose-500 align-middle" />}
-              {tab === 'patch' && <span className="absolute bottom-0 inset-x-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />}
+              {tab === 'patch' && <span className="absolute bottom-0 inset-x-0 h-0.5 bg-primary-600 dark:bg-primary-400" />}
             </button>
           </div>
 
@@ -313,7 +313,7 @@ export function NotificationBell() {
             <>
               {unreadActivity > 0 && (
                 <div className="flex justify-end px-4 py-1.5 border-b border-gray-50 dark:border-gray-800/50">
-                  <button onClick={() => void markAllRead()} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
+                  <button onClick={() => void markAllRead()} className="text-xs text-primary-600 dark:text-primary-400 hover:underline">
                     Tout marquer comme lu
                   </button>
                 </div>
@@ -353,7 +353,7 @@ export function NotificationBell() {
                           className={`absolute left-0 top-1.5 w-[11px] h-[11px] rounded-full border-2 ${
                             isNew
                               ? 'bg-rose-500 border-rose-200 dark:border-rose-900'
-                              : 'bg-indigo-400 border-white dark:border-gray-900'
+                              : 'bg-primary-400 border-white dark:border-gray-900'
                           }`}
                           aria-hidden
                         />
@@ -362,17 +362,17 @@ export function NotificationBell() {
                           className="group block w-full text-left -mt-0.5 cursor-pointer"
                         >
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">v{pn.version}</span>
+                            <span className="text-xs font-mono font-bold text-primary-600 dark:text-primary-400">v{pn.version}</span>
                             <span className="text-[11px] text-gray-400 dark:text-gray-500">{formatDate(pn.date)}</span>
                             {isNew && (
                               <span className="text-[10px] font-bold uppercase tracking-wide text-rose-600 bg-rose-50 dark:bg-rose-950 dark:text-rose-400 rounded px-1.5 py-0.5">Nouveau</span>
                             )}
                           </div>
-                          <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">
+                          <p className="mt-0.5 text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-primary-700 dark:group-hover:text-primary-300 transition-colors">
                             {pn.title}
                           </p>
                           <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{pn.summary}</p>
-                          <span className="mt-1 inline-flex items-center gap-0.5 text-[11px] font-medium text-indigo-500 dark:text-indigo-400 opacity-70 group-hover:opacity-100 group-hover:gap-1 transition-all">
+                          <span className="mt-1 inline-flex items-center gap-0.5 text-[11px] font-medium text-primary-500 dark:text-primary-400 opacity-70 group-hover:opacity-100 group-hover:gap-1 transition-all">
                             Détails
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

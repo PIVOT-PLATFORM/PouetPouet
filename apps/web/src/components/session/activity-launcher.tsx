@@ -93,10 +93,10 @@ export function ActivityLauncher({ onLaunch, onClose }: Props) {
                 <button
                   key={t.type}
                   onClick={() => handleSelectType(t.type)}
-                  className="flex flex-col items-center gap-2 rounded-xl border-2 border-gray-100 p-5 hover:border-indigo-300 hover:bg-indigo-50 transition-all group"
+                  className="flex flex-col items-center gap-2 rounded-xl border-2 border-gray-100 p-5 hover:border-primary-300 hover:bg-primary-50 transition-all group"
                 >
                   <span className="text-3xl">{t.icon}</span>
-                  <span className="font-semibold text-gray-800 text-sm group-hover:text-indigo-700">{t.label}</span>
+                  <span className="font-semibold text-gray-800 text-sm group-hover:text-primary-700">{t.label}</span>
                   <span className="text-xs text-gray-400">{t.description}</span>
                 </button>
               ))}
@@ -114,7 +114,7 @@ export function ActivityLauncher({ onLaunch, onClose }: Props) {
                   onChange={(e) => setTitle(e.target.value)}
                   autoFocus
                   placeholder="Ex: Quelle est votre priorité ce sprint ?"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
@@ -130,7 +130,7 @@ export function ActivityLauncher({ onLaunch, onClose }: Props) {
                             name="correct"
                             checked={correctAnswer === i}
                             onChange={() => setCorrectAnswer(i)}
-                            className="accent-indigo-600"
+                            className="accent-primary-600"
                             title="Bonne réponse"
                           />
                         )}
@@ -138,7 +138,7 @@ export function ActivityLauncher({ onLaunch, onClose }: Props) {
                           value={opt}
                           onChange={(e) => updateOption(i, e.target.value)}
                           placeholder={`Option ${i + 1}`}
-                          className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
                         {options.length > 2 && (
                           <button onClick={() => removeOption(i)} className="text-gray-300 hover:text-red-400">
@@ -152,7 +152,7 @@ export function ActivityLauncher({ onLaunch, onClose }: Props) {
                     {options.length < 6 && (
                       <button
                         onClick={addOption}
-                        className="text-sm text-indigo-600 hover:text-indigo-700 text-left mt-1"
+                        className="text-sm text-primary-600 hover:text-primary-700 text-left mt-1"
                       >
                         + Ajouter une option
                       </button>
@@ -167,7 +167,7 @@ export function ActivityLauncher({ onLaunch, onClose }: Props) {
               <button
                 onClick={handleLaunch}
                 disabled={!title.trim()}
-                className="w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-2"
+                className="w-full rounded-lg bg-primary-600 px-4 py-3 text-sm font-medium text-white hover:bg-primary-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-2"
               >
                 🚀 Lancer l'activité
               </button>

@@ -24,14 +24,14 @@ export default function CapacityEventPage({ params }: { params: Promise<{ id: st
   const hist = useMemo(() => (event ? summarizeHistory(history, event) : null), [history, event])
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" /></div>
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" /></div>
   }
   if (error || !event || !cap) {
     return (
       <div className="text-center py-16">
         <div className="text-5xl mb-4">😕</div>
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Événement introuvable</h2>
-        <Link href="/capacity" className="text-sm text-indigo-600 hover:text-indigo-700 mt-3 inline-block">← Retour</Link>
+        <Link href="/capacity" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-block">← Retour</Link>
       </div>
     )
   }
@@ -51,11 +51,11 @@ export default function CapacityEventPage({ params }: { params: Promise<{ id: st
               <input
                 value={event.name}
                 onChange={(e) => updateEvent({ name: e.target.value })}
-                className="text-2xl font-bold text-gray-900 dark:text-white bg-transparent border border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-indigo-400 rounded-lg px-1 -mx-1 outline-none"
+                className="text-2xl font-bold text-gray-900 dark:text-white bg-transparent border border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-primary-400 rounded-lg px-1 -mx-1 outline-none"
               />
               <p className="text-sm text-gray-400 mt-0.5">
                 {EVENT_TYPE_LABELS[event.type]} · {formatDateRange(event.startDate, event.endDate)}
-                {event.parent && <> · ↳ <Link href={`/capacity/${event.parent.id}`} className="text-indigo-500 hover:underline">{event.parent.name}</Link></>}
+                {event.parent && <> · ↳ <Link href={`/capacity/${event.parent.id}`} className="text-primary-500 hover:underline">{event.parent.name}</Link></>}
               </p>
             </div>
           </div>
@@ -105,7 +105,7 @@ export default function CapacityEventPage({ params }: { params: Promise<{ id: st
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Événements rattachés</h3>
               <div className="flex flex-col gap-2">
                 {event.children.map((c) => (
-                  <Link key={c.id} href={`/capacity/${c.id}`} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors">
+                  <Link key={c.id} href={`/capacity/${c.id}`} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 transition-colors">
                     <span>{EVENT_TYPE_EMOJI[c.type]}</span> {c.name}
                     <span className={`ml-auto text-xs px-2 py-0.5 rounded-md ${EVENT_STATUS_LABELS[c.status].cls}`}>{EVENT_STATUS_LABELS[c.status].label}</span>
                   </Link>
@@ -135,9 +135,9 @@ export default function CapacityEventPage({ params }: { params: Promise<{ id: st
 
 function SummaryCard({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent?: boolean }) {
   return (
-    <div className={`rounded-2xl border p-4 ${accent ? 'bg-indigo-50 border-indigo-100 dark:bg-indigo-950/40 dark:border-indigo-900' : 'bg-white border-gray-100 dark:bg-gray-900 dark:border-gray-800'}`}>
+    <div className={`rounded-2xl border p-4 ${accent ? 'bg-primary-50 border-primary-100 dark:bg-primary-950/40 dark:border-primary-900' : 'bg-white border-gray-100 dark:bg-gray-900 dark:border-gray-800'}`}>
       <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${accent ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-900 dark:text-white'}`}>{value}</p>
+      <p className={`text-2xl font-bold mt-1 ${accent ? 'text-primary-700 dark:text-primary-300' : 'text-gray-900 dark:text-white'}`}>{value}</p>
       {hint && <p className="text-[11px] text-gray-400 mt-0.5">{hint}</p>}
     </div>
   )
@@ -195,12 +195,12 @@ function MembersPanel({
                 <input
                   defaultValue={m.name}
                   onBlur={(e) => e.target.value.trim() && e.target.value !== m.name && onUpdateMember(m.id, { name: e.target.value.trim() })}
-                  className="flex-1 min-w-0 bg-transparent text-sm font-medium text-gray-800 dark:text-gray-100 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-indigo-400 rounded-lg px-1.5 py-1 outline-none"
+                  className="flex-1 min-w-0 bg-transparent text-sm font-medium text-gray-800 dark:text-gray-100 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-primary-400 rounded-lg px-1.5 py-1 outline-none"
                 />
                 <input
                   type="number" min="0" max="1" step="0.1" defaultValue={m.fte}
                   onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v) && v !== m.fte) onUpdateMember(m.id, { fte: v }) }}
-                  className="w-20 text-center text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-1 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  className="w-20 text-center text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-1 py-1 focus:outline-none focus:ring-2 focus:ring-primary-400"
                 />
                 <input
                   type="number" min="0" max="1" step="0.05"
@@ -211,7 +211,7 @@ function MembersPanel({
                     const v = raw === '' ? null : parseFloat(raw)
                     if (v !== (m.focusFactor ?? null)) onUpdateMember(m.id, { focusFactor: v })
                   }}
-                  className="w-20 text-center text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-1 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  className="w-20 text-center text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-1 py-1 focus:outline-none focus:ring-2 focus:ring-primary-400"
                   title="Focus factor individuel (laisser vide = défaut de l'événement)"
                 />
                 <button
@@ -244,9 +244,9 @@ function MembersPanel({
       <form onSubmit={handleAdd} className="flex gap-2 p-3 border-t border-gray-100 dark:border-gray-800">
         <input
           value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ajouter un membre…"
-          className="flex-1 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          className="flex-1 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
         />
-        <button type="submit" disabled={!newName.trim()} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40">Ajouter</button>
+        <button type="submit" disabled={!newName.trim()} className="rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-40">Ajouter</button>
       </form>
     </div>
   )
@@ -291,24 +291,24 @@ function AbsenceEditor({
         <div>
           <label className="block text-[10px] text-gray-400 uppercase mb-0.5">Du</label>
           <input type="date" value={start} min={toDateInput(event.startDate)} max={toDateInput(event.endDate)} onChange={(e) => setStart(e.target.value)}
-            className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary-400" />
         </div>
         <div>
           <label className="block text-[10px] text-gray-400 uppercase mb-0.5">Au</label>
           <input type="date" value={end} min={start} max={toDateInput(event.endDate)} onChange={(e) => setEnd(e.target.value)}
-            className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary-400" />
         </div>
         <div>
           <label className="block text-[10px] text-gray-400 uppercase mb-0.5">Durée</label>
           <select value={fraction} onChange={(e) => setFraction(parseFloat(e.target.value))}
-            className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary-400">
             <option value={1}>Journée(s)</option>
             <option value={0.5}>Demi-journée</option>
           </select>
         </div>
         <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motif (congés…)"
-          className="flex-1 min-w-[120px] border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-        <button onClick={handleAdd} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700">+ Absence</button>
+          className="flex-1 min-w-[120px] border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary-400" />
+        <button onClick={handleAdd} className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700">+ Absence</button>
       </div>
     </div>
   )
@@ -329,12 +329,12 @@ function ParamsPanel({ event, onUpdate }: { event: CapacityEvent; onUpdate: (p: 
         <div>
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Début</label>
           <input type="date" defaultValue={toDateInput(event.startDate)} onBlur={(e) => e.target.value && onUpdate({ startDate: e.target.value })}
-            className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Fin</label>
           <input type="date" defaultValue={toDateInput(event.endDate)} min={toDateInput(event.startDate)} onBlur={(e) => e.target.value && onUpdate({ endDate: e.target.value })}
-            className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
         </div>
       </div>
 
@@ -344,7 +344,7 @@ function ParamsPanel({ event, onUpdate }: { event: CapacityEvent; onUpdate: (p: 
           {[1, 2, 3, 4, 5, 6, 0].map((d) => (
             <button key={d} onClick={() => toggleDay(d)}
               className={`flex-1 py-1 rounded-md text-[11px] font-medium border transition-colors ${
-                event.workingDays.includes(d) ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' : 'border-gray-200 dark:border-gray-700 text-gray-400'
+                event.workingDays.includes(d) ? 'bg-primary-50 border-primary-300 text-primary-700 dark:bg-primary-950 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 text-gray-400'
               }`}>
               {WEEKDAY_LABELS[d]}
             </button>
@@ -357,13 +357,13 @@ function ParamsPanel({ event, onUpdate }: { event: CapacityEvent; onUpdate: (p: 
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Heures / jour</label>
           <input type="number" min="1" max="24" step="0.5" defaultValue={event.hoursPerDay}
             onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v) && v !== event.hoursPerDay) onUpdate({ hoursPerDay: v }) }}
-            className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Pts / jour·homme</label>
           <input type="number" min="0" step="0.1" defaultValue={event.pointsPerPersonDay ?? ''} placeholder="ex. 1.5"
             onBlur={(e) => { const raw = e.target.value.trim(); const v = raw === '' ? null : parseFloat(raw); if (v !== (event.pointsPerPersonDay ?? null)) onUpdate({ pointsPerPersonDay: v }) }}
-            className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
         </div>
       </div>
 
@@ -371,7 +371,7 @@ function ParamsPanel({ event, onUpdate }: { event: CapacityEvent; onUpdate: (p: 
         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
           Focus factor — <span className="text-gray-700 dark:text-gray-200 font-semibold">{Math.round(event.focusFactor * 100)}%</span>
         </label>
-        <input type="range" min="0" max="1" step="0.05" value={event.focusFactor} onChange={(e) => onUpdate({ focusFactor: parseFloat(e.target.value) })} className="w-full accent-indigo-600" />
+        <input type="range" min="0" max="1" step="0.05" value={event.focusFactor} onChange={(e) => onUpdate({ focusFactor: parseFloat(e.target.value) })} className="w-full accent-primary-600" />
       </div>
     </div>
   )
@@ -388,13 +388,13 @@ function PlanningPanel({ event, cap, onUpdate }: { event: CapacityEvent; cap: Re
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Points engagés</label>
           <input type="number" min="0" step="0.5" defaultValue={event.committedPoints ?? ''} placeholder="—"
             onBlur={(e) => { const raw = e.target.value.trim(); const v = raw === '' ? null : parseFloat(raw); if (v !== (event.committedPoints ?? null)) onUpdate({ committedPoints: v }) }}
-            className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Points réalisés</label>
           <input type="number" min="0" step="0.5" defaultValue={event.completedPoints ?? ''} placeholder="—"
             onBlur={(e) => { const raw = e.target.value.trim(); const v = raw === '' ? null : parseFloat(raw); if (v !== (event.completedPoints ?? null)) onUpdate({ completedPoints: v }) }}
-            className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
         </div>
       </div>
 
@@ -423,7 +423,7 @@ function PlanningPanel({ event, cap, onUpdate }: { event: CapacityEvent; cap: Re
       <textarea
         defaultValue={event.notes ?? ''} placeholder="Notes (risques, hypothèses, dépendances…)" rows={2}
         onBlur={(e) => { if ((e.target.value.trim() || null) !== (event.notes ?? null)) onUpdate({ notes: e.target.value }) }}
-        className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+        className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
       />
     </div>
   )
@@ -462,17 +462,17 @@ function HistoryPanel({
   }
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 rounded-2xl border border-indigo-100 dark:border-indigo-900 p-5 flex flex-col gap-4">
-      <h3 className="text-sm font-semibold text-indigo-900 dark:text-indigo-200">Retour des PI / sprints précédents</h3>
+    <div className="bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-950/40 dark:to-secondary-950/40 rounded-2xl border border-primary-100 dark:border-primary-900 p-5 flex flex-col gap-4">
+      <h3 className="text-sm font-semibold text-primary-900 dark:text-primary-200">Retour des PI / sprints précédents</h3>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white/70 dark:bg-gray-900/50 rounded-xl p-3">
           <p className="text-[11px] text-gray-500 dark:text-gray-400">Vélocité moyenne</p>
-          <p className="text-xl font-bold text-indigo-700 dark:text-indigo-300">{hist.avgVelocity ?? '—'}<span className="text-xs font-normal text-gray-400"> pts/j·h</span></p>
+          <p className="text-xl font-bold text-primary-700 dark:text-primary-300">{hist.avgVelocity ?? '—'}<span className="text-xs font-normal text-gray-400"> pts/j·h</span></p>
         </div>
         <div className="bg-white/70 dark:bg-gray-900/50 rounded-xl p-3">
           <p className="text-[11px] text-gray-500 dark:text-gray-400">Prédictibilité moy.</p>
-          <p className="text-xl font-bold text-indigo-700 dark:text-indigo-300">{hist.avgPredictability != null ? `${Math.round(hist.avgPredictability * 100)}%` : '—'}</p>
+          <p className="text-xl font-bold text-primary-700 dark:text-primary-300">{hist.avgPredictability != null ? `${Math.round(hist.avgPredictability * 100)}%` : '—'}</p>
         </div>
       </div>
 
@@ -486,7 +486,7 @@ function HistoryPanel({
           {hist.avgVelocity != null && event.pointsPerPersonDay !== hist.avgVelocity && (
             <button
               onClick={() => onApplyVelocity(hist.avgVelocity as number)}
-              className="shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
+              className="shrink-0 rounded-lg bg-primary-600 px-3 py-2 text-xs font-semibold text-white hover:bg-primary-700"
             >
               Appliquer
             </button>
@@ -498,7 +498,7 @@ function HistoryPanel({
         <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Détail</p>
         {hist.stats.map((s) => (
           <div key={s.event.id} className="flex items-center gap-2 text-xs">
-            <Link href={`/capacity/${s.event.id}`} className="flex-1 truncate text-gray-600 dark:text-gray-300 hover:text-indigo-600">{s.event.name}</Link>
+            <Link href={`/capacity/${s.event.id}`} className="flex-1 truncate text-gray-600 dark:text-gray-300 hover:text-primary-600">{s.event.name}</Link>
             <span className="text-gray-400">{s.netPersonDays} j·h</span>
             <span className="font-semibold text-gray-700 dark:text-gray-200 w-16 text-right">{s.realizedVelocity ?? '—'} pts/j</span>
             <span className={`w-12 text-right font-medium ${s.predictability != null && s.predictability >= 0.9 ? 'text-green-600' : s.predictability != null && s.predictability >= 0.7 ? 'text-amber-600' : 'text-red-500'}`}>

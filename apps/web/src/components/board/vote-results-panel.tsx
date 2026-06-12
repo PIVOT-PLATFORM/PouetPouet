@@ -49,7 +49,7 @@ export function VoteResultsPanel({ session, cards, isHistory = false, isOwner = 
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
 
         {/* Header */}
-        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 px-6 py-5">
+        <div className="bg-gradient-to-br from-primary-500 to-secondary-600 px-6 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
@@ -106,24 +106,24 @@ export function VoteResultsPanel({ session, cards, isHistory = false, isOwner = 
             const pct = Math.round((r.count / maxCount) * 100)
             const isFirst = i === 0
             return (
-              <div key={r.card.id} className={`relative flex items-center gap-3 px-4 py-3 rounded-xl border overflow-hidden ${isFirst ? 'border-indigo-200 bg-indigo-50' : 'border-gray-100 bg-gray-50'}`}>
+              <div key={r.card.id} className={`relative flex items-center gap-3 px-4 py-3 rounded-xl border overflow-hidden ${isFirst ? 'border-primary-200 bg-primary-50' : 'border-gray-100 bg-gray-50'}`}>
                 {/* Progress bar background */}
                 <div
-                  className={`absolute inset-y-0 left-0 transition-all ${isFirst ? 'bg-indigo-100' : 'bg-gray-100'}`}
+                  className={`absolute inset-y-0 left-0 transition-all ${isFirst ? 'bg-primary-100' : 'bg-gray-100'}`}
                   style={{ width: `${pct}%` }}
                 />
                 {/* Rank */}
-                <span className={`relative z-10 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isFirst ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                <span className={`relative z-10 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isFirst ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
                   {i + 1}
                 </span>
                 {/* Card color dot */}
                 <div className="relative z-10 w-3 h-3 rounded-full shrink-0 border border-black/10" style={{ background: r.card.color }} />
                 {/* Content */}
-                <p className={`relative z-10 flex-1 text-sm font-medium truncate ${isFirst ? 'text-indigo-800' : 'text-gray-700'}`}>
+                <p className={`relative z-10 flex-1 text-sm font-medium truncate ${isFirst ? 'text-primary-800' : 'text-gray-700'}`}>
                   {cardDisplayText(r.card) || <span className="italic text-gray-400">Post-it vide</span>}
                 </p>
                 {/* Vote count */}
-                <span className={`relative z-10 shrink-0 text-sm font-bold ${isFirst ? 'text-indigo-600' : 'text-gray-500'}`}>
+                <span className={`relative z-10 shrink-0 text-sm font-bold ${isFirst ? 'text-primary-600' : 'text-gray-500'}`}>
                   {r.count} vote{r.count > 1 ? 's' : ''}
                 </span>
               </div>
@@ -154,7 +154,7 @@ export function VoteResultsPanel({ session, cards, isHistory = false, isOwner = 
               )}
             </div>
           )}
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 active:scale-95 transition-all shadow-sm">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-secondary-600 text-white text-sm font-semibold hover:opacity-90 active:scale-95 transition-all shadow-sm">
             Fermer
           </button>
         </div>

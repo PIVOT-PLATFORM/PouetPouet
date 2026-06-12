@@ -39,11 +39,11 @@ export function PresenceIndicator({ presence, members, dropdownTop = 120 }: { pr
         {triggerUsers.slice(0, 3).map((u) => (
           <div
             key={u.id}
-            className={`w-6 h-6 rounded-full ring-2 ring-white overflow-hidden flex items-center justify-center shrink-0 ${presence.length > 0 ? 'bg-indigo-100' : 'bg-gray-100'}`}
+            className={`w-6 h-6 rounded-full ring-2 ring-white overflow-hidden flex items-center justify-center shrink-0 ${presence.length > 0 ? 'bg-primary-100' : 'bg-gray-100'}`}
           >
             {u.avatar
               ? <img src={u.avatar} alt={u.name} className={`w-full h-full object-cover ${presence.length === 0 ? 'opacity-40' : ''}`} />
-              : <span className={`text-[10px] font-semibold ${presence.length > 0 ? 'text-indigo-600' : 'text-gray-400'}`}>{u.name.charAt(0).toUpperCase()}</span>
+              : <span className={`text-[10px] font-semibold ${presence.length > 0 ? 'text-primary-600' : 'text-gray-400'}`}>{u.name.charAt(0).toUpperCase()}</span>
             }
           </div>
         ))}
@@ -73,10 +73,10 @@ export function PresenceIndicator({ presence, members, dropdownTop = 120 }: { pr
             return (
               <div key={m.id} className="flex items-center gap-2.5 px-3 py-1.5 hover:bg-gray-50">
                 <div className="relative shrink-0">
-                  <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden">
+                  <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden">
                     {m.avatar
                       ? <img src={m.avatar} alt={m.name} className="w-full h-full object-cover" />
-                      : <span className="text-xs font-semibold text-indigo-600">{m.name.charAt(0).toUpperCase()}</span>
+                      : <span className="text-xs font-semibold text-primary-600">{m.name.charAt(0).toUpperCase()}</span>
                     }
                   </div>
                   {isOnline && <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-400 ring-1 ring-white" />}

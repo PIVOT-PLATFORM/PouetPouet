@@ -27,7 +27,7 @@ function Cell({ active, title, onClick, children }: { active: boolean; title: st
       title={title}
       onClick={onClick}
       className={`h-7 min-w-7 px-1.5 rounded-md flex items-center justify-center transition-colors ${
-        active ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+        active ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-100'
       }`}
     >
       {children}
@@ -103,7 +103,7 @@ export function ConnectionToolbar({ conn, onUpdate, onDelete }: {
         onBlur={commitLabel}
         onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur() }}
         placeholder="Label…"
-        className="h-7 w-24 rounded-md border border-gray-200 px-2 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+        className="h-7 w-24 rounded-md border border-gray-200 px-2 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400"
       />
 
       <Sep />

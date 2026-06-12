@@ -100,7 +100,7 @@ export function CreateBoardModal({ onClose, onCreate, templates }: Props) {
                     onClick={() => setTemplateId(null)}
                     className={`p-3 rounded-xl border text-left text-sm transition-all ${
                       !templateId
-                        ? 'border-indigo-400 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50'
+                        ? 'border-primary-400 bg-primary-50 text-primary-700 dark:bg-primary-950/50'
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                   >
@@ -114,7 +114,7 @@ export function CreateBoardModal({ onClose, onCreate, templates }: Props) {
                       onClick={() => setTemplateId(tpl.id)}
                       className={`p-3 rounded-xl border text-left text-sm transition-all ${
                         templateId === tpl.id
-                          ? 'border-indigo-400 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50'
+                          ? 'border-primary-400 bg-primary-50 text-primary-700 dark:bg-primary-950/50'
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       }`}
                     >
@@ -147,7 +147,7 @@ export function CreateBoardModal({ onClose, onCreate, templates }: Props) {
             <button
               type="button"
               onClick={() => setShowAdvanced((v) => !v)}
-              className="self-start text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+              className="self-start text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1"
             >
               <svg className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -182,7 +182,7 @@ export function CreateBoardModal({ onClose, onCreate, templates }: Props) {
                           onClick={() => toggleActivity(opt.key)}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all ${
                             active
-                              ? 'border-indigo-300 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40'
+                              ? 'border-primary-300 bg-primary-50 text-primary-700 dark:bg-primary-950/40'
                               : 'border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 text-gray-500'
                           }`}
                         >

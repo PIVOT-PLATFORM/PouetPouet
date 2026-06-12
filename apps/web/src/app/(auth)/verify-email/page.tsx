@@ -33,7 +33,7 @@ function VerifyEmailInner() {
   if (state === 'verifying') {
     return (
       <div className="text-center py-4">
-        <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+        <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
         <h2 className="text-lg font-semibold text-gray-900">Vérification en cours…</h2>
         <p className="text-sm text-gray-500 mt-1">Activation de votre compte.</p>
       </div>
@@ -50,7 +50,7 @@ function VerifyEmailInner() {
       <h2 className="text-xl font-semibold text-gray-900 mb-2">Vérification impossible</h2>
       <p className="text-sm text-gray-500 leading-relaxed">{message}</p>
       <div className="mt-6 flex flex-col gap-3">
-        <Link href="/login" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+        <Link href="/login" className="text-sm font-medium text-primary-600 hover:text-primary-700">
           Aller à la connexion
         </Link>
         <Link href="/register" className="text-sm text-gray-400 hover:text-gray-600">
@@ -66,7 +66,7 @@ export default function VerifyEmailPage() {
     <Suspense
       fallback={
         <div className="text-center py-4">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
         </div>
       }
     >

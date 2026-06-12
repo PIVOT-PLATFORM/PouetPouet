@@ -98,11 +98,11 @@ function Tile({
       onClick={onClick}
       className={`flex flex-col items-start gap-2 p-4 rounded-xl border text-left transition-all ${
         accent
-          ? 'border-indigo-200 bg-indigo-50/40 hover:border-indigo-400 hover:bg-indigo-50 text-indigo-700'
-          : 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/40 text-gray-600 hover:text-indigo-700'
+          ? 'border-primary-200 bg-primary-50/40 hover:border-primary-400 hover:bg-primary-50 text-primary-700'
+          : 'border-gray-200 hover:border-primary-300 hover:bg-primary-50/40 text-gray-600 hover:text-primary-700'
       }`}
     >
-      <span className={accent ? 'text-indigo-500' : 'text-indigo-500'}>{icon}</span>
+      <span className={accent ? 'text-primary-500' : 'text-primary-500'}>{icon}</span>
       <span className="text-sm font-semibold">{label}</span>
       <span className="text-xs text-gray-400 leading-tight">{desc}</span>
     </button>

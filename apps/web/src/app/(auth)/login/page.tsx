@@ -113,7 +113,7 @@ export default function LoginPage() {
             autoComplete="current-password"
           />
           <div className="mt-1.5 text-right">
-            <Link href="/forgot-password" className="text-xs text-indigo-600 hover:text-indigo-700">
+            <Link href="/forgot-password" className="text-xs text-primary-600 hover:text-primary-700">
               Mot de passe oublié ?
             </Link>
           </div>
@@ -142,7 +142,7 @@ export default function LoginPage() {
 
       <p className="mt-6 text-center text-sm text-gray-500">
         Pas encore de compte ?{' '}
-        <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-700">
+        <Link href="/register" className="font-medium text-primary-600 hover:text-primary-700">
           Créer un compte
         </Link>
       </p>

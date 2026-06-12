@@ -87,13 +87,13 @@ export function DrawResultPanel({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="ex: Daily du 17/05/2026"
-            className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:bg-gray-800 dark:text-white"
+            className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-800 dark:text-white"
             onKeyDown={(e) => e.key === 'Enter' && handleSaveNote()}
           />
           <button
             onClick={handleSaveNote}
             disabled={saving}
-            className="px-3 py-2 rounded-xl bg-indigo-100 text-indigo-700 text-sm font-medium hover:bg-indigo-200 disabled:opacity-50 transition-colors"
+            className="px-3 py-2 rounded-xl bg-primary-100 text-primary-700 text-sm font-medium hover:bg-primary-200 disabled:opacity-50 transition-colors"
           >
             {saving ? '…' : '✓'}
           </button>
@@ -110,10 +110,10 @@ export function DrawResultPanel({
               value={newEventName}
               onChange={(e) => setNewEventName(e.target.value)}
               placeholder="Nom de l'événement"
-              className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:bg-gray-800 dark:text-white"
+              className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-800 dark:text-white"
               onKeyDown={(e) => e.key === 'Enter' && handleCreateAndAssign()}
             />
-            <button onClick={handleCreateAndAssign} className="px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">
+            <button onClick={handleCreateAndAssign} className="px-3 py-2 rounded-xl bg-primary-600 text-white text-sm font-medium hover:bg-primary-700">
               Créer
             </button>
             <button onClick={() => setShowNewEvent(false)} className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
@@ -125,7 +125,7 @@ export function DrawResultPanel({
             <select
               value={selectedEventId}
               onChange={(e) => handleAssignEvent(e.target.value)}
-              className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:bg-gray-800 dark:text-white"
+              className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-800 dark:text-white"
             >
               <option value="">— Aucun événement —</option>
               {events.map((e) => (
@@ -145,7 +145,7 @@ export function DrawResultPanel({
       {/* Re-draw */}
       <button
         onClick={() => onRedraw(allExcluded)}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-indigo-300 text-indigo-600 text-sm font-semibold hover:bg-indigo-50 dark:border-indigo-700 dark:text-indigo-400 dark:hover:bg-indigo-950 transition-colors"
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-primary-300 text-primary-600 text-sm font-semibold hover:bg-primary-50 dark:border-primary-700 dark:text-primary-400 dark:hover:bg-primary-950 transition-colors"
       >
         🔄 Relancer sans {draw.results.join(', ')}
       </button>
@@ -173,7 +173,7 @@ export function CreateEventInline({ onCreate }: { onCreate: (name: string) => Pr
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold text-left"
+        className="text-xs text-primary-600 hover:text-primary-800 dark:text-primary-400 font-semibold text-left"
       >
         + Créer un événement
       </button>
@@ -188,12 +188,12 @@ export function CreateEventInline({ onCreate }: { onCreate: (name: string) => Pr
         onChange={(e) => setName(e.target.value)}
         placeholder="Nom de l'événement"
         onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setOpen(false) }}
-        className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:bg-gray-800 dark:text-white"
+        className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-800 dark:text-white"
       />
       <button
         onClick={handleCreate}
         disabled={saving || !name.trim()}
-        className="px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+        className="px-3 py-2 rounded-xl bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-50"
       >
         {saving ? '…' : 'OK'}
       </button>

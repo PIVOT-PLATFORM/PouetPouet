@@ -149,7 +149,7 @@ export function CardDetailModal({ card, fields, onUpdateCard, onRecolorCard, onS
               onBlur={() => onUpdateCard(card.id, isText ? serializeTextFmt({ ...textFmt, text: content }) : content)}
               rows={4}
               placeholder="Votre idée…"
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent leading-relaxed"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent leading-relaxed"
               style={isText ? {
                 fontSize: textFmt.size,
                 fontWeight: textFmt.bold ? 700 : 400,
@@ -182,7 +182,7 @@ export function CardDetailModal({ card, fields, onUpdateCard, onRecolorCard, onS
                             value={value}
                             onChange={(e) => handleFieldChange(field, e.target.value)}
                             placeholder="—"
-                            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
                           />
                         )}
                         {field.type === 'NUMBER' && (
@@ -191,7 +191,7 @@ export function CardDetailModal({ card, fields, onUpdateCard, onRecolorCard, onS
                             value={value}
                             onChange={(e) => handleFieldChange(field, e.target.value)}
                             placeholder="—"
-                            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
                           />
                         )}
                         {field.type === 'DATE' && (
@@ -199,14 +199,14 @@ export function CardDetailModal({ card, fields, onUpdateCard, onRecolorCard, onS
                             type="date"
                             value={value}
                             onChange={(e) => handleFieldChange(field, e.target.value)}
-                            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
                           />
                         )}
                         {field.type === 'SELECT' && (
                           <select
                             value={value}
                             onChange={(e) => handleFieldChange(field, e.target.value)}
-                            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                           >
                             <option value="">—</option>
                             {(field.options ?? []).map((opt) => (

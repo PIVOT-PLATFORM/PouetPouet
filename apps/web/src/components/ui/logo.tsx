@@ -26,7 +26,7 @@ export function Logo({ size = 28, showText = true, className = '' }: LogoProps) 
         <rect x="14" y="5" width="12" height="15" rx="2.5" fill="white" fillOpacity="0.95" />
       </svg>
       {showText && (
-        <span className="font-bold text-indigo-600 text-lg tracking-tight leading-none">
+        <span className="font-bold text-primary-600 text-lg tracking-tight leading-none">
           PouetPouet
         </span>
       )}

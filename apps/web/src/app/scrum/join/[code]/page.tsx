@@ -50,7 +50,7 @@ export default function ScrumJoinPage({ params }: { params: Promise<{ code: stri
   // ── Join form ────────────────────────────────────────────────────────────────
   if (!isJoined) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center p-4">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <span className="text-5xl mb-4 block">🃏</span>
@@ -67,7 +67,7 @@ export default function ScrumJoinPage({ params }: { params: Promise<{ code: stri
                 placeholder="Marie, Thomas…"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
               />
             </div>
 
@@ -78,7 +78,7 @@ export default function ScrumJoinPage({ params }: { params: Promise<{ code: stri
             <button
               type="submit"
               disabled={joining || !name.trim()}
-              className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="w-full rounded-xl bg-primary-600 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
             >
               {joining ? 'Connexion…' : 'Rejoindre la salle'}
             </button>
@@ -90,7 +90,7 @@ export default function ScrumJoinPage({ params }: { params: Promise<{ code: stri
 
   // ── Joined view ──────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur border-b border-gray-100">
         <div>
@@ -117,7 +117,7 @@ export default function ScrumJoinPage({ params }: { params: Promise<{ code: stri
         {ticket && ticket.status === 'VOTING' && !hasVoted && (
           <div className="w-full max-w-sm">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-5 mb-6">
-              <p className="text-xs font-medium text-indigo-500 uppercase tracking-wide mb-1">Ticket</p>
+              <p className="text-xs font-medium text-primary-500 uppercase tracking-wide mb-1">Ticket</p>
               <h2 className="text-lg font-bold text-gray-900">{ticket.title}</h2>
             </div>
             <p className="text-sm text-gray-500 text-center mb-4">Choisissez votre estimation ({scaleInfo.label})</p>
@@ -126,7 +126,7 @@ export default function ScrumJoinPage({ params }: { params: Promise<{ code: stri
                 <button
                   key={v}
                   onClick={() => vote(ticket.id, v, ticket.roomId, currentScale)}
-                  className="h-20 rounded-2xl bg-white border-2 border-gray-100 shadow-sm text-xl font-bold text-gray-800 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700 active:scale-95 transition-all"
+                  className="h-20 rounded-2xl bg-white border-2 border-gray-100 shadow-sm text-xl font-bold text-gray-800 hover:border-primary-400 hover:bg-primary-50 hover:text-primary-700 active:scale-95 transition-all"
                 >
                   {v}
                 </button>
@@ -138,7 +138,7 @@ export default function ScrumJoinPage({ params }: { params: Promise<{ code: stri
         {/* Ticket active - VOTING and voted */}
         {ticket && ticket.status === 'VOTING' && hasVoted && (
           <div className="text-center">
-            <div className="w-24 h-32 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-4 shadow-xl">
+            <div className="w-24 h-32 mx-auto rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-600 flex items-center justify-center mb-4 shadow-xl">
               <span className="text-3xl font-bold text-white leading-tight text-center px-2">{myVote}</span>
             </div>
             <h2 className="text-lg font-semibold text-gray-700">Vote envoyé !</h2>
@@ -154,8 +154,8 @@ export default function ScrumJoinPage({ params }: { params: Promise<{ code: stri
               <div className="flex flex-wrap gap-3 justify-center">
                 {ticket.votes.map((v) => (
                   <div key={v.id} className="flex flex-col items-center gap-1.5">
-                    <div className={`w-14 h-20 rounded-xl shadow-md flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 ${
-                      v.participantName === participantName ? 'ring-2 ring-offset-2 ring-indigo-400' : ''
+                    <div className={`w-14 h-20 rounded-xl shadow-md flex items-center justify-center bg-gradient-to-br from-primary-500 to-secondary-600 ${
+                      v.participantName === participantName ? 'ring-2 ring-offset-2 ring-primary-400' : ''
                     }`}>
                       <span className="text-lg font-bold text-white leading-tight text-center px-1">{v.value ?? '?'}</span>
                     </div>

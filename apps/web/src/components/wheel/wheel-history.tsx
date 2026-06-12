@@ -46,7 +46,7 @@ function DrawHistoryItem({ draw, onDelete }: { draw: WheelDraw; onDelete: (id: s
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap gap-1 mb-1">
           {draw.results.map((r, i) => (
-            <span key={i} className="text-xs font-semibold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded-lg px-2 py-0.5">
+            <span key={i} className="text-xs font-semibold bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 rounded-lg px-2 py-0.5">
               {r}
             </span>
           ))}
@@ -107,7 +107,7 @@ export function EventSection({
               if (e.key === 'Escape') { setName(event.name); setEditing(false) }
             }}
             onBlur={() => { onRename(event.id, name); setEditing(false) }}
-            className="flex-1 text-sm font-semibold bg-transparent border-b border-indigo-400 focus:outline-none"
+            className="flex-1 text-sm font-semibold bg-transparent border-b border-primary-400 focus:outline-none"
           />
         ) : (
           <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-white truncate">{event.name}</span>
@@ -115,7 +115,7 @@ export function EventSection({
         <span className="text-xs text-gray-400 shrink-0">{event.draws.length} tirage{event.draws.length !== 1 ? 's' : ''}</span>
         <button
           onClick={(e) => { e.stopPropagation(); setEditing(true) }}
-          className="text-gray-300 hover:text-indigo-500 transition-colors text-xs px-1"
+          className="text-gray-300 hover:text-primary-500 transition-colors text-xs px-1"
           title="Renommer"
         >
           ✎

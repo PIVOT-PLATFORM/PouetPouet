@@ -16,7 +16,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   }, [hydrated, token, router])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-800 flex items-center justify-center p-4">
       {/* Cercles décoratifs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-white/5" />
@@ -29,14 +29,14 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <span className="text-3xl">🎯</span>
           </div>
           <h1 className="text-3xl font-bold text-white tracking-tight">PouetPouet</h1>
-          <p className="text-indigo-200 text-sm mt-1">Outil collaboratif interactif</p>
+          <p className="text-primary-200 text-sm mt-1">Outil collaboratif interactif</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           {children}
         </div>
 
-        <nav className="mt-6 flex items-center justify-center gap-4 text-xs text-indigo-200">
+        <nav className="mt-6 flex items-center justify-center gap-4 text-xs text-primary-200">
           <Link href="/mentions-legales" className="hover:text-white transition-colors">
             Mentions légales
           </Link>

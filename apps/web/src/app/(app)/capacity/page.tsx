@@ -59,7 +59,7 @@ function TeamModal({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Nom</label>
               <input
                 autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Squad Alpha"
-                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
               />
             </div>
             <div>
@@ -72,7 +72,7 @@ function TeamModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Description (optionnel)</label>
             <input
               value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tribu, domaine…"
-              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
             />
           </div>
 
@@ -89,29 +89,29 @@ function TeamModal({
                 <div key={i} className="flex gap-2 items-center">
                   <input
                     value={m.name} onChange={(e) => update(i, { name: e.target.value })} placeholder={`Membre ${i + 1}`}
-                    className="flex-1 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="flex-1 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
                   />
                   <input
                     value={m.role} onChange={(e) => update(i, { role: e.target.value })} placeholder="Dev…"
-                    className="w-28 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-28 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
                   />
                   <input
                     type="number" min="0" max="1" step="0.1" value={m.fte}
                     onChange={(e) => update(i, { fte: parseFloat(e.target.value) || 0 })}
-                    className="w-16 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-16 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-400"
                   />
                   <button type="button" onClick={() => setMembers((p) => p.filter((_, idx) => idx !== i))} className="w-6 text-gray-400 hover:text-red-500 transition-colors">✕</button>
                 </div>
               ))}
             </div>
-            <button type="button" onClick={() => setMembers((p) => [...p, { name: '', role: '', fte: 1 }])} className="mt-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium dark:text-indigo-400">
+            <button type="button" onClick={() => setMembers((p) => [...p, { name: '', role: '', fte: 1 }])} className="mt-2 text-sm text-primary-600 hover:text-primary-800 font-medium dark:text-primary-400">
               + Ajouter un membre
             </button>
           </div>
         </form>
         <div className="p-6 border-t border-gray-100 dark:border-gray-800 flex gap-3 shrink-0">
           <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Annuler</button>
-          <button onClick={handleSubmit} disabled={saving || !name.trim()} className="flex-1 rounded-xl bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
+          <button onClick={handleSubmit} disabled={saving || !name.trim()} className="flex-1 rounded-xl bg-primary-600 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50">
             {saving ? 'Enregistrement…' : 'Enregistrer'}
           </button>
         </div>
@@ -191,7 +191,7 @@ function CreateEventModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Nom</label>
             <input
               autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="PI 25.1, Sprint 42…"
-              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
             />
           </div>
 
@@ -203,7 +203,7 @@ function CreateEventModal({
                 <button
                   key={t} type="button" onClick={() => setType(t)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-colors ${
-                    type === t ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-indigo-400'
+                    type === t ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-primary-400'
                   }`}
                 >
                   <span>{EVENT_TYPE_EMOJI[t]}</span> {EVENT_TYPE_LABELS[t]}
@@ -217,12 +217,12 @@ function CreateEventModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Début</label>
               <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Fin</label>
               <input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
             </div>
           </div>
 
@@ -234,7 +234,7 @@ function CreateEventModal({
                 <button
                   key={d} type="button" onClick={() => toggleDay(d)}
                   className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                    workingDays.includes(d) ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' : 'border-gray-200 dark:border-gray-700 text-gray-400'
+                    workingDays.includes(d) ? 'bg-primary-50 border-primary-300 text-primary-700 dark:bg-primary-950 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 text-gray-400'
                   }`}
                 >
                   {WEEKDAY_LABELS[d]}
@@ -248,13 +248,13 @@ function CreateEventModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Heures / jour</label>
               <input type="number" min="1" max="24" step="0.5" value={hoursPerDay} onChange={(e) => setHoursPerDay(parseFloat(e.target.value) || 0)}
-                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 Focus factor <span className="text-gray-400">({Math.round(focusFactor * 100)}%)</span>
               </label>
-              <input type="range" min="0" max="1" step="0.05" value={focusFactor} onChange={(e) => setFocusFactor(parseFloat(e.target.value))} className="w-full mt-2.5 accent-indigo-600" />
+              <input type="range" min="0" max="1" step="0.05" value={focusFactor} onChange={(e) => setFocusFactor(parseFloat(e.target.value))} className="w-full mt-2.5 accent-primary-600" />
             </div>
           </div>
 
@@ -262,13 +262,13 @@ function CreateEventModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Équipe</label>
             <select value={teamId} onChange={(e) => setTeamId(e.target.value)}
-              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white">
               <option value="">— Aucune équipe —</option>
               {teams.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.members.length})</option>)}
             </select>
             {teamId && (
               <label className="flex items-center gap-2 mt-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-                <input type="checkbox" checked={seedFromTeam} onChange={(e) => setSeedFromTeam(e.target.checked)} className="accent-indigo-600" />
+                <input type="checkbox" checked={seedFromTeam} onChange={(e) => setSeedFromTeam(e.target.checked)} className="accent-primary-600" />
                 Pré-remplir les membres depuis l'équipe
               </label>
             )}
@@ -279,7 +279,7 @@ function CreateEventModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Rattacher à un PI Planning (optionnel)</label>
               <select value={parentId} onChange={(e) => setParentId(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white">
                 <option value="">— Aucun —</option>
                 {piEvents.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
               </select>
@@ -289,7 +289,7 @@ function CreateEventModal({
 
         <div className="p-6 border-t border-gray-100 dark:border-gray-800 flex gap-3 shrink-0">
           <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Annuler</button>
-          <button onClick={handleSubmit} disabled={saving || !name.trim()} className="flex-1 rounded-xl bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
+          <button onClick={handleSubmit} disabled={saving || !name.trim()} className="flex-1 rounded-xl bg-primary-600 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50">
             {saving ? 'Création…' : 'Créer l\'événement'}
           </button>
         </div>
@@ -306,9 +306,9 @@ function EventCard({ event, onOpen, onDelete }: { event: CapacityEvent; onOpen: 
   return (
     <div
       onClick={onOpen}
-      className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-4 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors cursor-pointer"
+      className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-4 hover:border-primary-200 dark:hover:border-primary-800 transition-colors cursor-pointer"
     >
-      <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center text-xl shrink-0">
+      <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-xl shrink-0">
         {EVENT_TYPE_EMOJI[event.type]}
       </div>
       <div className="flex-1 min-w-0">
@@ -375,7 +375,7 @@ export default function CapacityPage() {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+          className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 active:scale-95 transition-all shadow-sm shadow-primary-200"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -396,7 +396,7 @@ export default function CapacityPage() {
               </svg>
               <input
                 type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un événement…"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all"
               />
             </div>
           )}
@@ -429,7 +429,7 @@ export default function CapacityPage() {
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Équipes</h2>
-            <button onClick={() => setTeamModal({ open: true, team: null })} className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold dark:text-indigo-400">+ Nouvelle</button>
+            <button onClick={() => setTeamModal({ open: true, team: null })} className="text-xs text-primary-600 hover:text-primary-800 font-semibold dark:text-primary-400">+ Nouvelle</button>
           </div>
 
           {teamsLoading ? (
@@ -448,7 +448,7 @@ export default function CapacityPage() {
                       {team.name}
                     </span>
                     <div className="flex gap-1">
-                      <button onClick={() => setTeamModal({ open: true, team })} className="text-xs text-gray-400 hover:text-indigo-600 px-1.5 py-0.5 rounded transition-colors">Modifier</button>
+                      <button onClick={() => setTeamModal({ open: true, team })} className="text-xs text-gray-400 hover:text-primary-600 px-1.5 py-0.5 rounded transition-colors">Modifier</button>
                       <button onClick={() => deleteTeam(team.id)} className="text-xs text-gray-400 hover:text-red-500 px-1.5 py-0.5 rounded transition-colors">✕</button>
                     </div>
                   </div>

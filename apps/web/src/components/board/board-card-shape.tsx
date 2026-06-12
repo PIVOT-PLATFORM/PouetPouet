@@ -97,7 +97,7 @@ export function ShapeCard({
               key={s}
               title={s === 'thin' ? 'Trait fin' : s === 'medium' ? 'Trait moyen' : 'Trait épais'}
               onClick={() => updateShape({ stroke: s })}
-              className={`w-8 h-6 rounded flex items-center justify-center transition-all ${strokeSize === s ? 'bg-indigo-600' : 'text-gray-500 hover:bg-gray-100'}`}
+              className={`w-8 h-6 rounded flex items-center justify-center transition-all ${strokeSize === s ? 'bg-primary-600' : 'text-gray-500 hover:bg-gray-100'}`}
             >
               <div className="w-5 rounded-full" style={{ height: s === 'thin' ? 1 : s === 'medium' ? 2.5 : 5, background: strokeSize === s ? 'white' : '#6b7280' }} />
             </button>
@@ -122,7 +122,7 @@ export function ShapeCard({
               <button
                 title={hasFill ? 'Sans fond' : 'Avec fond'}
                 onClick={() => updateShape({ fill: !hasFill })}
-                className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${hasFill ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${hasFill ? 'bg-primary-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <rect x="4" y="4" width="16" height="16" rx="3" fill={hasFill ? 'currentColor' : 'none'} fillOpacity={hasFill ? 0.4 : 0} />

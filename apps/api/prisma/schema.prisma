@@ -15,6 +15,7 @@ model User {
   avatar             String?
   bio                String?
   theme              String    @default("light")
+  palette            String    @default("default")
   emailVerified      Boolean   @default(false)
   verifyToken        String?   @unique
   verifyTokenExpires DateTime?

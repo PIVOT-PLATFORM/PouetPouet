@@ -20,7 +20,7 @@ function Avatar({ name, src }: { name: string; src?: string | null }) {
   }
   const initials = name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
   return (
-    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+    <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
       {initials}
     </div>
   )
@@ -80,10 +80,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user?.theme])
 
+  // Palette de couleurs : data-palette pilote les variables CSS primary/secondary
+  useEffect(() => {
+    if (!user) return
+    if (user.palette && user.palette !== 'default') {
+      document.documentElement.setAttribute('data-palette', user.palette)
+    } else {
+      document.documentElement.removeAttribute('data-palette')
+    }
+  }, [user?.palette])
+
   if (!hydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
-        <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -107,7 +117,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => useNotificationsStore.getState().openPatchNotes()}
               title="Notes de version"
-              className="text-[10px] font-mono font-bold leading-none text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors cursor-pointer"
+              className="text-[10px] font-mono font-bold leading-none text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors cursor-pointer"
             >
               v{APP_VERSION}
             </button>
@@ -122,7 +132,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 title="Tous les modules"
                 className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
                   pathname === '/hub'
-                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400'
+                    ? 'bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-400'
                     : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-800'
                 }`}
               >
@@ -138,7 +148,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     href={link.href}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                       active
-                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400'
+                        ? 'bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-400'
                         : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
                     }`}
                   >
@@ -155,7 +165,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               title="Aide & Documentation"
               className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold transition-colors ${
                 pathname.startsWith('/aide')
-                  ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
+                  ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
                   : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-800'
               }`}
             >

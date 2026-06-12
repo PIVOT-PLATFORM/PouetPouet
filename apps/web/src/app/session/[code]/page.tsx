@@ -16,26 +16,26 @@ export default function SessionPage({ params }: { params: Promise<{ code: string
   // If the logged-in user is the board owner, show a host redirect screen
   if (sessionInfo && user && sessionInfo.board?.ownerId === user.id) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-800 flex items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/20 backdrop-blur mb-6 text-5xl">
             🎛️
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">Vous êtes l'animateur</h2>
-          <p className="text-indigo-200 text-sm mb-8">
+          <p className="text-primary-200 text-sm mb-8">
             Cette session vous appartient. Retournez sur le board pour contrôler les activités et partager le code{' '}
             <span className="font-mono font-bold text-white">{code}</span> à vos participants.
           </p>
           <Link
             href={`/boards/${sessionInfo.boardId}`}
-            className="inline-flex items-center gap-2 rounded-xl bg-white text-indigo-700 font-semibold px-6 py-3 text-sm hover:bg-indigo-50 transition-colors shadow-lg"
+            className="inline-flex items-center gap-2 rounded-xl bg-white text-primary-700 font-semibold px-6 py-3 text-sm hover:bg-primary-50 transition-colors shadow-lg"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Retour au board
           </Link>
-          <p className="text-indigo-300 text-xs mt-5">
+          <p className="text-primary-300 text-xs mt-5">
             Pour tester en tant que participant, ouvrez cette page dans un autre navigateur ou en navigation privée.
           </p>
         </div>
@@ -45,11 +45,11 @@ export default function SessionPage({ params }: { params: Promise<{ code: string
 
   if (closedByHost) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-800 flex items-center justify-center p-4">
         <div className="text-center max-w-sm">
           <div className="text-6xl mb-6">🏁</div>
           <h2 className="text-2xl font-bold text-white mb-2">Session terminée</h2>
-          <p className="text-indigo-200 text-sm">L'animateur a mis fin à la session. Merci pour votre participation !</p>
+          <p className="text-primary-200 text-sm">L'animateur a mis fin à la session. Merci pour votre participation !</p>
         </div>
       </div>
     )
@@ -70,21 +70,21 @@ export default function SessionPage({ params }: { params: Promise<{ code: string
   if (!sessionInfo) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" />
       </div>
     )
   }
 
   if (!isJoined) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-800 flex items-center justify-center p-4">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur mb-4">
               <span className="text-3xl">🎯</span>
             </div>
             <h1 className="text-2xl font-bold text-white">{sessionInfo.board.name}</h1>
-            <p className="text-indigo-200 text-sm mt-1">Session interactive</p>
+            <p className="text-primary-200 text-sm mt-1">Session interactive</p>
           </div>
 
           <div className="bg-white rounded-2xl p-7 shadow-2xl">
@@ -95,11 +95,11 @@ export default function SessionPage({ params }: { params: Promise<{ code: string
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Votre prénom"
                 autoFocus
-                className="rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
               <button
                 type="submit"
-                className="w-full rounded-xl bg-indigo-600 px-4 py-3.5 text-sm font-semibold text-white hover:bg-indigo-700 active:scale-95 transition-all"
+                className="w-full rounded-xl bg-primary-600 px-4 py-3.5 text-sm font-semibold text-white hover:bg-primary-700 active:scale-95 transition-all"
               >
                 Rejoindre →
               </button>
@@ -112,7 +112,7 @@ export default function SessionPage({ params }: { params: Promise<{ code: string
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-800 flex flex-col">
       {/* Header */}
       <header className="px-5 py-4 flex items-center justify-between">
         <span className="font-bold text-white text-base">PouetPouet</span>
@@ -160,10 +160,10 @@ function WaitingScreen({ boardName }: { boardName?: string }) {
       {boardName && (
         <p className="text-white/90 font-medium mb-3">{boardName}</p>
       )}
-      <p className="text-indigo-200 mb-8">L'animateur va bientôt lancer une activité…</p>
+      <p className="text-primary-200 mb-8">L'animateur va bientôt lancer une activité…</p>
 
       <div className="bg-white/10 backdrop-blur rounded-2xl p-5 text-left space-y-3">
-        <p className="text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-3">Ce qui va se passer</p>
+        <p className="text-xs font-semibold text-primary-200 uppercase tracking-widest mb-3">Ce qui va se passer</p>
         <div className="flex items-start gap-3">
           <span className="text-lg shrink-0">🗳️</span>
           <p className="text-sm text-white/80">Un sondage ou quiz apparaîtra ici automatiquement</p>
@@ -193,7 +193,7 @@ function PollActivity({ activity, hasResponded, onRespond }: ActivityViewProps) 
   return (
     <div className="w-full max-w-lg">
       <div className="bg-white/10 backdrop-blur rounded-2xl px-5 py-3 mb-6 text-center">
-        <p className="text-xs text-indigo-200 uppercase tracking-widest mb-1">
+        <p className="text-xs text-primary-200 uppercase tracking-widest mb-1">
           {activity.type === 'QUIZ' ? 'Quiz' : 'Sondage'}
         </p>
         <h2 className="text-xl font-bold text-white leading-snug">{activity.title}</h2>
@@ -211,10 +211,10 @@ function PollActivity({ activity, hasResponded, onRespond }: ActivityViewProps) 
             <button
               key={i}
               onClick={() => onRespond(activity.id, i)}
-              className="w-full rounded-2xl bg-white px-5 py-4 text-left text-sm font-medium text-gray-800 hover:bg-indigo-50 hover:scale-[1.02] active:scale-100 transition-all shadow-lg shadow-indigo-900/20"
+              className="w-full rounded-2xl bg-white px-5 py-4 text-left text-sm font-medium text-gray-800 hover:bg-primary-50 hover:scale-[1.02] active:scale-100 transition-all shadow-lg shadow-primary-900/20"
             >
               <span className="inline-flex items-center gap-3">
-                <span className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold shrink-0">
+                <span className="w-7 h-7 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-xs font-bold shrink-0">
                   {String.fromCharCode(65 + i)}
                 </span>
                 {opt}
@@ -234,7 +234,7 @@ function TextActivity({ activity, hasResponded, onRespond }: ActivityViewProps) 
   return (
     <div className="w-full max-w-lg">
       <div className="bg-white/10 backdrop-blur rounded-2xl px-5 py-3 mb-6 text-center">
-        <p className="text-xs text-indigo-200 uppercase tracking-widest mb-1">
+        <p className="text-xs text-primary-200 uppercase tracking-widest mb-1">
           {isWordcloud ? 'Nuage de mots' : 'Brainstorming'}
         </p>
         <h2 className="text-xl font-bold text-white leading-snug">{activity.title}</h2>
@@ -258,12 +258,12 @@ function TextActivity({ activity, hasResponded, onRespond }: ActivityViewProps) 
               placeholder={isWordcloud ? 'Un mot…' : 'Votre idée…'}
               autoFocus
               maxLength={isWordcloud ? 30 : 200}
-              className="rounded-xl border border-gray-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="rounded-xl border border-gray-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
             <button
               type="submit"
               disabled={!text.trim()}
-              className="w-full rounded-xl bg-indigo-600 px-4 py-3.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 active:scale-95 transition-all"
+              className="w-full rounded-xl bg-primary-600 px-4 py-3.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-40 active:scale-95 transition-all"
             >
               Envoyer
             </button>

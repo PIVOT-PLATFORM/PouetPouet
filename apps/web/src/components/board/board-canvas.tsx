@@ -1055,7 +1055,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
                   onClick={(e) => e.stopPropagation()}
                 >
                   {totalVotes > 0 && (
-                    <div className="flex items-center gap-0.5 bg-purple-500 text-white rounded-full px-2 py-0.5 shadow-md">
+                    <div className="flex items-center gap-0.5 bg-secondary-500 text-white rounded-full px-2 py-0.5 shadow-md">
                       <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
                       </svg>
@@ -1067,7 +1067,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
                       myVotesOnCard > 0 ? (
                         <button
                           onClick={() => onUncastVote?.(card.id)}
-                          className="flex items-center gap-0.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-full px-1.5 py-0.5 shadow-sm transition-colors"
+                          className="flex items-center gap-0.5 bg-secondary-100 hover:bg-secondary-200 text-secondary-700 rounded-full px-1.5 py-0.5 shadow-sm transition-colors"
                           title="Retirer un vote"
                         >
                           <span className="text-[10px] font-bold">−{myVotesOnCard}</span>
@@ -1075,7 +1075,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
                       ) : canVoteMore ? (
                         <button
                           onClick={() => onCastVote?.(card.id)}
-                          className="flex items-center gap-0.5 bg-white hover:bg-purple-50 text-purple-500 border border-purple-200 rounded-full px-1.5 py-0.5 shadow-sm transition-colors"
+                          className="flex items-center gap-0.5 bg-white hover:bg-secondary-50 text-secondary-500 border border-secondary-200 rounded-full px-1.5 py-0.5 shadow-sm transition-colors"
                           title="Voter pour ce post-it"
                         >
                           <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1137,7 +1137,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
 
         {/* Link-cards mode banner */}
         {toolMode === 'link-cards' && (
-          <div data-export-ignore="true" className="absolute top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-3 pointer-events-none z-[60]">
+          <div data-export-ignore="true" className="absolute top-3 left-1/2 -translate-x-1/2 bg-primary-600 text-white text-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-3 pointer-events-none z-[60]">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
               <circle cx="5" cy="12" r="2.5" />
               <circle cx="19" cy="12" r="2.5" />
@@ -1146,7 +1146,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
             <span className="font-medium">
               {linkSourceId === null ? 'Cliquez la carte source' : 'Cliquez une carte à relier'}
             </span>
-            <span className="text-xs text-indigo-200">
+            <span className="text-xs text-primary-200">
               {linkSourceId === null ? 'Échap pour quitter' : 'Ctrl+clic : relier plusieurs · Échap'}
             </span>
           </div>
@@ -1212,7 +1212,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
               if (e.key === 'Enter') confirmLink()
               if (e.key === 'Escape') { setLinkPopover(null); setLinkUrl('') }
             }}
-            className="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+            className="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
           />
           <div className="flex gap-2 justify-end">
             <button
@@ -1223,7 +1223,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
             </button>
             <button
               onClick={confirmLink}
-              className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors font-medium"
+              className="text-xs px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors font-medium"
             >
               Ajouter
             </button>

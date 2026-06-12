@@ -38,7 +38,7 @@ export function GroupsPanel({ cards, highlightedGroupId, onHighlight, onRecolor,
         {highlightedGroupId && (
           <button
             onClick={() => onHighlight(null)}
-            className="text-[10px] font-medium text-indigo-500 hover:text-indigo-700 transition-colors"
+            className="text-[10px] font-medium text-primary-500 hover:text-primary-700 transition-colors"
             title="Désactiver la surbrillance"
           >
             Effacer
@@ -57,7 +57,7 @@ export function GroupsPanel({ cards, highlightedGroupId, onHighlight, onRecolor,
               <div
                 key={gid}
                 className={`group/row flex items-center gap-2 pl-3 pr-2 py-1.5 transition-colors ${
-                  isActive ? 'bg-indigo-50' : 'hover:bg-gray-50'
+                  isActive ? 'bg-primary-50' : 'hover:bg-gray-50'
                 }`}
               >
                 {/* Outline color picker */}
