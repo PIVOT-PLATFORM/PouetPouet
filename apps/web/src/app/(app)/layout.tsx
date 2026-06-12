@@ -107,7 +107,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => useNotificationsStore.getState().openPatchNotes()}
               title="Notes de version"
-              className="text-[10px] font-mono font-bold leading-none text-indigo-400 hover:text-indigo-600 dark:text-indigo-500 dark:hover:text-indigo-300 transition-colors cursor-pointer"
+              className="text-[10px] font-mono font-bold leading-none text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors cursor-pointer"
             >
               v{APP_VERSION}
             </button>
@@ -168,7 +168,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
             <button
               onClick={() => { useNotificationsStore.getState().reset(); logout(); router.push('/login') }}
-              className="text-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               Déconnexion
             </button>
@@ -183,10 +183,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {!isBoardPage && (
         <footer className="border-t border-gray-100 dark:border-gray-800 mt-8">
           <div className="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <span className="text-xs text-gray-400 dark:text-gray-600">
+            <span className="text-xs text-gray-500 dark:text-gray-500">
               © {new Date().getFullYear()} PouetPouet · v{APP_VERSION}
             </span>
-            <nav className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-600">
+            <nav className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
               <Link href="/mentions-legales" className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
                 Mentions légales
               </Link>

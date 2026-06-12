@@ -41,6 +41,38 @@ async function removePresence(boardId: string, userId: string) {
   await redis.hdel(`board:presence:${boardId}`, userId)
 }
 
+// Cursor coalescing — dernière position par user, flush global à 20 Hz.
+// Avec l'adapter Redis chaque instance flush son propre buffer : un événement
+// curseur n'atterrit que sur une instance, le broadcast couvre le cluster.
+interface CursorUpdate { userId: string; name: string; avatar: string | null; x: number; y: number }
+
+const CURSOR_FLUSH_MS = 50
+const cursorBuffers = new Map<string, Map<string, CursorUpdate>>() // boardId → userId → last pos
+let cursorFlusher: ReturnType<typeof setInterval> | null = null
+
+function bufferCursor(io: Server, boardId: string, update: CursorUpdate) {
+  let buffer = cursorBuffers.get(boardId)
+  if (!buffer) { buffer = new Map(); cursorBuffers.set(boardId, buffer) }
+  buffer.set(update.userId, update)
+
+  if (!cursorFlusher) {
+    cursorFlusher = setInterval(() => {
+      let flushed = false
+      for (const [bid, buf] of cursorBuffers) {
+        if (buf.size === 0) { cursorBuffers.delete(bid); continue }
+        io.to(`board:${bid}`).emit('board:cursors', Array.from(buf.values()))
+        buf.clear()
+        flushed = true
+      }
+      // Un tick complet sans aucun mouvement → on arrête jusqu'au prochain.
+      if (!flushed) {
+        clearInterval(cursorFlusher!)
+        cursorFlusher = null
+      }
+    }, CURSOR_FLUSH_MS)
+  }
+}
+
 async function broadcastPresence(io: Server, boardId: string) {
   let users: { id: string; name: string; avatar: string | null }[]
 
@@ -121,12 +153,14 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     }
   })
 
-  // Cursor presence (relay only)
-  // Server relays canvas-space coords to other board members; client throttles to 20 fps.
+  // Cursor presence — coalesced server-side.
+  // Relaying each move costs N² messages (saturates the instance ~150 users,
+  // cf. scripts/load-test.ts) : on bufferise la dernière position par user et
+  // un tick global 20 Hz broadcast un batch 'board:cursors' par board actif.
   socket.on("board:cursor", (data: { boardId: string; x: number; y: number }) => {
     const info = socket.data.userInfo as { id: string; name: string; avatar: string | null } | undefined
     if (!info || !socket.data.boardRoles?.[data.boardId]) return
-    socket.to(`board:${data.boardId}`).emit("board:cursor", {
+    bufferCursor(io, data.boardId, {
       userId: info.id, name: info.name, avatar: info.avatar, x: data.x, y: data.y,
     })
   })

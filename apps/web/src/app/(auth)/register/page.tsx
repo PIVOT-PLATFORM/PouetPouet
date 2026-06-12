@@ -85,7 +85,7 @@ export default function RegisterPage() {
           >
             {resent ? 'Email renvoyé ✓' : 'Renvoyer l\'email'}
           </button>
-          <Link href="/login" className="text-sm text-gray-400 hover:text-gray-600">
+          <Link href="/login" className="text-sm text-gray-500 hover:text-gray-700">
             Retour à la connexion
           </Link>
         </div>
@@ -147,7 +147,7 @@ export default function RegisterPage() {
           </button>
         )}
 
-        <p className="text-xs text-center text-gray-400 leading-relaxed">
+        <p className="text-xs text-center text-gray-500 leading-relaxed">
           En créant un compte, vous acceptez nos{' '}
           <Link href="/cgu" className="text-indigo-600 hover:text-indigo-700 underline">
             conditions générales d&apos;utilisation

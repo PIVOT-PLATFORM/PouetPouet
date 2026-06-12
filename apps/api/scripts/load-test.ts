@@ -6,8 +6,8 @@
 //   npx tsx scripts/load-test.ts                          # 100 users, 30 s, local
 //   USERS=50 DURATION=15 URL=http://... npx tsx scripts/load-test.ts
 //
-// Tous les clients utilisent le même compte (rôle OWNER) : on mesure la tenue
-// du transport et des broadcasts, pas la logique de partage.
+// Chaque client a son propre compte (invité EDITOR sur le board) : le batching
+// curseur par user et la présence sont mesurés fidèlement.
 import { io as ioClient, type Socket } from 'socket.io-client'
 
 const URL = process.env.URL ?? 'http://localhost:4000'
@@ -35,13 +35,31 @@ async function api<T>(path: string, body: unknown, token?: string): Promise<T> {
 async function main() {
   console.log(`Load test → ${URL} | ${USERS} clients | ${DURATION_S}s | curseurs ${CURSOR_HZ} Hz | 1 carte/client/${CARD_EVERY_S}s`)
 
-  // ── Setup : compte + board ──────────────────────────────────────────────────
-  const email = `loadtest-${Date.now()}@test.local`
+  // ── Setup : owner + board + un compte par client (invité EDITOR) ───────────
+  const runId = Date.now()
   const password = 'LoadTest-123!'
-  const reg = await api<{ token: string }>('/api/auth/register', { email, name: 'Load Test', password, bypass: true })
-  const token = reg.token
-  const board = await api<{ id: string }>('/api/boards', { name: `Load test ${new Date().toISOString()}` }, token)
-  console.log(`Board ${board.id} créé.`)
+  const ownerEmail = `loadtest-${runId}-owner@test.local`
+  const owner = await api<{ token: string }>('/api/auth/register', { email: ownerEmail, name: 'Load Owner', password, bypass: true })
+  const board = await api<{ id: string }>('/api/boards', { name: `Load test ${new Date().toISOString()}` }, owner.token)
+
+  console.log(`Création de ${USERS} comptes participants…`)
+  const tokens: string[] = []
+  const emails: string[] = []
+  // Concurrence limitée : chaque register coûte un hash bcrypt (CPU serveur)
+  const POOL = 8
+  for (let start = 0; start < USERS; start += POOL) {
+    await Promise.all(
+      Array.from({ length: Math.min(POOL, USERS - start) }, async (_, j) => {
+        const i = start + j
+        const email = `loadtest-${runId}-${i}@test.local`
+        const reg = await api<{ token: string }>('/api/auth/register', { email, name: `Load ${i}`, password, bypass: true })
+        await api(`/api/boards/${board.id}/shares/invite`, { email, role: 'EDITOR' }, owner.token)
+        tokens[i] = reg.token
+        emails[i] = email
+      }),
+    )
+  }
+  console.log(`Board ${board.id} créé et partagé avec ${USERS} comptes.`)
 
   // ── Métriques ───────────────────────────────────────────────────────────────
   const connectTimes: number[] = []
@@ -50,6 +68,7 @@ async function main() {
   let connectErrors = 0
   let boardErrors = 0
   let cursorReceived = 0
+  let cursorMessages = 0
   let cardCreatedReceived = 0
   const pendingCards = new Map<string, number>() // tag → emit timestamp
 
@@ -60,7 +79,7 @@ async function main() {
     Array.from({ length: USERS }, (_, i) =>
       new Promise<void>((resolve) => {
         const t0 = Date.now()
-        const s = ioClient(URL, { auth: { token }, transports: ['websocket'], reconnection: false, timeout: 10_000 })
+        const s = ioClient(URL, { auth: { token: tokens[i] }, transports: ['websocket'], reconnection: false, timeout: 10_000 })
         sockets.push(s)
         s.on('connect', () => {
           connectTimes.push(Date.now() - t0)
@@ -73,7 +92,8 @@ async function main() {
         })
         s.on('board:error', (msg: string) => { boardErrors++; console.error(`client ${i}: board:error ${msg}`); resolve() })
         s.on('connect_error', (err) => { connectErrors++; console.error(`client ${i}: ${err.message}`); resolve() })
-        s.on('board:cursor', () => { cursorReceived++ })
+        s.on('board:cursor', () => { cursorReceived++; cursorMessages++ }) // ancien protocole (relay unitaire)
+        s.on('board:cursors', (batch: unknown[]) => { cursorReceived += batch.length; cursorMessages++ })
         s.on('card:created', (card: { content: string }) => {
           cardCreatedReceived++
           const t = pendingCards.get(card.content)
@@ -114,13 +134,20 @@ async function main() {
   console.log(`Connexion           p50 ${percentile(sc, 50)} ms · p95 ${percentile(sc, 95)} ms · p99 ${percentile(sc, 99)} ms`)
   console.log(`board:join→state    p50 ${percentile(ss, 50)} ms · p95 ${percentile(ss, 95)} ms · p99 ${percentile(ss, 99)} ms`)
   console.log(`card:create RTT     p50 ${percentile(sr, 50)} ms · p95 ${percentile(sr, 95)} ms · p99 ${percentile(sr, 99)} ms (${cardRtts.length} mesures, ${pendingCards.size} perdues)`)
-  console.log(`Curseurs reçus      ${cursorReceived} (${Math.round(cursorReceived / DURATION_S)}/s) — attendu ≈ ${connected} × ${CURSOR_HZ} Hz × ${connected - 1} pairs`)
+  console.log(`Curseurs reçus      ${cursorReceived} positions (${Math.round(cursorReceived / DURATION_S)}/s) en ${cursorMessages} messages (${Math.round(cursorMessages / DURATION_S)}/s)`)
   console.log(`card:created reçus  ${cardCreatedReceived}`)
 
   // ── Cleanup ─────────────────────────────────────────────────────────────────
   sockets.forEach((s) => s.disconnect())
-  await api('/api/auth/delete-account', { password }, token)
-  console.log('Compte et board de test supprimés.')
+  for (let start = 0; start < USERS; start += POOL) {
+    await Promise.all(
+      Array.from({ length: Math.min(POOL, USERS - start) }, (_, j) =>
+        api('/api/auth/delete-account', { password }, tokens[start + j]).catch(() => {}),
+      ),
+    )
+  }
+  await api('/api/auth/delete-account', { password }, owner.token)
+  console.log(`${USERS + 1} comptes et le board de test supprimés.`)
 
   const failed = connectErrors > 0 || boardErrors > 0 || pendingCards.size > cardRtts.length * 0.05
   process.exit(failed ? 1 : 0)

@@ -438,7 +438,7 @@ export default function DailyPage() {
             <div className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-12 text-center">
               <span className="text-4xl block mb-3">📅</span>
               <p className="text-gray-500 dark:text-gray-400 font-medium">Aucune session pour le moment</p>
-              <p className="text-gray-400 text-sm mt-1">Créez votre premier daily !</p>
+              <p className="text-gray-500 text-sm mt-1">Créez votre premier daily !</p>
             </div>
           ) : filteredSessions.length === 0 ? (
             <p className="text-gray-400 text-sm py-8 text-center">Aucun daily ne correspond à « {search} ».</p>
@@ -501,7 +501,7 @@ export default function DailyPage() {
             </div>
           ) : teams.length === 0 ? (
             <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-6 text-center">
-              <p className="text-gray-400 text-sm">Créez une équipe pour la réutiliser dans vos dailys</p>
+              <p className="text-gray-500 text-sm">Créez une équipe pour la réutiliser dans vos dailys</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2">

@@ -2,11 +2,13 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
-// Reads DATABASE_URL from apps/api/.env (vitest does not load it like tsx does)
-// and derives the integration-test database URL from it.
+// Reads DATABASE_URL from the environment (CI) or from apps/api/.env (local —
+// vitest does not load it like tsx does) and derives the integration-test
+// database URL from it.
 const TEST_DB_NAME = 'pouetpouet_test'
 
 export function readDevDatabaseUrl(): string | null {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL
   try {
     const envPath = join(dirname(fileURLToPath(import.meta.url)), '../../.env')
     const line = readFileSync(envPath, 'utf8')

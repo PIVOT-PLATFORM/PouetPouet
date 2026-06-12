@@ -19,7 +19,8 @@ const cspDirectives = [
   `style-src 'self' 'unsafe-inline'`,
   `img-src 'self' data: blob:`,
   `font-src 'self'`,
-  `connect-src 'self' ${FRONTEND_URL} ${WS_ORIGIN}`,
+  // *.sentry.io / *.ingest.de.sentry.io: error reporting (@sentry/nextjs envelope endpoint)
+  `connect-src 'self' ${FRONTEND_URL} ${WS_ORIGIN} https://*.sentry.io https://*.ingest.de.sentry.io`,
   `frame-ancestors 'none'`,
   `object-src 'none'`,
   `base-uri 'self'`,

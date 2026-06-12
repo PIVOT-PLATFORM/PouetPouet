@@ -234,7 +234,7 @@ export default function DashboardPage() {
             </svg>
           </div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Aucun board pour l'instant</h2>
-          <p className="text-gray-400 dark:text-gray-500 text-sm mb-6">Créez votre premier espace collaboratif</p>
+          <p className="text-gray-500 dark:text-gray-500 text-sm mb-6">Créez votre premier espace collaboratif</p>
           <button
             onClick={() => setShowModal(true)}
             className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"

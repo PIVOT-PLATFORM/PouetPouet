@@ -120,7 +120,7 @@ export default function HubPage() {
               <div className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-0.5">
                 {stats[key]}
               </div>
-              <div className="text-[11px] text-gray-400 dark:text-gray-500">{label}</div>
+              <div className="text-[11px] text-gray-500 dark:text-gray-500">{label}</div>
             </div>
           ))}
         </div>

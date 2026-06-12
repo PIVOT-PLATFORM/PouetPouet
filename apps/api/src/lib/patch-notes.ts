@@ -20,6 +20,35 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.7.0',
+    date: '2026-06-12',
+    title: 'Performance temps réel & accessibilité',
+    summary: 'Les boards tiennent désormais 300+ participants simultanés. Toute l\'application passe l\'audit d\'accessibilité WCAG AA, et les webhooks réessaient automatiquement en cas d\'échec.',
+    sections: [
+      {
+        heading: '⚡ Performance',
+        items: [
+          'Curseurs temps réel : les positions sont regroupées côté serveur (20 envois/seconde par board au lieu d\'un message par mouvement) — un même board supporte désormais 300+ participants simultanés avec une latence inférieure à 15 ms.',
+          'Moins de travail côté navigateur : l\'affichage des curseurs se met à jour en un seul rendu par lot.',
+        ],
+      },
+      {
+        heading: '✨ Améliorations',
+        items: [
+          'Accessibilité : contrastes relevés et étiquettes lecteurs d\'écran sur toute l\'application — zéro violation WCAG AA critique, vérifié automatiquement à chaque build.',
+          'Webhooks : en cas d\'échec de livraison (erreur réseau ou 5xx), une nouvelle tentative part automatiquement après 30 secondes — les deux tentatives sont visibles dans l\'historique.',
+        ],
+      },
+      {
+        heading: '🔧 Corrections',
+        items: [
+          'Supervision web : la politique de sécurité bloquait l\'envoi des rapports d\'erreurs du navigateur — corrigé.',
+          'Préparation multi-instance : le connecteur Redis temps réel ne pouvait pas s\'abonner aux événements inter-instances — corrigé avant d\'en avoir besoin.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.6.1',
     date: '2026-06-12',
     title: 'Correctif connexion',

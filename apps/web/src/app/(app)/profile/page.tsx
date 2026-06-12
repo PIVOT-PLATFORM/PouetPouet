@@ -80,7 +80,7 @@ function resizeImage(file: File, maxPx: number): Promise<string> {
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
-      <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-5">{title}</h2>
+      <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider mb-5">{title}</h2>
       {children}
     </div>
   )
@@ -362,7 +362,7 @@ export default function ProfilePage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Mon profil</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Gérez vos informations personnelles et vos préférences</p>
+        <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">Gérez vos informations personnelles et vos préférences</p>
       </div>
 
       {/* ── Avatar ── */}
@@ -401,7 +401,7 @@ export default function ProfilePage() {
               </button>
             )}
             {avatarError && <p className="text-xs text-red-500">{avatarError}</p>}
-            <p className="text-xs text-gray-400 dark:text-gray-500">JPG, PNG, GIF · Max 5 Mo · Redimensionnée à 256 px</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500">JPG, PNG, GIF · Max 5 Mo · Redimensionnée à 256 px</p>
           </div>
 
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarFile} />
@@ -419,19 +419,21 @@ export default function ProfilePage() {
               onChange={(e) => setName(e.target.value)}
               required
               minLength={2}
+              aria-label="Nom"
               className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Email <span className="text-gray-400 dark:text-gray-500 font-normal">(non modifiable)</span>
+              Email <span className="text-gray-500 dark:text-gray-500 font-normal">(non modifiable)</span>
             </label>
             <input
               type="email"
               value={user.email}
               disabled
-              className="w-full rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-850 px-4 py-2.5 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed"
+              aria-label="Email"
+              className="w-full rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-850 px-4 py-2.5 text-sm text-gray-500 dark:text-gray-500 cursor-not-allowed"
             />
           </div>
 
@@ -445,7 +447,7 @@ export default function ProfilePage() {
               placeholder="Quelques mots sur vous…"
               className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
             />
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 text-right">{bio.length}/500</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 text-right">{bio.length}/500</p>
           </div>
 
           <div className="flex items-center gap-3 pt-1">
@@ -462,7 +464,7 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Mode nuit</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Affichage sombre pour réduire la fatigue visuelle</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">Affichage sombre pour réduire la fatigue visuelle</p>
             </div>
             <button
               type="button"
@@ -472,6 +474,7 @@ export default function ProfilePage() {
               }`}
               role="switch"
               aria-checked={user.theme === 'dark'}
+              aria-label="Mode nuit"
             >
               <span
                 className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
@@ -493,6 +496,7 @@ export default function ProfilePage() {
               value={currentPwd}
               onChange={(e) => setCurrentPwd(e.target.value)}
               autoComplete="current-password"
+              aria-label="Mot de passe actuel"
               className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
@@ -504,6 +508,7 @@ export default function ProfilePage() {
               value={newPwd}
               onChange={(e) => setNewPwd(e.target.value)}
               autoComplete="new-password"
+              aria-label="Nouveau mot de passe"
               className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
@@ -515,6 +520,7 @@ export default function ProfilePage() {
               value={confirmPwd}
               onChange={(e) => setConfirmPwd(e.target.value)}
               autoComplete="new-password"
+              aria-label="Confirmer le mot de passe"
               className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
@@ -538,24 +544,24 @@ export default function ProfilePage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Membre depuis</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
               {new Date(user.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-gray-400 dark:text-gray-500">ID utilisateur</p>
-            <p className="text-xs font-mono text-gray-300 dark:text-gray-600 mt-0.5">{user.id.slice(0, 8)}…</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500">ID utilisateur</p>
+            <p className="text-xs font-mono text-gray-500 dark:text-gray-600 mt-0.5">{user.id.slice(0, 8)}…</p>
           </div>
         </div>
       </SectionCard>
 
       {/* ── Données personnelles ── */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-6">
-        <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-5">Mes données (RGPD)</h2>
+        <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider mb-5">Mes données (RGPD)</h2>
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Exporter mes données</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
               Télécharge toutes vos données personnelles (profil, boards, dailys, équipes…) au format JSON.
             </p>
           </div>
@@ -572,8 +578,8 @@ export default function ProfilePage() {
       {/* ── Clés API ── */}
       <SectionCard title="Clés API">
         <div className="space-y-5">
-          <p className="text-xs text-gray-400 dark:text-gray-500">
-            Utilisez une clé API pour accéder à l&apos;API PouetPouet depuis vos scripts (header <code className="font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded">X-API-Key</code>). Maximum 10 clés.
+          <p className="text-xs text-gray-500 dark:text-gray-500">
+            Utilisez une clé API pour accéder à l&apos;API PouetPouet depuis vos scripts (header <code className="font-mono bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-1 rounded">X-API-Key</code>). Maximum 10 clés.
           </p>
 
           {/* New key form */}
@@ -626,7 +632,7 @@ export default function ProfilePage() {
                 <li key={k.id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 px-4 py-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{k.name}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 font-mono mt-0.5">
+                    <p className="text-xs text-gray-500 dark:text-gray-500 font-mono mt-0.5">
                       pp_{k.prefix}… · créée {new Date(k.createdAt).toLocaleDateString('fr-FR')}
                       {k.lastUsedAt && ` · utilisée ${new Date(k.lastUsedAt).toLocaleDateString('fr-FR')}`}
                     </p>
@@ -644,15 +650,15 @@ export default function ProfilePage() {
           )}
 
           {apiKeys.length === 0 && !newKeyValue && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 italic">Aucune clé API active.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 italic">Aucune clé API active.</p>
           )}
         </div>
       </SectionCard>
 
       {/* ── Webhooks ── */}
       <SectionCard title="Webhooks">
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          Recevez des notifications HTTP lorsque des événements se produisent dans FORGE. Chaque livraison est signée avec un secret HMAC-SHA256 dans l'en-tête <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">X-Webhook-Signature</code>.
+        <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
+          Recevez des notifications HTTP lorsque des événements se produisent dans FORGE. Chaque livraison est signée avec un secret HMAC-SHA256 dans l'en-tête <code className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-1 rounded text-xs">X-Webhook-Signature</code>.
         </p>
 
         {newWkSecret && (
@@ -676,7 +682,7 @@ export default function ProfilePage() {
         {showWebhookForm ? (
           <form onSubmit={handleCreateWebhook} className="mb-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 flex flex-col gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nom</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Nom</label>
               <input
                 autoFocus
                 value={wkName}
@@ -686,7 +692,7 @@ export default function ProfilePage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">URL</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">URL</label>
               <input
                 value={wkUrl}
                 onChange={(e) => setWkUrl(e.target.value)}
@@ -696,7 +702,7 @@ export default function ProfilePage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Événements</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1.5">Événements</label>
               <div className="flex flex-wrap gap-2">
                 {WEBHOOK_EVENTS_LIST.map((ev) => (
                   <label key={ev} className="flex items-center gap-1.5 cursor-pointer">
@@ -739,8 +745,8 @@ export default function ProfilePage() {
                       {wk.active ? 'Actif' : 'Inactif'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{wk.url}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{wk.events.map((ev) => WEBHOOK_EVENT_LABELS[ev] ?? ev).join(', ')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 truncate mt-0.5">{wk.url}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">{wk.events.map((ev) => WEBHOOK_EVENT_LABELS[ev] ?? ev).join(', ')}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   {testWkResult[wk.id] && (
@@ -750,7 +756,7 @@ export default function ProfilePage() {
                   )}
                   <button
                     onClick={() => handleToggleDeliveries(wk.id)}
-                    className={`p-1.5 rounded-lg transition-colors ${expandedWkId === wk.id ? 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950' : 'text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950'}`}
+                    className={`p-1.5 rounded-lg transition-colors ${expandedWkId === wk.id ? 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950' : 'text-gray-500 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950'}`}
                     title="Historique des livraisons"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -758,14 +764,14 @@ export default function ProfilePage() {
                   <button
                     onClick={() => handleTestWebhook(wk.id)}
                     disabled={testingWkId === wk.id}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"
                     title="Tester"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                   </button>
                   <button
                     onClick={() => handleToggleWebhook(wk.id, !wk.active)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors"
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors"
                     title={wk.active ? 'Désactiver' : 'Activer'}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={wk.active ? 'M10 9v6m4-6v6' : 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z'} /></svg>
@@ -785,9 +791,9 @@ export default function ProfilePage() {
               {expandedWkId === wk.id && (
                 <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-2">
                   {!wkDeliveries[wk.id] ? (
-                    <p className="text-xs text-gray-400 dark:text-gray-500 py-1">Chargement…</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 py-1">Chargement…</p>
                   ) : wkDeliveries[wk.id].length === 0 ? (
-                    <p className="text-xs text-gray-400 dark:text-gray-500 py-1">Aucune livraison enregistrée.</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 py-1">Aucune livraison enregistrée.</p>
                   ) : (
                     <div className="space-y-1 max-h-48 overflow-y-auto">
                       {wkDeliveries[wk.id].map((d) => (
@@ -797,8 +803,8 @@ export default function ProfilePage() {
                           </span>
                           <span className="text-gray-600 dark:text-gray-300 truncate">{WEBHOOK_EVENT_LABELS[d.event] ?? d.event}</span>
                           {d.error && <span className="text-red-500 dark:text-red-400 truncate" title={d.error}>{d.error}</span>}
-                          <span className="ml-auto shrink-0 text-gray-400 dark:text-gray-500">{d.durationMs} ms</span>
-                          <span className="shrink-0 text-gray-400 dark:text-gray-500">
+                          <span className="ml-auto shrink-0 text-gray-500 dark:text-gray-500">{d.durationMs} ms</span>
+                          <span className="shrink-0 text-gray-500 dark:text-gray-500">
                             {new Date(d.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -811,13 +817,13 @@ export default function ProfilePage() {
             ))}
           </div>
         ) : !showWebhookForm && (
-          <p className="text-sm text-gray-400 dark:text-gray-500">Aucun webhook configuré.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-500">Aucun webhook configuré.</p>
         )}
       </SectionCard>
 
       {/* ── Journal de sécurité ── */}
       <SectionCard title="Journal de sécurité">
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+        <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
           Les 50 dernières actions sensibles de votre compte : connexions, changements de mot de passe, clés API, webhooks.
         </p>
         {!showAuditLog ? (
@@ -829,16 +835,16 @@ export default function ProfilePage() {
             Afficher le journal
           </button>
         ) : auditLog.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500">Aucune action enregistrée pour le moment.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-500">Aucune action enregistrée pour le moment.</p>
         ) : (
           <div className="space-y-1 max-h-64 overflow-y-auto">
             {auditLog.map((entry) => (
               <div key={entry.id} className="flex items-center gap-2 text-xs py-1.5 border-b border-gray-50 dark:border-gray-800 last:border-0">
                 <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${entry.action === 'auth.login_failed' ? 'bg-red-400' : 'bg-emerald-400'}`} />
                 <span className="text-gray-700 dark:text-gray-200 font-medium">{AUDIT_ACTION_LABELS[entry.action] ?? entry.action}</span>
-                {entry.resource && <span className="text-gray-400 dark:text-gray-500 truncate">« {entry.resource} »</span>}
-                <span className="ml-auto shrink-0 text-gray-400 dark:text-gray-500">{entry.ip ?? ''}</span>
-                <span className="shrink-0 text-gray-400 dark:text-gray-500">
+                {entry.resource && <span className="text-gray-500 dark:text-gray-500 truncate">« {entry.resource} »</span>}
+                <span className="ml-auto shrink-0 text-gray-500 dark:text-gray-500">{entry.ip ?? ''}</span>
+                <span className="shrink-0 text-gray-500 dark:text-gray-500">
                   {new Date(entry.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
@@ -849,11 +855,11 @@ export default function ProfilePage() {
 
       {/* ── Zone de danger ── */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-red-200 dark:border-red-900/50 shadow-sm p-6">
-        <h2 className="text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider mb-5">Zone de danger</h2>
+        <h2 className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wider mb-5">Zone de danger</h2>
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Supprimer mon compte</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
               Efface définitivement votre compte et toutes vos données (boards, dailys, salles, équipes…). Irréversible.
             </p>
           </div>
@@ -882,7 +888,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Supprimer le compte ?</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
                   Cette action est <span className="font-semibold text-red-600 dark:text-red-400">définitive</span>. Toutes vos données seront supprimées et ne pourront pas être récupérées.
                 </p>
               </div>
@@ -908,7 +914,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={closeDeleteModal}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 Annuler
               </button>

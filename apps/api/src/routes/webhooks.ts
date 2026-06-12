@@ -157,6 +157,48 @@ async function recordDelivery(
   }
 }
 
+// Délai avant nouvelle tentative quand une livraison échoue (erreur réseau ou 5xx).
+const RETRY_DELAY_MS = 30_000
+// Surchargeable par les tests (le délai réel rendrait le test trop lent).
+export let retryDelayMs = RETRY_DELAY_MS
+export function setRetryDelayForTests(ms: number) { retryDelayMs = ms }
+
+// Tente une livraison ; en cas d'échec retryable (réseau ou 5xx), une seconde
+// tentative part après retryDelayMs. Chaque tentative est enregistrée.
+async function deliverOne(
+  hook: { id: string; url: string; secret: string },
+  event: string,
+  body: string,
+  attempt = 1,
+): Promise<void> {
+  const sig = crypto.createHmac('sha256', hook.secret).update(body).digest('hex')
+  const started = Date.now()
+  let retryable = false
+  try {
+    const res = await fetch(hook.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Webhook-Signature': `sha256=${sig}`,
+        'X-Webhook-Id': hook.id,
+        'X-Webhook-Attempt': String(attempt),
+        'User-Agent': 'PouetPouet-Webhook/1.0',
+      },
+      body,
+      signal: AbortSignal.timeout(10000),
+    })
+    retryable = res.status >= 500
+    await recordDelivery(hook.id, event, { statusCode: res.status }, Date.now() - started)
+  } catch (err) {
+    retryable = true
+    await recordDelivery(hook.id, event, { error: (err as Error).message }, Date.now() - started)
+  }
+  if (retryable && attempt === 1) {
+    // unref : un retry en attente ne doit pas retarder l'arrêt du process
+    setTimeout(() => void deliverOne(hook, event, body, 2), retryDelayMs).unref()
+  }
+}
+
 // Delivers a webhook payload to all active subscribers for the given event.
 // Fire-and-forget: errors are logged but never throw. HMAC-SHA256 signature in X-Webhook-Signature.
 export async function deliverWebhooks(
@@ -171,26 +213,5 @@ export async function deliverWebhooks(
   if (hooks.length === 0) return
 
   const body = JSON.stringify({ event, timestamp: new Date().toISOString(), payload })
-  await Promise.allSettled(
-    hooks.map(async (hook) => {
-      const sig = crypto.createHmac('sha256', hook.secret).update(body).digest('hex')
-      const started = Date.now()
-      try {
-        const res = await fetch(hook.url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Webhook-Signature': `sha256=${sig}`,
-            'X-Webhook-Id': hook.id,
-            'User-Agent': 'PouetPouet-Webhook/1.0',
-          },
-          body,
-          signal: AbortSignal.timeout(10000),
-        })
-        await recordDelivery(hook.id, event, { statusCode: res.status }, Date.now() - started)
-      } catch (err) {
-        await recordDelivery(hook.id, event, { error: (err as Error).message }, Date.now() - started)
-      }
-    }),
-  )
+  await Promise.allSettled(hooks.map((hook) => deliverOne(hook, event, body)))
 }

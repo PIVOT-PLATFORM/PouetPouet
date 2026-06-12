@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { buildTestApp, createTestUser, cleanupUsers } from '../test/build-app.js'
-import { webhookRoutes, deliverWebhooks } from './webhooks.js'
+import { webhookRoutes, deliverWebhooks, setRetryDelayForTests } from './webhooks.js'
 import { prisma } from '../lib/prisma.js'
 
 const SUFFIX = '@webhooks.int.test'
@@ -127,6 +127,28 @@ describe('/api/webhooks (integration)', () => {
     await deliverWebhooks('wheel.draw.completed', userId, {})
     const count = await prisma.webhookDelivery.count({ where: { webhookId: hook.id } })
     expect(count).toBeLessThanOrEqual(50)
+  })
+
+  it('retries a failed delivery once and records both attempts', async () => {
+    setRetryDelayForTests(150)
+    try {
+      const hook = await prisma.webhook.create({
+        data: {
+          userId,
+          name: 'retry',
+          url: 'http://127.0.0.1:9/hook',
+          secret: 'whsec_retry',
+          events: ['board.imported'],
+        },
+      })
+      await deliverWebhooks('board.imported', userId, {})
+      // Première tentative immédiate, seconde après ~150 ms
+      await new Promise((r) => setTimeout(r, 600))
+      const count = await prisma.webhookDelivery.count({ where: { webhookId: hook.id } })
+      expect(count).toBe(2)
+    } finally {
+      setRetryDelayForTests(30_000)
+    }
   })
 
   it('deletes a webhook and cascades its deliveries', async () => {
