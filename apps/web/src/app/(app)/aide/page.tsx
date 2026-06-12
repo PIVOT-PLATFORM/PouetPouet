@@ -129,6 +129,29 @@ function AccessCell({ value }: { value: RoleAccess }) {
   return <span className="text-gray-300 dark:text-gray-600" aria-label="Non autorisé">—</span>
 }
 
+// Section dépliable : <details> natif (clavier + lecteurs d'écran gratuits).
+function CollapsibleSection({ title, subtitle, defaultOpen = false, children }: {
+  title: string
+  subtitle?: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <details open={defaultOpen} className="group">
+      <summary className="flex items-center gap-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden rounded-lg -mx-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+        <svg className="w-4 h-4 text-gray-400 transition-transform group-open:rotate-90 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+        </svg>
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300">{title}</h2>
+          {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>}
+        </div>
+      </summary>
+      <div className="mt-4">{children}</div>
+    </details>
+  )
+}
+
 const TEST_BOOKS = [
   { module: 'Dashboard',       file: 'CT-v0.3.0-dashboard.pdf', tests: 27, pages: 2 },
   { module: 'Boards éditeur',  file: 'CT-v0.3.0-boards.pdf',    tests: 61, pages: 4 },
@@ -141,7 +164,7 @@ const TEST_BOOKS = [
 
 export default function AidePage() {
   return (
-    <div className="space-y-12">
+    <div className="space-y-6">
 
       {/* Header */}
       <div>
@@ -152,8 +175,7 @@ export default function AidePage() {
       </div>
 
       {/* Modules overview */}
-      <section>
-        <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-4">Fonctionnalités</h2>
+      <CollapsibleSection title="Fonctionnalités" defaultOpen>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {MODULES.map((m) => (
             <div
@@ -176,15 +198,13 @@ export default function AidePage() {
             </div>
           ))}
         </div>
-      </section>
+      </CollapsibleSection>
 
       {/* Matrice des rôles */}
-      <section>
-        <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">Rôles & permissions sur un board</h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          Le créateur d&apos;un board en est propriétaire et peut nommer des <strong>co-propriétaires</strong> (mêmes droits — le créateur reste intouchable).
-          Le lien de partage donne au maximum le rôle Éditeur.
-        </p>
+      <CollapsibleSection
+        title="Rôles & permissions sur un board"
+        subtitle="Propriétaire (et co-propriétaires), Éditeur, Lecteur — le lien de partage donne au maximum le rôle Éditeur."
+      >
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -216,11 +236,10 @@ export default function AidePage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </CollapsibleSection>
 
       {/* Guide complet download */}
-      <section>
-        <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-4">Guide complet</h2>
+      <CollapsibleSection title="Guide complet">
         <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 rounded-xl p-5 flex items-center justify-between gap-4 flex-wrap">
           <div>
             <p className="font-semibold text-indigo-900 dark:text-indigo-300 text-sm">Guide des fonctionnalités — v0.3.0</p>
@@ -237,14 +256,13 @@ export default function AidePage() {
             Télécharger le PDF
           </a>
         </div>
-      </section>
+      </CollapsibleSection>
 
       {/* Test books */}
-      <section>
-        <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">Cahiers de tests</h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          PDFs interactifs — cochez OK/KO et saisissez vos commentaires directement dans le fichier.
-        </p>
+      <CollapsibleSection
+        title="Cahiers de tests"
+        subtitle="PDFs interactifs — cochez OK/KO et saisissez vos commentaires directement dans le fichier."
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {TEST_BOOKS.map((t) => (
             <div
@@ -268,7 +286,7 @@ export default function AidePage() {
             </div>
           ))}
         </div>
-      </section>
+      </CollapsibleSection>
 
     </div>
   )

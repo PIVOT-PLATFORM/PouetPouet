@@ -16,10 +16,15 @@ test('le hub affiche une tuile par module FORGE', async ({ page }) => {
   await page.waitForURL('**/dashboard')
 })
 
-test('la page aide affiche la matrice des rôles', async ({ page }) => {
+test('la page aide affiche la matrice des rôles (section dépliable)', async ({ page }) => {
   await registerUser(page, 'E2E Aide')
   await page.goto('/aide')
-  await expect(page.getByRole('heading', { name: 'Rôles & permissions sur un board' })).toBeVisible()
+  // La section est repliée par défaut : le titre est visible, pas le tableau
+  const heading = page.getByRole('heading', { name: 'Rôles & permissions sur un board' })
+  await expect(heading).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Propriétaire' })).not.toBeVisible()
+  // Dépliage → la matrice apparaît
+  await heading.click()
   await expect(page.getByRole('columnheader', { name: 'Propriétaire' })).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Réinitialiser le board (annulable Ctrl+Z)' })).toBeVisible()
 })
