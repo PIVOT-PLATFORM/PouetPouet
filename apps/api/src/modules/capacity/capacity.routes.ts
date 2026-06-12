@@ -40,6 +40,8 @@ export const capacityRoutes: FastifyPluginAsync = async (app) => {
       include: {
         team: { select: { id: true, name: true, color: true } },
         parent: { select: { id: true, name: true } },
+        // Les cartes de la liste calculent la capacité : membres + absences requis
+        members: { orderBy: { order: 'asc' }, include: { absences: true } },
         _count: { select: { members: true, children: true } },
       },
       orderBy: { startDate: 'desc' },

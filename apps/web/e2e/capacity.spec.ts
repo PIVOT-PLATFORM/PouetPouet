@@ -20,4 +20,9 @@ test('un événement de capacité : création, membre, capacité calculée', asy
   // L'indicateur "Capacité (heures)" doit refléter le membre (valeur ≠ 0)
   const capCard = page.locator('div', { has: page.getByText('Capacité (heures)', { exact: true }) }).last()
   await expect(capCard.locator('p').nth(1)).not.toHaveText('0', { timeout: 10_000 })
+
+  // Retour à la liste : la carte de l'événement calcule aussi la capacité
+  // (régression : la liste arrivait sans members → crash computeEventCapacity)
+  await page.goto('/capacity')
+  await expect(page.getByText(/Sprint E2E/).first()).toBeVisible({ timeout: 5000 })
 })

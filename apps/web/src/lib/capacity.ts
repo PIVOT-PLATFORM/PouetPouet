@@ -186,7 +186,8 @@ export interface EventCapacity {
 
 export function computeEventCapacity(event: CapacityEvent): EventCapacity {
   const totalWorkingDays = countWorkingDays(event.startDate, event.endDate, event.workingDays)
-  const members = [...event.members]
+  // Défensif : un événement issu d'une réponse allégée peut arriver sans membres
+  const members = [...(event.members ?? [])]
     .sort((a, b) => a.order - b.order)
     .map((m) => computeMemberCapacity(m, event))
   const totalNetPersonDays = round2(members.reduce((s, m) => s + m.netPersonDays, 0))
