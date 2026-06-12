@@ -141,7 +141,7 @@ export default function ScrumPage() {
             <span className="text-3xl">🃏</span>
           </div>
           <h2 className="text-lg font-semibold text-gray-900 mb-2">Aucune salle pour l'instant</h2>
-          <p className="text-gray-400 text-sm mb-6">Créez votre première salle de Scrum Poker</p>
+          <p className="text-gray-500 text-sm mb-6">Créez votre première salle de Scrum Poker</p>
           <button
             onClick={() => setShowModal(true)}
             className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"

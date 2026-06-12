@@ -148,8 +148,8 @@ export default function WheelPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Équipe</label>
                 {teams.length === 0 ? (
-                  <p className="text-sm text-gray-400">
-                    Aucune équipe. Créez-en une dans <Link href="/daily" className="text-indigo-600 hover:underline">Mes dailys</Link>.
+                  <p className="text-sm text-gray-500">
+                    Aucune équipe. Créez-en une dans <Link href="/daily" className="text-indigo-700 underline hover:text-indigo-900">Mes dailys</Link>.
                   </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
@@ -256,7 +256,7 @@ export default function WheelPage() {
                         🎲 Aléatoire pur
                       </button>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1.5">
+                    <p className="text-xs text-gray-500 mt-1.5">
                       {drawMode === 'WEIGHTED'
                         ? 'Réduit la probabilité des personnes récemment tirées'
                         : 'Chaque personne a exactement la même probabilité'}
@@ -343,7 +343,7 @@ export default function WheelPage() {
                   ))}
                 </div>
                 {selectedTeam.members.length > 0 && (
-                  <p className="text-xs text-gray-400 mt-2">Cliquez sur un membre pour l'exclure du tirage</p>
+                  <p className="text-xs text-gray-500 mt-2">Cliquez sur un membre pour l'exclure du tirage</p>
                 )}
               </div>
             )}
@@ -355,7 +355,7 @@ export default function WheelPage() {
 
             {events.length === 0 && standaloneDraws.length === 0 ? (
               <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-6 text-center">
-                <p className="text-gray-400 text-sm">Aucun tirage pour l'instant</p>
+                <p className="text-gray-500 text-sm">Aucun tirage pour l'instant</p>
               </div>
             ) : (
               <>

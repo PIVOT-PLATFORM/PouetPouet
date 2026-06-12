@@ -428,7 +428,7 @@ export default function EquipesPage() {
             </div>
             <div className="text-center">
               <p className="font-semibold text-gray-700 dark:text-gray-300">Aucune équipe pour l'instant</p>
-              <p className="text-sm text-gray-400 mt-1">Créez votre première équipe pour l'utiliser dans les dailys et la roue</p>
+              <p className="text-sm text-gray-500 mt-1">Créez votre première équipe pour l'utiliser dans les dailys et la roue</p>
             </div>
             <button
               onClick={openCreate}
