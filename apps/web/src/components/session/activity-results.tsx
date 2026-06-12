@@ -6,19 +6,22 @@ interface Props {
   activity: Activity
   responses: unknown[]
   participantCount: number
-  onClose: () => void
+  // Absent (vue participant) : pas de bouton de fermeture
+  onClose?: () => void
+  // Rapport d'une activité clôturée : libellés adaptés, bouton "Fermer le rapport"
+  reportMode?: boolean
 }
 
-export function ActivityResults({ activity, responses, participantCount, onClose }: Props) {
+export function ActivityResults({ activity, responses, participantCount, onClose, reportMode }: Props) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wide">Activité en cours</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wide">{reportMode ? 'Résultats' : 'Activité en cours'}</p>
           <p className="text-sm font-semibold text-gray-800 mt-0.5">{activity.title}</p>
         </div>
         <span className="text-xs bg-indigo-100 text-indigo-700 rounded-full px-2 py-0.5 font-medium">
-          {responses.length}/{participantCount}
+          {reportMode ? `${responses.length} réponse${responses.length !== 1 ? 's' : ''}` : `${responses.length}/${participantCount}`}
         </span>
       </div>
 
@@ -29,12 +32,14 @@ export function ActivityResults({ activity, responses, participantCount, onClose
         {activity.type === 'BRAINSTORM' && <BrainstormResults responses={responses} />}
       </div>
 
-      <button
-        onClick={onClose}
-        className="w-full rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-600 hover:bg-gray-200 transition-colors"
-      >
-        Terminer l'activité
-      </button>
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="w-full rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-600 hover:bg-gray-200 transition-colors"
+        >
+          {reportMode ? 'Fermer le rapport' : 'Terminer l\'activité'}
+        </button>
+      )}
     </div>
   )
 }

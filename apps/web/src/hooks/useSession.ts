@@ -25,6 +25,8 @@ export function useSession(boardId: string) {
   const [participantCount, setParticipantCount] = useState(0)
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null)
   const [activityResponses, setActivityResponses] = useState<unknown[]>([])
+  // Rapport de la dernière activité clôturée (affiché jusqu'à fermeture/nouvelle activité)
+  const [lastReport, setLastReport] = useState<{ activity: Activity; responses: unknown[] } | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const socketRef = useRef(connectSocket())
   const sessionRef = useRef<Session | null>(null)
@@ -37,8 +39,13 @@ export function useSession(boardId: string) {
     socket.on('activity:launched', (activity: Activity) => {
       setCurrentActivity(activity)
       setActivityResponses([])
+      setLastReport(null)
     })
-    socket.on('activity:closed', () => {
+    socket.on('activity:closed', (payload: { activity?: Activity; responses?: unknown[] } | string) => {
+      // Le serveur joint le rapport final ; on le conserve pour affichage.
+      if (typeof payload === 'object' && payload.activity) {
+        setLastReport({ activity: payload.activity, responses: payload.responses ?? [] })
+      }
       setCurrentActivity(null)
       setActivityResponses([])
     })
@@ -127,6 +134,8 @@ export function useSession(boardId: string) {
     participantCount,
     currentActivity,
     activityResponses,
+    lastReport,
+    clearLastReport: () => setLastReport(null),
     isLoading,
     startSession,
     closeSession,

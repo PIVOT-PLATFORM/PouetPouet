@@ -3,11 +3,12 @@
 import { use, useState } from 'react'
 import Link from 'next/link'
 import { useParticipantSession } from '@/hooks/useParticipantSession'
+import { ActivityResults } from '@/components/session/activity-results'
 import { useAuthStore } from '@/store/auth'
 
 export default function SessionPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params)
-  const { sessionInfo, participantCount, currentActivity, responses, hasResponded, isJoined, error, closedByHost, join, respond } =
+  const { sessionInfo, participantCount, currentActivity, responses, hasResponded, isJoined, error, closedByHost, lastReport, join, respond } =
     useParticipantSession(code)
   const { user } = useAuthStore()
   const [name, setName] = useState('')
@@ -125,15 +126,24 @@ export default function SessionPage({ params }: { params: Promise<{ code: string
 
       {/* Contenu */}
       <main className="flex-1 flex items-center justify-center p-5">
-        {!currentActivity ? (
-          <WaitingScreen boardName={sessionInfo?.board?.name} />
-        ) : (
+        {currentActivity ? (
           <ActivityView
             activity={currentActivity}
             hasResponded={hasResponded}
             responses={responses}
             onRespond={respond}
           />
+        ) : lastReport ? (
+          <div className="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-2xl p-5">
+            <ActivityResults
+              activity={lastReport.activity}
+              responses={lastReport.responses}
+              participantCount={participantCount}
+              reportMode
+            />
+          </div>
+        ) : (
+          <WaitingScreen boardName={sessionInfo?.board?.name} />
         )}
       </main>
     </div>

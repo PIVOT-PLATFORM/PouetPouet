@@ -17,7 +17,8 @@ interface Participant {
 
 interface Activity {
   id: string
-  type: string
+  sessionId: string
+  type: 'POLL' | 'WORDCLOUD' | 'BRAINSTORM' | 'QUIZ'
   title: string
   config: Record<string, unknown>
   status: string
@@ -39,6 +40,8 @@ export function useParticipantSession(code: string) {
   const [isJoined, setIsJoined] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [closedByHost, setClosedByHost] = useState(false)
+  // Rapport de la dernière activité clôturée (résultats montrés aux participants)
+  const [lastReport, setLastReport] = useState<{ activity: Activity; responses: unknown[] } | null>(null)
   const socketRef = useRef(connectSocket())
   // Stored participantId for reconnect — set by auto-rejoin effect, cleared on join.
   const pendingRejoinRef = useRef<string | null>(null)
@@ -81,9 +84,14 @@ export function useParticipantSession(code: string) {
       setCurrentActivity(activity)
       setHasResponded(false)
       setResponses([])
+      setLastReport(null)
     })
 
-    socket.on('activity:closed', () => {
+    socket.on('activity:closed', (payload: { activity?: Activity; responses?: unknown[] } | string) => {
+      // Le serveur joint le rapport final — affiché au participant après clôture.
+      if (typeof payload === 'object' && payload.activity) {
+        setLastReport({ activity: payload.activity, responses: payload.responses ?? [] })
+      }
       setCurrentActivity(null)
       setHasResponded(false)
       setResponses([])
@@ -147,7 +155,7 @@ export function useParticipantSession(code: string) {
 
   return {
     sessionInfo, participantCount, currentActivity, responses,
-    hasResponded, isJoined, error, closedByHost,
+    hasResponded, isJoined, error, closedByHost, lastReport,
     join, respond,
   }
 }

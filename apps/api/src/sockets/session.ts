@@ -129,11 +129,14 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
   })
 
   // ── Fermer une activité ───────────────────────────────────────────────────────
+  // Le rapport final (activité + réponses) part avec l'événement de clôture :
+  // hôte ET participants affichent les résultats au lieu de tout effacer.
   socket.on('activity:close', async (activityId: string) => {
     if (!socket.data.isHost) return socket.emit('error', 'Accès refusé')
-    await prisma.activity.update({ where: { id: activityId }, data: { status: 'CLOSED' } })
+    const activity = await prisma.activity.update({ where: { id: activityId }, data: { status: 'CLOSED' } })
+    const responses = await prisma.activityResponse.findMany({ where: { activityId } })
     const sessionId = socket.data.sessionId as string
-    io.to(`session:${sessionId}`).emit('activity:closed', activityId)
+    io.to(`session:${sessionId}`).emit('activity:closed', { activityId, activity, responses })
   })
 
   // ── Fermer la session (remplace le HTTP PATCH) ────────────────────────────────

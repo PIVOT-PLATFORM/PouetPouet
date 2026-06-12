@@ -10,6 +10,8 @@ interface Props {
   participantCount: number
   currentActivity: Activity | null
   activityResponses: unknown[]
+  lastReport?: { activity: Activity; responses: unknown[] } | null
+  onClearReport?: () => void
   onLaunchActivity: (type: Activity['type'], title: string, config: Record<string, unknown>) => void
   onCloseActivity: () => void
   onCloseSession: () => void
@@ -20,6 +22,8 @@ export function HostPanel({
   participantCount,
   currentActivity,
   activityResponses,
+  lastReport,
+  onClearReport,
   onLaunchActivity,
   onCloseActivity,
   onCloseSession,
@@ -82,6 +86,14 @@ export function HostPanel({
               responses={activityResponses}
               participantCount={participantCount}
               onClose={onCloseActivity}
+            />
+          ) : lastReport ? (
+            <ActivityResults
+              activity={lastReport.activity}
+              responses={lastReport.responses}
+              participantCount={participantCount}
+              reportMode
+              onClose={() => onClearReport?.()}
             />
           ) : (
             <button
