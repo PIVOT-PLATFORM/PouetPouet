@@ -233,8 +233,20 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     return () => clearInterval(id)
   }, [])
 
-  const timerSecondsLeft = timerEndsAt !== null ? Math.max(0, Math.ceil((timerEndsAt - now) / 1000)) : null
-  const timerExpired = timerEndsAt !== null && now >= timerEndsAt
+  // Fermeture LOCALE de l'overlay de fin : chacun ferme chez soi (avant, le
+  // bouton émettait timer:stopped et fermait l'overlay de tout le monde).
+  const [timerDismissed, setTimerDismissed] = useState(false)
+  const timerSecondsLeft = timerEndsAt !== null && !timerDismissed ? Math.max(0, Math.ceil((timerEndsAt - now) / 1000)) : null
+  const timerExpired = timerEndsAt !== null && !timerDismissed && now >= timerEndsAt
+
+  // Un nouveau timer (ou un stop) réarme l'affichage local
+  const lastTimerRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (timerEndsAt !== lastTimerRef.current) {
+      lastTimerRef.current = timerEndsAt
+      setTimerDismissed(false)
+    }
+  }, [timerEndsAt])
 
   const voteTimerEndsAt = activeVoteSession?.timerEndsAt ? new Date(activeVoteSession.timerEndsAt).getTime() : null
   const voteTimerSecondsLeft = voteTimerEndsAt !== null ? Math.max(0, Math.ceil((voteTimerEndsAt - now) / 1000)) : null
@@ -985,7 +997,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         )}
 
         {timerExpired && (
-          <TimerOverlay onDismiss={stopTimer} />
+          <TimerOverlay onDismiss={() => setTimerDismissed(true)} />
         )}
 
         {showVoteEnd && activeVoteSession && (
