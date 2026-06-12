@@ -105,9 +105,9 @@ export function voteSocketHandlers(io: Server, socket: Socket) {
     io.to(`board:${data.boardId}`).emit('vote:updated', updated)
   })
 
-  // Extend the vote timer (OWNER only)
+  // Prolonger le timer d'un vote — aligné sur lancer/clôturer (niveau éditeur).
   socket.on('vote:extend', async (data: { sessionId: string; boardId: string; extraSeconds: number }) => {
-    if (socket.data.boardRoles?.[data.boardId] !== 'OWNER') return
+    if (!canWrite(socket, data.boardId)) return
 
     const existing = await prisma.boardVoteSession.findUnique({ where: { id: data.sessionId } })
     if (!existing || existing.status !== 'ACTIVE' || !existing.timerEndsAt) return

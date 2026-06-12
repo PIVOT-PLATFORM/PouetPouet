@@ -2,6 +2,7 @@
 import { Sentry } from './lib/sentry.js'
 
 import { readFileSync } from 'node:fs'
+import { ZodError } from 'zod'
 import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
@@ -55,6 +56,14 @@ const app = Fastify({
 if (process.env.SENTRY_DSN) {
   Sentry.setupFastifyErrorHandler(app)
 }
+
+// Une payload invalide (ZodError) est une erreur client : 400, pas 500.
+app.setErrorHandler((err, _request, reply) => {
+  if (err instanceof ZodError) {
+    return reply.status(400).send({ error: 'Requête invalide', details: err.issues })
+  }
+  throw err
+})
 
 // Rate-limit actif uniquement en prod (pas de faux positifs en dev/test)
 if (process.env.NODE_ENV === 'production') {

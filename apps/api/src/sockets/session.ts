@@ -21,7 +21,16 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
       select: { boardId: true, code: true, board: { select: { ownerId: true } } },
     })
     if (!session) return
-    if (session.board.ownerId !== userId) return socket.emit('error', 'Accès refusé')
+    // Hôte = propriétaire/co-propriétaire OU éditeur du board (matrice des rôles)
+    let canHost = session.board.ownerId === userId
+    if (!canHost && userId) {
+      const share = await prisma.boardShare.findUnique({
+        where: { boardId_userId: { boardId: session.boardId, userId } },
+        select: { role: true },
+      })
+      canHost = share?.role === 'OWNER' || share?.role === 'EDITOR'
+    }
+    if (!canHost) return socket.emit('error', 'Accès refusé')
 
     await socket.join(`session:${sessionId}`)
     socket.data.isHost = true

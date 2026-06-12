@@ -600,6 +600,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a8 8 0 00-8 8v2M21 10l-6-6M21 10l-6 6" />
                 </svg>
               </button>
+              {userRole === 'OWNER' && (
               <button
                 onClick={handleResetClick}
                 title={confirmReset ? 'Cliquer pour confirmer la réinitialisation' : 'Réinitialiser le board'}
@@ -613,6 +614,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
+              )}
             </div>
           </>
         )}
@@ -642,7 +644,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             >
               Résultats
             </button>
-            {userRole === 'OWNER' && voteTimerSecondsLeft !== null && (
+            {!isReadonly && voteTimerSecondsLeft !== null && (
               <div className="flex items-center gap-0.5">
                 {[1, 2, 5].map((min) => (
                   <button

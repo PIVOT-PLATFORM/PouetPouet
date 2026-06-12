@@ -12,7 +12,7 @@ interface ShareUser {
 
 interface ShareEntry {
   id: string
-  role: 'VIEWER' | 'EDITOR'
+  role: 'VIEWER' | 'EDITOR' | 'OWNER'
   user: ShareUser
 }
 
@@ -31,7 +31,7 @@ export function ShareModal({ boardId, onClose }: Props) {
   const [info, setInfo] = useState<ShareInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState<'VIEWER' | 'EDITOR'>('VIEWER')
+  const [inviteRole, setInviteRole] = useState<'VIEWER' | 'EDITOR' | 'OWNER'>('VIEWER')
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [inviting, setInviting] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -102,7 +102,7 @@ export function ShareModal({ boardId, onClose }: Props) {
     }
   }
 
-  async function handleChangeRole(shareId: string, role: 'VIEWER' | 'EDITOR') {
+  async function handleChangeRole(shareId: string, role: 'VIEWER' | 'EDITOR' | 'OWNER') {
     const share = await api.patch<ShareEntry>(`/api/boards/${boardId}/shares/${shareId}`, { role })
     setInfo((prev) => prev ? { ...prev, shares: prev.shares.map((s) => s.id === shareId ? share : s) } : prev)
   }
@@ -200,11 +200,12 @@ export function ShareModal({ boardId, onClose }: Props) {
                 />
                 <select
                   value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as 'VIEWER' | 'EDITOR')}
+                  onChange={(e) => setInviteRole(e.target.value as 'VIEWER' | 'EDITOR' | 'OWNER')}
                   className="text-sm border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-400"
                 >
                   <option value="VIEWER">Lecture</option>
                   <option value="EDITOR">Édition</option>
+                  <option value="OWNER">Propriétaire</option>
                 </select>
                 <button
                   type="submit"
@@ -242,11 +243,12 @@ export function ShareModal({ boardId, onClose }: Props) {
                       </div>
                       <select
                         value={share.role}
-                        onChange={(e) => handleChangeRole(share.id, e.target.value as 'VIEWER' | 'EDITOR')}
+                        onChange={(e) => handleChangeRole(share.id, e.target.value as 'VIEWER' | 'EDITOR' | 'OWNER')}
                         className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-400"
                       >
                         <option value="VIEWER">Lecture</option>
                         <option value="EDITOR">Édition</option>
+                        <option value="OWNER">Propriétaire</option>
                       </select>
                       <button
                         onClick={() => handleRevoke(share.id)}

@@ -345,6 +345,7 @@ model AuditLog {
 enum BoardRole {
   VIEWER
   EDITOR
+  OWNER // co-propriétaire via partage ; Board.ownerId reste le créateur (non rétrogradable)
 }
 
 enum CardType {

@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance, type FastifyPluginAsync, type FastifyRequest, type FastifyReply } from 'fastify'
 import jwt from '@fastify/jwt'
+import { ZodError } from 'zod'
 import { prisma } from '../lib/prisma.js'
 
 // Minimal Fastify instance mirroring the auth setup of index.ts, for
@@ -8,6 +9,13 @@ export async function buildTestApp(
   routes: { plugin: FastifyPluginAsync; prefix: string }[],
 ): Promise<FastifyInstance> {
   const app = Fastify({ logger: false })
+  // Miroir de index.ts : une payload invalide répond 400, pas 500
+  app.setErrorHandler((err, _request, reply) => {
+    if (err instanceof ZodError) {
+      return reply.status(400).send({ error: 'Requête invalide', details: err.issues })
+    }
+    throw err
+  })
   await app.register(jwt, { secret: 'integration-test-secret', sign: { expiresIn: '30m' } })
   app.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
     try {

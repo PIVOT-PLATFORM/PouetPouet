@@ -109,7 +109,7 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
         where: { boardId_userId: { boardId, userId } },
         select: { role: true },
       })
-      if (share) role = share.role as 'EDITOR' | 'VIEWER'
+      if (share) role = share.role as 'OWNER' | 'EDITOR' | 'VIEWER'
     }
 
     if (!role) { socket.emit('board:error', 'AccÃ¨s refusÃ©'); return }
@@ -336,8 +336,9 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
 
   // Reset atomique : une transaction serveur au lieu d'un déluge d'événements
   // de suppression unitaires côté client (pertes possibles, état partiel).
+  // Action la plus destructive du board → propriétaires uniquement.
   socket.on('board:reset', async (data: { boardId: string }) => {
-    if (!canWrite(socket, data.boardId)) return
+    if (socket.data.boardRoles?.[data.boardId] !== 'OWNER') return
     await prisma.$transaction([
       prisma.cardConnection.deleteMany({ where: { boardId: data.boardId } }),
       prisma.card.deleteMany({ where: { boardId: data.boardId } }),

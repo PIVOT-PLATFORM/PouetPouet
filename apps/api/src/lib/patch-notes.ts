@@ -20,6 +20,30 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.9.0',
+    date: '2026-06-12',
+    title: 'Co-propriétaires & matrice des rôles',
+    summary: 'Nommez des co-propriétaires sur vos boards. Les rôles Propriétaire / Éditeur / Lecteur sont clarifiés, appliqués partout, et documentés visuellement dans l\'aide.',
+    sections: [
+      {
+        heading: '✨ Nouveautés',
+        items: [
+          'Co-propriétaires : invitez quelqu\'un en "Propriétaire" — il obtient les mêmes droits que vous (gestion des partages, paramètres, suppression). Le créateur du board reste intouchable.',
+          'Matrice des rôles : la page Aide affiche désormais le tableau complet des permissions par rôle.',
+        ],
+      },
+      {
+        heading: '🛡️ Clarification des rôles',
+        items: [
+          'Réinitialiser un board est désormais réservé aux propriétaires.',
+          'Les éditeurs peuvent prolonger un vote (en plus de le lancer et le clôturer).',
+          'Les éditeurs peuvent démarrer, animer et fermer une session live.',
+          'Le lien de partage donne au maximum le rôle Éditeur — jamais la propriété.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.8.0',
     date: '2026-06-12',
     title: 'Collaboration board — retours de recette',

@@ -10,13 +10,24 @@ function generateCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
+// Animer une session est ouvert aux éditeurs (matrice des rôles) :
+// propriétaire/co-propriétaire OU partage EDITOR.
+async function canHostSession(boardId: string, ownerId: string, userId: string): Promise<boolean> {
+  if (ownerId === userId) return true
+  const share = await prisma.boardShare.findUnique({
+    where: { boardId_userId: { boardId, userId } },
+    select: { role: true },
+  })
+  return share?.role === 'OWNER' || share?.role === 'EDITOR'
+}
+
 export const sessionRoutes: FastifyPluginAsync = async (app) => {
   app.post('/', { preHandler: [app.authenticate] }, async (request, reply) => {
     const body = createSessionSchema.parse(request.body)
     const userId = (request.user as { id: string }).id
     const board = await prisma.board.findUnique({ where: { id: body.boardId }, select: { ownerId: true } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (!(await canHostSession(body.boardId, board.ownerId, userId))) return reply.status(403).send({ error: 'Accès refusé' })
     let code = generateCode()
     while (await prisma.session.findUnique({ where: { code } })) {
       code = generateCode()
@@ -43,7 +54,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     const userId = (request.user as { id: string }).id
     const existing = await prisma.session.findUnique({ where: { id }, include: { board: { select: { ownerId: true } } } })
     if (!existing) return reply.status(404).send({ error: 'Session introuvable' })
-    if (existing.board.ownerId !== userId) return reply.status(403).send({ error: 'Accès refusé' })
+    if (!(await canHostSession(existing.boardId, existing.board.ownerId, userId))) return reply.status(403).send({ error: 'Accès refusé' })
     const session = await prisma.session.update({
       where: { id },
       data: { status: 'CLOSED', closedAt: new Date() },
