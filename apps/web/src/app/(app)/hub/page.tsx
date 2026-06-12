@@ -75,10 +75,24 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 }
 
+// Modules annoncés, affichage seul (pas encore cliquables)
+const UPCOMING_MODULES: { icon: string; name: string }[] = [
+  { icon: '🗺️', name: 'Roadmap' },
+  { icon: '🤝', name: 'MeetOps' },
+  { icon: '📋', name: 'Mes PIP' },
+  { icon: '🧪', name: 'Création de cahiers de tests' },
+  { icon: '📄', name: 'Mes PDF' },
+  { icon: '📦', name: 'Mes poses (PV de pose & label)' },
+  { icon: '🔑', name: 'Demande d\'accès serveur' },
+  { icon: '🧭', name: 'Mes FDR' },
+  { icon: '✍️', name: 'SignDoc' },
+]
+
 export default function HubPage() {
   const { user, toggleModuleFavorite } = useAuthStore()
   const [stats, setStats] = useState<HubStats | null>(null)
   const [recent, setRecent] = useState<RecentActivity | null>(null)
+  const [showAllRecents, setShowAllRecents] = useState(false)
 
   useEffect(() => {
     api.get<HubStats>('/api/hub/stats').then(setStats).catch(() => {})
@@ -93,9 +107,36 @@ export default function HubPage() {
     return aFav - bFav
   })
 
-  const hasRecent =
-    recent &&
-    (recent.boards.length > 0 || recent.dailySessions.length > 0 || recent.scrumRooms.length > 0 || recent.wheelDraws.length > 0)
+  // Tous les éléments récents à plat, triés du plus frais au plus ancien.
+  const recentItems = recent
+    ? [
+        ...recent.boards.map((b) => ({
+          key: `b-${b.id}`, href: `/dashboard/${b.id}`, icon: '🧀', title: b.name,
+          sub: timeAgo(b.updatedAt) as React.ReactNode, at: b.updatedAt,
+        })),
+        ...recent.dailySessions.map((d) => ({
+          key: `d-${d.id}`, href: '/daily', icon: '☀️', title: d.name,
+          sub: (d.status === 'RUNNING'
+            ? <span className="text-green-500">En cours</span>
+            : timeAgo(d.endedAt ?? d.updatedAt)) as React.ReactNode,
+          at: d.endedAt ?? d.updatedAt,
+        })),
+        ...recent.scrumRooms.map((r) => ({
+          key: `s-${r.id}`, href: `/scrum/${r.code}`, icon: '🃏', title: r.name,
+          sub: `${r._count.tickets} ticket${r._count.tickets !== 1 ? 's' : ''}${r.team ? ` · ${r.team.name}` : ''} · ${timeAgo(r.updatedAt)}` as React.ReactNode,
+          at: r.updatedAt,
+        })),
+        ...recent.wheelDraws.map((w) => ({
+          key: `w-${w.id}`, href: '/wheel', icon: '🎡', title: w.teamName ?? 'Tirage',
+          sub: `${w.results.slice(0, 2).join(', ')}${w.results.length > 2 ? '…' : ''} · ${timeAgo(w.createdAt)}` as React.ReactNode,
+          at: w.createdAt,
+        })),
+      ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    : []
+
+  // Une seule ligne par défaut (4 colonnes en desktop)
+  const visibleRecents = showAllRecents ? recentItems : recentItems.slice(0, 4)
+  const hasRecent = recentItems.length > 0
 
   return (
     <div className="flex flex-col gap-8">
@@ -126,81 +167,35 @@ export default function HubPage() {
         </div>
       )}
 
-      {/* Recent activity */}
+      {/* Recent activity — une ligne par défaut, extensible */}
       {hasRecent && (
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-            Récent
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              Récent
+            </h2>
+            {recentItems.length > 4 && (
+              <button
+                onClick={() => setShowAllRecents((v) => !v)}
+                className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors"
+              >
+                {showAllRecents ? 'Réduire' : `Tout afficher (${recentItems.length})`}
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {recent!.boards.map((b) => (
+            {visibleRecents.map((item) => (
               <Link
-                key={b.id}
-                href={`/dashboard/${b.id}`}
+                key={item.key}
+                href={item.href}
                 className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm transition-all"
               >
-                <span className="text-lg shrink-0">🧀</span>
+                <span className="text-lg shrink-0">{item.icon}</span>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                    {b.name}
+                    {item.title}
                   </p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500">{timeAgo(b.updatedAt)}</p>
-                </div>
-              </Link>
-            ))}
-            {recent!.dailySessions.map((d) => (
-              <Link
-                key={d.id}
-                href="/daily"
-                className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm transition-all"
-              >
-                <span className="text-lg shrink-0">☀️</span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                    {d.name}
-                  </p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                    {d.status === 'RUNNING' ? (
-                      <span className="text-green-500">En cours</span>
-                    ) : (
-                      timeAgo(d.endedAt ?? d.updatedAt)
-                    )}
-                  </p>
-                </div>
-              </Link>
-            ))}
-            {recent!.scrumRooms.map((r) => (
-              <Link
-                key={r.id}
-                href={`/scrum/${r.code}`}
-                className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm transition-all"
-              >
-                <span className="text-lg shrink-0">🃏</span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                    {r.name}
-                  </p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                    {r._count.tickets} ticket{r._count.tickets !== 1 ? 's' : ''}
-                    {r.team ? ` · ${r.team.name}` : ''} · {timeAgo(r.updatedAt)}
-                  </p>
-                </div>
-              </Link>
-            ))}
-            {recent!.wheelDraws.map((w) => (
-              <Link
-                key={w.id}
-                href="/wheel"
-                className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm transition-all"
-              >
-                <span className="text-lg shrink-0">🎡</span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                    {w.teamName ?? 'Tirage'}
-                  </p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                    {w.results.slice(0, 2).join(', ')}{w.results.length > 2 ? '…' : ''} · {timeAgo(w.createdAt)}
-                  </p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{item.sub}</p>
                 </div>
               </Link>
             ))}
@@ -266,6 +261,28 @@ export default function HubPage() {
               </div>
             )
           })}
+        </div>
+      </div>
+
+      {/* Modules à venir — affichage seul, non cliquables */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+          Modules à venir
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {UPCOMING_MODULES.map((m) => (
+            <div
+              key={m.name}
+              aria-disabled="true"
+              className="flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/40 px-4 py-3.5 select-none"
+            >
+              <span className="text-xl opacity-60">{m.icon}</span>
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-500 truncate">{m.name}</span>
+              <span className="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-full px-2 py-0.5">
+                À venir
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

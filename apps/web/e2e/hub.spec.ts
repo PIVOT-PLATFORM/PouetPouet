@@ -10,6 +10,11 @@ test('le hub affiche une tuile par module FORGE', async ({ page }) => {
     await expect(page.getByRole('heading', { name })).toBeVisible()
   }
 
+  // Modules à venir : affichés mais non cliquables
+  await expect(page.getByRole('heading', { name: 'Modules à venir' })).toBeVisible()
+  await expect(page.getByText('SignDoc')).toBeVisible()
+  await expect(page.getByRole('link', { name: /SignDoc/ })).toHaveCount(0)
+
   // La tuile PouetPouet mène au dashboard (scope main : le logo du header
   // porte aussi le nom accessible "PouetPouet")
   await page.locator('main').getByRole('link', { name: 'PouetPouet' }).click()
