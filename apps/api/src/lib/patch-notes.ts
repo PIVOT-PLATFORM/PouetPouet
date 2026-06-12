@@ -20,6 +20,20 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.9.1',
+    date: '2026-06-12',
+    title: 'Aide plus lisible',
+    summary: 'Les sections de la page Aide sont désormais dépliables — la page reste compacte.',
+    sections: [
+      {
+        heading: '✨ Améliorations',
+        items: [
+          'Page Aide : sections dépliables (Fonctionnalités ouverte par défaut, le reste replié) — navigation clavier et lecteurs d\'écran pris en charge.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.9.0',
     date: '2026-06-12',
     title: 'Co-propriétaires & matrice des rôles',
