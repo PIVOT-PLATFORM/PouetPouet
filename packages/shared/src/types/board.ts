@@ -1,7 +1,7 @@
 export type CardType = 'TEXT' | 'IMAGE' | 'LINK'
 
 // Garde structurelle : au-delà, les cadres nuisent à la lisibilité du board.
-export const MAX_FRAMES_PER_BOARD = 20
+export const MAX_FRAMES_PER_BOARD = 2
 
 export interface Card {
   id: string
