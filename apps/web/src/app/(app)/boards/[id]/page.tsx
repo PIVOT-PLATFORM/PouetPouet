@@ -59,7 +59,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     emitCursor,
   } = useBoard(id)
   const {
-    session, participantCount, currentActivity, activityResponses, isLoading: sessionLoading,
+    session, participantCount, currentActivity, activityResponses, lastReport, clearLastReport, isLoading: sessionLoading,
     startSession, closeSession, launchActivity, closeActivity,
   } = useSession(id)
 
@@ -922,6 +922,8 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             participantCount={participantCount}
             currentActivity={currentActivity}
             activityResponses={activityResponses}
+            lastReport={lastReport}
+            onClearReport={clearLastReport}
             onLaunchActivity={launchActivity}
             onCloseActivity={closeActivity}
             onCloseSession={closeSession}
