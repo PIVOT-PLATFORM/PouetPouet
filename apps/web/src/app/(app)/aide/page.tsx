@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import Link from 'next/link'
 
 const MODULES = [
@@ -83,6 +84,51 @@ const MODULES = [
   },
 ]
 
+// Matrice des rôles sur un board (source de vérité : MATRICE-ROLES.md / gardes serveur)
+type RoleAccess = 'yes' | 'no' | 'vote' // 'vote' = ✅ si désigné votant
+const ROLE_MATRIX: { group: string; rows: { action: string; owner: RoleAccess; editor: RoleAccess; viewer: RoleAccess }[] }[] = [
+  {
+    group: 'Consultation',
+    rows: [
+      { action: 'Voir le board, les curseurs, les résultats de votes', owner: 'yes', editor: 'yes', viewer: 'yes' },
+      { action: 'Exporter le board, le mettre en favori', owner: 'yes', editor: 'yes', viewer: 'yes' },
+    ],
+  },
+  {
+    group: 'Contenu',
+    rows: [
+      { action: 'Créer, modifier, déplacer, supprimer des cartes', owner: 'yes', editor: 'yes', viewer: 'no' },
+      { action: 'Dessins, formes, connexions, cadres (max 2), champs', owner: 'yes', editor: 'yes', viewer: 'no' },
+      { action: 'Importer un board Klaxoon', owner: 'yes', editor: 'yes', viewer: 'no' },
+      { action: 'Réinitialiser le board (annulable Ctrl+Z)', owner: 'yes', editor: 'no', viewer: 'no' },
+    ],
+  },
+  {
+    group: 'Animation',
+    rows: [
+      { action: 'Lancer, clôturer, prolonger un vote', owner: 'yes', editor: 'yes', viewer: 'no' },
+      { action: 'Voter', owner: 'vote', editor: 'vote', viewer: 'vote' },
+      { action: 'Démarrer / arrêter le timer', owner: 'yes', editor: 'yes', viewer: 'no' },
+      { action: 'Démarrer, animer et fermer une session live', owner: 'yes', editor: 'yes', viewer: 'no' },
+    ],
+  },
+  {
+    group: 'Administration',
+    rows: [
+      { action: 'Renommer le board, changer les paramètres', owner: 'yes', editor: 'no', viewer: 'no' },
+      { action: 'Gérer le lien de partage (rôle max : Éditeur)', owner: 'yes', editor: 'no', viewer: 'no' },
+      { action: 'Inviter des membres, changer les rôles, nommer des co-propriétaires', owner: 'yes', editor: 'no', viewer: 'no' },
+      { action: 'Supprimer le board', owner: 'yes', editor: 'no', viewer: 'no' },
+    ],
+  },
+]
+
+function AccessCell({ value }: { value: RoleAccess }) {
+  if (value === 'yes') return <span className="text-emerald-500" aria-label="Autorisé">✓</span>
+  if (value === 'vote') return <span className="text-amber-700 dark:text-amber-400 text-[10px] font-medium whitespace-nowrap" aria-label="Si désigné votant">si votant</span>
+  return <span className="text-gray-300 dark:text-gray-600" aria-label="Non autorisé">—</span>
+}
+
 const TEST_BOOKS = [
   { module: 'Dashboard',       file: 'CT-v0.3.0-dashboard.pdf', tests: 27, pages: 2 },
   { module: 'Boards éditeur',  file: 'CT-v0.3.0-boards.pdf',    tests: 61, pages: 4 },
@@ -132,6 +178,46 @@ export default function AidePage() {
         </div>
       </section>
 
+      {/* Matrice des rôles */}
+      <section>
+        <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">Rôles & permissions sur un board</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          Le créateur d&apos;un board en est propriétaire et peut nommer des <strong>co-propriétaires</strong> (mêmes droits — le créateur reste intouchable).
+          Le lien de partage donne au maximum le rôle Éditeur.
+        </p>
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+                <th className="text-left font-semibold text-gray-700 dark:text-gray-300 px-4 py-2.5">Action</th>
+                <th className="text-center font-semibold text-gray-700 dark:text-gray-300 px-3 py-2.5 w-28">Propriétaire</th>
+                <th className="text-center font-semibold text-gray-700 dark:text-gray-300 px-3 py-2.5 w-24">Éditeur</th>
+                <th className="text-center font-semibold text-gray-700 dark:text-gray-300 px-3 py-2.5 w-24">Lecteur</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ROLE_MATRIX.map((section) => (
+                <React.Fragment key={section.group}>
+                  <tr className="bg-gray-50/60 dark:bg-gray-800/30">
+                    <td colSpan={4} className="px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      {section.group}
+                    </td>
+                  </tr>
+                  {section.rows.map((row) => (
+                    <tr key={row.action} className="border-t border-gray-100 dark:border-gray-800/60">
+                      <td className="px-4 py-2 text-xs text-gray-700 dark:text-gray-300">{row.action}</td>
+                      <td className="text-center px-3 py-2"><AccessCell value={row.owner} /></td>
+                      <td className="text-center px-3 py-2"><AccessCell value={row.editor} /></td>
+                      <td className="text-center px-3 py-2"><AccessCell value={row.viewer} /></td>
+                    </tr>
+                  ))}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {/* Guide complet download */}
       <section>
         <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-4">Guide complet</h2>
@@ -167,7 +253,7 @@ export default function AidePage() {
             >
               <div>
                 <p className="font-semibold text-gray-900 dark:text-white text-sm">{t.module}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
                   {t.tests} tests · {t.pages} page{t.pages > 1 ? 's' : ''}
                 </p>
               </div>
