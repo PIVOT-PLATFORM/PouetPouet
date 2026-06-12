@@ -2,6 +2,7 @@
 
 import { use, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { MAX_FRAMES_PER_BOARD } from '@pouetpouet/shared'
 import { useBoard } from '@/hooks/useBoard'
 import type { Card, ClipboardCard } from '@/hooks/useBoard'
 import { useSession } from '@/hooks/useSession'
@@ -1016,6 +1017,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             minTop={templateDraftOf ? 170 : 120}
             onToolChange={handleToolChange}
             onAddFrame={() => addFrame(200, 200)}
+            frameLimitReached={frames.length >= MAX_FRAMES_PER_BOARD}
           />
         )}
 

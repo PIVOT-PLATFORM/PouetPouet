@@ -1,5 +1,6 @@
 ﻿import { randomUUID } from 'crypto'
 import type { Server, Socket } from 'socket.io'
+import { MAX_FRAMES_PER_BOARD } from '@pouetpouet/shared'
 import { prisma } from '../../lib/prisma.js'
 import { redis } from '../../lib/redis.js'
 
@@ -289,6 +290,9 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
   // â”€â”€ Frames â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   socket.on('frame:create', async (data: { boardId: string; posX: number; posY: number; title?: string; color?: string; width?: number; height?: number }) => {
     if (!canWrite(socket, data.boardId)) return
+    // Limite par board — le bouton est désactivé côté client, ceci est la garde dure.
+    const count = await prisma.frame.count({ where: { boardId: data.boardId } })
+    if (count >= MAX_FRAMES_PER_BOARD) return
     const frame = await prisma.frame.create({ data })
     io.to(`board:${data.boardId}`).emit('frame:created', frame)
   })
