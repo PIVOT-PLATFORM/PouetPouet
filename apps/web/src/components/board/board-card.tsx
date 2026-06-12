@@ -37,6 +37,9 @@ interface Props {
   linkCardsMode?: boolean
   isLinkSource?: boolean
   onLinkCardsClick?: (cardId: string, additive: boolean) => void
+  // One-shot : true uniquement pour la carte que CE client vient de créer
+  // (sinon une création distante volerait le focus de l'utilisateur en train d'écrire).
+  consumeAutoEdit?: (cardId: string) => boolean
 }
 
 // Memoized: on large boards every card re-rendering on each drag frame is the
@@ -47,7 +50,7 @@ export const BoardCard = memo(function BoardCard({
   onMove, onStartDrag, onCommitDrag, onUpdate, onRecolor, onDelete,
   onResize, onResizeBox, onStartResize, onCommitResize,
   onSelect, onOpenDetail, onStartConnect, onSetLocked,
-  linkCardsMode, isLinkSource, onLinkCardsClick,
+  linkCardsMode, isLinkSource, onLinkCardsClick, consumeAutoEdit,
 }: Props) {
   const isLabel = card.type === 'LABEL'
   const isText = card.type === 'TEXT'
@@ -55,7 +58,9 @@ export const BoardCard = memo(function BoardCard({
   // Initial text, unwrapped from any formatting JSON (TEXT and LABEL store rich text as JSON).
   const initialText = isLabel ? parseLabelFmt(card.content).text : isText ? parseTextFmt(card.content).text : card.content
 
-  const [isEditing, setIsEditing] = useState(initialText === '' && (isText || isLabel))
+  const [isEditing, setIsEditing] = useState(
+    () => initialText === '' && (isText || isLabel) && (consumeAutoEdit?.(card.id) ?? false),
+  )
   const [content, setContent] = useState(initialText)
   const [labelFmt, setLabelFmt] = useState<Omit<LabelFmt, 'text'>>(() => {
     if (!isLabel) return { size: 16, bold: false, italic: false, underline: false, strike: false, color: '#374151' }

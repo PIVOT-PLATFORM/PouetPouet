@@ -166,10 +166,13 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
   })
 
   // â”€â”€ Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  socket.on('card:create', async (data: { boardId: string; content: string; posX: number; posY: number; color?: string; type?: string; width?: number; height?: number; layer?: number }) => {
+  socket.on('card:create', async (data: { boardId: string; content: string; posX: number; posY: number; color?: string; type?: string; width?: number; height?: number; layer?: number; clientTag?: string }) => {
     if (!canWrite(socket, data.boardId)) return
-    const card = await prisma.card.create({ data: data as never, include: { fieldValues: true } })
-    io.to(`board:${data.boardId}`).emit('card:created', card)
+    // clientTag : écho non persisté — permet au créateur (et lui seul) de
+    // reconnaître sa carte dans le broadcast pour l'ouvrir en édition.
+    const { clientTag, ...cardData } = data
+    const card = await prisma.card.create({ data: cardData as never, include: { fieldValues: true } })
+    io.to(`board:${data.boardId}`).emit('card:created', clientTag ? { ...card, clientTag } : card)
   })
 
   socket.on('card:move', async (data: { id: string; boardId: string; posX: number; posY: number }) => {

@@ -60,6 +60,7 @@ interface Props {
   onCastVote?: (cardId: string) => void
   onUncastVote?: (cardId: string) => void
   onSetCardLocked?: (id: string, locked: boolean) => void
+  consumeAutoEdit?: (cardId: string) => boolean
   onSetFrameLayer?: (id: string, layer: number) => void
   boardName?: string
   highlightedGroupId?: string | null
@@ -110,7 +111,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   onResizeFrameBox, onStartResizeFrame, onCommitResizeFrame,
   onUpdateFrame, onSetFrameActive, onDeleteFrame,
   onSetFieldValue, onClearFieldValue, onExitLinkCardsMode, onPasteCards,
-  voteSession, voteCanVote = true, currentUserId, onCastVote, onUncastVote, onSetCardLocked,
+  voteSession, voteCanVote = true, currentUserId, onCastVote, onUncastVote, onSetCardLocked, consumeAutoEdit,
   onSetFrameLayer,
   boardName, highlightedGroupId,
   cursors, onCursorMove,
@@ -899,6 +900,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
             linkCardsMode={toolMode === 'link-cards'}
             isLinkSource={linkSourceId === card.id}
             onLinkCardsClick={toolMode === 'link-cards' ? hLinkCardsClick : undefined}
+            consumeAutoEdit={consumeAutoEdit}
           />
         </div>
       )

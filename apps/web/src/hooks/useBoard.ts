@@ -67,6 +67,10 @@ export function useBoard(boardId: string) {
   const undoStackRef = useRef<HistoryEntry[]>([])
   const redoStackRef = useRef<HistoryEntry[]>([])
   const [, setHistoryVersion] = useState(0)
+  // Tags des créations locales en attente : seule la carte créée par CE client
+  // s'ouvre en édition au montage (sinon une création distante vole le focus).
+  const pendingLocalTagsRef = useRef<Set<string>>(new Set())
+  const autoEditCardIdRef = useRef<string | null>(null)
   // Queues for async server-assigned IDs (card:created / frame:created)
   const pendingCardHistoryRef = useRef<Array<(card: Card) => void>>([])
   const pendingConnHistoryRef = useRef<Array<(conn: Connection) => void>>([])
@@ -213,7 +217,11 @@ export function useBoard(boardId: string) {
     })
 
     // Cards — process pending history callback before updating state
-    socket.on('card:created', (card) => {
+    socket.on('card:created', (payload) => {
+      const { clientTag, ...card } = payload as Card & { clientTag?: string }
+      if (clientTag && pendingLocalTagsRef.current.delete(clientTag)) {
+        autoEditCardIdRef.current = card.id
+      }
       const cb = pendingCardHistoryRef.current.shift()
       cb?.(card as Card)
       setCards((prev) => [...prev, { ...(card as Card), fieldValues: [] }])
@@ -328,8 +336,22 @@ export function useBoard(boardId: string) {
       })
     })
 
-    socketRef.current.emit('card:create', emitParams)
+    // Tag local : la carte s'ouvrira en édition uniquement chez son créateur
+    // (le redo réutilise emitParams sans tag — pas de ré-édition au redo).
+    const clientTag = crypto.randomUUID()
+    pendingLocalTagsRef.current.add(clientTag)
+    socketRef.current.emit('card:create', { ...emitParams, clientTag })
   }
+
+  // Consommation one-shot par BoardCard à son montage : true une seule fois
+  // pour la carte fraîchement créée localement.
+  const consumeAutoEdit = useCallback((cardId: string) => {
+    if (autoEditCardIdRef.current === cardId) {
+      autoEditCardIdRef.current = null
+      return true
+    }
+    return false
+  }, [])
 
   // Flushes the coalesced card:move emits (one socket message per moving card).
   function flushMoveEmits() {
@@ -1183,7 +1205,7 @@ export function useBoard(boardId: string) {
     setCardLayer, setFrameLayer, setLayerSelected,
     moveSelectedBy, arrangeSelected,
     updateBoardInfo,
-    addCard, moveCard, resizeCard, resizeCardBox, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
+    addCard, consumeAutoEdit, moveCard, resizeCard, resizeCardBox, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
     groupSelected, ungroupById, recolorGroup,
     addConnection, deleteConnection, updateConnection,
