@@ -43,3 +43,15 @@ test('accessibilité : pages applicatives', async ({ page }) => {
   await page.goto('/profile')
   await checkA11y(page, '/profile')
 })
+
+test('accessibilité : pages modules', async ({ page }) => {
+  await registerUser(page, 'E2E A11y Mod')
+  await page.goto('/equipes')
+  await checkA11y(page, '/equipes')
+  await page.goto('/scrum')
+  await checkA11y(page, '/scrum')
+  await page.goto('/wheel')
+  await checkA11y(page, '/wheel')
+  await page.goto('/capacity')
+  await checkA11y(page, '/capacity')
+})

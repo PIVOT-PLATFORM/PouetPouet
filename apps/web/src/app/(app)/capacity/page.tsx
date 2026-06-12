@@ -407,7 +407,7 @@ export default function CapacityPage() {
             <div className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-12 text-center">
               <span className="text-4xl block mb-3">🧮</span>
               <p className="text-gray-500 dark:text-gray-400 font-medium">Aucun événement</p>
-              <p className="text-gray-400 text-sm mt-1">Créez un PI Planning ou un sprint pour calculer la capacité.</p>
+              <p className="text-gray-500 text-sm mt-1">Créez un PI Planning ou un sprint pour calculer la capacité.</p>
             </div>
           ) : filtered.length === 0 ? (
             <p className="text-gray-400 text-sm py-8 text-center">Aucun événement ne correspond à « {search} ».</p>
@@ -436,7 +436,7 @@ export default function CapacityPage() {
             <div className="flex flex-col gap-2">{[1, 2].map((i) => <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />)}</div>
           ) : teams.length === 0 ? (
             <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-6 text-center">
-              <p className="text-gray-400 text-sm">Créez une équipe avec ses membres et leurs FTE pour la réutiliser.</p>
+              <p className="text-gray-500 text-sm">Créez une équipe avec ses membres et leurs FTE pour la réutiliser.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
