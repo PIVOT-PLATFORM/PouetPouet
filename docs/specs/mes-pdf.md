@@ -1,6 +1,6 @@
 # Spec — Mes PDF
 
-> Version : 0.1 — Statut : Brouillon — Dernière mise à jour : 2026-06-13
+> Version : 0.2 — Statut : Brouillon — Dernière mise à jour : 2026-06-13
 
 ---
 
@@ -83,6 +83,84 @@ Collection (dossier logique)
 - Champs personnalisés par collection (ex : "Numéro de contrat", "Référence client") — définis par l'administrateur de l'espace
 - Extraction automatique des métadonnées PDF (auteur, date de création, nombre de pages)
 
+### 3.7 Manipulation PDF
+
+Toutes les opérations de manipulation produisent un **nouveau document** dans la bibliothèque (le document source n'est jamais modifié). Le résultat peut être sauvegardé dans la collection de son choix ou téléchargé directement.
+
+#### 3.7.1 Fusion (Merge)
+
+- Sélectionner plusieurs PDF dans la bibliothèque
+- Définir l'ordre par glisser-déposer
+- Choisir un nom pour le PDF résultant
+- Option : insérer une page de couverture vierge entre chaque document source
+
+#### 3.7.2 Découpe (Split)
+
+| Mode | Description |
+|---|---|
+| **Par page** | Extraire une ou plusieurs pages en un nouveau document |
+| **Par plage** | Ex : pages 1-5 → doc A, pages 6-10 → doc B |
+| **Toutes les pages** | Éclater en autant de PDF d'une page |
+| **Par taille** | Découper tous les N Mo |
+
+- L'utilisateur visualise les pages sous forme de miniatures avant de découper
+- Les documents résultants sont nommés automatiquement (`[nom-source]-p1-p5.pdf`)
+
+#### 3.7.3 Réorganisation de pages
+
+- Visualisation de toutes les pages sous forme de grille de miniatures
+- Glisser-déposer pour réordonner
+- Supprimer des pages individuelles
+- Dupliquer une page
+- Insérer une page vierge à n'importe quelle position
+- Aperçu live du résultat avant sauvegarde
+
+#### 3.7.4 Rotation
+
+- Rotation par page ou par sélection multiple (90° / 180° / 270°)
+- Appliquer à toutes les pages d'un coup
+- Disponible depuis la vue réorganisation ET depuis le visualiseur
+
+#### 3.7.5 Compression
+
+| Niveau | Usage | Réduction typique |
+|---|---|---|
+| **Légère** | Documents bureautiques (lisibilité maximale) | ~20% |
+| **Standard** | Usage général | ~50% |
+| **Forte** | Envoi email / archivage | ~70%, légère perte qualité images |
+
+- Affiche le poids avant/après avant de confirmer
+
+#### 3.7.6 Filigrane (Watermark)
+
+| Type | Description |
+|---|---|
+| **Texte** | Ex : "CONFIDENTIEL", "BROUILLON", date, nom de l'utilisateur |
+| **Image** | Logo uploadé (PNG avec transparence) |
+| **Répété** | Mosaïque sur toute la page |
+| **Centré** | Une seule occurrence au centre de chaque page |
+
+Options : position (haut/centre/bas, gauche/centre/droite), opacité, taille, couleur, rotation du texte, appliquer sur toutes les pages ou une sélection.
+
+#### 3.7.7 Protection et sécurité
+
+- **Mot de passe d'ouverture** : chiffrer le PDF (AES-256) — le fichier stocké dans Mes PDF est protégé
+- **Mot de passe de modification** : interdire l'édition/impression sans mot de passe secondaire
+- **Supprimer la protection** : si l'utilisateur fournit le mot de passe existant
+- **Noircissage (Redact)** : sélectionner des zones de texte ou rectangles à noircir définitivement (non récupérable)
+
+#### 3.7.8 Numérotation de pages
+
+- Ajouter des numéros de page (position : haut/bas, gauche/centre/droite)
+- Choisir le style : "Page X", "X / N", numéro seul
+- Police, taille, couleur
+- Commencer à partir d'un numéro donné (ex : commencer à 3 pour un document faisant suite à un autre)
+
+#### 3.7.9 Convertir en PDF
+
+- Convertir en PDF depuis : DOCX, XLSX, PPTX, JPG/PNG/WebP, HTML (v2)
+- Chaque conversion crée un nouveau PdfDocument dans la bibliothèque
+
 ---
 
 ## 4. Intégrations
@@ -104,6 +182,7 @@ Collection (dossier logique)
 | Upload de documents | ✅ | ✅ | ❌ |
 | Créer des collections | ✅ | ✅ | ❌ |
 | Annoter | ✅ | ✅ | ❌ |
+| Manipuler un PDF (fusion, découpe…) | ✅ | ✅ | ❌ |
 | Voir les documents | ✅ | ✅ | ✅ |
 | Télécharger | ✅ | ✅ | ✅ |
 | Gérer les partages | ✅ | ❌ | ❌ |
@@ -208,9 +287,14 @@ enum PdfShareRole      { VIEWER ANNOTATOR }
 - Versioning
 - Partage interne + lien public
 - Intégration SignDoc
+- **Manipulation PDF** : fusion, découpe par plage, réorganisation de pages, rotation, compression, filigrane texte
 
 **Reporté v2 :**
 - OCR / recherche dans le contenu
 - Champs personnalisés par collection
 - Comparaison visuelle de versions
-- Formats DOCX/XLSX
+- Filigrane image / mosaïque
+- Noircissage (redact)
+- Numérotation de pages
+- Conversion DOCX/XLSX/PPTX → PDF
+- Protection par mot de passe
