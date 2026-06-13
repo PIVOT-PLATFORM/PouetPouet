@@ -1,0 +1,11 @@
+# Default owner for all changes.
+* @0bno
+
+# Product surfaces.
+/apps/web/ @0bno
+/apps/api/ @0bno
+/packages/shared/ @0bno
+
+# Sensitive operational areas.
+/.github/workflows/ @0bno
+/apps/api/prisma/ @0bno

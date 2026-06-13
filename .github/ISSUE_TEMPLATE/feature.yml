@@ -1,0 +1,34 @@
+name: Feature
+description: Proposer une nouvelle capacite produit.
+title: "[Feature] "
+labels: ["feature", "needs triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Probleme utilisateur
+      description: Quel besoin ou irritant veut-on resoudre ?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposition
+      description: Decris le comportement attendu et le parcours cible.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criteres d'acceptation
+      description: Conditions observables pour considerer la feature terminee.
+      placeholder: |
+        - ...
+        - ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Contraintes, alternatives, risques ou dependances.

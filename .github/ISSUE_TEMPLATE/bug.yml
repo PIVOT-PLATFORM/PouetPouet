@@ -1,0 +1,35 @@
+name: Bug
+description: Signaler un comportement incorrect ou une regression.
+title: "[Bug] "
+labels: ["bug", "needs triage"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Resume
+      description: Que se passe-t-il, et quel comportement etait attendu ?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Etapes de reproduction
+      description: Donne un chemin reproductible, avec les donnees utiles.
+      placeholder: |
+        1. Aller sur ...
+        2. Cliquer sur ...
+        3. Observer ...
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Utilisateurs touches, severite, contournement connu.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte technique
+      description: Navigateur, environnement, logs, captures, version ou commit.

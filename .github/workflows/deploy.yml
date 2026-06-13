@@ -4,6 +4,9 @@ on:
   push:
     branches: [master]
 
+permissions:
+  contents: read
+
 env:
   REGION: europe-west1
   REPO: europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/pouetpouet

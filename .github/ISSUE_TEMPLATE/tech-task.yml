@@ -1,0 +1,31 @@
+name: Tache technique
+description: Suivre une amelioration technique, maintenance ou dette.
+title: "[Tech] "
+labels: ["tech", "needs triage"]
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objectif
+      description: Quel resultat technique veut-on obtenir ?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Perimetre
+      description: Fichiers, modules, workflows ou environnements concernes.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criteres d'acceptation
+      description: Checks, comportements ou preuves attendues.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risques et rollback
+      description: Impacts possibles, compatibilite, migrations ou procedure de retour arriere.
