@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify'
 import type { Server, Socket } from 'socket.io'
 import type { ModuleManifest } from '@pouetpouet/shared'
-import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE } from '@pouetpouet/shared'
+import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE, MEETOPS_MODULE } from '@pouetpouet/shared'
 
 import { boardRoutes } from './pouetpouet/boards.routes.js'
 import { templateRoutes } from './pouetpouet/templates.routes.js'
@@ -13,6 +13,7 @@ import { dailyRoutes } from './daily/daily.routes.js'
 import { dailySocketHandlers } from './daily/daily.sockets.js'
 import { wheelRoutes } from './wheel/wheel.routes.js'
 import { capacityRoutes } from './capacity/capacity.routes.js'
+import { meetopsRoutes } from './meetops/meetops.routes.js'
 
 // FORGE F0 — registre des modules côté API.
 // Le socle (index.ts) monte routes et handlers socket en itérant ce registre :
@@ -55,6 +56,11 @@ export const API_MODULES: ApiModule[] = [
   {
     manifest: CAPACITY_MODULE,
     routes: [{ plugin: capacityRoutes, prefix: '/api/capacity' }],
+    socketHandlers: [],
+  },
+  {
+    manifest: MEETOPS_MODULE,
+    routes: [{ plugin: meetopsRoutes, prefix: '/api/meetops' }],
     socketHandlers: [],
   },
 ]

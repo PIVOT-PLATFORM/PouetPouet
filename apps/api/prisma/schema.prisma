@@ -39,6 +39,7 @@ model User {
   wheelEvents    WheelEvent[]
   wheelDraws     WheelDraw[]
   capacityEvents CapacityEvent[]
+  meetEvents     MeetEvent[]
   apiKeys        ApiKey[]
   webhooks       Webhook[]
   auditLogs      AuditLog[]
@@ -647,4 +648,100 @@ model WheelDraw {
   owner User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   team  Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
   event WheelEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+}
+
+// ── MeetOps (gestion de réunions) ───────────────────────────────────────────────
+// Hiérarchie : Événement → Série → Réunion → Participant.
+// Socle CRUD : envoi (.ics/SMTP/Graph), listes de diffusion, historique et
+// templates arriveront dans les itérations suivantes (cf. docs/specs/meetops.md).
+
+model MeetEvent {
+  id          String          @id @default(cuid())
+  ownerId     String
+  name        String
+  description String?
+  type        MeetEventType   @default(CUSTOM)
+  status      MeetEventStatus @default(DRAFT)
+  startDate   DateTime?
+  endDate     DateTime?
+  color       String          @default("#475569")
+  tags        String[]        @default([])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  owner  User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  series MeetSeries[]
+}
+
+model MeetSeries {
+  id                 String   @id @default(cuid())
+  eventId            String
+  title              String
+  // { type, interval, daysOfWeek, until, count } — null = série ponctuelle
+  recurrence         Json?
+  defaultDurationMin Int      @default(60)
+  defaultAgenda      String?
+  order              Int      @default(0)
+  createdAt          DateTime @default(now())
+
+  event    MeetEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  meetings Meeting[]
+}
+
+model Meeting {
+  id          String        @id @default(cuid())
+  seriesId    String
+  title       String
+  startAt     DateTime
+  durationMin Int           @default(60)
+  location    String?
+  agenda      String?
+  status      MeetingStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  series       MeetSeries           @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  participants MeetingParticipant[]
+}
+
+model MeetingParticipant {
+  id        String      @id @default(cuid())
+  meetingId String
+  email     String
+  name      String?
+  role      String? // organisateur / requis / optionnel
+  rsvp      MeetingRsvp @default(PENDING)
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+}
+
+enum MeetEventType {
+  VERSION
+  SPRINT
+  COPIL
+  COMOP
+  RELEASE
+  ONBOARDING
+  CUSTOM
+}
+
+enum MeetEventStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum MeetingStatus {
+  DRAFT
+  SENT
+  UPDATED
+  CANCELLED
+}
+
+enum MeetingRsvp {
+  PENDING
+  ACCEPTED
+  DECLINED
+  TENTATIVE
 }
