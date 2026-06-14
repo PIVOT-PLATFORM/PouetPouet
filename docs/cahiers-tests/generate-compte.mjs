@@ -89,6 +89,45 @@ const SECTIONS = [
       { num: '8.3', action: 'Accéder aux CGU', expected: 'Page chargée. Contenu lisible.' },
     ],
   },
+  {
+    title: '9. Palettes de couleurs',
+    tests: [
+      { num: '9.1', action: 'Ouvrir Profil -> Préférences et choisir une palette (parmi 7)', expected: 'La palette s\'applique instantanément à toute l\'interface.' },
+      { num: '9.2', action: 'Combiner une palette avec le mode nuit', expected: 'La palette et le thème sombre se combinent correctement.' },
+      { num: '9.3', action: 'Recharger la page', expected: 'La palette choisie est conservée.' },
+    ],
+  },
+  {
+    title: '10. Connexion SSO (OIDC)',
+    tests: [
+      { num: '10.1', action: 'Sur une instance reliée à un fournisseur d\'identité, ouvrir /login', expected: 'Un bouton "Se connecter avec…" est visible.' },
+      { num: '10.2', action: 'Se connecter via le fournisseur SSO', expected: 'Le compte local est lié automatiquement par email ; connexion réussie.' },
+    ],
+  },
+  {
+    title: '11. Clés API',
+    tests: [
+      { num: '11.1', action: 'Créer une clé API depuis le profil', expected: 'Clé générée et affichée une seule fois ; visible dans la liste (jusqu\'à 10 par compte).' },
+      { num: '11.2', action: 'Appeler l\'API avec l\'en-tête X-API-Key', expected: 'Authentification acceptée ; la date de dernière utilisation se met à jour.' },
+      { num: '11.3', action: 'Révoquer une clé', expected: 'La clé est supprimée ; les appels suivants avec cette clé échouent.' },
+    ],
+  },
+  {
+    title: '12. Webhooks sortants',
+    tests: [
+      { num: '12.1', action: 'Créer un webhook (URL + événements)', expected: 'Webhook créé (jusqu\'à 20 par compte).' },
+      { num: '12.2', action: 'Cliquer sur le bouton de test (ping)', expected: 'Un ping signé HMAC-SHA256 est envoyé ; la connectivité est vérifiée en temps réel.' },
+      { num: '12.3', action: 'Déclencher un événement abonné (ex. import de board)', expected: 'La livraison apparaît dans l\'historique (statut HTTP, durée, date).' },
+      { num: '12.4', action: 'Provoquer un échec de livraison (endpoint en erreur)', expected: 'Une nouvelle tentative part automatiquement après ~30 s ; les deux tentatives sont visibles.' },
+    ],
+  },
+  {
+    title: '13. Export RGPD & journal de sécurité',
+    tests: [
+      { num: '13.1', action: 'Cliquer sur "Exporter mes données" dans le profil', expected: 'Un JSON complet est téléchargé (profil, boards, dailys, salles, équipes, tirages, notifications).' },
+      { num: '13.2', action: 'Ouvrir le journal de sécurité du profil', expected: 'Les 50 dernières actions sensibles sont listées (connexions, échecs, mots de passe, clés API, webhooks).' },
+    ],
+  },
 ]
 
 const TOTAL = SECTIONS.reduce((s, sec) => s + sec.tests.length, 0)
@@ -169,7 +208,7 @@ async function generate() {
   newPage()
   drawRect(M, currentY, CW, 42, cl.indigo, null)
   drawText('CAHIER DE TESTS — COMPTE / PROFIL', M + 12, currentY + 12 + 14, fB, 14, cl.white)
-  drawText(`PouetPouet v0.3.0  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
+  drawText(`PouetPouet v0.10.0  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
   currentY += 42 + 8
 
   const META_H = 21, META_COL = CW / 2
@@ -248,7 +287,7 @@ async function generate() {
   tfSig.setFontSize(FS)
 
   const bytes = await doc.save()
-  const outPath = 'docs/cahiers-tests/CT-v0.3.0-compte.pdf'
+  const outPath = 'docs/cahiers-tests/CT-v0.10.0-compte.pdf'
   writeFileSync(outPath, bytes)
   console.log(`✓  ${outPath}  (${TOTAL} tests · ${doc.getPageCount()} page${doc.getPageCount() > 1 ? 's' : ''})`)
 }

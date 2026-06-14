@@ -1,5 +1,5 @@
-// Generates an interactive PDF test notebook for the Dashboard.
-// Run: node docs/cahiers-tests/generate-dashboard.mjs
+// Generates an interactive PDF test notebook for the MeetOps module.
+// Run: node docs/cahiers-tests/generate-meetops.mjs
 
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { writeFileSync } from 'fs'
@@ -20,80 +20,125 @@ const cl = {
 
 const SECTIONS = [
   {
-    title: '1. Chargement et accès',
+    title: '1. Chargement et navigation',
     tests: [
-      { num: '1.1', action: 'Naviguer vers / ou /dashboard après connexion', expected: 'Le tableau de bord se charge. La liste des boards s\'affiche. Aucune erreur.' },
-      { num: '1.2', action: 'Accéder sans être connecté', expected: 'Redirection vers /login. Aucun contenu de dashboard affiché.' },
-      { num: '1.3', action: 'Observer la barre de navigation', expected: 'Logo, liens vers les onglets (Boards, Scrum, Daily, Roue, Équipes) et cloche de notifications visibles.' },
+      { num: '1.1', action: 'Naviguer vers /meetops', expected: 'La page MeetOps se charge. Liste des événements visible (ou message si vide).' },
+      { num: '1.2', action: 'Accéder sans aucun événement', expected: 'Message invitant à créer un événement. Bouton de création visible.' },
     ],
   },
   {
-    title: '2. Liste des boards',
+    title: '2. Gestion des événements',
     tests: [
-      { num: '2.1', action: 'Observer la liste des boards après connexion', expected: 'Les boards de l\'utilisateur sont affichés (titre, cover, date de modification, rôle).' },
-      { num: '2.2', action: 'Rafraîchir la page (F5)', expected: 'Les boards s\'affichent à nouveau sans perte de données.' },
-      { num: '2.3', action: 'Utiliser la barre de recherche pour filtrer les boards', expected: 'Seuls les boards correspondant au terme saisi s\'affichent. Effacer la recherche restaure la liste complète.' },
-      { num: '2.4', action: 'Observer un board partagé par un autre utilisateur', expected: 'Le board apparaît avec un indicateur de rôle (Lecteur / Éditeur) et le nom du propriétaire.' },
+      { num: '2.1', action: 'Créer un événement (nom, type, responsable, couleur)', expected: 'Événement créé en statut Brouillon (DRAFT) et visible dans la liste.' },
+      { num: '2.2', action: 'Choisir un type prédéfini (VERSION, SPRINT, COPIL, RELEASE…)', expected: 'Le type est enregistré et affiché sur l\'événement.' },
+      { num: '2.3', action: 'Faire évoluer le statut (DRAFT -> ACTIVE -> CLOSED)', expected: 'Le statut change et est reflété dans la liste.' },
+      { num: '2.4', action: 'Dupliquer un événement', expected: 'Une copie de l\'événement (réunions incluses) est créée.' },
+      { num: '2.5', action: 'Archiver puis supprimer un événement', expected: 'L\'événement passe en archivé, puis est supprimé après confirmation.' },
     ],
   },
   {
-    title: '3. Création de boards',
+    title: '3. Tableau de réunions (liste à plat)',
     tests: [
-      { num: '3.1', action: 'Cliquer sur "Nouveau board" et saisir un nom', expected: 'Board créé et visible dans la liste. Navigation vers le board.' },
-      { num: '3.2', action: 'Créer un board avec un nom vide', expected: 'Erreur de validation. Aucun board créé.' },
-      { num: '3.3', action: 'Créer un board depuis un template', expected: 'Board créé avec le contenu du template. Navigation vers le board.' },
-      { num: '3.4', action: 'Créer un board et l\'ouvrir depuis le dashboard', expected: 'Navigation correcte vers le board créé.' },
+      { num: '3.1', action: 'Cliquer sur "+ Ajouter une réunion"', expected: 'Une ligne brouillon est créée (date par défaut = aujourd\'hui).' },
+      { num: '3.2', action: 'Éditer une cellule (titre, date, heure, durée) puis valider', expected: 'La valeur est sauvegardée automatiquement au blur / Entrée.' },
+      { num: '3.3', action: 'Laisser une ligne brouillon entièrement vide', expected: 'La ligne est abandonnée (non enregistrée).' },
+      { num: '3.4', action: 'Recharger la page (F5)', expected: 'Les réunions saisies sont conservées avec leurs valeurs.' },
     ],
   },
   {
-    title: '4. Favoris',
+    title: '4. Étiquettes & ordre manuel',
     tests: [
-      { num: '4.1', action: 'Mettre un board en favori (icône étoile)', expected: 'Étoile remplie. Board déplacé ou dupliqué dans la section "Favoris".' },
-      { num: '4.2', action: 'Retirer un board des favoris', expected: 'Étoile vidée. Board retiré de la section "Favoris".' },
-      { num: '4.3', action: 'Rafraîchir après ajout aux favoris', expected: 'Le statut de favori est conservé.' },
+      { num: '4.1', action: 'Saisir une étiquette dans une réunion', expected: 'Autocomplétion des étiquettes déjà utilisées ; couleur déterministe appliquée.' },
+      { num: '4.2', action: 'Glisser-déposer une ligne via la poignée', expected: 'L\'ordre est mis à jour et persisté (Meeting.order).' },
+      { num: '4.3', action: 'Réutiliser une étiquette existante sur une autre réunion', expected: 'Même couleur que les autres réunions de cette étiquette.' },
     ],
   },
   {
-    title: '5. Actions sur un board',
+    title: '5. Modification de masse',
     tests: [
-      { num: '5.1', action: 'Renommer un board depuis le dashboard (menu contextuel ou crayon)', expected: 'Nouveau nom visible immédiatement dans la liste.' },
-      { num: '5.2', action: 'Supprimer un board dont on est propriétaire', expected: 'Confirmation demandée. Board supprimé de la liste. Aucune erreur.' },
-      { num: '5.3', action: 'Tenter de supprimer un board partagé (rôle Éditeur)', expected: 'Option de suppression absente ou désactivée. Seul le propriétaire peut supprimer.' },
-      { num: '5.4', action: 'Dupliquer un board (si disponible)', expected: 'Copie du board créée avec "(copie)" dans le nom.' },
+      { num: '5.1', action: 'Sélectionner plusieurs lignes', expected: 'Une barre d\'actions de masse apparaît.' },
+      { num: '5.2', action: 'Appliquer une étiquette ou une durée à la sélection', expected: 'Toutes les réunions sélectionnées sont mises à jour.' },
+      { num: '5.3', action: 'Décaler les dates de la sélection de N jours', expected: 'Les dates des réunions sélectionnées sont décalées de N jours.' },
+      { num: '5.4', action: 'Supprimer la sélection en lot', expected: 'Toutes les réunions sélectionnées sont supprimées.' },
     ],
   },
   {
-    title: '6. Templates',
+    title: '6. Réunion individuelle',
     tests: [
-      { num: '6.1', action: 'Accéder à la section Templates', expected: 'Liste des templates disponibles affichée (titres, aperçus).' },
-      { num: '6.2', action: 'Créer un template depuis un board existant', expected: 'Template créé et visible dans la liste.' },
-      { num: '6.3', action: 'Utiliser un template pour créer un board', expected: 'Board créé avec le contenu du template.' },
-      { num: '6.4', action: 'Supprimer un template', expected: 'Template retiré de la liste. Les boards créés depuis ce template ne sont pas affectés.' },
+      { num: '6.1', action: 'Ouvrir le détail d\'une réunion', expected: 'Panneau latéral avec titre, lieu/lien, ordre du jour, participants.' },
+      { num: '6.2', action: 'Saisir un ordre du jour (markdown)', expected: 'L\'ordre du jour est enregistré et rendu correctement.' },
+      { num: '6.3', action: 'Ajouter des participants (liste de diffusion + ajout unitaire)', expected: 'Les participants apparaissent sur la réunion.' },
     ],
   },
   {
-    title: '7. Notifications',
+    title: '7. Listes de diffusion',
     tests: [
-      { num: '7.1', action: 'Cliquer sur la cloche dans la barre de navigation', expected: 'Panneau de notifications ouvert. Activité récente et notes de version visibles.' },
-      { num: '7.2', action: 'Partager un board avec un autre compte, puis vérifier les notifs de ce compte', expected: 'Notification "Board partagé" visible dans le panneau de l\'autre compte.' },
-      { num: '7.3', action: 'Cliquer sur "Notes de version"', expected: 'Frise des versions affichée avec les détails de chaque release.' },
-      { num: '7.4', action: 'Marquer les notifications comme lues', expected: 'Badge de la cloche disparaît (ou passe à 0).' },
+      { num: '7.1', action: 'Créer une liste globale et y ajouter des membres', expected: 'La liste est réutilisable sur tous les événements.' },
+      { num: '7.2', action: 'Créer une liste locale à un événement', expected: 'La liste n\'est disponible que dans cet événement.' },
+      { num: '7.3', action: 'Appliquer une liste de diffusion à une réunion', expected: 'Les membres de la liste deviennent participants de la réunion.' },
     ],
   },
   {
-    title: '8. Hub — modules & activité récente',
+    title: '8. Envoi & synchronisation',
     tests: [
-      { num: '8.1', action: 'Ouvrir le hub (icône grille dans la barre de navigation)', expected: 'Le hub s\'affiche avec tous les modules et des compteurs cross-modules en temps réel.' },
-      { num: '8.2', action: 'Observer la section "Récent"', expected: 'Les éléments récents (boards, dailys, salles Scrum, tirages) tiennent sur une ligne, du plus frais au plus ancien.' },
-      { num: '8.3', action: 'Cliquer sur "Tout afficher" dans les récents', expected: 'La liste complète des éléments récents se déroule.' },
-      { num: '8.4', action: 'Observer la section "Modules à venir"', expected: 'Un aperçu des modules à venir est affiché.' },
-      { num: '8.5', action: 'Mettre un module en favori (étoile sur la tuile)', expected: 'Le module favori apparaît en premier ; statut conservé après F5.' },
+      { num: '8.1', action: 'Choisir un mode d\'envoi (Graph / SMTP / .ics / Pivot)', expected: 'Le mode sélectionné est pris en compte pour l\'envoi.' },
+      { num: '8.2', action: 'Envoyer une réunion', expected: 'Le statut passe à Envoyée (SENT).' },
+      { num: '8.3', action: 'Modifier une réunion déjà envoyée', expected: 'Le statut passe à Modifiée (UPDATED) ; un update est propagé.' },
+      { num: '8.4', action: 'Annuler une réunion envoyée', expected: 'Le statut passe à Annulée (CANCELLED).' },
+      { num: '8.5', action: 'Simuler un échec d\'envoi puis relancer', expected: 'L\'erreur est affichée par réunion ; la reprise sur échec renvoie l\'invitation.' },
+      { num: '8.6', action: 'Exporter une réunion en .ics (fallback)', expected: 'Un fichier .ics valide est téléchargé.' },
     ],
   },
   {
-    title: '9. Thème sombre',
+    title: '9. Connecteur Microsoft Graph',
     tests: [
-      { num: '9.1', action: 'Basculer en thème sombre (Profil -> Thème) et recharger le dashboard', expected: 'Dashboard, barre de navigation, cartes de boards : tout respecte le thème sombre.' },
+      { num: '9.1', action: 'Avec Graph non configuré, observer le module', expected: 'Mode dégradé : pas d\'envoi Graph, export .ics manuel disponible.' },
+      { num: '9.2', action: 'Connecter un compte Microsoft (OAuth délégué)', expected: 'Le compte est lié ; les tokens sont stockés chiffrés.' },
+      { num: '9.3', action: 'Envoyer une réunion via Graph', expected: 'Événement Outlook créé + lien Teams généré (onlineMeeting).' },
+    ],
+  },
+  {
+    title: '10. Vue calendrier',
+    tests: [
+      { num: '10.1', action: 'Ouvrir le calendrier d\'un événement (mois / semaine / agenda)', expected: 'Les réunions s\'affichent ; code couleur par étiquette.' },
+      { num: '10.2', action: 'Observer les indicateurs de statut', expected: 'Brouillon (pointillé), envoyée (plein), annulée (barré).' },
+      { num: '10.3', action: 'Superposer plusieurs événements (vue multi-événements)', expected: 'Chaque événement a sa couleur ; filtres et masquage disponibles.' },
+    ],
+  },
+  {
+    title: '11. Historique des modifications',
+    tests: [
+      { num: '11.1', action: 'Modifier une réunion et consulter l\'historique de l\'événement', expected: 'Une entrée (action, champ, auteur, date) est enregistrée.' },
+      { num: '11.2', action: 'Supprimer une réunion puis rouvrir l\'historique', expected: 'L\'historique survit (libellé figé de la réunion supprimée).' },
+    ],
+  },
+  {
+    title: '12. Templates',
+    tests: [
+      { num: '12.1', action: 'Créer un template depuis un événement existant', expected: 'Template créé avec des lignes en décalages relatifs (sans dates absolues).' },
+      { num: '12.2', action: 'Instancier un événement depuis un template (date de départ)', expected: 'Les réunions sont générées aux dates relatives à la date de départ.' },
+      { num: '12.3', action: 'Consulter la bibliothèque de templates', expected: 'Templates personnels et partagés à l\'espace listés.' },
+    ],
+  },
+  {
+    title: '13. Reporting',
+    tests: [
+      { num: '13.1', action: 'Ouvrir le tableau de bord d\'un événement', expected: 'Métriques affichées : taux d\'envoi, réunions modifiées, annulations.' },
+      { num: '13.2', action: 'Observer les indicateurs de charge', expected: 'Participants uniques et charge réunion (heures × participants) affichés.' },
+    ],
+  },
+  {
+    title: '14. Droits & permissions',
+    tests: [
+      { num: '14.1', action: 'En tant que Lecteur, tenter de créer/modifier une réunion', expected: 'Action refusée : seuls Propriétaire et Éditeur peuvent éditer/envoyer.' },
+      { num: '14.2', action: 'Partager l\'événement via un lien', expected: 'Le rôle obtenu est Lecteur uniquement (pas d\'envoi externe).' },
+      { num: '14.3', action: 'Nommer un co-propriétaire', expected: 'Le co-propriétaire a les mêmes droits (même modèle que les boards).' },
+    ],
+  },
+  {
+    title: '15. Thème sombre',
+    tests: [
+      { num: '15.1', action: 'Basculer en thème sombre (Profil -> Thème) et recharger /meetops', expected: 'Tableau, calendrier et panneaux respectent le thème sombre. Aucun texte illisible.' },
     ],
   },
 ]
@@ -175,7 +220,7 @@ async function generate() {
 
   newPage()
   drawRect(M, currentY, CW, 42, cl.indigo, null)
-  drawText('CAHIER DE TESTS — DASHBOARD', M + 12, currentY + 12 + 14, fB, 15, cl.white)
+  drawText('CAHIER DE TESTS — MEETOPS', M + 12, currentY + 12 + 14, fB, 14, cl.white)
   drawText(`PouetPouet v0.10.0  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
   currentY += 42 + 8
 
@@ -255,7 +300,7 @@ async function generate() {
   tfSig.setFontSize(FS)
 
   const bytes = await doc.save()
-  const outPath = 'docs/cahiers-tests/CT-v0.10.0-dashboard.pdf'
+  const outPath = 'docs/cahiers-tests/CT-v0.10.0-meetops.pdf'
   writeFileSync(outPath, bytes)
   console.log(`✓  ${outPath}  (${TOTAL} tests · ${doc.getPageCount()} page${doc.getPageCount() > 1 ? 's' : ''})`)
 }

@@ -83,9 +83,18 @@ const SECTIONS = [
     ],
   },
   {
-    title: '7. Thème sombre',
+    title: '7. Équipe partagée & notification de fin',
     tests: [
-      { num: '7.1', action: 'Basculer en thème sombre (Profil -> Thème) et recharger /daily', expected: 'Tous les éléments respectent le thème sombre. Aucun texte illisible.' },
+      { num: '7.1', action: 'Vérifier qu\'une équipe créée dans Daily est visible dans Capacité / Scrum', expected: 'Les équipes sont un objet partagé (pivot Équipe) entre les modules.' },
+      { num: '7.2', action: 'Terminer un daily manuellement', expected: 'Notification de fin incluant le nombre de participants et la durée de la session.' },
+      { num: '7.3', action: 'Laisser le dernier participant quitter pour déclencher la fin automatique', expected: 'La fin automatique inclut aussi le nombre de participants et la durée.' },
+      { num: '7.4', action: 'En tant que non-propriétaire, tenter de piloter la session', expected: 'Seul le propriétaire pilote la session (Suivant / Passer / Terminer).' },
+    ],
+  },
+  {
+    title: '8. Thème sombre',
+    tests: [
+      { num: '8.1', action: 'Basculer en thème sombre (Profil -> Thème) et recharger /daily', expected: 'Tous les éléments respectent le thème sombre. Aucun texte illisible.' },
     ],
   },
 ]
@@ -197,7 +206,7 @@ async function generate() {
 
   drawRect(M, currentY, CW, 42, cl.indigo, null)
   drawText('CAHIER DE TESTS — DAILY STANDUP', M + 12, currentY + 12 + 14, fB, 15, cl.white)
-  drawText(`PouetPouet v0.3.0  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
+  drawText(`PouetPouet v0.10.0  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
   currentY += 42 + 8
 
   const META_H = 21, META_COL = CW / 2
@@ -280,7 +289,7 @@ async function generate() {
   tfSig.setFontSize(FS)
 
   const bytes = await doc.save()
-  const outPath = 'docs/cahiers-tests/CT-v0.3.0-daily.pdf'
+  const outPath = 'docs/cahiers-tests/CT-v0.10.0-daily.pdf'
   writeFileSync(outPath, bytes)
   console.log(`✓  ${outPath}  (${TOTAL} tests · ${doc.getPageCount()} page${doc.getPageCount() > 1 ? 's' : ''})`)
 }

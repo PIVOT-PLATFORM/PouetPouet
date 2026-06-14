@@ -1,5 +1,5 @@
-// Generates an interactive PDF test notebook for the Dashboard.
-// Run: node docs/cahiers-tests/generate-dashboard.mjs
+// Generates an interactive PDF test notebook for the Capacité module.
+// Run: node docs/cahiers-tests/generate-capacite.mjs
 
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { writeFileSync } from 'fs'
@@ -20,80 +20,75 @@ const cl = {
 
 const SECTIONS = [
   {
-    title: '1. Chargement et accès',
+    title: '1. Chargement et navigation',
     tests: [
-      { num: '1.1', action: 'Naviguer vers / ou /dashboard après connexion', expected: 'Le tableau de bord se charge. La liste des boards s\'affiche. Aucune erreur.' },
-      { num: '1.2', action: 'Accéder sans être connecté', expected: 'Redirection vers /login. Aucun contenu de dashboard affiché.' },
-      { num: '1.3', action: 'Observer la barre de navigation', expected: 'Logo, liens vers les onglets (Boards, Scrum, Daily, Roue, Équipes) et cloche de notifications visibles.' },
+      { num: '1.1', action: 'Naviguer vers /capacity', expected: 'La page "Capacité" se charge. Listes "Événements" et "Équipes" visibles.' },
+      { num: '1.2', action: 'Accéder sans aucun événement', expected: 'Message "Aucun événement" affiché. Bouton de création visible.' },
+      { num: '1.3', action: 'Rechercher un événement via la barre de recherche', expected: 'Seuls les événements correspondants s\'affichent.' },
     ],
   },
   {
-    title: '2. Liste des boards',
+    title: '2. Gestion des équipes',
     tests: [
-      { num: '2.1', action: 'Observer la liste des boards après connexion', expected: 'Les boards de l\'utilisateur sont affichés (titre, cover, date de modification, rôle).' },
-      { num: '2.2', action: 'Rafraîchir la page (F5)', expected: 'Les boards s\'affichent à nouveau sans perte de données.' },
-      { num: '2.3', action: 'Utiliser la barre de recherche pour filtrer les boards', expected: 'Seuls les boards correspondant au terme saisi s\'affichent. Effacer la recherche restaure la liste complète.' },
-      { num: '2.4', action: 'Observer un board partagé par un autre utilisateur', expected: 'Le board apparaît avec un indicateur de rôle (Lecteur / Éditeur) et le nom du propriétaire.' },
+      { num: '2.1', action: 'Créer une équipe (nom, couleur, description)', expected: 'Équipe créée et visible dans la liste "Équipes".' },
+      { num: '2.2', action: 'Ajouter des membres à l\'équipe (nom + rôle)', expected: 'Les membres apparaissent dans l\'équipe.' },
+      { num: '2.3', action: 'Modifier une équipe (bouton "Modifier")', expected: 'Les changements (nom, couleur, membres) sont enregistrés.' },
+      { num: '2.4', action: 'Vérifier qu\'une équipe est partagée avec Daily / Scrum', expected: 'La même équipe (pivot Équipe) est disponible dans les autres modules.' },
     ],
   },
   {
-    title: '3. Création de boards',
+    title: '3. Création d\'un événement',
     tests: [
-      { num: '3.1', action: 'Cliquer sur "Nouveau board" et saisir un nom', expected: 'Board créé et visible dans la liste. Navigation vers le board.' },
-      { num: '3.2', action: 'Créer un board avec un nom vide', expected: 'Erreur de validation. Aucun board créé.' },
-      { num: '3.3', action: 'Créer un board depuis un template', expected: 'Board créé avec le contenu du template. Navigation vers le board.' },
-      { num: '3.4', action: 'Créer un board et l\'ouvrir depuis le dashboard', expected: 'Navigation correcte vers le board créé.' },
+      { num: '3.1', action: 'Créer un événement (nom, type PI/Sprint/Release…)', expected: 'Événement créé et visible dans la liste.' },
+      { num: '3.2', action: 'Renseigner début, jours travaillés et heures/jour', expected: 'Les paramètres sont enregistrés et utilisés dans le calcul.' },
+      { num: '3.3', action: 'Associer une équipe à l\'événement', expected: 'Les membres de l\'équipe apparaissent dans la disponibilité.' },
+      { num: '3.4', action: 'Rattacher l\'événement à un PI Planning (optionnel)', expected: 'Le rattachement est enregistré ; les événements rattachés sont listés.' },
     ],
   },
   {
-    title: '4. Favoris',
+    title: '4. Membres & disponibilité',
     tests: [
-      { num: '4.1', action: 'Mettre un board en favori (icône étoile)', expected: 'Étoile remplie. Board déplacé ou dupliqué dans la section "Favoris".' },
-      { num: '4.2', action: 'Retirer un board des favoris', expected: 'Étoile vidée. Board retiré de la section "Favoris".' },
-      { num: '4.3', action: 'Rafraîchir après ajout aux favoris', expected: 'Le statut de favori est conservé.' },
+      { num: '4.1', action: 'Ajouter un membre via "Ajouter un membre…"', expected: 'Le membre apparaît dans le tableau de disponibilité.' },
+      { num: '4.2', action: 'Définir un focus factor individuel', expected: 'Le focus individuel remplace le défaut de l\'événement pour ce membre.' },
+      { num: '4.3', action: 'Ajouter une absence (durée + motif)', expected: 'L\'absence est déduite de la disponibilité du membre.' },
+      { num: '4.4', action: 'Observer la colonne "Net j·h"', expected: 'Les jours-homme nets sont recalculés en direct selon focus et absences.' },
+      { num: '4.5', action: 'Retirer un membre', expected: 'Le membre disparaît ; le calcul de capacité est mis à jour.' },
     ],
   },
   {
-    title: '5. Actions sur un board',
+    title: '5. Calcul de capacité',
     tests: [
-      { num: '5.1', action: 'Renommer un board depuis le dashboard (menu contextuel ou crayon)', expected: 'Nouveau nom visible immédiatement dans la liste.' },
-      { num: '5.2', action: 'Supprimer un board dont on est propriétaire', expected: 'Confirmation demandée. Board supprimé de la liste. Aucune erreur.' },
-      { num: '5.3', action: 'Tenter de supprimer un board partagé (rôle Éditeur)', expected: 'Option de suppression absente ou désactivée. Seul le propriétaire peut supprimer.' },
-      { num: '5.4', action: 'Dupliquer un board (si disponible)', expected: 'Copie du board créée avec "(copie)" dans le nom.' },
+      { num: '5.1', action: 'Observer les totaux jours-homme / heures', expected: 'Les totaux se mettent à jour en direct à chaque changement.' },
+      { num: '5.2', action: 'Renseigner "Points / jour·homme"', expected: 'La capacité en points est calculée et affichée.' },
+      { num: '5.3', action: 'Modifier les heures/jour ou les jours travaillés', expected: 'Les totaux heures et points sont recalculés immédiatement.' },
     ],
   },
   {
-    title: '6. Templates',
+    title: '6. Engagement & réalisation',
     tests: [
-      { num: '6.1', action: 'Accéder à la section Templates', expected: 'Liste des templates disponibles affichée (titres, aperçus).' },
-      { num: '6.2', action: 'Créer un template depuis un board existant', expected: 'Template créé et visible dans la liste.' },
-      { num: '6.3', action: 'Utiliser un template pour créer un board', expected: 'Board créé avec le contenu du template.' },
-      { num: '6.4', action: 'Supprimer un template', expected: 'Template retiré de la liste. Les boards créés depuis ce template ne sont pas affectés.' },
+      { num: '6.1', action: 'Saisir les points engagés et réalisés', expected: 'Les indicateurs engagé vs réalisé s\'affichent.' },
+      { num: '6.2', action: 'Saisir des notes (risques, hypothèses, dépendances)', expected: 'Les notes sont enregistrées.' },
+      { num: '6.3', action: 'Consulter l\'historique de réalisation', expected: 'Les valeurs des sprints/PI passés sont listées.' },
     ],
   },
   {
-    title: '7. Notifications',
+    title: '7. Retour des PI / sprints précédents',
     tests: [
-      { num: '7.1', action: 'Cliquer sur la cloche dans la barre de navigation', expected: 'Panneau de notifications ouvert. Activité récente et notes de version visibles.' },
-      { num: '7.2', action: 'Partager un board avec un autre compte, puis vérifier les notifs de ce compte', expected: 'Notification "Board partagé" visible dans le panneau de l\'autre compte.' },
-      { num: '7.3', action: 'Cliquer sur "Notes de version"', expected: 'Frise des versions affichée avec les détails de chaque release.' },
-      { num: '7.4', action: 'Marquer les notifications comme lues', expected: 'Badge de la cloche disparaît (ou passe à 0).' },
+      { num: '7.1', action: 'Observer le panneau "Retour des PI / sprints précédents"', expected: 'La vélocité moyenne des événements précédents est affichée.' },
+      { num: '7.2', action: 'Estimer une salle Scrum liée à l\'équipe', expected: 'À l\'estimation complète, le total de points remplit le sprint en planification.' },
     ],
   },
   {
-    title: '8. Hub — modules & activité récente',
+    title: '8. Suppression & persistance',
     tests: [
-      { num: '8.1', action: 'Ouvrir le hub (icône grille dans la barre de navigation)', expected: 'Le hub s\'affiche avec tous les modules et des compteurs cross-modules en temps réel.' },
-      { num: '8.2', action: 'Observer la section "Récent"', expected: 'Les éléments récents (boards, dailys, salles Scrum, tirages) tiennent sur une ligne, du plus frais au plus ancien.' },
-      { num: '8.3', action: 'Cliquer sur "Tout afficher" dans les récents', expected: 'La liste complète des éléments récents se déroule.' },
-      { num: '8.4', action: 'Observer la section "Modules à venir"', expected: 'Un aperçu des modules à venir est affiché.' },
-      { num: '8.5', action: 'Mettre un module en favori (étoile sur la tuile)', expected: 'Le module favori apparaît en premier ; statut conservé après F5.' },
+      { num: '8.1', action: 'Supprimer un événement (confirmation)', expected: 'L\'événement est supprimé de la liste après confirmation.' },
+      { num: '8.2', action: 'Rafraîchir la page (F5)', expected: 'Événements, équipes, membres et calculs sont conservés.' },
     ],
   },
   {
     title: '9. Thème sombre',
     tests: [
-      { num: '9.1', action: 'Basculer en thème sombre (Profil -> Thème) et recharger le dashboard', expected: 'Dashboard, barre de navigation, cartes de boards : tout respecte le thème sombre.' },
+      { num: '9.1', action: 'Basculer en thème sombre (Profil -> Thème) et recharger /capacity', expected: 'Tous les éléments respectent le thème sombre. Aucun texte illisible.' },
     ],
   },
 ]
@@ -175,7 +170,7 @@ async function generate() {
 
   newPage()
   drawRect(M, currentY, CW, 42, cl.indigo, null)
-  drawText('CAHIER DE TESTS — DASHBOARD', M + 12, currentY + 12 + 14, fB, 15, cl.white)
+  drawText('CAHIER DE TESTS — CAPACITÉ', M + 12, currentY + 12 + 14, fB, 14, cl.white)
   drawText(`PouetPouet v0.10.0  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
   currentY += 42 + 8
 
@@ -255,7 +250,7 @@ async function generate() {
   tfSig.setFontSize(FS)
 
   const bytes = await doc.save()
-  const outPath = 'docs/cahiers-tests/CT-v0.10.0-dashboard.pdf'
+  const outPath = 'docs/cahiers-tests/CT-v0.10.0-capacite.pdf'
   writeFileSync(outPath, bytes)
   console.log(`✓  ${outPath}  (${TOTAL} tests · ${doc.getPageCount()} page${doc.getPageCount() > 1 ? 's' : ''})`)
 }

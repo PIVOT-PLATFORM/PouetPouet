@@ -100,6 +100,22 @@ const SECTIONS = [
       { num: '10.3', action: 'Lancer une activité pendant qu\'un participant est déconnecté', expected: 'Le participant voit l\'activité à la reconnexion.' },
     ],
   },
+  {
+    title: '11. Rôles & permissions de session',
+    tests: [
+      { num: '11.1', action: 'En tant qu\'Éditeur du board, démarrer puis animer une session', expected: 'Action autorisée : un éditeur peut démarrer, animer et fermer une session.' },
+      { num: '11.2', action: 'En tant que Lecteur, tenter de lancer une activité', expected: 'Action refusée ; les contrôles d\'animation ne sont pas accessibles.' },
+      { num: '11.3', action: 'Vérifier les actions hôte (création, fermeture, lancement d\'activité)', expected: 'Chaque action hôte est contrôlée côté HTTP et socket (propriété / rôle requis).' },
+    ],
+  },
+  {
+    title: '12. Résultats persistants & timer',
+    tests: [
+      { num: '12.1', action: 'Clôturer un sondage / quiz / brainstorm', expected: 'Le rapport de résultats reste affiché pour l\'animateur ET les participants.' },
+      { num: '12.2', action: 'Fermer l\'écran de fin de timer côté hôte', expected: 'Le timer des autres participants n\'est pas coupé.' },
+      { num: '12.3', action: 'Clôturer un vote de board pendant la session', expected: 'Les résultats s\'affichent chez tous les participants ; les formes ne sont pas votables.' },
+    ],
+  },
 ]
 
 const TOTAL = SECTIONS.reduce((s, sec) => s + sec.tests.length, 0)
@@ -180,7 +196,7 @@ async function generate() {
   newPage()
   drawRect(M, currentY, CW, 42, cl.indigo, null)
   drawText('CAHIER DE TESTS — SESSIONS LIVE', M + 12, currentY + 12 + 14, fB, 15, cl.white)
-  drawText(`PouetPouet v0.3.0  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
+  drawText(`PouetPouet v0.10.0  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
   currentY += 42 + 8
 
   const META_H = 21, META_COL = CW / 2
@@ -259,7 +275,7 @@ async function generate() {
   tfSig.setFontSize(FS)
 
   const bytes = await doc.save()
-  const outPath = 'docs/cahiers-tests/CT-v0.3.0-sessions.pdf'
+  const outPath = 'docs/cahiers-tests/CT-v0.10.0-sessions.pdf'
   writeFileSync(outPath, bytes)
   console.log(`✓  ${outPath}  (${TOTAL} tests · ${doc.getPageCount()} page${doc.getPageCount() > 1 ? 's' : ''})`)
 }

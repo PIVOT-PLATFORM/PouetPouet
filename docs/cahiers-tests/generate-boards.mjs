@@ -150,9 +150,50 @@ const SECTIONS = [
     ],
   },
   {
-    title: '15. Thème sombre',
+    title: '15. Tableaux',
     tests: [
-      { num: '15.1', action: 'Basculer en thème sombre et recharger le board', expected: 'Canvas, barre d\'outils et panneaux respectent le thème sombre. Cartes lisibles.' },
+      { num: '15.1', action: 'Cliquer sur l\'outil Tableau puis cliquer sur le canvas', expected: 'Un tableau 3x3 vide est créé à la position cliquée.' },
+      { num: '15.2', action: 'Cliquer dans une cellule et saisir du texte', expected: 'Le texte est éditable dans la cellule et sauvegardé en quittant la cellule.' },
+      { num: '15.3', action: 'Sélectionner le tableau et utiliser +/- Lignes', expected: 'Une ligne est ajoutée / la dernière retirée (minimum 1 ligne).' },
+      { num: '15.4', action: 'Sélectionner le tableau et utiliser +/- Colonnes', expected: 'Une colonne est ajoutée / la dernière retirée (minimum 1 colonne).' },
+      { num: '15.5', action: 'Glisser la bordure entre deux colonnes', expected: 'La largeur des deux colonnes adjacentes s\'ajuste ; la répartition est conservée après F5.' },
+      { num: '15.6', action: 'Déplacer le tableau via la poignée du haut', expected: 'Le tableau se déplace ; cliquer une cellule ne déclenche pas le déplacement.' },
+      { num: '15.7', action: 'Copier un tableau dans Excel / Google Sheets puis coller (Ctrl+V) sur le canvas', expected: 'Un tableau reprenant les lignes et colonnes collées est créé au curseur.' },
+      { num: '15.8', action: 'Sélectionner un tableau existant puis coller un tableau du presse-papier', expected: 'Le tableau sélectionné est rempli avec les données collées (pas de nouvelle carte).' },
+      { num: '15.9', action: 'Changer la couleur du tableau (barre flottante)', expected: 'La teinte de l\'en-tête (1re ligne) est mise à jour.' },
+    ],
+  },
+  {
+    title: '16. Grille d\'aimantation & guides d\'alignement',
+    tests: [
+      { num: '16.1', action: 'Activer la grille via le bouton dédié de la barre d\'outils', expected: 'Un quadrillage apparaît ; les éléments déplacés s\'aimantent à la grille.' },
+      { num: '16.2', action: 'Activer les guides d\'alignement et déplacer une carte près d\'une autre', expected: 'Des lignes roses apparaissent quand les bords/centres s\'alignent ; la carte s\'aimante.' },
+      { num: '16.3', action: 'Relâcher la carte', expected: 'Les guides disparaissent ; la carte reste à la position alignée.' },
+      { num: '16.4', action: 'Recharger la page (F5)', expected: 'Les préférences grille / guides sont conservées.' },
+    ],
+  },
+  {
+    title: '17. Verrou d\'édition & robustesse collaborative',
+    tests: [
+      { num: '17.1', action: 'Depuis deux onglets, commencer à éditer une carte dans l\'un', expected: 'L\'autre onglet affiche "édite…" sur la carte et ne peut pas l\'ouvrir en même temps.' },
+      { num: '17.2', action: 'Un collègue crée une carte pendant que vous écrivez dans une autre', expected: 'Votre curseur/saisie n\'est pas volé par la nouvelle carte.' },
+      { num: '17.3', action: 'Réinitialiser le board puis Ctrl+Z', expected: 'Suppression atomique (pas d\'éléments fantômes) ; le contenu effacé est restauré.' },
+      { num: '17.4', action: 'Supprimer le même objet simultanément depuis deux onglets', expected: 'Aucune erreur serveur ; l\'objet disparaît proprement des deux côtés.' },
+    ],
+  },
+  {
+    title: '18. Rôles & co-propriété',
+    tests: [
+      { num: '18.1', action: 'En tant qu\'Éditeur, tenter de réinitialiser le board', expected: 'Action refusée : la réinitialisation est réservée aux propriétaires.' },
+      { num: '18.2', action: 'En tant qu\'Éditeur, prolonger un vote en cours', expected: 'Action autorisée (lancer / prolonger / clôturer un vote).' },
+      { num: '18.3', action: 'Partager le board via un lien et rejoindre', expected: 'Le rôle obtenu via le lien est au maximum Éditeur (jamais Propriétaire).' },
+      { num: '18.4', action: 'Nommer un co-propriétaire et vérifier ses droits', expected: 'Le co-propriétaire gère partages, paramètres et suppression ; le créateur reste intouchable.' },
+    ],
+  },
+  {
+    title: '19. Thème sombre',
+    tests: [
+      { num: '19.1', action: 'Basculer en thème sombre et recharger le board', expected: 'Canvas, barre d\'outils et panneaux respectent le thème sombre. Cartes lisibles.' },
     ],
   },
 ]
@@ -235,7 +276,7 @@ async function generate() {
   newPage()
   drawRect(M, currentY, CW, 42, cl.indigo, null)
   drawText('CAHIER DE TESTS — ÉDITEUR DE BOARDS', M + 12, currentY + 12 + 14, fB, 14, cl.white)
-  drawText(`PouetPouet v0.3.0  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
+  drawText(`PouetPouet v0.10.0  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
   currentY += 42 + 8
 
   const META_H = 21, META_COL = CW / 2
@@ -314,7 +355,7 @@ async function generate() {
   tfSig.setFontSize(FS)
 
   const bytes = await doc.save()
-  const outPath = 'docs/cahiers-tests/CT-v0.3.0-boards.pdf'
+  const outPath = 'docs/cahiers-tests/CT-v0.10.0-boards.pdf'
   writeFileSync(outPath, bytes)
   console.log(`✓  ${outPath}  (${TOTAL} tests · ${doc.getPageCount()} page${doc.getPageCount() > 1 ? 's' : ''})`)
 }
