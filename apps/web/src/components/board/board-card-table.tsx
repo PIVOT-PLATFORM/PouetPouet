@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef, useState } from 'react'
 import type { Card } from '@/hooks/useBoard'
 import { ConnectHandles, LinkCardsOverlay, BorderResizeHandles, type ResizeDir } from './board-card-parts'
 import { ColorPicker } from '@/components/ui/color-picker'
@@ -8,6 +9,7 @@ import { parseTableContent, serializeTable } from '@/lib/table-clipboard'
 
 interface TableCardProps {
   card: Card
+  zoom?: number
   isSelected?: boolean
   isMultiSelect?: boolean
   isReadonly?: boolean
@@ -26,32 +28,70 @@ interface TableCardProps {
 }
 
 const GRIP_H = 16
+const COL_MIN_PX = 30
 
 export function TableCard({
-  card, isSelected, isMultiSelect, isReadonly, outline,
+  card, zoom = 1, isSelected, isMultiSelect, isReadonly, outline,
   onRecolor, onDelete, onUpdate, onSelect, onStartConnect,
   onLinkCardsClick, linkCardsMode, isLinkSource,
   handleMouseDown, handleResizeMouseDown, isDragging,
 }: TableCardProps) {
-  const rows = parseTableContent(card.content)
+  const { rows, colW } = parseTableContent(card.content)
   const editable = !isReadonly && !card.locked
   const tint = headerTint(card.color)
+  const bodyW = card.width
 
-  function commit(next: string[][]) {
-    onUpdate(card.id, serializeTable(next))
+  // Largeurs en cours de drag (override visuel), sinon les largeurs persistées.
+  const [dragW, setDragW] = useState<number[] | null>(null)
+  const widths = dragW && dragW.length === colW.length ? dragW : colW
+
+  function commit(nextRows: string[][], nextColW?: number[]) {
+    onUpdate(card.id, serializeTable(nextRows, nextColW))
   }
 
   function commitCell(r: number, c: number, value: string) {
     if (rows[r]?.[c] === value) return
     const next = rows.map((row) => [...row])
     next[r][c] = value
-    commit(next)
+    commit(next, colW)
   }
 
-  function addRow() { commit([...rows.map((r) => [...r]), rows[0].map(() => '')]) }
-  function delRow() { if (rows.length > 1) commit(rows.slice(0, -1).map((r) => [...r])) }
+  // Lignes : conservent les largeurs de colonnes. Colonnes : on ré-égalise.
+  function addRow() { commit([...rows.map((r) => [...r]), rows[0].map(() => '')], colW) }
+  function delRow() { if (rows.length > 1) commit(rows.slice(0, -1).map((r) => [...r]), colW) }
   function addCol() { commit(rows.map((r) => [...r, ''])) }
   function delCol() { if (rows[0].length > 1) commit(rows.map((r) => r.slice(0, -1))) }
+
+  // Redimensionnement d'une colonne via la bordure droite (sépare i et i+1).
+  function startColResize(i: number, e: React.MouseEvent) {
+    if (!editable) return
+    e.preventDefault(); e.stopPropagation()
+    const start = [...widths]
+    const startX = e.clientX
+    const minFrac = COL_MIN_PX / bodyW
+    let latest = start
+    function onMove(ev: MouseEvent) {
+      let d = ((ev.clientX - startX) / zoom) / bodyW
+      d = Math.max(-(start[i] - minFrac), Math.min(start[i + 1] - minFrac, d))
+      latest = [...start]
+      latest[i] = start[i] + d
+      latest[i + 1] = start[i + 1] - d
+      setDragW(latest)
+    }
+    function onUp() {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      setDragW(null)
+      commit(rows, latest)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  // Positions (px) des frontières de colonnes pour placer les poignées.
+  const boundaries: number[] = []
+  let acc = 0
+  for (let i = 0; i < widths.length - 1; i++) { acc += widths[i]; boundaries.push(acc * bodyW) }
 
   return (
     <div
@@ -95,8 +135,11 @@ export function TableCard({
       </div>
 
       {/* ── Table body ── */}
-      <div className="overflow-hidden rounded-b-lg border border-gray-300 bg-white" style={{ height: card.height - GRIP_H }}>
+      <div className="relative overflow-hidden rounded-b-lg border border-gray-300 bg-white" style={{ height: card.height - GRIP_H }}>
         <table className="w-full h-full border-collapse" style={{ tableLayout: 'fixed' }}>
+          <colgroup>
+            {widths.map((w, i) => <col key={i} style={{ width: `${w * 100}%` }} />)}
+          </colgroup>
           <tbody>
             {rows.map((row, r) => (
               <tr key={r}>
@@ -121,6 +164,19 @@ export function TableCard({
             ))}
           </tbody>
         </table>
+
+        {/* ── Column resize handles (over column boundaries) ── */}
+        {editable && boundaries.map((x, i) => (
+          <div
+            key={i}
+            onMouseDown={(e) => startColResize(i, e)}
+            className="absolute top-0 bottom-0 z-20 group/col"
+            style={{ left: x - 4, width: 8, cursor: 'col-resize' }}
+            title="Redimensionner la colonne"
+          >
+            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-primary-400 opacity-0 group-hover/col:opacity-100 transition-opacity" />
+          </div>
+        ))}
       </div>
 
       {editable && (

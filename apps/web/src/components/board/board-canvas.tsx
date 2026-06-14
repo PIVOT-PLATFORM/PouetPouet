@@ -390,6 +390,14 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   }, [clipboard, isReadonly, onPasteCards])
 
   // ── Paste from system clipboard (text or image) ─────────────────────────────
+  // Refs gardent les valeurs courantes sans ré-attacher le listener window à
+  // chaque rendu (sinon une mutation de carte ré-abonne 'paste' en permanence).
+  const selectedIdsRef = useRef(selectedIds)
+  selectedIdsRef.current = selectedIds
+  const cardsRef = useRef(cards)
+  cardsRef.current = cards
+  const onUpdateCardRef = useRef(onUpdateCard)
+  onUpdateCardRef.current = onUpdateCard
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
       if (isReadonly) return
@@ -431,6 +439,17 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
       const tableRows = parseClipboardTable(html, rawText)
       if (tableRows) {
         e.preventDefault()
+        // Si une (et une seule) carte TABLE est sélectionnée → on la remplit au
+        // lieu d'en créer une nouvelle.
+        const sel = selectedIdsRef.current
+        if (sel.size === 1) {
+          const id = [...sel][0]
+          const target = cardsRef.current.find((c) => c.id === id)
+          if (target?.type === 'TABLE') {
+            onUpdateCardRef.current(id, serializeTable(tableRows))
+            return
+          }
+        }
         const cols = tableRows[0].length
         const w = Math.min(720, Math.max(180, cols * 120))
         const h = Math.min(600, 16 + tableRows.length * 30)

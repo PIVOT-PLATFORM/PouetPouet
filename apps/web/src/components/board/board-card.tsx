@@ -365,6 +365,7 @@ export const BoardCard = memo(function BoardCard({
     return (
       <TableCard
         card={card}
+        zoom={zoom}
         isSelected={isSelected}
         isMultiSelect={isMultiSelect}
         isReadonly={isReadonly}
