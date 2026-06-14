@@ -54,9 +54,9 @@ test('le créateur édite sa carte ; une création distante ne vole pas le focus
   expect(focusedCardId).toBe(cardA)
   await expect(page.locator(`[data-card-id="${cardA}"] textarea`)).toHaveValue('Bonjour encore')
 
-  // Verrou doux : pendant que A écrit, B voit "… écrit…" sur la carte de A
+  // Verrou doux : pendant que A écrit, B voit "… édite…" sur la carte de A
   // et son double-clic dessus n'ouvre pas l'édition.
-  await expect(pageB.getByText(/écrit…/)).toBeVisible({ timeout: 5000 })
+  await expect(pageB.getByText(/édite…/)).toBeVisible({ timeout: 5000 })
   const cardABoxOnB = await pageB.locator(`[data-card-id="${cardA}"]`).boundingBox()
   if (cardABoxOnB) {
     await pageB.mouse.dblclick(cardABoxOnB.x + cardABoxOnB.width / 2, cardABoxOnB.y + cardABoxOnB.height / 2)
