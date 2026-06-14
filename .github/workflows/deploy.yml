@@ -68,6 +68,13 @@ jobs:
       - name: Deploy API to Cloud Run
         run: |
           set -euo pipefail
+          # Multi-instance : pilote par des variables de depot (defauts surs = mono-instance).
+          # Activer = definir MAX_INSTANCES>1, REDIS_HOST/REDIS_PORT (Memorystore) et
+          # VPC_CONNECTOR. Voir docs/ops/scaling-multi-instance.md.
+          EXTRA_ARGS=""
+          if [ -n "${{ vars.VPC_CONNECTOR }}" ]; then
+            EXTRA_ARGS="--vpc-connector=${{ vars.VPC_CONNECTOR }} --vpc-egress=private-ranges-only"
+          fi
           gcloud run deploy pouetpouet-api \
             --image ${{ env.REPO }}/api:${{ github.sha }} \
             --region ${{ env.REGION }} \
@@ -75,9 +82,10 @@ jobs:
             --allow-unauthenticated \
             --port 8080 \
             --min-instances=1 \
-            --max-instances=1 \
+            --max-instances=${{ vars.MAX_INSTANCES || '1' }} \
             --timeout=3600 \
             --session-affinity \
+            $EXTRA_ARGS \
             --add-cloudsql-instances ${{ secrets.GCP_PROJECT_ID }}:${{ env.REGION }}:pouetpouet-db \
             --set-secrets DATABASE_URL=DATABASE_URL:latest \
             --set-secrets JWT_SECRET=JWT_SECRET:latest \
@@ -85,7 +93,7 @@ jobs:
             --set-secrets SMTP_USER=SMTP_USER:latest \
             --set-secrets SMTP_PASS=SMTP_PASS:latest \
             --set-secrets MAIL_FROM=SMTP_USER:latest \
-            --set-env-vars NODE_ENV=production,SMTP_HOST=smtp.gmail.com,SMTP_PORT=587,SMTP_SECURE=false,SENTRY_DSN=${{ secrets.SENTRY_DSN_API }}
+            --set-env-vars NODE_ENV=production,SMTP_HOST=smtp.gmail.com,SMTP_PORT=587,SMTP_SECURE=false,SENTRY_DSN=${{ secrets.SENTRY_DSN_API }},REDIS_HOST=${{ vars.REDIS_HOST || 'localhost' }},REDIS_PORT=${{ vars.REDIS_PORT || '6379' }}
 
       - name: Get API URL
         id: get-url

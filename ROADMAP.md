@@ -154,7 +154,7 @@
 - [x] Curseurs coalescés côté serveur
 - [x] Rate limiting (`@fastify/rate-limit`)
 - [x] Comptage participants session cross-instance (`fetchSockets`, plus de lecture locale) — prérequis multi-instance
-- [ ] Provisionner Redis/Memorystore en prod + passer `--max-instances` > 1 (`deploy.yml` : aujourd'hui `=1`, `REDIS_HOST` non défini)
+- [ ] Activer le multi-instance en prod *(`deploy.yml` prêt et paramétré — vars `MAX_INSTANCES`/`REDIS_HOST`/`VPC_CONNECTOR`, défauts mono-instance ; reste à provisionner Memorystore : guide `docs/ops/scaling-multi-instance.md`)*
 
 ### Performance & charge restantes
 - [ ] Lazy-loading des éléments hors viewport (boards > 500 éléments)
