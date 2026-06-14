@@ -120,9 +120,9 @@
 - [x] Suivi erreurs frontend et backend (Sentry)
 - [x] Métriques applicatives Prometheus (`/metrics`)
 - [x] Audit log des actions sensibles (`/api/auth/security-log`)
-- [ ] Alertes (API indisponible, taux erreur, latence, échec déploiement)
-- [ ] Runbooks d'exploitation documentés
-- [ ] Définir les SLO/SLA internes
+- [x] Alertes (API indisponible, taux erreur, latence, échec déploiement) *(politiques documentées `docs/ops/observability-slo-alerting.md` ; échec déploiement automatisé dans `deploy.yml` ; création GCP/Sentry à appliquer)*
+- [x] Runbooks d'exploitation documentés *(`docs/ops/` : backups/rollback + observabilité/alertes)*
+- [x] Définir les SLO/SLA internes *(dispo 99,5 %, p95 < 500 ms, 5xx < 1 % — `docs/ops/observability-slo-alerting.md`)*
 
 ---
 

@@ -169,3 +169,24 @@ jobs:
           set -euo pipefail
           curl --fail --silent --show-error --retry 5 --retry-delay 5 \
             "${{ steps.get-url.outputs.url }}"
+
+  notify-failure:
+    name: Notify on deploy failure
+    runs-on: ubuntu-latest
+    needs: [deploy-api, deploy-web]
+    if: failure()
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    steps:
+      - name: Slack notification
+        if: env.SLACK_WEBHOOK_URL != ''
+        run: |
+          set -euo pipefail
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -fsS -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🚨 Déploiement PouetPouet en échec sur master (${{ github.sha }}). $RUN_URL\"}" \
+            "$SLACK_WEBHOOK_URL"
+
+      - name: Fallback log
+        if: env.SLACK_WEBHOOK_URL == ''
+        run: echo "Déploiement en échec. SLACK_WEBHOOK_URL non configuré — voir le run et la révision Cloud Run précédente (runbook docs/ops)."
