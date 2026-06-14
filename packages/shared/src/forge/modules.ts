@@ -80,12 +80,12 @@ export const CAPACITY_MODULE: ModuleManifest = {
 export const MEETOPS_MODULE: ModuleManifest = {
   id: 'meetops',
   name: 'MeetOps',
-  description: 'Gestion industrielle de réunions (événements, séries, invitations)',
+  description: 'Gestion industrielle de réunions (événements, invitations Outlook/Teams, listes de diffusion)',
   icon: '🗓️',
   color: '#475569',
   nav: [{ label: 'MeetOps', href: '/meetops', match: '/meetops' }],
   apiPrefix: '/api/meetops',
-  ownedEntities: ['MeetEvent', 'MeetSeries', 'Meeting', 'MeetingParticipant'],
+  ownedEntities: ['MeetEvent', 'Meeting', 'MeetingParticipant', 'MeetDistList', 'MeetDistMember', 'MeetTemplate', 'MeetHistory'],
   referencedPivots: ['User'],
   // L'envoi/annulation des invitations alimentera Notifications et Audit (v2)
   emits: [],
