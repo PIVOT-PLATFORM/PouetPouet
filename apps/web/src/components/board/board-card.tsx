@@ -286,7 +286,9 @@ export const BoardCard = memo(function BoardCard({
   const chipsPerRow = Math.max(1, Math.floor((cardW - 16) / CHIP_AVG_W))
   const maxVisible = maxRows * chipsPerRow
 
-  const outline = isSelected ? '2px solid #6366f1' : card.locked ? '1.5px solid #d1d5db' : groupColor ? `2px solid ${groupColor}` : 'none'
+  // Édition distante en cours → bordure ambre nette (prioritaire sur verrou/groupe,
+  // après la sélection) pour signaler clairement "occupée" sans rester sur un badge minuscule.
+  const outline = isSelected ? '2px solid #6366f1' : remoteEditor ? '2px solid #f59e0b' : card.locked ? '1.5px solid #d1d5db' : groupColor ? `2px solid ${groupColor}` : 'none'
 
   // ── IMAGE card ──────────────────────────────────────────────────────────────
   if (card.type === 'IMAGE') {
@@ -511,11 +513,11 @@ export const BoardCard = memo(function BoardCard({
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
-      {/* ── Verrou doux : badge "Untel écrit…" ── */}
+      {/* ── Verrou doux : badge "Untel édite…" (halo blanc pour ressortir sur toute couleur) ── */}
       {remoteEditor && (
-        <div className="absolute -top-2.5 left-2 z-10 flex items-center gap-1 bg-primary-600 text-white rounded-full px-2 py-0.5 shadow-md pointer-events-none">
-          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-          <span className="text-[10px] font-semibold whitespace-nowrap">{remoteEditor.name} écrit…</span>
+        <div className="absolute -top-3 left-2 z-10 flex items-center gap-1 bg-amber-500 text-white rounded-full px-2.5 py-1 shadow-md ring-2 ring-white pointer-events-none">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+          <span className="text-[11px] font-semibold whitespace-nowrap">{remoteEditor.name} édite…</span>
         </div>
       )}
       {/* ── Header band (colored for TEXT) + actions row ── */}
