@@ -17,6 +17,11 @@ interface Props {
   onToolChange: (tool: ToolMode, color?: string, stroke?: StrokeSize, fill?: boolean, opacity?: number) => void
   onAddFrame?: () => void
   frameLimitReached?: boolean
+  // Aimantation : grille + guides d'alignement
+  snapToGrid?: boolean
+  alignGuides?: boolean
+  onToggleGrid?: () => void
+  onToggleAlign?: () => void
 }
 
 const TOOLBAR_W = 48
@@ -38,7 +43,7 @@ function ShapeGlyph({ mode }: { mode: ShapeMode }) {
   }
 }
 
-export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, toolOpacity, minTop, onToolChange, onAddFrame, frameLimitReached }: Props) {
+export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, toolOpacity, minTop, onToolChange, onAddFrame, frameLimitReached, snapToGrid, alignGuides, onToggleGrid, onToggleAlign }: Props) {
   const MIN_Y = minTop ?? 120
   const [pos, setPos] = useState({ x: 16, y: MIN_Y })
   const [collapsed, setCollapsed] = useState(false)
@@ -205,6 +210,39 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
                 <path strokeLinecap="round" d="M7.5 12h9" />
               </svg>
             </Btn>
+
+            {/* Aimantation : grille + guides d'alignement */}
+            {(onToggleGrid || onToggleAlign) && (
+              <>
+                <Sep />
+                {onToggleGrid && (
+                  <button
+                    title={snapToGrid ? 'Grille : activée (clic pour désactiver)' : 'Aligner sur la grille'}
+                    onClick={(e) => { onToggleGrid(); e.currentTarget.blur() }}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all focus:outline-none ${
+                      snapToGrid ? 'bg-primary-600 text-white shadow-md shadow-primary-200' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4h16v16H4zM9 4v16M15 4v16M4 9h16M4 15h16" />
+                    </svg>
+                  </button>
+                )}
+                {onToggleAlign && (
+                  <button
+                    title={alignGuides ? "Guides d'alignement : activés (clic pour désactiver)" : "Guides d'alignement"}
+                    onClick={(e) => { onToggleAlign(); e.currentTarget.blur() }}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all focus:outline-none ${
+                      alignGuides ? 'bg-primary-600 text-white shadow-md shadow-primary-200' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M7 8h10M9 16h6" />
+                    </svg>
+                  </button>
+                )}
+              </>
+            )}
 
             {toolMode !== 'select' && (
               <>

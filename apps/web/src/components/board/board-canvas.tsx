@@ -68,6 +68,10 @@ interface Props {
   highlightedGroupId?: string | null
   cursors?: Map<string, { name: string; avatar: string | null; x: number; y: number; ts: number }>
   onCursorMove?: (x: number, y: number) => void
+  // Aimantation : grille (snap sur multiples de DOT_SPACING) et guides d'alignement
+  // intelligents (bords/centres des cartes voisines). Mutuellement exclusifs (grille prioritaire).
+  snapToGrid?: boolean
+  alignGuides?: boolean
 }
 
 export interface BoardCanvasHandle {
@@ -79,9 +83,50 @@ export interface BoardCanvasHandle {
 const MIN_ZOOM = 0.1
 const MAX_ZOOM = 3
 const DOT_SPACING = 24
+const ALIGN_SNAP_PX = 6 // tolérance d'aimantation des guides, en pixels écran
 // Below this card count everything is mounted; above it, offscreen cards are
 // skipped (virtualization) to keep heavy boards fluid.
 const VIRTUALIZE_THRESHOLD = 100
+
+// ── Guides d'alignement intelligents ──────────────────────────────────────────
+interface Guide { axis: 'v' | 'h'; pos: number; from: number; to: number }
+
+// Aligne la carte déplacée (position proposée x,y) sur les bords/centres des autres
+// cartes, dans une tolérance (coords canvas). Renvoie la position aimantée + les
+// lignes-guides à dessiner (au plus une verticale + une horizontale).
+function computeAlignment(
+  card: { width: number; height: number }, x: number, y: number,
+  others: Card[], threshold: number,
+): { x: number; y: number; guides: Guide[] } {
+  const w = card.width, h = card.height
+  const vSelf = [x, x + w / 2, x + w] // gauche, centre, droite
+  const hSelf = [y, y + h / 2, y + h] // haut, milieu, bas
+  let bestV: { d: number; pos: number; shift: number } | null = null
+  let bestH: { d: number; pos: number; shift: number } | null = null
+  let vTarget: Card | null = null, hTarget: Card | null = null
+
+  for (const o of others) {
+    const vO = [o.posX, o.posX + o.width / 2, o.posX + o.width]
+    const hO = [o.posY, o.posY + o.height / 2, o.posY + o.height]
+    for (let i = 0; i < 3; i++) {
+      for (const ov of vO) {
+        const d = Math.abs(vSelf[i] - ov)
+        if (d <= threshold && (!bestV || d < bestV.d)) { bestV = { d, pos: ov, shift: ov - vSelf[i] }; vTarget = o }
+      }
+      for (const oh of hO) {
+        const d = Math.abs(hSelf[i] - oh)
+        if (d <= threshold && (!bestH || d < bestH.d)) { bestH = { d, pos: oh, shift: oh - hSelf[i] }; hTarget = o }
+      }
+    }
+  }
+
+  const nx = bestV ? x + bestV.shift : x
+  const ny = bestH ? y + bestH.shift : y
+  const guides: Guide[] = []
+  if (bestV && vTarget) guides.push({ axis: 'v', pos: bestV.pos, from: Math.min(ny, vTarget.posY), to: Math.max(ny + h, vTarget.posY + vTarget.height) })
+  if (bestH && hTarget) guides.push({ axis: 'h', pos: bestH.pos, from: Math.min(nx, hTarget.posX), to: Math.max(nx + w, hTarget.posX + hTarget.width) })
+  return { x: nx, y: ny, guides }
+}
 
 // Returns a referentially-stable function that always calls the latest `fn`.
 // Lets BoardCard stay memoized even though parent handlers are recreated on
@@ -117,6 +162,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   onSetFrameLayer,
   boardName, highlightedGroupId,
   cursors, onCursorMove,
+  snapToGrid = false, alignGuides: alignGuidesEnabled = true,
 }: Props, ref) {
   // ── Refs ────────────────────────────────────────────────────────────────────
   const containerRef     = useRef<HTMLDivElement>(null)
@@ -800,9 +846,34 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
 
   // Stable identities so the memoized BoardCard skips re-renders: without this,
   // every parent render recreates the handlers and defeats React.memo.
-  const hMoveCard       = useStableHandler(onMoveCard)
+  // Guides d'alignement transitoires (dessinés pendant le drag d'une carte).
+  const [guides, setGuides] = useState<Guide[]>([])
+  const guidesRef = useRef<Guide[]>([])
+  const publishGuides = (g: Guide[]) => { guidesRef.current = g; setGuides(g) }
+  const clearGuides = () => { if (guidesRef.current.length) publishGuides([]) }
+
+  // Intercepte le déplacement des cartes pour aimanter (grille ou alignement) avant
+  // de propager. Écho partiel : la carte/le store mergent par id.
+  const hMoveCard = useStableHandler((id: string, x: number, y: number) => {
+    const c = cardById.get(id)
+    if (!c) { onMoveCard(id, x, y); return }
+    if (snapToGrid) {
+      clearGuides()
+      onMoveCard(id, Math.round(x / DOT_SPACING) * DOT_SPACING, Math.round(y / DOT_SPACING) * DOT_SPACING)
+      return
+    }
+    if (alignGuidesEnabled && selectedIds.size <= 1) {
+      const targets = cards.filter((t) => t.id !== id && t.type !== 'DRAW')
+      const r = computeAlignment(c, x, y, targets, ALIGN_SNAP_PX / zoom)
+      publishGuides(r.guides)
+      onMoveCard(id, r.x, r.y)
+      return
+    }
+    clearGuides()
+    onMoveCard(id, x, y)
+  })
   const hStartDragCard  = useStableHandler(onStartDragCard)
-  const hCommitDragCard = useStableHandler(onCommitDragCard)
+  const hCommitDragCard = useStableHandler((id: string) => { clearGuides(); onCommitDragCard(id) })
   const hUpdateCard     = useStableHandler(onUpdateCard)
   const hRecolorCard    = useStableHandler(onRecolorCard)
   const hDeleteCard     = useStableHandler(onDeleteCard)
@@ -943,7 +1014,10 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
         ref={containerRef}
         className="relative flex-1 overflow-hidden select-none"
         style={{
-          backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)',
+          // Grille active → quadrillage de lignes (repère d'aimantation) ; sinon points.
+          backgroundImage: snapToGrid
+            ? 'linear-gradient(to right, #e2e8f0 1px, transparent 1px), linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)'
+            : 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)',
           backgroundSize: `${dotD}px ${dotD}px`,
           backgroundPosition: `${viewport.x % dotD}px ${viewport.y % dotD}px`,
           cursor: canvasCursor,
@@ -1029,6 +1103,17 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
           {/* ── Layer 2: Foreground ── */}
           {renderFramesForLayer(2)}
           {renderCardsForLayer(2)}
+
+          {/* Guides d'alignement (pendant le drag d'une carte) — rose, fins quel que soit le zoom */}
+          {guides.map((g, i) => (
+            <div
+              key={i}
+              className="absolute pointer-events-none"
+              style={g.axis === 'v'
+                ? { left: g.pos, top: g.from, width: 1 / zoom, height: g.to - g.from, background: '#ec4899', zIndex: 60 }
+                : { left: g.from, top: g.pos, height: 1 / zoom, width: g.to - g.from, background: '#ec4899', zIndex: 60 }}
+            />
+          ))}
 
           {/* Vote badges overlay */}
           {/* Formes et dessins exclus du vote : décoratifs, pas du contenu votable */}

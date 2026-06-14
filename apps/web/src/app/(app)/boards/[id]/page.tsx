@@ -332,6 +332,20 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const [toolFill, setToolFill] = useState(false)
   const [toolOpacity, setToolOpacity] = useState(0.3)
 
+  // Aimantation (préférences persistées par utilisateur). Grille off, guides on par défaut.
+  const [snapToGrid, setSnapToGrid] = useState(false)
+  const [alignGuides, setAlignGuides] = useState(true)
+  useEffect(() => {
+    setSnapToGrid(localStorage.getItem('klx_board_grid') === '1')
+    setAlignGuides(localStorage.getItem('klx_board_align') !== '0')
+  }, [])
+  function toggleSnapToGrid() {
+    setSnapToGrid((v) => { const nv = !v; localStorage.setItem('klx_board_grid', nv ? '1' : '0'); return nv })
+  }
+  function toggleAlignGuides() {
+    setAlignGuides((v) => { const nv = !v; localStorage.setItem('klx_board_align', nv ? '1' : '0'); return nv })
+  }
+
   function handleToolChange(tool: ToolMode, color?: string, stroke?: StrokeSize, fill?: boolean, opacity?: number) {
     if (tool !== toolMode) selectCards(new Set())
     setToolMode(tool)
@@ -947,6 +961,8 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           toolOpacity={toolOpacity}
           clipboard={clipboard}
           isReadonly={isReadonly}
+          snapToGrid={snapToGrid}
+          alignGuides={alignGuides}
           onAddCard={addCard}
           onMoveCard={moveCard}
           onResizeCard={resizeCard}
@@ -1024,6 +1040,10 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             onToolChange={handleToolChange}
             onAddFrame={() => addFrame(200, 200)}
             frameLimitReached={frames.length >= MAX_FRAMES_PER_BOARD}
+            snapToGrid={snapToGrid}
+            alignGuides={alignGuides}
+            onToggleGrid={toggleSnapToGrid}
+            onToggleAlign={toggleAlignGuides}
           />
         )}
 
