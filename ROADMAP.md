@@ -11,8 +11,8 @@
 ### CI
 - [x] Tests unitaires Vitest dans la CI
 - [x] Tests d'intégration API avec vraie DB PostgreSQL dans la CI
-- [ ] Ajouter les tests E2E Playwright dans la CI *(specs existent localement, pas encore dans ci.yml)*
-- [ ] Ajouter l'audit accessibilité Playwright + axe-core dans la CI *(a11y.spec.ts local seulement)*
+- [x] Ajouter les tests E2E Playwright dans la CI *(job `e2e`, serveurs prod + Postgres/Redis)*
+- [x] Ajouter l'audit accessibilité Playwright + axe-core dans la CI *(`a11y.spec.ts` tourne dans le job `e2e`)*
 - [ ] Ajouter des tests de performance
   - [ ] Lighthouse sur la landing page
   - [ ] Définir les budgets de performance par page critique
