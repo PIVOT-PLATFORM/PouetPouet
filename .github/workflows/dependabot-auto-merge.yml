@@ -1,0 +1,34 @@
+name: Dependabot auto-merge
+
+# Active l'auto-merge des PR Dependabot qui sont des mises à jour de patch
+# (semver-patch) — les "patchs non critiques". Les bumps minor/major restent
+# en revue manuelle. L'auto-merge attend que les checks requis passent.
+#
+# Prérequis (réglage GitHub admin) : "Allow auto-merge" activé sur le dépôt.
+# Voir .github/admin-settings.md.
+on: pull_request_target
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto-merge patch updates
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    timeout-minutes: 5
+
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+
+      - name: Approve and enable auto-merge (patch only)
+        if: steps.meta.outputs.update-type == 'version-update:semver-patch'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr review --approve "$PR_URL"
+          gh pr merge --auto --squash "$PR_URL"

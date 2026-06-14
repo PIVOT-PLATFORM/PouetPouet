@@ -23,7 +23,7 @@
 - [x] Ajouter Dependabot
   - [x] Mises à jour npm
   - [x] Mises à jour GitHub Actions
-  - [ ] Règles d'auto-merge pour les patchs non critiques
+  - [x] Règles d'auto-merge pour les patchs non critiques *(`dependabot-auto-merge.yml` : semver-patch ; requiert `Allow auto-merge` côté GitHub)*
 
 ### Release
 - [x] Versioning sémantique 0.x.y en place

@@ -7,6 +7,7 @@ Ces reglages doivent etre appliques par un compte admin du depot.
 - Activer `Automatically delete head branches`.
 - Garder `master` comme branche par defaut.
 - Garder `Squash merge` active comme strategie recommandee.
+- Activer `Allow auto-merge` (requis par le workflow `dependabot-auto-merge.yml` ; l'auto-merge n'est sur que combine aux required checks de la branch protection ci-dessous).
 
 ## Branch Protection: master
 
