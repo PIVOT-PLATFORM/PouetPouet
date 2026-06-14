@@ -9,6 +9,9 @@ function canWrite(socket: Socket, boardId: string): boolean {
   return role === 'OWNER' || role === 'EDITOR'
 }
 
+// Types de carte valides (enum CardType) — garde contre un type client invalide.
+const CARD_TYPES = new Set(['TEXT', 'IMAGE', 'LINK', 'SHAPE', 'DRAW', 'LABEL'])
+
 // Realtime mutations can race with a delete from another client (or the same one).
 // Swallow Prisma's "record not found" (P2025) and "foreign key violation" (P2003 â€”
 // e.g. upserting a field value on a just-deleted card) so a stale event never
@@ -40,6 +43,36 @@ async function addPresence(boardId: string, user: { id: string; name: string; av
 async function removePresence(boardId: string, userId: string) {
   if (redis.status !== 'ready') return
   await redis.hdel(`board:presence:${boardId}`, userId)
+}
+
+// Timer de board — éphémère, mais rejoué aux arrivants (sinon ceux qui rejoignent
+// pendant un compte à rebours ne le voient pas). Redis (clé à TTL) en prod pour le
+// cross-instance ; Map mémoire en repli (dev sans Redis).
+const timerEnds = new Map<string, number>() // boardId → endsAt (epoch ms)
+
+async function setTimer(boardId: string, endsAt: number) {
+  const ms = endsAt - Date.now()
+  if (ms <= 0) return
+  if (redis.status === 'ready') await redis.set(`board:timer:${boardId}`, String(endsAt), 'PX', ms)
+  else timerEnds.set(boardId, endsAt)
+}
+
+async function clearTimer(boardId: string) {
+  if (redis.status === 'ready') await redis.del(`board:timer:${boardId}`)
+  else timerEnds.delete(boardId)
+}
+
+async function getActiveTimer(boardId: string): Promise<number | null> {
+  let endsAt: number | null = null
+  if (redis.status === 'ready') {
+    const v = await redis.get(`board:timer:${boardId}`)
+    endsAt = v ? Number(v) : null
+  } else {
+    endsAt = timerEnds.get(boardId) ?? null
+  }
+  if (endsAt && endsAt > Date.now()) return endsAt
+  if (endsAt) timerEnds.delete(boardId) // périmé (repli mémoire)
+  return null
 }
 
 // Cursor coalescing — dernière position par user, flush global à 20 Hz.
@@ -151,6 +184,10 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     }
     if (socket.data.userInfo) await addPresence(boardId, socket.data.userInfo as { id: string; name: string; avatar: string | null })
     await broadcastPresence(io, boardId)
+
+    // Rejouer un timer encore actif à l'arrivant (sinon il ne le verrait pas).
+    const timerEndsAt = await getActiveTimer(boardId)
+    if (timerEndsAt) socket.emit('timer:started', { endsAt: timerEndsAt })
   })
 
   socket.on('board:leave', async (boardId: string) => {
@@ -193,7 +230,7 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
 
   // Cursor presence — coalesced server-side.
   // Relaying each move costs N² messages (saturates the instance ~150 users,
-  // cf. scripts/load-test.ts) : on bufferise la dernière position par user et
+  // cf. load-test/board-load.js) : on bufferise la dernière position par user et
   // un tick global 20 Hz broadcast un batch 'board:cursors' par board actif.
   socket.on("board:cursor", (data: { boardId: string; x: number; y: number }) => {
     const info = socket.data.userInfo as { id: string; name: string; avatar: string | null } | undefined
@@ -209,30 +246,40 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     // clientTag : écho non persisté — permet au créateur (et lui seul) de
     // reconnaître sa carte dans le broadcast pour l'ouvrir en édition.
     const { clientTag, ...cardData } = data
+    // Valide le type fourni par le client : un enum invalide ferait planter le
+    // create (exception non gérée). On retombe sur le défaut TEXT si inconnu.
+    if (cardData.type && !CARD_TYPES.has(cardData.type)) delete cardData.type
     const card = await prisma.card.create({ data: cardData as never, include: { fieldValues: true } })
     io.to(`board:${data.boardId}`).emit('card:created', clientTag ? { ...card, clientTag } : card)
   })
 
+  // Pour les mutations de carte : `locked: false` dans le where est la garde
+  // serveur du verrou — une carte verrouillée n'est jamais modifiée, même si un
+  // client a un état périmé. updateMany ne lève pas P2025 (count 0 = absente ou
+  // verrouillée). Écho partiel : le client merge par id.
   socket.on('card:move', async (data: { id: string; boardId: string; posX: number; posY: number }) => {
     if (!canWrite(socket, data.boardId)) return
-    const card = await ignoreMissing(prisma.card.update({ where: { id: data.id }, data: { posX: data.posX, posY: data.posY } }))
-    if (card) socket.to(`board:${data.boardId}`).emit('card:moved', card)
+    const { count } = await prisma.card.updateMany({ where: { id: data.id, boardId: data.boardId, locked: false }, data: { posX: data.posX, posY: data.posY } })
+    if (count > 0) socket.to(`board:${data.boardId}`).emit('card:moved', { id: data.id, posX: data.posX, posY: data.posY })
   })
 
   socket.on('card:resize', async (data: { id: string; boardId: string; width: number; height: number }) => {
     if (!canWrite(socket, data.boardId)) return
-    const card = await ignoreMissing(prisma.card.update({ where: { id: data.id }, data: { width: data.width, height: data.height } }))
-    if (card) socket.to(`board:${data.boardId}`).emit('card:resized', card)
+    const { count } = await prisma.card.updateMany({ where: { id: data.id, boardId: data.boardId, locked: false }, data: { width: data.width, height: data.height } })
+    if (count > 0) socket.to(`board:${data.boardId}`).emit('card:resized', { id: data.id, width: data.width, height: data.height })
   })
 
   socket.on('card:update', async (data: { id: string; boardId: string; content: string }) => {
     if (!canWrite(socket, data.boardId)) return
-    const card = await ignoreMissing(prisma.card.update({ where: { id: data.id }, data: { content: data.content } }))
-    if (card) io.to(`board:${data.boardId}`).emit('card:updated', card)
+    const { count } = await prisma.card.updateMany({ where: { id: data.id, boardId: data.boardId, locked: false }, data: { content: data.content } })
+    if (count > 0) io.to(`board:${data.boardId}`).emit('card:updated', { id: data.id, content: data.content })
   })
 
   socket.on('card:delete', async (data: { id: string; boardId: string }) => {
     if (!canWrite(socket, data.boardId)) return
+    // Garde verrou : une carte verrouillée n'est pas supprimable.
+    const target = await prisma.card.findUnique({ where: { id: data.id }, select: { locked: true } })
+    if (!target || target.locked) return
     const deleted = await ignoreMissing(prisma.card.delete({ where: { id: data.id } }))
     if (!deleted) return
     io.to(`board:${data.boardId}`).emit('card:deleted', data.id)
@@ -256,8 +303,8 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
 
   socket.on('card:recolor', async (data: { id: string; boardId: string; color: string }) => {
     if (!canWrite(socket, data.boardId)) return
-    const card = await ignoreMissing(prisma.card.update({ where: { id: data.id }, data: { color: data.color } }))
-    if (card) io.to(`board:${data.boardId}`).emit('card:recolored', card)
+    const { count } = await prisma.card.updateMany({ where: { id: data.id, boardId: data.boardId, locked: false }, data: { color: data.color } })
+    if (count > 0) io.to(`board:${data.boardId}`).emit('card:recolored', { id: data.id, color: data.color })
   })
 
   socket.on('card:lock', async (data: { ids: string[]; boardId: string; locked: boolean }) => {
@@ -295,7 +342,17 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
   // â”€â”€ Connections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   socket.on('connection:create', async (data: { boardId: string; fromId: string; toId: string }) => {
     if (!canWrite(socket, data.boardId)) return
-    const existing = await prisma.cardConnection.findFirst({ where: { boardId: data.boardId, fromId: data.fromId, toId: data.toId } })
+    if (data.fromId === data.toId) return // pas d'auto-lien
+    // Doublon dans un sens ou l'autre (A→B == B→A pour l'utilisateur)
+    const existing = await prisma.cardConnection.findFirst({
+      where: {
+        boardId: data.boardId,
+        OR: [
+          { fromId: data.fromId, toId: data.toId },
+          { fromId: data.toId, toId: data.fromId },
+        ],
+      },
+    })
     if (existing) return
     const connection = await prisma.cardConnection.create({ data })
     io.to(`board:${data.boardId}`).emit('connection:created', connection)
@@ -430,14 +487,16 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
   })
 
   // â”€â”€ Timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  socket.on('timer:start', (data: { boardId: string; duration: number }) => {
+  socket.on('timer:start', async (data: { boardId: string; duration: number }) => {
     if (!canWrite(socket, data.boardId)) return
     const endsAt = Date.now() + data.duration * 1000
+    await setTimer(data.boardId, endsAt)
     io.to(`board:${data.boardId}`).emit('timer:started', { endsAt })
   })
 
-  socket.on('timer:stop', (data: { boardId: string }) => {
+  socket.on('timer:stop', async (data: { boardId: string }) => {
     if (!canWrite(socket, data.boardId)) return
+    await clearTimer(data.boardId)
     io.to(`board:${data.boardId}`).emit('timer:stopped')
   })
 }

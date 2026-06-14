@@ -194,7 +194,6 @@ model Card {
   groupColor String?
   locked     Boolean  @default(false)
   layer      Int      @default(1)
-  authorId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

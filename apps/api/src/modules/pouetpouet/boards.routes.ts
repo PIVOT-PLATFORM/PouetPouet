@@ -515,7 +515,7 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const createdCards = await prisma.$transaction(
       body.cards.map((c) =>
         prisma.card.create({
-          data: { boardId: id, type: c.type as never, content: c.content, color: c.color, posX: c.posX, posY: c.posY, width: c.width, height: c.height, groupId: c.groupKey ? groupIdMap.get(c.groupKey) : null, authorId: userId },
+          data: { boardId: id, type: c.type as never, content: c.content, color: c.color, posX: c.posX, posY: c.posY, width: c.width, height: c.height, groupId: c.groupKey ? groupIdMap.get(c.groupKey) : null },
           include: { fieldValues: true },
         })
       )
