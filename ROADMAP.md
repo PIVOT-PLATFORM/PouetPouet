@@ -28,7 +28,7 @@
 ### Release
 - [x] Versioning sémantique 0.x.y en place
 - [x] Images Docker taguées `:sha` et `:latest`
-- [ ] Tag Docker `:version` (ex: `:0.10.0`)
+- [x] Tag Docker `:version` (ex: `:0.10.0`) — lu depuis `package.json` racine, api + web (`deploy.yml`)
 - [ ] Automatiser les tags git de release *(manuel actuellement)*
 - [ ] Générer automatiquement les release notes *(patch-notes.ts est manuel)*
 

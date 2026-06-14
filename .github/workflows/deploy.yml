@@ -48,12 +48,15 @@ jobs:
       - name: Build & push API image
         run: |
           set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
           docker build -f apps/api/Dockerfile \
             -t ${{ env.REPO }}/api:${{ github.sha }} \
             -t ${{ env.REPO }}/api:latest \
+            -t ${{ env.REPO }}/api:"$VERSION" \
             .
           docker push ${{ env.REPO }}/api:${{ github.sha }}
           docker push ${{ env.REPO }}/api:latest
+          docker push ${{ env.REPO }}/api:"$VERSION"
 
       - name: Remove legacy SENTRY_DSN secret binding
         run: |
@@ -129,15 +132,18 @@ jobs:
       - name: Build & push Web image
         run: |
           set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
           docker build -f apps/web/Dockerfile \
             --build-arg NEXT_PUBLIC_API_URL=${{ needs.deploy-api.outputs.url }} \
             --build-arg NEXT_PUBLIC_SOCKET_URL=${{ needs.deploy-api.outputs.url }} \
             --build-arg NEXT_PUBLIC_SENTRY_DSN=${{ secrets.SENTRY_DSN_WEB }} \
             -t ${{ env.REPO }}/web:${{ github.sha }} \
             -t ${{ env.REPO }}/web:latest \
+            -t ${{ env.REPO }}/web:"$VERSION" \
             .
           docker push ${{ env.REPO }}/web:${{ github.sha }}
           docker push ${{ env.REPO }}/web:latest
+          docker push ${{ env.REPO }}/web:"$VERSION"
 
       - name: Deploy Web to Cloud Run
         run: |
