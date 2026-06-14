@@ -10,6 +10,7 @@ import { ConnectionLine } from './connection-line'
 import { ConnectionToolbar } from './connection-toolbar'
 import type { ConnectionPatch } from '@/hooks/useBoard'
 import type { ToolMode, StrokeSize } from './floating-toolbar'
+import { serializeTable, parseClipboardTable } from '@/lib/table-clipboard'
 
 type ClipCard = ClipboardCard
 
@@ -424,8 +425,22 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
         return
       }
 
+      // Tabular data (Excel / Google Sheets / web tables) → TABLE card
+      const html = e.clipboardData?.getData('text/html')
+      const rawText = e.clipboardData?.getData('text/plain')
+      const tableRows = parseClipboardTable(html, rawText)
+      if (tableRows) {
+        e.preventDefault()
+        const cols = tableRows[0].length
+        const w = Math.min(720, Math.max(180, cols * 120))
+        const h = Math.min(600, 16 + tableRows.length * 30)
+        const pos = mousePosRef.current
+        onAddCard(pos.x - w / 2, pos.y - h / 2, 'TABLE', serializeTable(tableRows), '#E0E7FF', w, h)
+        return
+      }
+
       // Plain text
-      const text = e.clipboardData?.getData('text/plain')?.trim()
+      const text = rawText?.trim()
       if (!text) return
       e.preventDefault()
       const pos = mousePosRef.current
@@ -538,6 +553,8 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
       onAddCard(p.x - 80, p.y - 14, 'LABEL', '', '#374151', 160, 28)
     } else if (toolMode === 'sticky') {
       onAddCard(p.x - 96, p.y - 64, 'TEXT', '', toolColor)
+    } else if (toolMode === 'table') {
+      onAddCard(p.x - 180, p.y - 60, 'TABLE', serializeTable([['', '', ''], ['', '', ''], ['', '', '']]), '#E0E7FF', 360, 124)
     } else if (toolMode === 'rect' || toolMode === 'circle' || toolMode === 'diamond' || toolMode === 'triangle' || toolMode === 'line' || toolMode === 'star') {
       onAddCard(p.x - 75, p.y - 75, 'SHAPE', `${toolMode}|${toolStroke}|${toolFill}|${toolOpacity}`, toolColor, 150, 150)
     } else if (toolMode === 'link') {

@@ -10,6 +10,7 @@ import { headerTint } from '@/lib/colors'
 import { ShapeCard } from './board-card-shape'
 import { DrawCard } from './board-card-draw'
 import { ImageCard } from './board-card-image'
+import { TableCard } from './board-card-table'
 
 interface Props {
   card: Card
@@ -355,6 +356,30 @@ export const BoardCard = memo(function BoardCard({
         handleMouseDown={handleMouseDown}
         handleClick={handleClick}
         handleResizeMouseDown={handleResizeMouseDown}
+      />
+    )
+  }
+
+  // ── TABLE card ──────────────────────────────────────────────────────────────
+  if (card.type === 'TABLE') {
+    return (
+      <TableCard
+        card={card}
+        isSelected={isSelected}
+        isMultiSelect={isMultiSelect}
+        isReadonly={isReadonly}
+        outline={outline}
+        onRecolor={onRecolor}
+        onDelete={onDelete}
+        onUpdate={onUpdate}
+        onSelect={onSelect}
+        onStartConnect={onStartConnect}
+        onLinkCardsClick={onLinkCardsClick}
+        linkCardsMode={linkCardsMode}
+        isLinkSource={isLinkSource}
+        handleMouseDown={handleMouseDown}
+        handleResizeMouseDown={handleResizeMouseDown}
+        isDragging={isDragging}
       />
     )
   }

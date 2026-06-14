@@ -10,7 +10,7 @@ function canWrite(socket: Socket, boardId: string): boolean {
 }
 
 // Types de carte valides (enum CardType) — garde contre un type client invalide.
-const CARD_TYPES = new Set(['TEXT', 'IMAGE', 'LINK', 'SHAPE', 'DRAW', 'LABEL'])
+const CARD_TYPES = new Set(['TEXT', 'IMAGE', 'LINK', 'SHAPE', 'DRAW', 'LABEL', 'TABLE'])
 
 // Realtime mutations can race with a delete from another client (or the same one).
 // Swallow Prisma's "record not found" (P2025) and "foreign key violation" (P2003 â€”
