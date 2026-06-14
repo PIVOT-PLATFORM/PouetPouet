@@ -44,6 +44,7 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
     room, participantCount, participantNames, isLoading,
     addTicket, bulkAddTickets, activateTicket, reveal, vote,
     setEstimate, bulkEstimate, resetTicket, deleteTicket, updateScale,
+    setQueue, clearQueue,
   } = useScrum(id)
 
   const [newTicketTitle, setNewTicketTitle] = useState('')
@@ -61,6 +62,10 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
   // Participation de l'hôte au vote
   const [hostParticipating, setHostParticipating] = useState<boolean | null>(null)
   const [hostVote, setHostVote] = useState<string | null>(null)
+
+  // File d'estimation : mode construction + brouillon ordonné de ticketIds
+  const [queueMode, setQueueMode] = useState(false)
+  const [queueDraft, setQueueDraft] = useState<string[]>([])
 
   const activeTicket = room?.tickets.find((t) => t.status === 'VOTING' || t.status === 'REVEALED') ?? null
   const scaleInfo = ESTIMATION_SCALES[room?.scale ?? 'FIBONACCI'] ?? ESTIMATION_SCALES.FIBONACCI
@@ -128,6 +133,26 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
     return (ticket.status === 'PENDING' || ticket.status === 'DONE') && activeTicket?.id !== ticket.id
   }
 
+  // ── File d'estimation ──
+  // Un ticket reste à estimer s'il n'a pas d'estimation sur la scale courante.
+  function needsEstimate(ticket: ScrumTicket) {
+    return !(room?.scale === 'TIME' ? ticket.estimateTime : ticket.estimate)
+  }
+  function toggleQueueDraft(ticketId: string) {
+    setQueueDraft((prev) => prev.includes(ticketId) ? prev.filter((x) => x !== ticketId) : [...prev, ticketId])
+  }
+  function enterQueueMode() {
+    setSelectedTicketIds(new Set()) // éviter la confusion avec la sélection batch
+    setQueueMode(true)
+  }
+  function cancelQueueBuild() { setQueueDraft([]); setQueueMode(false) }
+  function startQueue() {
+    if (!room || queueDraft.length === 0) return
+    setQueue(queueDraft, room.scale)
+    setQueueDraft([])
+    setQueueMode(false)
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -145,6 +170,8 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
     : `/scrum/join/${room.code}`
 
   const pendingTickets = room.tickets.filter((t) => t.status === 'PENDING')
+  const ticketsById = new Map(room.tickets.map((t) => [t.id, t]))
+  const queueActive = room.queue.length > 0
 
   return (
     <div className="flex flex-col h-full gap-0">
@@ -283,6 +310,70 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
             </form>
           )}
 
+          {/* ── File d'estimation ── */}
+          {queueActive ? (
+            <div className="flex flex-col gap-2 bg-secondary-50 border border-secondary-200 rounded-xl p-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-secondary-700">
+                  File · {room.queue.length} à estimer
+                </p>
+                <button onClick={clearQueue} className="text-xs text-gray-400 hover:text-red-500 font-medium">
+                  Arrêter
+                </button>
+              </div>
+              <ol className="flex flex-col gap-1">
+                {room.queue.map((qid, i) => {
+                  const t = ticketsById.get(qid)
+                  if (!t) return null
+                  return (
+                    <li key={qid} className={`flex items-center gap-2 text-xs rounded-lg px-2 py-1 ${i === 0 ? 'bg-secondary-600 text-white font-semibold' : 'text-secondary-700'}`}>
+                      <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] shrink-0 ${i === 0 ? 'bg-white text-secondary-700' : 'bg-secondary-200 text-secondary-700'}`}>{i + 1}</span>
+                      <span className="truncate flex-1">{t.title}</span>
+                      {i === 0 && <span className="text-[10px] opacity-90">en cours</span>}
+                    </li>
+                  )
+                })}
+              </ol>
+            </div>
+          ) : queueMode ? (
+            <div className="flex flex-col gap-2 bg-secondary-50 border border-secondary-200 rounded-xl p-3">
+              <p className="text-xs font-semibold text-secondary-700">Cliquez les tickets dans l'ordre de passage</p>
+              {queueDraft.length > 0 && (
+                <ol className="flex flex-col gap-1">
+                  {queueDraft.map((qid, i) => (
+                    <li key={qid} className="flex items-center gap-2 text-xs text-secondary-700">
+                      <span className="w-4 h-4 rounded-full bg-secondary-200 flex items-center justify-center text-[10px] shrink-0">{i + 1}</span>
+                      <span className="truncate flex-1">{ticketsById.get(qid)?.title}</span>
+                      <button onClick={() => toggleQueueDraft(qid)} className="text-gray-400 hover:text-red-500" title="Retirer">×</button>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              <div className="flex gap-2 justify-end">
+                <button onClick={cancelQueueBuild} className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg">Annuler</button>
+                <button
+                  onClick={startQueue}
+                  disabled={queueDraft.length === 0}
+                  className="px-3 py-1.5 text-xs font-semibold bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 disabled:opacity-40"
+                >
+                  Démarrer la file ({queueDraft.length})
+                </button>
+              </div>
+            </div>
+          ) : (
+            room.tickets.some(needsEstimate) && (
+              <button
+                onClick={enterQueueMode}
+                className="flex items-center justify-center gap-1.5 text-xs font-medium text-secondary-600 border border-secondary-200 rounded-xl px-3 py-2 hover:bg-secondary-50 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                </svg>
+                Créer une file d'estimation
+              </button>
+            )
+          )}
+
           {/* Batch action bar */}
           {selectedTicketIds.size > 0 && (
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
@@ -328,15 +419,31 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
                 }`}
               >
                 <div className="flex items-start gap-2 mb-2">
-                  {/* Checkbox for PENDING tickets not currently active */}
-                  {ticket.status === 'PENDING' && activeTicket?.id !== ticket.id && (
-                    <input
-                      type="checkbox"
-                      checked={selectedTicketIds.has(ticket.id)}
-                      onChange={() => toggleTicketSelect(ticket.id)}
-                      className="mt-0.5 shrink-0 accent-primary-600"
-                      onClick={(e) => e.stopPropagation()}
-                    />
+                  {/* Mode file : bouton d'ordre ; sinon checkbox de sélection batch */}
+                  {queueMode ? (
+                    needsEstimate(ticket) && (
+                      <button
+                        onClick={() => toggleQueueDraft(ticket.id)}
+                        className={`mt-0.5 shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border transition-colors ${
+                          queueDraft.includes(ticket.id)
+                            ? 'bg-secondary-600 text-white border-secondary-600'
+                            : 'border-gray-300 text-gray-400 hover:border-secondary-400'
+                        }`}
+                        title={queueDraft.includes(ticket.id) ? 'Retirer de la file' : 'Ajouter à la file'}
+                      >
+                        {queueDraft.includes(ticket.id) ? queueDraft.indexOf(ticket.id) + 1 : '+'}
+                      </button>
+                    )
+                  ) : (
+                    ticket.status === 'PENDING' && activeTicket?.id !== ticket.id && (
+                      <input
+                        type="checkbox"
+                        checked={selectedTicketIds.has(ticket.id)}
+                        onChange={() => toggleTicketSelect(ticket.id)}
+                        className="mt-0.5 shrink-0 accent-primary-600"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )
                   )}
                   <p className="text-sm font-medium text-gray-800 leading-snug flex-1">{ticket.title}</p>
 

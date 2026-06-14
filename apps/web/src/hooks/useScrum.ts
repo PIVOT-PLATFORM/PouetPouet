@@ -29,6 +29,7 @@ export interface ScrumRoom {
   code: string
   ownerId: string
   scale: string
+  queue: string[] // file ordonnée de ticketIds restant à estimer (tête = courant)
   tickets: ScrumTicket[]
   createdAt: string
   updatedAt: string
@@ -117,6 +118,10 @@ export function useScrum(roomId: string) {
       setRoom((prev) => prev ? { ...prev, scale } : prev)
     })
 
+    socket.on('scrum:queue:updated', ({ queue }: { queue: string[] }) => {
+      setRoom((prev) => prev ? { ...prev, queue } : prev)
+    })
+
     api.get<ScrumRoom>(`/api/scrum/${roomId}`).then((r) => {
       setRoom(r)
       setIsLoading(false)
@@ -127,7 +132,7 @@ export function useScrum(roomId: string) {
       ;['scrum:state', 'scrum:participant_count', 'scrum:ticket:added',
         'scrum:ticket:activated', 'scrum:vote:received', 'scrum:ticket:revealed',
         'scrum:ticket:done', 'scrum:ticket:reset', 'scrum:ticket:deleted',
-        'scrum:room:scale_updated',
+        'scrum:room:scale_updated', 'scrum:queue:updated',
       ].forEach((e) => socket.off(e))
     }
   }, [roomId])
@@ -173,6 +178,15 @@ export function useScrum(roomId: string) {
     socketRef.current.emit('scrum:room:update_scale', { roomId, scale })
   }, [roomId])
 
+  // File d'estimation : démarrer une file ordonnée (ouvre le vote sur le 1er) ; arrêter.
+  const setQueue = useCallback((ticketIds: string[], scale: string) => {
+    socketRef.current.emit('scrum:queue:set', { roomId, ticketIds, scale })
+  }, [roomId])
+
+  const clearQueue = useCallback(() => {
+    socketRef.current.emit('scrum:queue:clear', { roomId })
+  }, [roomId])
+
   const deleteRoom = useCallback(async () => {
     await api.delete(`/api/scrum/${roomId}`)
   }, [roomId])
@@ -181,6 +195,6 @@ export function useScrum(roomId: string) {
     room, participantCount, participantNames, isLoading,
     addTicket, bulkAddTickets, activateTicket, reveal, vote,
     setEstimate, bulkEstimate, resetTicket, deleteTicket,
-    updateScale, deleteRoom,
+    updateScale, deleteRoom, setQueue, clearQueue,
   }
 }

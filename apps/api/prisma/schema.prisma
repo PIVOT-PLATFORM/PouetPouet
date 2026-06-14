@@ -397,6 +397,7 @@ model ScrumRoom {
   ownerId   String
   teamId    String?
   scale     String   @default("FIBONACCI")
+  queue     String[] @default([]) // file ordonnée de ticketIds restant à estimer (tête = ticket courant)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -70,6 +70,28 @@ function roomKey(roomId: string) {
   return `scrum:${roomId}`
 }
 
+// Active le premier ticket *existant* de la file (en sautant les ids supprimés),
+// ouvre le vote dessus et émet scrum:ticket:activated. Renvoie la file effective
+// (tête morte retirée). Mutualise la logique d'activation pour la file.
+async function activateQueueHead(io: Server, roomId: string, scale: string, queue: string[]): Promise<string[]> {
+  let q = [...queue]
+  while (q.length > 0) {
+    const headId = q[0]
+    const exists = await prisma.scrumTicket.findUnique({ where: { id: headId }, select: { id: true } })
+    if (!exists) { q = q.slice(1); continue } // ticket supprimé entre-temps
+    await prisma.scrumTicket.updateMany({ where: { roomId, status: 'VOTING' }, data: { status: 'PENDING' } })
+    await prisma.scrumVote.deleteMany({ where: { ticketId: headId } })
+    const ticket = await prisma.scrumTicket.update({
+      where: { id: headId },
+      data: { status: 'VOTING' },
+      include: { votes: { where: { scale }, orderBy: { createdAt: 'asc' } } },
+    })
+    io.to(roomKey(roomId)).emit('scrum:ticket:activated', ticket)
+    return q
+  }
+  return q
+}
+
 async function isOwner(socket: Socket, roomId: string): Promise<boolean> {
   const userId = socket.data.userId as string | undefined
   if (!userId) return false
@@ -151,6 +173,25 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
     io.to(roomKey(roomId)).emit('scrum:ticket:activated', ticket)
   })
 
+  // ── File d'estimation : ordre de passage des tickets ──────────────────────────
+  // Définit la file (liste ordonnée de ticketIds) et ouvre le vote sur le premier.
+  socket.on('scrum:queue:set', async ({ roomId, ticketIds, scale }: { roomId: string; ticketIds: string[]; scale: string }) => {
+    if (!(await isOwner(socket, roomId))) return
+    // Ne garder que les tickets existants de cette salle, dans l'ordre fourni.
+    const valid = await prisma.scrumTicket.findMany({ where: { id: { in: ticketIds }, roomId }, select: { id: true } })
+    const validSet = new Set(valid.map((t) => t.id))
+    let queue = ticketIds.filter((id) => validSet.has(id))
+    queue = await activateQueueHead(io, roomId, scale, queue)
+    await prisma.scrumRoom.update({ where: { id: roomId }, data: { queue } })
+    io.to(roomKey(roomId)).emit('scrum:queue:updated', { queue })
+  })
+
+  socket.on('scrum:queue:clear', async ({ roomId }: { roomId: string }) => {
+    if (!(await isOwner(socket, roomId))) return
+    await prisma.scrumRoom.update({ where: { id: roomId }, data: { queue: [] } })
+    io.to(roomKey(roomId)).emit('scrum:queue:updated', { queue: [] })
+  })
+
   socket.on('scrum:vote', async ({ ticketId, value, participantName, roomId, scale }: { ticketId: string; value: string; participantName: string; roomId: string; scale: string }) => {
     await prisma.scrumVote.upsert({
       where: { ticketId_participantName_scale: { ticketId, participantName, scale } },
@@ -191,6 +232,17 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
       actorId: socket.data.userId as string | undefined,
       payload: { roomId, ticketId, title: ticket.title, estimate, scale },
     })
+
+    // File d'estimation : si ce ticket était en tête de file, on l'en retire et
+    // on ouvre automatiquement le vote sur le suivant.
+    const room = await prisma.scrumRoom.findUnique({ where: { id: roomId }, select: { queue: true } })
+    if (room && room.queue.includes(ticketId)) {
+      const wasHead = room.queue[0] === ticketId
+      let queue = room.queue.filter((id) => id !== ticketId)
+      if (wasHead && queue.length > 0) queue = await activateQueueHead(io, roomId, scale, queue)
+      await prisma.scrumRoom.update({ where: { id: roomId }, data: { queue } })
+      io.to(roomKey(roomId)).emit('scrum:queue:updated', { queue })
+    }
   })
 
   socket.on('scrum:ticket:reset', async ({ ticketId, roomId, scale }: { ticketId: string; roomId: string; scale: string }) => {
@@ -208,6 +260,13 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
     if (!(await isOwner(socket, roomId))) return
     await prisma.scrumTicket.delete({ where: { id: ticketId } })
     io.to(roomKey(roomId)).emit('scrum:ticket:deleted', ticketId)
+    // Retirer le ticket supprimé de la file s'il y figurait.
+    const room = await prisma.scrumRoom.findUnique({ where: { id: roomId }, select: { queue: true } })
+    if (room && room.queue.includes(ticketId)) {
+      const queue = room.queue.filter((id) => id !== ticketId)
+      await prisma.scrumRoom.update({ where: { id: roomId }, data: { queue } })
+      io.to(roomKey(roomId)).emit('scrum:queue:updated', { queue })
+    }
   })
 
   socket.on('scrum:ticket:add_bulk', async ({ roomId, titles }: { roomId: string; titles: string[] }) => {
