@@ -1,6 +1,6 @@
 # Spec — MeetOps
 
-> Version : 0.1 — Statut : Brouillon — Dernière mise à jour : 2026-06-13
+> Version : 0.4 — Statut : Brouillon — Dernière mise à jour : 2026-06-14
 
 ---
 
@@ -8,34 +8,67 @@
 
 MeetOps est le module de **gestion industrielle de réunions** de la suite Pivot. Il couvre l'ensemble du cycle de vie d'un événement organisationnel : conception, planification en série, envoi, suivi des modifications, reporting et archivage.
 
-Il se distingue d'un simple calendrier par sa capacité à **gérer des volumes** (des dizaines de réunions liées à un même événement), à **propager des modifications en masse** et à **connecter la suite Office** (Outlook, Teams) comme canal de diffusion.
+### 1.1 Origine concrète : fiabiliser un flux Power Automate
+
+MeetOps part d'un besoin réel et existant. Aujourd'hui, un **flux Power Automate** orchestre la création de réunions :
+
+1. Il lit un **planning de réunions depuis un fichier Excel** (date, heure, durée, sujet…).
+2. Il croise ce planning avec une **table de listes de diffusion** (une liste de destinataires par réunion).
+3. Il **crée et envoie les réunions dans Outlook avec un lien Teams**, à chaque liste concernée.
+
+Ce flux est fragile (dépendance à Power Automate, peu de visibilité, gestion des modifications difficile, pas de reprise sur erreur). **L'objectif de MeetOps est de remplacer entièrement ce flux par un vrai outil dans l'application Pivot** — fini l'Excel et Power Automate — de façon fiable, traçable et pilotable :
+
+- **création et gestion 100 % dans l'app** du planning de réunions et des listes de diffusion (plus aucun fichier Excel intermédiaire) ;
+- **connecteurs Microsoft Office (Graph API)** pour créer/mettre à jour/annuler les réunions Outlook et générer les liens Teams ;
+- création et gestion faciles d'un **lot de réunions** (suivi d'envoi, modifications de masse, reprise sur échec).
+
+### 1.2 Le flux cible (canonique)
+
+```
+Planning + listes de diffusion           Événement + réunions + participants
+gérés nativement dans MeetOps    ──────▶  (création directe dans l'app)
+                                                      │
+                                                      ▼
+                                  Connecteur Microsoft Graph (par organisateur)
+                                                      │
+                              ┌───────────────────────┼───────────────────────┐
+                              ▼                        ▼                        ▼
+                      Réunion Outlook            Lien Teams             Suivi RSVP / statut
+                      (chaque destinataire)      (onlineMeeting)        (accepté/refusé)
+```
+
+Tout est saisi et piloté **dans l'application** : aucune dépendance à un fichier externe. Le canal **Microsoft Graph (Outlook + Teams) est le canal de diffusion principal** ; l'export/`.ics` SMTP reste un **fallback** quand Graph n'est pas configuré.
 
 **Cas d'usage cibles :**
+- Équipe qui pilote aujourd'hui ses réunions récurrentes via un Excel + Power Automate (cas fondateur)
 - Chef de projet gérant un programme complet (PI Planning, release train, comités récurrents)
 - Assistant(e) de direction centralisant les invitations d'un COPIL ou COMOP
 - Équipe IT pilotant les fenêtres de mise en production et réunions de suivi
-- RH orchestrant une campagne d'entretiens ou d'onboarding
 
 ---
 
 ## 2. Concepts clés
 
+> **Évolution v0.4 — modèle à plat.** Les *séries* et la *génération de récurrence* ont
+> été retirées au profit d'une **liste de réunions à plat** par événement, plus simple et
+> plus scalable. Le classement se fait par une **étiquette libre (`label`)** au lieu d'un
+> objet série, et l'ordre d'affichage est **manuel (drag & drop)**.
+
 ```
 Événement (Event)
- └── Série de réunions (MeetingSeries)
-      └── Réunion (Meeting)
-           ├── Participants (listes de diffusion ou unitaires)
-           ├── Canal d'envoi (Outlook / Teams / Email / Manuel)
-           └── Statut (Brouillon / Envoyée / Modifiée / Annulée)
+ └── Réunion (Meeting)   ← liste à plat, ordre manuel, étiquette libre
+      ├── Participants (listes de diffusion ou unitaires)
+      ├── Canal d'envoi (Outlook / Teams / Email / Manuel)
+      └── Statut (Brouillon / Envoyée / Modifiée / Annulée)
 ```
 
 | Terme | Définition |
 |---|---|
 | **Événement** | Conteneur de haut niveau (ex : "Release v2.0", "COPIL mensuel Q3"). Porte les droits, templates et métriques. |
-| **Série** | Groupe de réunions liées à un même sujet au sein d'un événement (ex : "Stand-ups quotidiens", "Kick-off + Reviews + Rétro") |
-| **Réunion** | Une occurrence planifiée : date, heure, durée, lieu/lien, participants, ordre du jour |
+| **Réunion** | Une occurrence planifiée : titre, étiquette, date, heure, durée, lieu/lien, participants, ordre du jour. Ordonnée manuellement au sein de l'événement. |
+| **Étiquette (`label`)** | Texte libre de classement d'une réunion (ex : "Daily", "Review", "COPIL"). Donne sa couleur dans le calendrier et le tableau. Remplace la notion de série. |
 | **Liste de diffusion** | Groupe de destinataires réutilisable, global (centralisé) ou local à un événement |
-| **Template** | Modèle d'événement préconfigurée (séries, participants types, durées, récurrences) |
+| **Template** | Modèle d'événement : lignes de réunions en **décalages relatifs** (étiquette, titre, durée, jour+heure relatifs à une date de départ), sans dates absolues |
 | **Modification live** | Propagation immédiate d'une modification à toutes les invitations déjà envoyées (update Outlook/Teams) |
 
 ---
@@ -51,13 +84,23 @@ Il se distingue d'un simple calendrier par sa capacité à **gérer des volumes*
 - Droits par événement (cf. §7)
 - Créer depuis un template (cf. §6)
 
-### 3.2 Séries de réunions
+### 3.2 Tableau de réunions (liste à plat)
 
-- Créer une ou plusieurs séries au sein d'un événement
-- Récurrences : quotidienne, hebdomadaire (jours sélectionnables), bimensuelle, mensuelle, personnalisée
-- Exceptions : exclure des occurrences, modifier une seule occurrence sans toucher aux autres
-- Duplication d'une série entière avec décalage de dates
-- Replanification en masse : déplacer toutes les réunions d'une série d'un nombre de jours/semaines
+> Remplace l'ancienne section « Séries ». La saisie se fait dans un **tableau éditable**
+> unique par événement.
+
+- **Tableau inline** : colonnes Étiquette · Nom · Date · Heure · Durée · Statut. Édition
+  directe de chaque cellule, sauvegarde automatique au blur/Entrée.
+- **Ajout sans friction** : « + Ajouter une réunion » crée une ligne brouillon ;
+  elle est enregistrée **dès qu'un champ valide est saisi** (le seul champ requis est la
+  date, par défaut aujourd'hui), abandonnée si laissée vide.
+- **Réorganisation manuelle** : drag & drop des lignes (poignée), ordre persisté
+  (`Meeting.order`).
+- **Étiquettes** : champ libre avec autocomplétion des étiquettes déjà utilisées ;
+  couleur déterministe par étiquette.
+- **Modification de masse** : sélection multi-lignes → appliquer une étiquette, une durée,
+  décaler les dates de N jours, ou supprimer en lot.
+- **Replanification** : via la modification de masse (décalage de N jours sur la sélection).
 
 ### 3.3 Réunion individuelle
 
@@ -65,7 +108,9 @@ Chaque réunion expose :
 
 | Champ | Type | Notes |
 |---|---|---|
-| Titre | string | Hérité de la série, modifiable par occurrence |
+| Titre | string | Libre par réunion (défaut « Réunion ») |
+| Étiquette (`label`) | string? | Classement libre, donne la couleur |
+| Ordre (`order`) | int | Position manuelle dans le tableau (drag & drop) |
 | Date/heure début | datetime | Timezone supportée |
 | Durée | number (minutes) | |
 | Lieu | string | Salle physique ou URL Teams/Meet/Zoom |
@@ -286,23 +331,15 @@ model MeetEvent {
   updatedAt   DateTime @updatedAt
 }
 
-model MeetSeries {
-  id           String   @id @default(cuid())
-  eventId      String
-  event        MeetEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  title        String
-  recurrence   Json     // { type, interval, daysOfWeek, until, count }
-  defaultDurationMin Int @default(60)
-  defaultAgenda String?
-  meetings     Meeting[]
-  createdAt    DateTime @default(now())
-}
+// v0.4 : plus de MeetSeries — les réunions sont rattachées directement à l'événement.
 
 model Meeting {
   id            String   @id @default(cuid())
-  seriesId      String
-  series        MeetSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  eventId       String
+  event         MeetEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
   title         String
+  label         String?  // étiquette libre de classement (remplace la série)
+  order         Int      @default(0) // ordre manuel (drag & drop)
   startAt       DateTime
   durationMin   Int
   location      String?
@@ -310,9 +347,8 @@ model Meeting {
   agenda        String?
   status        MeetingStatus @default(DRAFT)
   externalId    String?  // ID Outlook/Graph si synchronisé
+  sendError     String?  // dernier message d'erreur d'envoi (reprise)
   participants  MeetingParticipant[]
-  history       MeetingHistory[]
-  attachments   MeetingAttachment[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -326,17 +362,19 @@ model MeetingParticipant {
   rsvp       MeetingRsvp @default(PENDING)
 }
 
-model MeetingHistory {
-  id        String   @id @default(cuid())
-  meetingId String
-  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  userId    String
-  field     String
-  oldValue  String?
-  newValue  String?
-  scope     String   // "occurrence" | "series" | "event"
-  propagated Boolean @default(false)
-  createdAt DateTime @default(now())
+// Journal d'activité au niveau ÉVÉNEMENT (survit à la suppression d'une réunion).
+model MeetHistory {
+  id            String   @id @default(cuid())
+  eventId       String
+  event         MeetEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  meetingId     String?  // null si l'action porte sur l'événement lui-même
+  meetingTitle  String?  // libellé figé (la réunion peut être supprimée ensuite)
+  userId        String?
+  action        String   // created | updated | deleted | sent | reordered | bulk | ...
+  field         String?
+  oldValue      String?
+  newValue      String?
+  createdAt     DateTime @default(now())
 }
 
 model MeetDistList {
@@ -360,8 +398,11 @@ model MeetTemplate {
   ownerId     String
   name        String
   description String?
-  type        MeetEventType
-  config      Json     // séries, durées, récurrences, participants types
+  type        MeetEventType @default(CUSTOM)
+  color       String   @default("#475569")
+  // Lignes de réunions en décalages relatifs à une date de départ :
+  // [{ label, title, durationMin, dayOffset, time }]
+  lines       Json
   isShared    Boolean  @default(false)
   events      MeetEvent[]
   createdAt   DateTime @default(now())
@@ -398,25 +439,62 @@ enum MeetingRsvp    { PENDING ACCEPTED DECLINED TENTATIVE }
 
 ---
 
-## 12. Périmètre v1 (MVP)
+## 12. Périmètre v1 (MVP) — recentré sur le flux fondateur
 
-**Dans le scope v1 :**
-- Gestion événements + séries + réunions
-- Envoi SMTP + export .ics
-- Listes de diffusion (locales + globales)
-- Historique des modifications
-- Templates (création + bibliothèque)
-- Vue calendrier mono-événement + multi-événements
-- Droits par événement
-- Reporting basique (tableau de bord événement)
+Le v1 vise à **remplacer le flux Power Automate** de bout en bout.
 
-**Reporté v2 :**
-- Intégration Graph API (Outlook/Teams natif)
-- Synchronisation RSVP
-- Annuaire Office 365
-- Reporting global multi-événements
-- Abonnement .ics live (calendrier personnel)
+**Cœur v1 (le flux fondateur, 100 % natif) :**
+- **Création et gestion du planning dans l'app** : événement → réunions → participants (aucun import Excel)
+- **Listes de diffusion** (par réunion / par événement, réutilisables) gérées dans l'app
+- **Connecteur Microsoft Graph** : créer / mettre à jour / annuler les réunions Outlook + générer le **lien Teams** (`onlineMeeting`)
+- **Suivi d'envoi par réunion** : non envoyée / envoyée / modifiée / annulée / en erreur, avec **reprise sur échec**
+- Gestion d'un **lot de réunions** : modification et envoi de masse
+
+**Autour (déjà amorcé / utile) :**
+- Gestion événements + réunions (CRUD, tableau à plat éditable) — ✅ fait
+- Étiquettes + ordre manuel (drag & drop) — ✅ fait
+- Modification de masse (étiquette / durée / décalage de dates / suppression) — ✅ fait
+- Export `.ics` (**fallback** si Graph non configuré) — ✅ fait
+- Vue calendrier mono-événement — ✅ fait
+
+> Note : la **génération de récurrence** (séries) a été retirée en v0.4. Pourra revenir
+> comme action au niveau événement (« générer N réunions étiquetées »).
+
+**Reporté v2 (en cours) :**
+- Historique des modifications (journal d'événement) — ✅ fait
+- Templates (lignes relatives, sauver/instancier, bibliothèque) — ✅ fait
+- Reporting / tableau de bord — ✅ fait
+- Vue multi-événements — ✅ fait
+
+**Reporté v3 :**
+- Synchronisation RSVP temps réel (webhooks Graph)
+- Annuaire Office 365 (résolution des destinataires)
 - Google Workspace
+
+---
+
+## 13. État d'avancement (2026-06-14)
+
+| Brique | État |
+|---|---|
+| Socle CRUD (événements → réunions → participants, **tableau à plat**) | ✅ |
+| Étiquettes + ordre manuel (drag & drop) | ✅ |
+| Modification de masse | ✅ |
+| Export `.ics` (fallback) | ✅ |
+| Vue calendrier mono-événement | ✅ |
+| **Vue calendrier multi-événements** | ✅ |
+| **Listes de diffusion** + application aux réunions | ✅ |
+| **Historique des modifications** (journal d'événement) | ✅ |
+| **Templates** (lignes relatives, sauver/instancier, bibliothèque) | ✅ |
+| **Reporting** (tableau de bord par événement) | ✅ |
+| **Connecteur Microsoft Graph (Outlook + Teams)** | ✅ code prêt — ⏳ en attente des identifiants app Azure AD |
+| **Suivi d'envoi + reprise sur échec** | ✅ (statut + erreur par réunion, renvoi/MàJ) |
+| Annulation Outlook à la suppression (Graph `DELETE`) | ⏳ à brancher (`cancelEvent` existe) |
+| Génération de récurrence (séries) | ❌ retiré en v0.4 |
+
+> Note : pas d'import Excel — l'Excel + Power Automate est le legacy remplacé ; tout est créé et géré nativement dans l'app.
+>
+> Connecteur Graph : OAuth2 délégué (l'organisateur connecte son compte Microsoft), tokens chiffrés au repos (AES-256-GCM), création/MàJ/annulation d'événements Outlook avec `isOnlineMeeting`/`teamsForBusiness` (lien Teams). Variables d'env : `MS_GRAPH_CLIENT_ID`, `MS_GRAPH_TENANT_ID`, `MS_GRAPH_CLIENT_SECRET` (cf. `.env.example`). Le flux réel OAuth + envoi reste à valider en conditions réelles une fois l'app Azure créée.
 
 ---
 

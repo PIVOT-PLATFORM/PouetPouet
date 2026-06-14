@@ -38,8 +38,12 @@ model User {
   dailySessions  DailySession[]
   wheelEvents    WheelEvent[]
   wheelDraws     WheelDraw[]
-  capacityEvents CapacityEvent[]
-  apiKeys        ApiKey[]
+  capacityEvents   CapacityEvent[]
+  meetEvents       MeetEvent[]
+  meetDistLists    MeetDistList[]
+  meetTemplates    MeetTemplate[]
+  meetGraphAccount MeetGraphAccount?
+  apiKeys          ApiKey[]
   webhooks       Webhook[]
   auditLogs      AuditLog[]
   oauthAccounts  OAuthAccount[]
@@ -647,4 +651,173 @@ model WheelDraw {
   owner User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   team  Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
   event WheelEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+}
+
+// ── MeetOps (gestion de réunions) ───────────────────────────────────────────────
+// Hiérarchie : Événement → Réunion → Participant (liste de réunions à plat).
+// Socle CRUD : envoi (.ics/SMTP/Graph), listes de diffusion, historique et
+// templates arriveront dans les itérations suivantes (cf. docs/specs/meetops.md).
+
+model MeetEvent {
+  id          String          @id @default(cuid())
+  ownerId     String
+  name        String
+  description String?
+  type        MeetEventType   @default(CUSTOM)
+  status      MeetEventStatus @default(DRAFT)
+  startDate   DateTime?
+  endDate     DateTime?
+  color       String          @default("#475569")
+  tags        String[]        @default([])
+  templateId  String? // template d'origine (compteur « N événements créés depuis »)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  owner     User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  template  MeetTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  meetings  Meeting[]
+  distLists MeetDistList[]
+  history   MeetHistory[]
+}
+
+model Meeting {
+  id          String        @id @default(cuid())
+  eventId     String
+  title       String
+  label       String? // étiquette libre de classement (ex. Daily, Review…)
+  order       Int           @default(0) // ordre manuel d'affichage (drag & drop)
+  startAt     DateTime
+  durationMin Int           @default(60)
+  location    String?
+  agenda      String?
+  status      MeetingStatus @default(DRAFT)
+  externalId  String? // ID de l'événement Outlook (Graph) une fois envoyé
+  teamsUrl    String? // lien de réunion Teams (onlineMeeting.joinUrl)
+  sendError   String? // dernier message d'erreur d'envoi (pour reprise)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  event        MeetEvent            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  participants MeetingParticipant[]
+}
+
+model MeetingParticipant {
+  id        String      @id @default(cuid())
+  meetingId String
+  email     String
+  name      String?
+  role      String? // organisateur / requis / optionnel
+  rsvp      MeetingRsvp @default(PENDING)
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+}
+
+// Liste de diffusion réutilisable : un groupe de destinataires que l'on applique
+// à une réunion (ses membres deviennent des MeetingParticipant). eventId null =
+// liste globale de l'utilisateur ; sinon liste locale à un événement.
+model MeetDistList {
+  id        String           @id @default(cuid())
+  ownerId   String
+  eventId   String?
+  name      String
+  members   MeetDistMember[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  owner User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  event MeetEvent? @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model MeetDistMember {
+  id     String  @id @default(cuid())
+  listId String
+  email  String
+  name   String?
+  role   String?
+
+  list MeetDistList @relation(fields: [listId], references: [id], onDelete: Cascade)
+}
+
+// Journal d'activité au niveau événement (survit à la suppression d'une réunion).
+model MeetHistory {
+  id           String    @id @default(cuid())
+  eventId      String
+  meetingId    String? // null = action sur l'événement
+  meetingTitle String? // libellé figé au moment de l'action
+  userId       String?
+  action       String // created | updated | deleted | sent | reordered | bulk
+  field        String?
+  oldValue     String?
+  newValue     String?
+  createdAt    DateTime  @default(now())
+
+  event MeetEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, createdAt])
+}
+
+// Modèle d'événement réutilisable. `lines` = réunions en décalages relatifs :
+// [{ label, title, durationMin, dayOffset, time }] (pas de dates absolues).
+model MeetTemplate {
+  id          String        @id @default(cuid())
+  ownerId     String
+  name        String
+  description String?
+  type        MeetEventType @default(CUSTOM)
+  color       String        @default("#475569")
+  lines       Json
+  isShared    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  owner  User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  events MeetEvent[]
+}
+
+// Compte Microsoft connecté d'un utilisateur (OAuth2 délégué Microsoft Graph).
+// Tokens chiffrés au repos. Un seul compte par utilisateur.
+model MeetGraphAccount {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  msUserId     String?
+  msEmail      String?
+  accessToken  String // chiffré (AES-256-GCM)
+  refreshToken String // chiffré (AES-256-GCM)
+  expiresAt    DateTime
+  scope        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum MeetEventType {
+  VERSION
+  SPRINT
+  COPIL
+  COMOP
+  RELEASE
+  ONBOARDING
+  CUSTOM
+}
+
+enum MeetEventStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum MeetingStatus {
+  DRAFT
+  SENT
+  UPDATED
+  CANCELLED
+}
+
+enum MeetingRsvp {
+  PENDING
+  ACCEPTED
+  DECLINED
+  TENTATIVE
 }
