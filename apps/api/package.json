@@ -10,6 +10,7 @@
     "start:prod": "npx prisma migrate deploy && node dist/index.js",
     "lint": "tsc --noEmit",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage --coverage.reporter=lcov --coverage.reporter=text",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "db:generate": "prisma generate",

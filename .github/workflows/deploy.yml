@@ -3,15 +3,25 @@ name: Deploy to GCP
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 
 env:
   REGION: europe-west1
   REPO: europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/pouetpouet
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   deploy-api:
     name: Build & Deploy API
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
     outputs:
       url: ${{ steps.get-url.outputs.url }}
 
@@ -37,20 +47,24 @@ jobs:
 
       - name: Build & push API image
         run: |
+          set -euo pipefail
           docker build -f apps/api/Dockerfile \
             -t ${{ env.REPO }}/api:${{ github.sha }} \
             -t ${{ env.REPO }}/api:latest \
             .
-          docker push ${{ env.REPO }}/api --all-tags
+          docker push ${{ env.REPO }}/api:${{ github.sha }}
+          docker push ${{ env.REPO }}/api:latest
 
       - name: Remove legacy SENTRY_DSN secret binding
         run: |
+          set -euo pipefail
           gcloud run services update pouetpouet-api \
             --region ${{ env.REGION }} \
             --remove-secrets=SENTRY_DSN || true
 
       - name: Deploy API to Cloud Run
         run: |
+          set -euo pipefail
           gcloud run deploy pouetpouet-api \
             --image ${{ env.REPO }}/api:${{ github.sha }} \
             --region ${{ env.REGION }} \
@@ -73,14 +87,23 @@ jobs:
       - name: Get API URL
         id: get-url
         run: |
+          set -euo pipefail
           URL=$(gcloud run services describe pouetpouet-api \
             --region ${{ env.REGION }} \
             --format 'value(status.url)')
           echo "url=$URL" >> $GITHUB_OUTPUT
 
+      - name: Smoke test API
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 \
+            "${{ steps.get-url.outputs.url }}/health"
+
   deploy-web:
     name: Build & Deploy Web
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
     needs: deploy-api
 
     steps:
@@ -105,6 +128,7 @@ jobs:
 
       - name: Build & push Web image
         run: |
+          set -euo pipefail
           docker build -f apps/web/Dockerfile \
             --build-arg NEXT_PUBLIC_API_URL=${{ needs.deploy-api.outputs.url }} \
             --build-arg NEXT_PUBLIC_SOCKET_URL=${{ needs.deploy-api.outputs.url }} \
@@ -112,13 +136,30 @@ jobs:
             -t ${{ env.REPO }}/web:${{ github.sha }} \
             -t ${{ env.REPO }}/web:latest \
             .
-          docker push ${{ env.REPO }}/web --all-tags
+          docker push ${{ env.REPO }}/web:${{ github.sha }}
+          docker push ${{ env.REPO }}/web:latest
 
       - name: Deploy Web to Cloud Run
         run: |
+          set -euo pipefail
           gcloud run deploy pouetpouet-web \
             --image ${{ env.REPO }}/web:${{ github.sha }} \
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
             --port 3000
+
+      - name: Get Web URL
+        id: get-url
+        run: |
+          set -euo pipefail
+          URL=$(gcloud run services describe pouetpouet-web \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Smoke test Web
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 \
+            "${{ steps.get-url.outputs.url }}"

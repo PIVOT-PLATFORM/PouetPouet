@@ -11,9 +11,12 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "security:audit": "npm audit --audit-level=critical --omit=dev",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.8",
     "prettier": "^3.5.3",
     "turbo": "^2.5.3",
     "typescript": "^5.8.3"
