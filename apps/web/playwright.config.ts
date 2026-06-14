@@ -12,6 +12,10 @@ const isCI = !!process.env.CI
 export default defineConfig({
   testDir: './e2e',
   timeout: 45_000,
+  // En CI, on retente 2 fois les specs en échec : les parcours temps réel
+  // (sockets, transitions d'UI) gardent des flakes de timing résiduels qui
+  // passent au re-run. En local, aucun retry pour voir les échecs tout de suite.
+  retries: isCI ? 2 : 0,
   // Série uniquement : les parcours partagent la même DB, et le premier run
   // déclenche les compilations à froid de next dev (lentes en parallèle).
   fullyParallel: false,
