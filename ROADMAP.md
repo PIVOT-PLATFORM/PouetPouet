@@ -62,7 +62,7 @@
 - [ ] Formaliser le chantier sécurité avec Valentine
 - [ ] Auditer les secrets GitHub Actions et GCP
 - [x] Scan de dépendances vulnérables (npm audit / Snyk) *(npm audit critique en CI, seuil high à traiter après xlsx)*
-- [ ] Scan de secrets dans le code (truffleHog / gitleaks)
+- [x] Scan de secrets dans le code (gitleaks dans `security.yml`, config `.gitleaks.toml`)
 - [x] Scan d'images Docker
 - [ ] Politique de rotation des secrets
 - [x] Durcir les permissions GitHub Actions

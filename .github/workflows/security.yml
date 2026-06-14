@@ -39,6 +39,24 @@ jobs:
       - name: Block critical runtime vulnerabilities
         run: npm run security:audit
 
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   container-scan:
     name: Container scan (${{ matrix.image.name }})
     runs-on: ubuntu-latest

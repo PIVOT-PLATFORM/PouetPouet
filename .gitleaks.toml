@@ -1,0 +1,15 @@
+# Configuration gitleaks — étend les règles par défaut.
+# Le scan tourne dans .github/workflows/security.yml (job "Secret scan").
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fichiers d'exemple, dumps de seed et secrets factices de CI — pas de vrais secrets"
+paths = [
+  '''\.env\.example$''',
+  '''.*\.sql$''',
+]
+regexes = [
+  # Secret JWT factice utilisé uniquement par le job E2E de la CI
+  '''ci-e2e-secret-not-for-production''',
+]
