@@ -18,7 +18,9 @@ test('un daily complet : création, tour de parole, fin', async ({ page }) => {
   // Tour de parole : démarrer → passer → terminer
   await page.getByRole('button', { name: /Démarrer le daily/ }).click()
   await page.getByRole('button', { name: 'Passer la parole →' }).click()
-  await page.getByRole('button', { name: /Terminer le daily/ }).click()
+  // Sur le dernier orateur, le bouton principal devient "✓ Terminer le daily" ;
+  // un lien secondaire "Terminer le daily" coexiste → on cible le bouton principal exact.
+  await page.getByRole('button', { name: '✓ Terminer le daily', exact: true }).click()
 
   await expect(page.getByText('Daily terminé !')).toBeVisible({ timeout: 10_000 })
 })
