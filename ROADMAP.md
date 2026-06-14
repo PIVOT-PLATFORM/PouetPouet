@@ -140,7 +140,8 @@
 
 - [x] Bug viewport board corrigé — `overflow-hidden` (BFC) + double `requestAnimationFrame` dans `board-canvas.tsx`
 - [x] Import Klaxoon fonctionnel — tuile active, assignation des groupes (`klx-import/converter.ts`)
-- [ ] Audit robustesse multi-utilisateur : déconnexion pendant un vote Scrum, late-joiner sur timer Daily, reconnexion en session live ; reproduire/corriger les races au-delà de ~5 users (via E2E)
+- [x] Audit robustesse multi-utilisateur *(doc `docs/audits/multi-user-resilience.md` : déconnexion Scrum, late-joiner Daily, reconnexion session — déjà couverts ; correctif comptage participants session cross-instance)*
+  - [ ] Reproduire/corriger les races au-delà de ~5 users simultanés *(→ load test, cf. P2)*
 
 ---
 
@@ -152,6 +153,7 @@
 - [x] Présence boards en cache Redis — plus de loop O(n) (`board.sockets.ts`)
 - [x] Curseurs coalescés côté serveur
 - [x] Rate limiting (`@fastify/rate-limit`)
+- [x] Comptage participants session cross-instance (`fetchSockets`, plus de lecture locale) — prérequis multi-instance
 - [ ] Provisionner Redis/Memorystore en prod + passer `--max-instances` > 1 (`deploy.yml` : aujourd'hui `=1`, `REDIS_HOST` non défini)
 
 ### Performance & charge restantes

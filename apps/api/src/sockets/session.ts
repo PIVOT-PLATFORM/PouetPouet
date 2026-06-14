@@ -1,15 +1,13 @@
 import type { Server, Socket } from 'socket.io'
 import { prisma } from '../lib/prisma.js'
 
-function getParticipantCount(io: Server, sessionId: string): number {
-  const room = io.sockets.adapter.rooms.get(`session:${sessionId}`)
-  if (!room) return 0
-  let count = 0
-  for (const socketId of room) {
-    const s = io.sockets.sockets.get(socketId)
-    if (s && !s.data.isHost) count++
-  }
-  return count
+// Compte les participants (hors animateur) d'une session.
+// `fetchSockets()` est résolu via l'adapter (Redis en prod), donc le comptage est
+// correct même avec plusieurs instances Cloud Run — contrairement à une lecture
+// directe de `io.sockets.sockets`, qui ne voit que les sockets de l'instance locale.
+async function getParticipantCount(io: Server, sessionId: string): Promise<number> {
+  const sockets = await io.in(`session:${sessionId}`).fetchSockets()
+  return sockets.filter((s) => !s.data.isHost).length
 }
 
 export function sessionSocketHandlers(io: Server, socket: Socket) {
@@ -37,7 +35,7 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
     socket.data.sessionId = sessionId
     socket.data.boardId = session.boardId
 
-    socket.emit('session:participant_count', getParticipantCount(io, sessionId))
+    socket.emit('session:participant_count', await getParticipantCount(io, sessionId))
     io.to(`board:${session.boardId}`).emit('session:started', { sessionId, code: session.code })
   })
 
@@ -65,7 +63,7 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
     socket.data.sessionId = sessionId
 
     socket.emit('session:joined', { session, participant })
-    io.to(`session:${sessionId}`).emit('session:participant_count', getParticipantCount(io, sessionId))
+    io.to(`session:${sessionId}`).emit('session:participant_count', await getParticipantCount(io, sessionId))
 
     const activeActivity = await prisma.activity.findFirst({
       where: { sessionId, status: 'ACTIVE' },
@@ -88,7 +86,7 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
     socket.data.sessionId = participant.sessionId
 
     socket.emit('session:rejoined', { session, participant })
-    io.to(`session:${participant.sessionId}`).emit('session:participant_count', getParticipantCount(io, participant.sessionId))
+    io.to(`session:${participant.sessionId}`).emit('session:participant_count', await getParticipantCount(io, participant.sessionId))
 
     const activeActivity = await prisma.activity.findFirst({
       where: { sessionId: participant.sessionId, status: 'ACTIVE' },
@@ -114,7 +112,7 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
     socket.data.sessionId = session.id
 
     socket.emit('session:joined', { session, participant })
-    io.to(`session:${session.id}`).emit('session:participant_count', getParticipantCount(io, session.id))
+    io.to(`session:${session.id}`).emit('session:participant_count', await getParticipantCount(io, session.id))
 
     const activeActivity = await prisma.activity.findFirst({
       where: { sessionId: session.id, status: 'ACTIVE' },
@@ -186,11 +184,11 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
   })
 
   // ── Déconnexion ───────────────────────────────────────────────────────────────
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     const sessionId = socket.data.sessionId as string | undefined
     const isHost = socket.data.isHost as boolean | undefined
     if (!sessionId || isHost) return
     // Broadcast live count (socket is already removed from room at this point)
-    io.to(`session:${sessionId}`).emit('session:participant_count', getParticipantCount(io, sessionId))
+    io.to(`session:${sessionId}`).emit('session:participant_count', await getParticipantCount(io, sessionId))
   })
 }
