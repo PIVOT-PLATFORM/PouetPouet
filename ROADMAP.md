@@ -77,9 +77,9 @@
 - [x] Workflow de triage automatique (`needs triage` à l'ouverture/réouverture)
 - [x] Documentation des réglages admin GitHub (`.github/admin-settings.md`)
 - [x] Roadmap projet via GitHub Issues *(35 issues réparties sur 2 milestones)*
-- [ ] Labels standards complets (`bug`, `feature`, `tech`, `security`, `ux`, `good first issue`, `needs triage`)
+- [x] Labels standards complets (`bug`, `feature`, `tech`, `security`, `ux`, `good first issue`, `needs triage`) *(tous présents dans GitHub, + `priority:P0/P1/P2`)*
   - [x] Labels consommés par les templates/workflow : `bug`, `feature`, `tech`, `needs triage`
-  - [ ] Créer/normaliser dans GitHub : `security`, `ux`, `good first issue`
+  - [x] Créer/normaliser dans GitHub : `security`, `ux`, `good first issue`
 - [x] Milestones GitHub *(`0.10.1 - Hardening`, `1.0.0 - Exploitable`)*
 
 ---
