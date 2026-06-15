@@ -7,7 +7,6 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 export const metadata: Metadata = {
   title: 'PIVOT',
   description: 'Suite collaborative interactive',
-  icons: { icon: '/pivot-logo.png', apple: '/pivot-logo.png' },
 }
 
 // Inlined script to apply dark class before first paint — prevents flash
