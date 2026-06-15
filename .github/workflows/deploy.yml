@@ -93,7 +93,7 @@ jobs:
             --set-secrets SMTP_USER=SMTP_USER:latest \
             --set-secrets SMTP_PASS=SMTP_PASS:latest \
             --set-secrets MAIL_FROM=SMTP_USER:latest \
-            --set-env-vars NODE_ENV=production,SMTP_HOST=smtp.gmail.com,SMTP_PORT=587,SMTP_SECURE=false,SENTRY_DSN=${{ secrets.SENTRY_DSN_API }},REDIS_HOST=${{ vars.REDIS_HOST || 'localhost' }},REDIS_PORT=${{ vars.REDIS_PORT || '6379' }}
+            --set-env-vars NODE_ENV=production,SMTP_HOST=smtp.gmail.com,SMTP_PORT=587,SMTP_SECURE=false,SENTRY_DSN=${{ secrets.SENTRY_DSN_API }},REDIS_HOST=${{ vars.REDIS_HOST || 'localhost' }},REDIS_PORT=${{ vars.REDIS_PORT || '6379' }},ADMIN_EMAILS=${{ vars.ADMIN_EMAILS || 'julien-muguet@orange.fr' }}
 
       - name: Get API URL
         id: get-url
