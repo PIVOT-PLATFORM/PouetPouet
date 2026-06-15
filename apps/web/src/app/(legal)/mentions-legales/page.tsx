@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { PageTitle, Section, List } from '@/components/legal/legal-ui'
 
-export const metadata: Metadata = { title: 'Mentions légales · Pivot' }
+export const metadata: Metadata = { title: 'Mentions légales · PIVOT' }
 
 export default function MentionsLegalesPage() {
   return (

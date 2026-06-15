@@ -42,7 +42,7 @@ export const PATCH_NOTES: PatchNote[] = [
       {
         heading: '🎨 Marque',
         items: [
-          'La suite s\'affiche désormais sous le nom « Pivot » dans l\'en-tête, le titre de l\'onglet, les écrans de connexion et les pages légales, avec sa nouvelle icône.',
+          'La suite s\'affiche désormais sous le nom « PIVOT » dans l\'en-tête, le titre de l\'onglet, les écrans de connexion et les pages légales, avec sa nouvelle icône.',
         ],
       },
     ],

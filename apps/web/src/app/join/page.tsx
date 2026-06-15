@@ -23,7 +23,7 @@ function JoinForm() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur mb-4">
             <span className="text-3xl">🎯</span>
           </div>
-          <h1 className="text-2xl font-bold text-white">Pivot</h1>
+          <h1 className="text-2xl font-bold text-white">PIVOT</h1>
           <p className="text-primary-200 text-sm mt-1">Rejoindre une session</p>
         </div>
 

@@ -45,7 +45,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       <footer className="border-t border-gray-100 dark:border-gray-800 mt-8">
         <div className="max-w-3xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <span className="text-xs text-gray-400 dark:text-gray-600">
-            © {new Date().getFullYear()} Pivot
+            © {new Date().getFullYear()} PIVOT
           </span>
           <nav className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-600">
             {LINKS.map((l) => (

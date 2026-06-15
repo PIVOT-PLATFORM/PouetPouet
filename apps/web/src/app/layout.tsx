@@ -5,7 +5,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'Pivot',
+  title: 'PIVOT',
   description: 'Suite collaborative interactive',
   icons: { icon: '/pivot-logo.png', apple: '/pivot-logo.png' },
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { PageTitle, Section, List } from '@/components/legal/legal-ui'
 
-export const metadata: Metadata = { title: 'Politique de confidentialité · Pivot' }
+export const metadata: Metadata = { title: 'Politique de confidentialité · PIVOT' }
 
 export default function ConfidentialitePage() {
   return (
@@ -10,7 +10,7 @@ export default function ConfidentialitePage() {
 
       <Section title="Préambule">
         <p>
-          La présente politique décrit la manière dont Pivot collecte, utilise et protège vos données
+          La présente politique décrit la manière dont PIVOT collecte, utilise et protège vos données
           personnelles, conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi
           Informatique et Libertés.
         </p>
@@ -83,7 +83,7 @@ export default function ConfidentialitePage() {
 
       <Section title="Cookies et stockage local">
         <p>
-          Pivot utilise le stockage local de votre navigateur pour conserver votre session
+          PIVOT utilise le stockage local de votre navigateur pour conserver votre session
           d&apos;authentification et vos préférences d&apos;affichage. Ces éléments sont strictement nécessaires
           au fonctionnement du service et ne nécessitent pas de consentement. Aucun cookie de suivi publicitaire
           ni de mesure d&apos;audience tierce n&apos;est déposé.

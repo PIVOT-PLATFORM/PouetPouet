@@ -115,7 +115,7 @@ export default function SessionPage({ params }: { params: Promise<{ code: string
     <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-800 flex flex-col">
       {/* Header */}
       <header className="px-5 py-4 flex items-center justify-between">
-        <span className="font-bold text-white text-base">Pivot</span>
+        <span className="font-bold text-white text-base">PIVOT</span>
         <div className="flex items-center gap-2 bg-white/20 backdrop-blur rounded-full px-3 py-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
           <span className="text-white text-xs font-medium">
