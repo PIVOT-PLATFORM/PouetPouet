@@ -1,6 +1,6 @@
-# Roadmap Pivot — état au 2026-06-14
+# Roadmap Pivot — état au 2026-06-15
 
-> Version courante : **0.10.0**
+> Version courante : **0.15.0**
 >
 > Source unique de suivi : ce fichier centralise la roadmap et les chantiers ouverts.
 
@@ -28,7 +28,7 @@
 ### Release
 - [x] Versioning sémantique 0.x.y en place
 - [x] Images Docker taguées `:sha` et `:latest`
-- [x] Tag Docker `:version` (ex: `:0.10.0`) — lu depuis `package.json` racine, api + web (`deploy.yml`)
+- [x] Tag Docker `:version` (ex: `:0.15.0`) — lu depuis `package.json` racine, api + web (`deploy.yml`)
 - [x] Automatiser les tags git de release *(`release.yml` : tag `v<version>` au push master, idempotent)*
 - [x] Générer automatiquement les release notes *(extraites de `patch-notes.ts` → GitHub Release)*
 

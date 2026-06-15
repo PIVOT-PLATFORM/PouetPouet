@@ -1,6 +1,6 @@
 # PouetPouet — Matrice des rôles sur un board
 
-> En vigueur depuis la v0.9.0. Trois rôles : **Propriétaire**, **Éditeur**, **Lecteur**.
+> En vigueur depuis la v0.11.0. Trois rôles : **Propriétaire**, **Éditeur**, **Lecteur**.
 > Le créateur du board est propriétaire d'office ; il peut nommer des **co-propriétaires** (mêmes droits). Le créateur ne peut être ni rétrogradé ni retiré.
 
 ## Consultation

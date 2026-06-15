@@ -153,15 +153,15 @@ function CollapsibleSection({ title, subtitle, defaultOpen = false, children }: 
 }
 
 const TEST_BOOKS = [
-  { module: 'Dashboard / Hub', file: 'CT-v0.10.0-dashboard.pdf', tests: 32, pages: 2 },
-  { module: 'Boards éditeur',  file: 'CT-v0.10.0-boards.pdf',    tests: 82, pages: 5 },
-  { module: 'Sessions live',   file: 'CT-v0.10.0-sessions.pdf',  tests: 37, pages: 3 },
-  { module: 'Scrum Poker',     file: 'CT-v0.10.0-scrum.pdf',     tests: 36, pages: 3 },
-  { module: 'Daily Standup',   file: 'CT-v0.10.0-daily.pdf',     tests: 28, pages: 2 },
-  { module: 'La Roue',         file: 'CT-v0.10.0-roue.pdf',      tests: 39, pages: 3 },
-  { module: 'Capacité',        file: 'CT-v0.10.0-capacite.pdf',  tests: 27, pages: 2 },
-  { module: 'MeetOps',         file: 'CT-v0.10.0-meetops.pdf',   tests: 47, pages: 3 },
-  { module: 'Compte / Profil', file: 'CT-v0.10.0-compte.pdf',    tests: 44, pages: 3 },
+  { module: 'Dashboard / Hub', file: 'CT-v0.15.0-dashboard.pdf', tests: 32, pages: 2 },
+  { module: 'Boards éditeur',  file: 'CT-v0.15.0-boards.pdf',    tests: 82, pages: 5 },
+  { module: 'Sessions live',   file: 'CT-v0.15.0-sessions.pdf',  tests: 37, pages: 3 },
+  { module: 'Scrum Poker',     file: 'CT-v0.15.0-scrum.pdf',     tests: 36, pages: 3 },
+  { module: 'Daily Standup',   file: 'CT-v0.15.0-daily.pdf',     tests: 28, pages: 2 },
+  { module: 'La Roue',         file: 'CT-v0.15.0-roue.pdf',      tests: 39, pages: 3 },
+  { module: 'Capacité',        file: 'CT-v0.15.0-capacite.pdf',  tests: 27, pages: 2 },
+  { module: 'MeetOps',         file: 'CT-v0.15.0-meetops.pdf',   tests: 47, pages: 3 },
+  { module: 'Compte / Profil', file: 'CT-v0.15.0-compte.pdf',    tests: 44, pages: 3 },
 ]
 
 export default function AidePage() {

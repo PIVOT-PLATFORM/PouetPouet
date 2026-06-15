@@ -20,7 +20,7 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
-    version: '0.11.0',
+    version: '0.15.0',
     date: '2026-06-15',
     title: 'Feature flags',
     summary: 'Les administrateurs peuvent activer, désactiver ou déployer progressivement des fonctionnalités sans redéploiement, depuis une page dédiée.',
@@ -36,7 +36,46 @@ export const PATCH_NOTES: PatchNote[] = [
     ],
   },
   {
-    version: '0.10.0',
+    version: '0.14.0',
+    date: '2026-06-14',
+    title: 'Verrou d\'édition fiabilisé & file d\'estimation Scrum',
+    summary: 'L\'édition à plusieurs sur un board est garantie côté serveur, l\'indicateur d\'édition distante est bien plus visible, et Scrum Poker enchaîne les tickets dans une file ordonnée.',
+    sections: [
+      {
+        heading: '🤝 Collaboration board',
+        items: [
+          'Verrou d\'édition appliqué côté serveur : impossible de modifier une carte qu\'un autre participant est en train d\'éditer, même en cas de tentative simultanée — la garantie ne repose plus seulement sur l\'affichage.',
+          'Indicateur d\'édition distante plus visible : un badge « Untel édite… » clair apparaît sur la carte en cours de modification par quelqu\'un d\'autre.',
+          'Timer de session rejoué à la reconnexion : retrouver une session en cours réaffiche le minuteur au bon temps.',
+        ],
+      },
+      {
+        heading: '🃏 Scrum Poker',
+        items: [
+          'File d\'estimation ordonnée : enchaînez les tickets dans l\'ordre, avec bascule automatique vers le suivant une fois l\'estimation révélée.',
+        ],
+      },
+    ],
+  },
+  {
+    version: '0.13.0',
+    date: '2026-06-13',
+    title: 'Tableaux éditables, collage Excel & grille d\'aimantation',
+    summary: 'Créez de vrais tableaux sur vos boards, collez-y vos données Excel ou Google Sheets, redimensionnez les colonnes, et alignez tout au cordeau grâce à la grille d\'aimantation et aux guides intelligents.',
+    sections: [
+      {
+        heading: '✨ Nouveautés',
+        items: [
+          'Tableaux sur les boards : créez et éditez de vrais tableaux directement sur le board.',
+          'Collage Excel / Google Sheets : collez des cellules pour les transformer instantanément en tableau ; coller dans un tableau existant le remplit au lieu d\'en créer un nouveau.',
+          'Colonnes redimensionnables : ajustez la largeur de chaque colonne d\'un tableau.',
+          'Grille d\'aimantation et guides d\'alignement intelligents : les objets s\'accrochent à une grille et des repères apparaissent pour aligner et espacer proprement.',
+        ],
+      },
+    ],
+  },
+  {
+    version: '0.12.0',
     date: '2026-06-12',
     title: 'Palettes de couleurs & hub repensé',
     summary: 'Choisissez votre palette (charte FDE incluse) depuis votre profil. Le hub gagne une section "Modules à venir" et des récents plus compacts.',
@@ -64,30 +103,17 @@ export const PATCH_NOTES: PatchNote[] = [
     ],
   },
   {
-    version: '0.9.1',
+    version: '0.11.0',
     date: '2026-06-12',
-    title: 'Aide plus lisible',
-    summary: 'Les sections de la page Aide sont désormais dépliables — la page reste compacte.',
-    sections: [
-      {
-        heading: '✨ Améliorations',
-        items: [
-          'Page Aide : sections dépliables (Fonctionnalités ouverte par défaut, le reste replié) — navigation clavier et lecteurs d\'écran pris en charge.',
-        ],
-      },
-    ],
-  },
-  {
-    version: '0.9.0',
-    date: '2026-06-12',
-    title: 'Co-propriétaires & matrice des rôles',
-    summary: 'Nommez des co-propriétaires sur vos boards. Les rôles Propriétaire / Éditeur / Lecteur sont clarifiés, appliqués partout, et documentés visuellement dans l\'aide.',
+    title: 'Co-propriétaires, matrice des rôles & aide repensée',
+    summary: 'Nommez des co-propriétaires sur vos boards. Les rôles Propriétaire / Éditeur / Lecteur sont clarifiés, appliqués partout, documentés visuellement dans l\'aide — dont les sections sont désormais dépliables.',
     sections: [
       {
         heading: '✨ Nouveautés',
         items: [
           'Co-propriétaires : invitez quelqu\'un en "Propriétaire" — il obtient les mêmes droits que vous (gestion des partages, paramètres, suppression). Le créateur du board reste intouchable.',
           'Matrice des rôles : la page Aide affiche désormais le tableau complet des permissions par rôle.',
+          'Page Aide : sections dépliables (Fonctionnalités ouverte par défaut, le reste replié) — navigation clavier et lecteurs d\'écran pris en charge.',
         ],
       },
       {
@@ -102,7 +128,7 @@ export const PATCH_NOTES: PatchNote[] = [
     ],
   },
   {
-    version: '0.8.0',
+    version: '0.10.0',
     date: '2026-06-12',
     title: 'Collaboration board — retours de recette',
     summary: 'Le travail à plusieurs sur un board devient fiable : plus de vol de focus, verrou d\'édition visible, reset annulable, résultats de vote et d\'activité montrés à tous.',
@@ -128,7 +154,7 @@ export const PATCH_NOTES: PatchNote[] = [
     ],
   },
   {
-    version: '0.7.0',
+    version: '0.9.0',
     date: '2026-06-12',
     title: 'Performance temps réel & accessibilité',
     summary: 'Les boards tiennent désormais 300+ participants simultanés. Toute l\'application passe l\'audit d\'accessibilité WCAG AA, et les webhooks réessaient automatiquement en cas d\'échec.',
@@ -157,25 +183,10 @@ export const PATCH_NOTES: PatchNote[] = [
     ],
   },
   {
-    version: '0.6.1',
+    version: '0.8.0',
     date: '2026-06-12',
-    title: 'Correctif connexion',
-    summary: 'La connexion échouait en erreur serveur sur l\'instance de production — corrigé.',
-    sections: [
-      {
-        heading: '🔧 Corrections',
-        items: [
-          'Connexion / inscription : le limiteur de requêtes plantait quand le cache Redis est indisponible (erreur 500 systématique au login depuis la v0.5.0) — il s\'efface désormais proprement.',
-          'Supervision : les erreurs normales de session expirée ne sont plus remontées comme des bugs.',
-        ],
-      },
-    ],
-  },
-  {
-    version: '0.6.0',
-    date: '2026-06-12',
-    title: 'Connexion SSO & journal de sécurité',
-    summary: 'Connectez-vous via votre fournisseur d\'identité (Keycloak, Google, Azure AD…). Votre profil affiche désormais le journal des actions sensibles de votre compte.',
+    title: 'Connexion SSO, journal de sécurité & fiabilité',
+    summary: 'Connectez-vous via votre fournisseur d\'identité (Keycloak, Google, Azure AD…). Votre profil affiche le journal des actions sensibles de votre compte. La connexion est de nouveau fiable même sans cache.',
     sections: [
       {
         heading: '✨ Nouveautés',
@@ -192,96 +203,56 @@ export const PATCH_NOTES: PatchNote[] = [
           'Reconnexion : rafraîchir la page pendant un vote Scrum ou une session live re-connecte automatiquement, désormais couvert par des tests.',
         ],
       },
-    ],
-  },
-  {
-    version: '0.5.0',
-    date: '2026-06-12',
-    title: 'Historique des webhooks & fiabilité',
-    summary: 'Chaque livraison de webhook est maintenant tracée : statut, erreur et durée visibles depuis votre profil. Sous le capot : tests d\'intégration et corrections de déploiement.',
-    sections: [
-      {
-        heading: '✨ Nouveautés',
-        items: [
-          'Webhooks — historique des livraisons : bouton 🕐 sur chaque webhook pour consulter les 50 dernières tentatives (statut HTTP, message d\'erreur, durée, date).',
-          'Équipes — gestion centralisée : les équipes créées dans Daily, Capacité ou Scrum sont désormais un seul et même objet partagé entre tous les modules.',
-        ],
-      },
       {
         heading: '🔧 Corrections',
         items: [
-          'Numérotation des versions rétablie en 0.x (les versions 4.x affichées précédemment correspondent aux 0.4.x).',
-          'Déploiement : correction du packaging Docker de l\'API et d\'une migration corrompue qui bloquaient les mises en production.',
+          'Connexion / inscription : le limiteur de requêtes plantait quand le cache Redis est indisponible (erreur 500 systématique au login) — il s\'efface désormais proprement.',
+          'Supervision : les erreurs normales de session expirée ne sont plus remontées comme des bugs.',
         ],
       },
     ],
   },
   {
-    version: '0.4.5',
-    date: '2026-06-11',
-    title: 'Webhooks sortants & activité récente dans le hub',
-    summary: 'Abonnez-vous aux événements PouetPouet via webhooks signés HMAC. Le hub affiche maintenant votre activité récente cross-modules.',
+    version: '0.7.0',
+    date: '2026-06-12',
+    title: 'Connexions inter-modules, webhooks & équipes',
+    summary: 'Abonnez-vous aux événements PouetPouet via webhooks signés HMAC, avec historique des livraisons. Scrum Poker alimente la Capacité, les équipes sont unifiées entre modules, et le hub affiche votre activité récente.',
     sections: [
       {
         heading: '✨ Nouveautés',
         items: [
           'Webhooks sortants : créez jusqu\'à 20 webhooks pour recevoir des événements (import board, daily terminé, Scrum estimé, tirage roue) sur votre endpoint HTTP. Signature HMAC-SHA256 dans l\'en-tête X-Webhook-Signature.',
           'Test de webhook : bouton ⚡ pour envoyer un ping signé et vérifier la connectivité en temps réel.',
+          'Webhooks — historique des livraisons : bouton 🕐 sur chaque webhook pour consulter les 50 dernières tentatives (statut HTTP, message d\'erreur, durée, date).',
+          'Scrum → Capacité : liez une salle Scrum Poker à une équipe — quand tous les tickets sont estimés, le total de points remplit automatiquement le sprint en planification.',
+          'Équipes — gestion centralisée : les équipes créées dans Daily, Capacité ou Scrum sont désormais un seul et même objet partagé entre tous les modules.',
+          'Hub — modules favoris : cliquez l\'étoile sur une tuile pour la mettre en favori ; les favoris apparaissent en premier.',
           'Hub — activité récente : section "Récent" listant vos derniers boards modifiés, dailys, salles Scrum et tirages.',
-          'Daily — enrichissement du payload de fin de session (nombre de participants, durée) sur l\'auto-fin comme sur la fin manuelle.',
+          'Notifications enrichies : import de board (résumé cartes + connexions), Scrum terminé (total story points), tirage Roue (résultat).',
+          'Scrum Poker — recherche par équipe dans la liste des salles.',
         ],
       },
       {
         heading: '🔧 Corrections',
         items: [
-          'Daily : la fin automatique (dernier participant) n\'incluait pas le nombre de participants ni la durée dans la notification — corrigé.',
+          'Daily — enrichissement du payload de fin de session (nombre de participants, durée) sur l\'auto-fin comme sur la fin manuelle.',
+          'Déploiement : correction du packaging Docker de l\'API et d\'une migration corrompue qui bloquaient les mises en production.',
         ],
       },
     ],
   },
   {
-    version: '0.4.4',
+    version: '0.6.0',
     date: '2026-06-11',
-    title: 'FORGE F3 — Liaisons inter-modules & favoris hub',
-    summary: 'Scrum Poker alimente désormais la Capacité via le pivot Équipe. Marquez vos modules favoris dans le hub. Notifications enrichies pour tous les événements.',
-    sections: [
-      {
-        heading: '✨ Nouveautés',
-        items: [
-          'Scrum → Capacité : liez une salle Scrum Poker à une équipe — quand tous les tickets sont estimés, le total de points remplit automatiquement le sprint en planification.',
-          'Hub — modules favoris : cliquez l\'étoile sur une tuile pour la mettre en favori ; les favoris apparaissent en premier.',
-          'Notifications enrichies : import de board (résumé cartes + connexions), Scrum terminé (total story points), tirage Roue (résultat).',
-          'Scrum Poker — recherche par équipe dans la liste des salles.',
-        ],
-      },
-    ],
-  },
-  {
-    version: '0.4.3',
-    date: '2026-06-11',
-    title: 'Clés API',
-    summary: 'Générez des clés API pour accéder à PouetPouet depuis vos scripts et outils CI. Gestion complète depuis votre profil.',
-    sections: [
-      {
-        heading: '✨ Nouveautés',
-        items: [
-          'Clés API — créez jusqu\'à 10 clés par compte, révoquez-les à tout moment depuis votre profil',
-          'Authentification par header X-API-Key en complément du JWT pour les appels programmatiques',
-          'Suivi de la dernière utilisation par clé',
-        ],
-      },
-    ],
-  },
-  {
-    version: '0.4.2',
-    date: '2026-06-11',
-    title: 'Curseurs temps réel, RGPD, sécurité CSP, fix viewport',
-    summary: 'Voyez les curseurs de vos collaborateurs en direct sur le board. Export RGPD des données personnelles. En-têtes de sécurité CSP. Correction du décalage de viewport au chargement.',
+    title: 'Curseurs temps réel, clés API, RGPD & sécurité',
+    summary: 'Voyez les curseurs de vos collaborateurs en direct sur le board. Générez des clés API pour vos scripts. Exportez vos données personnelles (RGPD). En-têtes de sécurité CSP.',
     sections: [
       {
         heading: '✨ Nouveautés',
         items: [
           'Curseurs collaboratifs : les positions de tous les membres actifs d\'un board s\'affichent en temps réel (nom + curseur coloré, throttlé à 20 fps).',
+          'Clés API : créez jusqu\'à 10 clés par compte, révoquez-les à tout moment depuis votre profil, avec suivi de la dernière utilisation.',
+          'Authentification par header X-API-Key en complément du JWT pour les appels programmatiques.',
           'Export RGPD : bouton "Exporter mes données" dans le profil → télécharge un JSON complet (profil, boards, dailys, salles, équipes, tirages, notifications).',
         ],
       },
@@ -300,24 +271,24 @@ export const PATCH_NOTES: PatchNote[] = [
     ],
   },
   {
-    version: '0.4.1',
+    version: '0.5.0',
     date: '2026-06-11',
-    title: 'FORGE F3-F4 : pivot Équipes, Redis multi-instance, Hub unifié',
+    title: 'Pivot Équipes, Redis multi-instance & Hub unifié',
     summary: 'Les modules Capacité et Daily partagent désormais un pivot Équipe unique. Le hub devient la page d\'accueil. Les serveurs peuvent scaler horizontalement grâce à Redis.',
     sections: [
       {
         heading: '✨ Nouveautés',
         items: [
           'Hub : page d\'accueil par défaut après connexion, avec compteurs cross-modules en temps réel.',
-          'Pivot Équipe (F3.1) : les équipes Daily et Capacité sont unifiées en un seul objet Équipe partagé entre les modules.',
-          'Liaisons événementielles (F3.2) : notification automatique quand un daily se termine ou quand tous les tickets Scrum sont estimés.',
+          'Pivot Équipe : les équipes Daily et Capacité sont unifiées en un seul objet Équipe partagé entre les modules.',
+          'Liaisons événementielles : notification automatique quand un daily se termine ou quand tous les tickets Scrum sont estimés.',
           'Nouvelles icônes dans la cloche pour les types de notifications DAILY_SESSION_ENDED et SCRUM_ALL_ESTIMATED.',
         ],
       },
       {
         heading: '⚡ Performances & Scalabilité',
         items: [
-          'Redis Socket.io adapter (F4) : les événements socket se propagent entre instances — le service peut maintenant scaler horizontalement (max-instances=10).',
+          'Redis Socket.io adapter : les événements socket se propagent entre instances — le service peut maintenant scaler horizontalement (max-instances=10).',
           'Présence board mise en cache dans Redis hash — plus de fetchSockets() O(n) sur toutes les instances.',
           'Participants Scrum Poker stockés dans Redis hash (TTL 24h) — registry partagé entre instances, fallback Map en dev.',
         ],
@@ -331,7 +302,7 @@ export const PATCH_NOTES: PatchNote[] = [
       {
         heading: '🧪 Qualité',
         items: [
-          '61 tests unitaires : bus d\'événements FORGE, mailer, calculs de capacité (22 cas), patch-notes, JWT, formats.',
+          '61 tests unitaires : bus d\'événements, mailer, calculs de capacité (22 cas), patch-notes, JWT, formats.',
           'Typecheck strict maintenu sur API et Web.',
         ],
       },
