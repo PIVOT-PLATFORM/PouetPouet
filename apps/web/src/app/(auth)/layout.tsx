@@ -28,7 +28,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur mb-4">
             <span className="text-3xl">🎯</span>
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">PouetPouet</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Pivot</h1>
           <p className="text-primary-200 text-sm mt-1">Outil collaboratif interactif</p>
         </div>
 

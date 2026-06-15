@@ -622,7 +622,7 @@ export default function ProfilePage() {
       <SectionCard title="Clés API">
         <div className="space-y-5">
           <p className="text-xs text-gray-500 dark:text-gray-500">
-            Utilisez une clé API pour accéder à l&apos;API PouetPouet depuis vos scripts (header <code className="font-mono bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-1 rounded">X-API-Key</code>). Maximum 10 clés.
+            Utilisez une clé API pour accéder à l&apos;API Pivot depuis vos scripts (header <code className="font-mono bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-1 rounded">X-API-Key</code>). Maximum 10 clés.
           </p>
 
           {/* New key form */}

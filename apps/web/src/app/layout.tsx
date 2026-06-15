@@ -5,8 +5,9 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'PouetPouet',
-  description: 'Outil collaboratif interactif',
+  title: 'Pivot',
+  description: 'Suite collaborative interactive',
+  icons: { icon: '/pivot-logo.png', apple: '/pivot-logo.png' },
 }
 
 // Inlined script to apply dark class before first paint — prevents flash

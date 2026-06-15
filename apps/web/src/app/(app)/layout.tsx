@@ -215,7 +215,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <footer className="border-t border-gray-100 dark:border-gray-800 mt-8">
           <div className="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <span className="text-xs text-gray-500 dark:text-gray-500">
-              © {new Date().getFullYear()} PouetPouet · v{APP_VERSION}
+              © {new Date().getFullYear()} Pivot · v{APP_VERSION}
             </span>
             <nav className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
               <Link href="/mentions-legales" className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">

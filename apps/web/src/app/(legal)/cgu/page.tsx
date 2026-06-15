@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { PageTitle, Section, List } from '@/components/legal/legal-ui'
 
-export const metadata: Metadata = { title: "Conditions générales d'utilisation · PouetPouet" }
+export const metadata: Metadata = { title: "Conditions générales d'utilisation · Pivot" }
 
 export default function CguPage() {
   return (
@@ -11,7 +11,7 @@ export default function CguPage() {
       <Section title="Article 1 — Objet">
         <p>
           Les présentes conditions générales d&apos;utilisation (CGU) ont pour objet de définir les modalités de mise
-          à disposition et d&apos;utilisation du service collaboratif PouetPouet. Toute utilisation du service
+          à disposition et d&apos;utilisation du service collaboratif Pivot. Toute utilisation du service
           implique l&apos;acceptation pleine et entière des présentes CGU.
         </p>
       </Section>

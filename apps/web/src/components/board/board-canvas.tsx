@@ -404,7 +404,29 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
       // Board clipboard takes priority — if it has content, Ctrl+V is handled by keydown
       if (clipboard.length > 0) return
       const active = document.activeElement
-      if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || (active as HTMLElement)?.isContentEditable) return
+      const inEditable = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || (active as HTMLElement)?.isContentEditable
+
+      // Collage de données tabulaires multi-cellules dans une cellule de TABLE
+      // focalisée : on remplit la grille au lieu de laisser le collage natif
+      // tout déverser dans la seule cellule active.
+      if (inEditable && active instanceof HTMLElement) {
+        const host = active.closest('[data-card-id]')
+        const id = host?.getAttribute('data-card-id')
+        const target = id ? cardsRef.current.find((c) => c.id === id) : undefined
+        if (target?.type === 'TABLE') {
+          const rows = parseClipboardTable(
+            e.clipboardData?.getData('text/html'),
+            e.clipboardData?.getData('text/plain'),
+          )
+          if (rows && (rows.length > 1 || rows[0].length > 1)) {
+            e.preventDefault()
+            active.blur()
+            onUpdateCardRef.current(target.id, serializeTable(rows))
+            return
+          }
+        }
+      }
+      if (inEditable) return
 
       const items = e.clipboardData?.items
       if (!items) return

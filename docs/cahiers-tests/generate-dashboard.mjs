@@ -168,7 +168,7 @@ async function generate() {
   }
   function addTextField(name, x, yTop, w, h, multiline = false) {
     const tf = form.createTextField(name)
-    tf.addToPage(page, { x, y: rectBottom(yTop + h - PAD, h - 2 * PAD), width: w - 2 * PAD, height: h - 2 * PAD, borderColor: rgb(0.88, 0.88, 0.93), borderWidth: 0.4, backgroundColor: cl.white })
+    tf.addToPage(page, { x, y: rectBottom(yTop + PAD, h - 2 * PAD), width: w - 2 * PAD, height: h - 2 * PAD, borderColor: rgb(0.88, 0.88, 0.93), borderWidth: 0.4, backgroundColor: cl.white })
     tf.setFontSize(FS - 0.5)
     if (multiline) tf.enableMultiline()
   }
@@ -176,7 +176,7 @@ async function generate() {
   newPage()
   drawRect(M, currentY, CW, 42, cl.indigo, null)
   drawText('CAHIER DE TESTS — DASHBOARD', M + 12, currentY + 12 + 14, fB, 15, cl.white)
-  drawText(`PouetPouet v0.15.0  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
+  drawText(`PouetPouet v0.15.1  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
   currentY += 42 + 8
 
   const META_H = 21, META_COL = CW / 2
@@ -187,7 +187,7 @@ async function generate() {
     const labelW = fR.widthOfTextAtSize(label + ' : ', FS)
     drawText(label + ' :', xBase, yBlock + PAD + FS, fR, FS, cl.gray)
     const tf = form.createTextField(name)
-    tf.addToPage(page, { x: xBase + labelW + 2, y: rectBottom(yBlock + META_H - 3, META_H - 6), width: META_COL - labelW - 20, height: META_H - 6, borderColor: cl.border, borderWidth: 0.5, backgroundColor: cl.white })
+    tf.addToPage(page, { x: xBase + labelW + 2, y: rectBottom(yBlock + 3, META_H - 6), width: META_COL - labelW - 20, height: META_H - 6, borderColor: cl.border, borderWidth: 0.5, backgroundColor: cl.white })
     tf.setFontSize(FS)
   })
   currentY += META_H * 2 + 8 + 6
@@ -234,7 +234,7 @@ async function generate() {
     const lw = fR.widthOfTextAtSize(label + ' : ', FS)
     drawText(label + ' :', xBase + PAD, currentY + PAD + FS + 1, fR, FS, cl.gray)
     const tf = form.createTextField(name)
-    tf.addToPage(page, { x: xBase + PAD + lw + 2, y: rectBottom(currentY + BRH - 3, BRH - 6), width: 40, height: BRH - 6, borderColor: cl.border, borderWidth: 0.5, backgroundColor: cl.white })
+    tf.addToPage(page, { x: xBase + PAD + lw + 2, y: rectBottom(currentY + 3, BRH - 6), width: 40, height: BRH - 6, borderColor: cl.border, borderWidth: 0.5, backgroundColor: cl.white })
     tf.setFontSize(FS)
     tf.setText(`/ ${TOTAL}`)
   })
@@ -251,11 +251,11 @@ async function generate() {
   const sigLw = fR.widthOfTextAtSize('Signature : ', FS)
   drawText('Signature :', M + PAD, currentY + PAD + FS + 2, fR, FS, cl.gray)
   const tfSig = form.createTextField('signature')
-  tfSig.addToPage(page, { x: M + PAD + sigLw + 2, y: rectBottom(currentY + 22 - 3, 16), width: 190, height: 16, borderColor: cl.border, borderWidth: 0.5, backgroundColor: cl.white })
+  tfSig.addToPage(page, { x: M + PAD + sigLw + 2, y: rectBottom(currentY + 3, 16), width: 190, height: 16, borderColor: cl.border, borderWidth: 0.5, backgroundColor: cl.white })
   tfSig.setFontSize(FS)
 
   const bytes = await doc.save()
-  const outPath = 'apps/web/public/aide/CT-v0.15.0-dashboard.pdf'
+  const outPath = 'apps/web/public/aide/CT-v0.15.1-dashboard.pdf'
   writeFileSync(outPath, bytes)
   console.log(`✓  ${outPath}  (${TOTAL} tests · ${doc.getPageCount()} page${doc.getPageCount() > 1 ? 's' : ''})`)
 }

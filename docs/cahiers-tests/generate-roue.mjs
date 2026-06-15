@@ -255,7 +255,7 @@ async function generate() {
     const tf = form.createTextField(name)
     tf.addToPage(page, {
       x,
-      y: rectBottom(yTop + h - PAD, h - 2 * PAD),
+      y: rectBottom(yTop + PAD, h - 2 * PAD),
       width: w - 2 * PAD,
       height: h - 2 * PAD,
       borderColor: rgb(0.88, 0.88, 0.93),
@@ -277,7 +277,7 @@ async function generate() {
   drawRect(M, currentY, CW, 42, cl.indigo, null)
   drawText('CAHIER DE TESTS — LA ROUE', M + 12, currentY + 12 + 14, fB, 15, cl.white)
   drawText(
-    `PouetPouet v0.15.0  ·  ${TOTAL} tests à exécuter`,
+    `PouetPouet v0.15.1  ·  ${TOTAL} tests à exécuter`,
     M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0)
   )
   currentY += 42 + 8
@@ -304,7 +304,7 @@ async function generate() {
     const tf = form.createTextField(name)
     tf.addToPage(page, {
       x: xBase + labelW + 2,
-      y: rectBottom(yBlock + META_H - 3, META_H - 6),
+      y: rectBottom(yBlock + 3, META_H - 6),
       width:  META_COL - labelW - 20,
       height: META_H - 6,
       borderColor:     cl.border,
@@ -396,7 +396,7 @@ async function generate() {
     const tf = form.createTextField(name)
     tf.addToPage(page, {
       x: xBase + PAD + lw + 2,
-      y: rectBottom(currentY + BILAN_ROW_H - 3, BILAN_ROW_H - 6),
+      y: rectBottom(currentY + 3, BILAN_ROW_H - 6),
       width: 40, height: BILAN_ROW_H - 6,
       borderColor: cl.border, borderWidth: 0.5,
       backgroundColor: cl.white,
@@ -422,7 +422,7 @@ async function generate() {
   const tfSig = form.createTextField('signature')
   tfSig.addToPage(page, {
     x: M + PAD + sigLw + 2,
-    y: rectBottom(currentY + 22 - 3, 16),
+    y: rectBottom(currentY + 3, 16),
     width: 190, height: 16,
     borderColor: cl.border, borderWidth: 0.5,
     backgroundColor: cl.white,
@@ -431,7 +431,7 @@ async function generate() {
 
   // ── Save ──────────────────────────────────────────────────────────────────
   const bytes = await doc.save()
-  const outPath = 'apps/web/public/aide/CT-v0.15.0-roue.pdf'
+  const outPath = 'apps/web/public/aide/CT-v0.15.1-roue.pdf'
   writeFileSync(outPath, bytes)
   console.log(`✓  ${outPath}  (${TOTAL} tests · ${doc.getPageCount()} page${doc.getPageCount() > 1 ? 's' : ''})`)
 }

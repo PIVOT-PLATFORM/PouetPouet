@@ -20,6 +20,34 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.15.1',
+    date: '2026-06-16',
+    title: 'Corrections : tableaux, cahiers de tests & moins de notifications',
+    summary: 'Le collage Excel/Sheets dans un tableau existant remplit correctement la grille, les zones de saisie des cahiers de tests sont bien placées, et les notifications sont allégées (fini les notifs sur vos propres actions).',
+    sections: [
+      {
+        heading: '🐛 Corrections',
+        items: [
+          'Tableaux : coller des données Excel/Sheets dans un tableau déjà présent remplit la grille cellule par cellule au lieu de tout concaténer dans une seule case.',
+          'Cahiers de tests : les champs de saisie (Commentaire, en-tête, bilan, signature) sont désormais alignés sur leur ligne dans les PDF.',
+          'Notifications : les libellés des notifications de board (partage, rôle, accès, suppression) ne sont plus affichés avec des caractères incorrects.',
+        ],
+      },
+      {
+        heading: '🔔 Moins de bruit',
+        items: [
+          'Plus de notification pour vos propres actions : daily terminé, tous les tickets Scrum estimés, import de board et tirage de la Roue n\'envoient plus de notification (les webhooks correspondants restent actifs).',
+        ],
+      },
+      {
+        heading: '🎨 Marque',
+        items: [
+          'La suite s\'affiche désormais sous le nom « Pivot » dans l\'en-tête, le titre de l\'onglet, les écrans de connexion et les pages légales, avec sa nouvelle icône.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.15.0',
     date: '2026-06-15',
     title: 'Feature flags',
