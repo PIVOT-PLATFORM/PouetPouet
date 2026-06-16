@@ -22,7 +22,7 @@ jobs:
     steps:
       - name: Fetch Dependabot metadata
         id: meta
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
 
       - name: Approve and enable auto-merge (patch only)
         if: steps.meta.outputs.update-type == 'version-update:semver-patch'
