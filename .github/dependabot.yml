@@ -9,6 +9,14 @@ updates:
       time: '05:00'
       timezone: Europe/Paris
     open-pull-requests-limit: 5
+    ignore:
+      # Prisma 7 retire `url` du datasource et embarque un moteur v7 qui casse
+      # le build Docker (cf. memory project-prisma-pin). On reste en 6.x tant
+      # qu'une vraie migration v7 (prisma.config.ts) n'est pas faite.
+      - dependency-name: prisma
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@prisma/client'
+        update-types: ['version-update:semver-major']
     groups:
       npm-production:
         dependency-type: production
