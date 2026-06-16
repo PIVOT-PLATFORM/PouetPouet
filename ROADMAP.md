@@ -94,10 +94,11 @@
 - [x] Renommer les identifiants internes `ForgeEvent` / `FORGE_MODULES` / métriques `forge_*` → `pivot` *(optionnel, non visible utilisateur)*
 
 ### Plugins
-- [ ] Architecture plugins
-- [ ] Fiabiliser PouetPouet avant ouverture aux plugins
-- [ ] Définir une roadmap plugins
-- [ ] Définir le cycle de vie d'un plugin (installation, activation, config, permissions, versioning)
+> Conception : [`docs/specs/plugins-architecture.md`](docs/specs/plugins-architecture.md)
+- [x] Architecture plugins *(conçue — cf. doc)*
+- [ ] Fiabiliser PouetPouet avant ouverture aux plugins *(checklist §5 du doc)*
+- [x] Définir une roadmap plugins *(§6 du doc)*
+- [x] Définir le cycle de vie d'un plugin (installation, activation, config, permissions, versioning) *(§4 du doc)*
 
 ### Feature flags
 - [ ] Système de feature flags
