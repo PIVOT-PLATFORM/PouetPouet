@@ -38,6 +38,18 @@ Nous considérons comme vulnerabilités de sécurité :
 - Demandes de features
 - Vulnérabilités dans les dépendances tierces (signalez à l'upstream directement, puis npm audit/Snyk)
 
+## Vulnérabilités connues et acceptées
+
+Le gate CI `npm run security:audit` bloque les vulnérabilités **critical** sur les dépendances de **production** (`npm audit --audit-level=critical --omit=dev`). Certaines alertes `high`/`moderate` restantes sont **conscientes et acceptées** :
+
+| Paquet | Alerte | Pourquoi accepté |
+|--------|--------|------------------|
+| `xlsx` | Prototype pollution + ReDoS (GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9) | **Usage write-only** : nous générons des fichiers à l'export (`json_to_sheet` + `writeFile`), nous ne **parsons jamais** de fichier `.xlsx` entrant. Les failles sont sur le chemin de lecture → non atteignables. Pas de fix npm (paquet figé à 0.18.5). |
+| `prisma` / `effect` | DoS contexte fibers (GHSA-38f7-945m-qr2g) | Le correctif force `prisma@6.19.3` (moteur v7) qui **casse le build Docker**. Prisma est volontairement épinglé à 6.19.0. Dette suivie : item *Migration Prisma v7* dans `ROADMAP.md`. |
+| `next` / `postcss` | XSS stringify CSS (GHSA-qx2v-qp2m-jg93) | Faille **build-time** (génération CSS), pas runtime. Le correctif naïf rétrograde Next à 9.3.3. Sera résolu au prochain patch de Next. |
+
+Cette liste est revue à chaque `npm audit`. Toute nouvelle alerte **critical** ou toute alerte atteignable en production doit être corrigée, pas ajoutée ici.
+
 ## Confidentialité
 
 Nous maintenons la confidentialité du rapport jusqu'à la publication du patch. Nous ne partagerons pas vos coordonnées sans votre permission.
