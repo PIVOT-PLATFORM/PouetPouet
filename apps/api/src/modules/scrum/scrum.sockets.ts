@@ -2,6 +2,7 @@ import type { Server, Socket } from 'socket.io'
 import { prisma } from '../../lib/prisma.js'
 import { redis } from '../../lib/redis.js'
 import { bus } from '../../lib/bus.js'
+import { resolveRole, canManage, type ModuleRole } from '../../lib/module-share.js'
 
 // Participant registry — Redis hash when available, in-memory Map as fallback (dev).
 //
@@ -92,20 +93,26 @@ async function activateQueueHead(io: Server, roomId: string, scale: string, queu
   return q
 }
 
-async function isOwner(socket: Socket, roomId: string): Promise<boolean> {
+// Rôle de l'utilisateur sur la salle (OWNER si créateur, sinon partage), mis en cache
+// par socket. host_join est ouvert à tout rôle (VIEWER+) ; les mutations exigent EDITOR+.
+async function getRoomRole(socket: Socket, roomId: string): Promise<ModuleRole | null> {
   const userId = socket.data.userId as string | undefined
-  if (!userId) return false
-  const cache: Record<string, boolean> = (socket.data.scrumOwner ??= {})
+  if (!userId) return null
+  const cache: Record<string, ModuleRole | null> = (socket.data.scrumRole ??= {})
   if (cache[roomId] === undefined) {
     const room = await prisma.scrumRoom.findUnique({ where: { id: roomId }, select: { ownerId: true } })
-    cache[roomId] = !!room && room.ownerId === userId
+    cache[roomId] = room ? await resolveRole('scrum', roomId, userId, room.ownerId) : null
   }
   return cache[roomId]
 }
 
+async function canManageRoom(socket: Socket, roomId: string): Promise<boolean> {
+  return canManage(await getRoomRole(socket, roomId))
+}
+
 export function scrumSocketHandlers(io: Server, socket: Socket) {
   socket.on('scrum:host_join', async (roomId: string) => {
-    if (!(await isOwner(socket, roomId))) { socket.emit('scrum:error', 'Accès refusé'); return }
+    if (!(await getRoomRole(socket, roomId))) { socket.emit('scrum:error', 'Accès refusé'); return }
     await socket.join(roomKey(roomId))
     const room = await prisma.scrumRoom.findUnique({
       where: { id: roomId },
@@ -152,7 +159,7 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
   })
 
   socket.on('scrum:ticket:add', async ({ roomId, title }: { roomId: string; title: string }) => {
-    if (!(await isOwner(socket, roomId))) return
+    if (!(await canManageRoom(socket, roomId))) return
     const count = await prisma.scrumTicket.count({ where: { roomId } })
     const ticket = await prisma.scrumTicket.create({
       data: { roomId, title: title.trim(), order: count },
@@ -162,7 +169,7 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
   })
 
   socket.on('scrum:ticket:activate', async ({ ticketId, roomId, scale }: { ticketId: string; roomId: string; scale: string }) => {
-    if (!(await isOwner(socket, roomId))) return
+    if (!(await canManageRoom(socket, roomId))) return
     await prisma.scrumTicket.updateMany({ where: { roomId, status: 'VOTING' }, data: { status: 'PENDING' } })
     await prisma.scrumVote.deleteMany({ where: { ticketId } })
     const ticket = await prisma.scrumTicket.update({
@@ -176,7 +183,7 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
   // ── File d'estimation : ordre de passage des tickets ──────────────────────────
   // Définit la file (liste ordonnée de ticketIds) et ouvre le vote sur le premier.
   socket.on('scrum:queue:set', async ({ roomId, ticketIds, scale }: { roomId: string; ticketIds: string[]; scale: string }) => {
-    if (!(await isOwner(socket, roomId))) return
+    if (!(await canManageRoom(socket, roomId))) return
     // Ne garder que les tickets existants de cette salle, dans l'ordre fourni.
     const valid = await prisma.scrumTicket.findMany({ where: { id: { in: ticketIds }, roomId }, select: { id: true } })
     const validSet = new Set(valid.map((t) => t.id))
@@ -187,7 +194,7 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
   })
 
   socket.on('scrum:queue:clear', async ({ roomId }: { roomId: string }) => {
-    if (!(await isOwner(socket, roomId))) return
+    if (!(await canManageRoom(socket, roomId))) return
     await prisma.scrumRoom.update({ where: { id: roomId }, data: { queue: [] } })
     io.to(roomKey(roomId)).emit('scrum:queue:updated', { queue: [] })
   })
@@ -206,7 +213,7 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
   })
 
   socket.on('scrum:reveal', async ({ ticketId, roomId, scale }: { ticketId: string; roomId: string; scale: string }) => {
-    if (!(await isOwner(socket, roomId))) return
+    if (!(await canManageRoom(socket, roomId))) return
     const ticket = await prisma.scrumTicket.update({
       where: { id: ticketId },
       data: { status: 'REVEALED' },
@@ -216,7 +223,7 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
   })
 
   socket.on('scrum:ticket:estimate', async ({ ticketId, estimate, roomId, scale }: { ticketId: string; estimate: string; roomId: string; scale: string }) => {
-    if (!(await isOwner(socket, roomId))) return
+    if (!(await canManageRoom(socket, roomId))) return
     const data = scale === 'TIME'
       ? { estimateTime: estimate, status: 'DONE' as const }
       : { estimate, status: 'DONE' as const }
@@ -246,7 +253,7 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
   })
 
   socket.on('scrum:ticket:reset', async ({ ticketId, roomId, scale }: { ticketId: string; roomId: string; scale: string }) => {
-    if (!(await isOwner(socket, roomId))) return
+    if (!(await canManageRoom(socket, roomId))) return
     await prisma.scrumVote.deleteMany({ where: { ticketId, scale } })
     const ticket = await prisma.scrumTicket.update({
       where: { id: ticketId },
@@ -257,7 +264,7 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
   })
 
   socket.on('scrum:ticket:delete', async ({ ticketId, roomId }: { ticketId: string; roomId: string }) => {
-    if (!(await isOwner(socket, roomId))) return
+    if (!(await canManageRoom(socket, roomId))) return
     await prisma.scrumTicket.delete({ where: { id: ticketId } })
     io.to(roomKey(roomId)).emit('scrum:ticket:deleted', ticketId)
     // Retirer le ticket supprimé de la file s'il y figurait.
@@ -270,7 +277,7 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
   })
 
   socket.on('scrum:ticket:add_bulk', async ({ roomId, titles }: { roomId: string; titles: string[] }) => {
-    if (!(await isOwner(socket, roomId))) return
+    if (!(await canManageRoom(socket, roomId))) return
     const count = await prisma.scrumTicket.count({ where: { roomId } })
     const tickets = await prisma.$transaction(
       titles.map((title, i) =>
@@ -284,7 +291,7 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
   })
 
   socket.on('scrum:ticket:bulk_estimate', async ({ ticketIds, estimate, roomId, scale }: { ticketIds: string[]; estimate: string; roomId: string; scale: string }) => {
-    if (!(await isOwner(socket, roomId))) return
+    if (!(await canManageRoom(socket, roomId))) return
     for (const ticketId of ticketIds) {
       const data = scale === 'TIME'
         ? { estimateTime: estimate, status: 'DONE' as const }
@@ -299,7 +306,7 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
   })
 
   socket.on('scrum:room:update_scale', async ({ roomId, scale }: { roomId: string; scale: string }) => {
-    if (!(await isOwner(socket, roomId))) return
+    if (!(await canManageRoom(socket, roomId))) return
     await prisma.scrumRoom.update({ where: { id: roomId }, data: { scale } })
     io.to(roomKey(roomId)).emit('scrum:room:scale_updated', scale)
   })

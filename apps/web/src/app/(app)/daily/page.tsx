@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTeams, useDailySessions } from '@/hooks/useDaily'
 import type { DailyTeam, DailySession } from '@/hooks/useDaily'
 import { formatDuration } from '@/lib/time'
+import { ModuleShareModal } from '@/components/share/module-share-modal'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -366,6 +367,7 @@ export default function DailyPage() {
   const [showCreateSession, setShowCreateSession] = useState(false)
   const [teamModal, setTeamModal] = useState<{ open: boolean; team: DailyTeam | null }>({ open: false, team: null })
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [shareSession, setShareSession] = useState<DailySession | null>(null)
   const [search, setSearch] = useState('')
 
   async function handleSaveTeam(name: string, members: string[]) {
@@ -466,15 +468,33 @@ export default function DailyPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-lg ${cls}`}>{label}</span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setConfirmDelete(session.id) }}
-                        className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-                        title="Supprimer"
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                      {session.role && session.role !== 'OWNER' ? (
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-secondary-50 dark:bg-secondary-950 text-secondary-600 dark:text-secondary-400">
+                          Partagé · {session.role === 'EDITOR' ? 'Éditeur' : 'Lecteur'}
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setShareSession(session) }}
+                            className="p-1.5 rounded-lg text-gray-300 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors"
+                            title="Partager"
+                          >
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                              <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setConfirmDelete(session.id) }}
+                            className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                            title="Supprimer"
+                          >
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 )
@@ -552,6 +572,15 @@ export default function DailyPage() {
           team={teamModal.team}
           onSave={handleSaveTeam}
           onClose={() => setTeamModal({ open: false, team: null })}
+        />
+      )}
+
+      {shareSession && (
+        <ModuleShareModal
+          module="daily"
+          resourceId={shareSession.id}
+          resourceName={shareSession.name}
+          onClose={() => setShareSession(null)}
         />
       )}
 

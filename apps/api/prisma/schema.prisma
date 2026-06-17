@@ -46,6 +46,7 @@ model User {
   webhooks       Webhook[]
   auditLogs      AuditLog[]
   oauthAccounts  OAuthAccount[]
+  moduleShares   ModuleShare[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -359,6 +360,31 @@ model FeatureFlag {
   updatedAt      DateTime @updatedAt
 
   @@unique([key, environment])
+}
+
+// Partage générique des ressources de module (Scrum, Daily, …). Polymorphe :
+// (module, resourceId) référence la ressource sans FK — la cascade à la suppression
+// de la ressource est gérée dans le code (deleteResourceShares). La cascade à la
+// suppression de l'utilisateur passe par la relation user.
+model ModuleShare {
+  id         String     @id @default(cuid())
+  module     String // 'scrum' | 'daily' | ...
+  resourceId String
+  userId     String
+  role       ModuleRole @default(VIEWER)
+  createdAt  DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([module, resourceId, userId])
+  @@index([userId])
+  @@index([module, resourceId])
+}
+
+enum ModuleRole {
+  VIEWER
+  EDITOR
+  OWNER
 }
 
 enum BoardRole {
