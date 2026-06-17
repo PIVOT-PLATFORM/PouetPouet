@@ -13,9 +13,9 @@
 - [x] Tests d'intégration API avec vraie DB PostgreSQL dans la CI
 - [x] Ajouter les tests E2E Playwright dans la CI *(job `e2e`, serveurs prod + Postgres/Redis)*
 - [x] Ajouter l'audit accessibilité Playwright + axe-core dans la CI *(`a11y.spec.ts` tourne dans le job `e2e`)*
-- [ ] Ajouter des tests de performance
-  - [ ] Lighthouse sur la landing page
-  - [ ] Définir les budgets de performance par page critique
+- [x] Ajouter des tests de performance *(Lighthouse CI — workflow `perf.yml` non bloquant, doc `docs/ops/performance-budgets.md`)*
+  - [x] Lighthouse sur la landing page *(+ login, register)*
+  - [x] Définir les budgets de performance par page critique *(`lighthouse-budgets.json`)*
 - [x] Ajouter SonarQube / SonarCloud public *(workflow + configuration de base)*
   - [ ] Quality gate tests unitaires : objectif 90%
   - [ ] Quality gate tests d'intégration : objectif 90%
