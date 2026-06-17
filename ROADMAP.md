@@ -139,7 +139,7 @@
 - [x] Stratégie de backup PostgreSQL *(Cloud SQL auto + PITR — runbook `docs/ops/backup-restore-rollback.md`)*
 - [ ] Tester la restauration des backups *(procédure + cadence trimestrielle documentées ; test réel à exécuter)*
 - [x] Procédure de rollback migration documentée *(runbook `docs/ops/backup-restore-rollback.md`)*
-- [ ] Migration Prisma v7 (retrait du `url` du schéma + `prisma.config.ts`) pour lever l'épinglage exact `6.19.0` — cf. #87 *(dette traçée, ADR-0007)*
+- [x] Migration Prisma v7 (`7.8.0` : `url` retiré du schéma, `prisma.config.ts`, driver adapter `pg`) — dette #87 soldée, cf. ADR-0009 *(épinglage exact conservé sur le trio prisma/@prisma/client/@prisma/adapter-pg)*
 
 ---
 

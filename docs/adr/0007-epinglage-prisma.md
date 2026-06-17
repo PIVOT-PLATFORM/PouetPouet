@@ -1,6 +1,6 @@
 # ADR-0007 — Épinglage exact de Prisma à 6.19.0
 
-> Statut : `Accepté` · Date : 2026-06-17 · Remplace : — · Remplacé par : —
+> Statut : `Remplacé` · Date : 2026-06-17 · Remplace : — · Remplacé par : ADR-0009
 
 > Post-mortem : issue #87 (hotfix après v0.15.1, le 2026-06-16).
 

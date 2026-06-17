@@ -14,13 +14,15 @@ updates:
       # manuellement — on ne les laisse pas entrer via dependabot auto-groupé.
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
-      # Prisma est épinglé à 6.19.0 (cf. memory project-prisma-pin) : même le patch
-      # 6.19.3 embarque un moteur v7 qui rejette `url` dans le datasource et casse
-      # le build Docker. On bloque DONC tout bump (major, minor ET patch) tant
-      # qu'une vraie migration v7 (prisma.config.ts) n'est pas faite — sinon
-      # dependabot rouvre 6.19.3 en boucle (cf. #88/#89).
+      # Prisma est épinglé EXACTEMENT à 7.8.0 (cf. memory project-prisma-pin,
+      # ADR-0009). Le CLI `prisma`, `@prisma/client` et l'adapter `@prisma/adapter-pg`
+      # doivent partager la MÊME version (lock du moteur) : un bump dependabot
+      # indépendant (groupes prod/dev distincts) provoquerait un mismatch de
+      # version → build cassé. On bloque donc tout bump ; les montées de version
+      # Prisma se font manuellement et de façon coordonnée sur les trois paquets.
       - dependency-name: prisma
       - dependency-name: '@prisma/client'
+      - dependency-name: '@prisma/adapter-pg'
     groups:
       npm-production:
         dependency-type: production
