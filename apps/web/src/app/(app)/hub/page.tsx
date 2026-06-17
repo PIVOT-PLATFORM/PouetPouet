@@ -79,7 +79,6 @@ function timeAgo(iso: string): string {
 // Modules annoncés, affichage seul (pas encore cliquables)
 const UPCOMING_MODULES: { icon: string; name: string }[] = [
   { icon: '🗺️', name: 'Roadmap' },
-  { icon: '🤝', name: 'MeetOps' },
   { icon: '📋', name: 'Mes PIP' },
   { icon: '🧪', name: 'Création de cahiers de tests' },
   { icon: '📄', name: 'Mes PDF' },
