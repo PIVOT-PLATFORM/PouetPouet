@@ -1,4 +1,4 @@
-import { defineConfig, env } from 'prisma/config'
+import { defineConfig } from 'prisma/config'
 
 // Prisma 7 : l'URL de connexion ne vit plus dans schema.prisma.
 // Elle est fournie ici pour les commandes CLI (migrate, db push…).
@@ -20,7 +20,12 @@ export default defineConfig({
   migrations: {
     path: 'prisma/migrations',
   },
+  // `url` est optionnel (requis seulement pour migrate/introspection, pas pour
+  // generate). On lit directement process.env : absent → undefined (generate OK
+  // sans DB, ex. build Docker / CI) ; présent → utilisé par migrate.
+  // NB : le helper strict `env()` de prisma/config lèverait une erreur si la
+  // variable manque, ce qui casserait `prisma generate` en CI.
   datasource: {
-    url: env('DATABASE_URL'),
+    url: process.env.DATABASE_URL,
   },
 })
