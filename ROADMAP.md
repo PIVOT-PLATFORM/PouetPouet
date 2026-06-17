@@ -13,9 +13,9 @@
 - [x] Tests d'intégration API avec vraie DB PostgreSQL dans la CI
 - [x] Ajouter les tests E2E Playwright dans la CI *(job `e2e`, serveurs prod + Postgres/Redis)*
 - [x] Ajouter l'audit accessibilité Playwright + axe-core dans la CI *(`a11y.spec.ts` tourne dans le job `e2e`)*
-- [ ] Ajouter des tests de performance
-  - [ ] Lighthouse sur la landing page
-  - [ ] Définir les budgets de performance par page critique
+- [x] Ajouter des tests de performance *(Lighthouse CI — workflow `perf.yml` non bloquant, doc `docs/ops/performance-budgets.md`)*
+  - [x] Lighthouse sur la landing page *(+ login, register)*
+  - [x] Définir les budgets de performance par page critique *(`lighthouse-budgets.json`)*
 - [x] Ajouter SonarQube / SonarCloud public *(workflow + configuration de base)*
   - [ ] Quality gate tests unitaires : objectif 90%
   - [ ] Quality gate tests d'intégration : objectif 90%
@@ -31,6 +31,7 @@
 - [x] Tag Docker `:version` (ex: `:0.15.0`) — lu depuis `package.json` racine, api + web (`deploy.yml`)
 - [x] Automatiser les tags git de release *(`release.yml` : tag `v<version>` au push master, idempotent)*
 - [x] Générer automatiquement les release notes *(extraites de `patch-notes.ts` → GitHub Release)*
+- [x] `CHANGELOG.md` public à la racine *(index condensé ; `patch-notes.ts` reste la source détaillée in-app)*
 
 ### Déploiement
 - [x] Healthcheck API `/health` (DB + Redis + version)
@@ -59,9 +60,10 @@
 - [x] Suppression de compte (`POST /api/auth/delete-account`)
 - [x] Rétention des données (cleanup automatique via retention.ts)
 - [x] Mentions légales, confidentialité, CGU
+- [x] Politique de divulgation de vulnérabilités (`SECURITY.md` à la racine, contact pouetpouetsupport@gmail.com)
 - [ ] Formaliser le chantier sécurité avec Valentine
-- [ ] Auditer les secrets GitHub Actions et GCP
-- [x] Scan de dépendances vulnérables (npm audit / Snyk) *(npm audit critique en CI, seuil high à traiter après xlsx)*
+- [~] Auditer les secrets GitHub Actions et GCP *(GitHub : 6 secrets revus via `gh secret list`, tous attendus, aucune fuite dans l'historique git ; reste côté console GCP : valeurs Secret Manager + IAM + migration `GCP_SA_KEY` → Workload Identity Federation)*
+- [x] Scan de dépendances vulnérables (npm audit / Snyk) *(npm audit en CI ; seuil `critical` retenu — décision 2026-06-17 — les `high` restants sont documentés/acceptés dans SECURITY.md, revue manuelle périodique)*
 - [x] Scan de secrets dans le code (gitleaks dans `security.yml`, config `.gitleaks.toml`)
 - [x] Scan d'images Docker
 - [ ] Politique de rotation des secrets
@@ -81,6 +83,9 @@
   - [x] Labels consommés par les templates/workflow : `bug`, `feature`, `tech`, `needs triage`
   - [x] Créer/normaliser dans GitHub : `security`, `ux`, `good first issue`
 - [x] Milestones GitHub *(`0.10.1 - Hardening`, `1.0.0 - Exploitable`)*
+- [x] `LICENSE` à la racine du dépôt *(AGPL-3.0)*
+- [x] Guide de contribution `CONTRIBUTING.md` *(workflow git, conventions de commit, setup, règles d'isolation des modules)*
+- [x] `CODE_OF_CONDUCT.md` *(Contributor Covenant 2.1, contact pouetpouetsupport@gmail.com)*
 
 ---
 
@@ -94,10 +99,11 @@
 - [x] Renommer les identifiants internes `ForgeEvent` / `FORGE_MODULES` / métriques `forge_*` → `pivot` *(optionnel, non visible utilisateur)*
 
 ### Plugins
-- [ ] Architecture plugins
-- [ ] Fiabiliser PouetPouet avant ouverture aux plugins
-- [ ] Définir une roadmap plugins
-- [ ] Définir le cycle de vie d'un plugin (installation, activation, config, permissions, versioning)
+> Conception : [`docs/specs/plugins-architecture.md`](docs/specs/plugins-architecture.md)
+- [x] Architecture plugins *(conçue — cf. doc)*
+- [ ] Fiabiliser PouetPouet avant ouverture aux plugins *(checklist §5 du doc)*
+- [x] Définir une roadmap plugins *(§6 du doc)*
+- [x] Définir le cycle de vie d'un plugin (installation, activation, config, permissions, versioning) *(§4 du doc)*
 
 ### Feature flags
 - [ ] Système de feature flags
@@ -133,6 +139,7 @@
 - [x] Stratégie de backup PostgreSQL *(Cloud SQL auto + PITR — runbook `docs/ops/backup-restore-rollback.md`)*
 - [ ] Tester la restauration des backups *(procédure + cadence trimestrielle documentées ; test réel à exécuter)*
 - [x] Procédure de rollback migration documentée *(runbook `docs/ops/backup-restore-rollback.md`)*
+- [x] Migration Prisma v7 (`7.8.0` : `url` retiré du schéma, `prisma.config.ts`, driver adapter `pg`) — dette #87 soldée, cf. ADR-0009 *(épinglage exact conservé sur le trio prisma/@prisma/client/@prisma/adapter-pg)*
 
 ---
 
@@ -184,8 +191,8 @@
 - [x] Documenter l'installation locale (README.md)
 - [x] Documenter les CI/CD en place
 - [x] Documenter l'architecture applicative (README.md)
-- [ ] Documenter les décisions structurantes via ADR
-- [ ] Checklist d'incident
+- [x] Documenter les décisions structurantes via ADR *(journal `docs/adr/` : process + 8 ADR rétroactives)*
+- [x] Checklist d'incident *(runbook `docs/ops/incident-response.md` : gravité, boucle de réponse, post-mortem)*
 
 ---
 

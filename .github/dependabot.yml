@@ -10,13 +10,19 @@ updates:
       timezone: Europe/Paris
     open-pull-requests-limit: 5
     ignore:
-      # Prisma 7 retire `url` du datasource et embarque un moteur v7 qui casse
-      # le build Docker (cf. memory project-prisma-pin). On reste en 6.x tant
-      # qu'une vraie migration v7 (prisma.config.ts) n'est pas faite.
+      # Les majors sont des décisions architecturales (breaking changes) à traiter
+      # manuellement — on ne les laisse pas entrer via dependabot auto-groupé.
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+      # Prisma est épinglé EXACTEMENT à 7.8.0 (cf. memory project-prisma-pin,
+      # ADR-0009). Le CLI `prisma`, `@prisma/client` et l'adapter `@prisma/adapter-pg`
+      # doivent partager la MÊME version (lock du moteur) : un bump dependabot
+      # indépendant (groupes prod/dev distincts) provoquerait un mismatch de
+      # version → build cassé. On bloque donc tout bump ; les montées de version
+      # Prisma se font manuellement et de façon coordonnée sur les trois paquets.
       - dependency-name: prisma
-        update-types: ['version-update:semver-major']
       - dependency-name: '@prisma/client'
-        update-types: ['version-update:semver-major']
+      - dependency-name: '@prisma/adapter-pg'
     groups:
       npm-production:
         dependency-type: production

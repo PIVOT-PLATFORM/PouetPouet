@@ -25,7 +25,7 @@
     "@fastify/swagger": "^9.7.0",
     "@fastify/swagger-ui": "^6.0.0",
     "@pouetpouet/shared": "*",
-    "@prisma/client": "6.19.0",
+    "@prisma/client": "7.8.0",
     "@sentry/node": "^10.57.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@types/nodemailer": "^8.0.0",
@@ -35,12 +35,13 @@
     "nodemailer": "^8.0.10",
     "openid-client": "^6.8.4",
     "socket.io": "^4.8.1",
-    "zod": "^3.24.4"
+    "zod": "^3.24.4",
+    "@prisma/adapter-pg": "7.8.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.15.17",
-    "prisma": "6.19.0",
+    "prisma": "7.8.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
     "vitest": "^4.1.8"

@@ -1,5 +1,6 @@
 import { execSync } from 'node:child_process'
 import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { readDevDatabaseUrl, toTestDatabaseUrl, TEST_DB_NAME } from './db-url.js'
 
 // vitest globalSetup: creates the integration-test database if needed and
@@ -10,7 +11,7 @@ export default async function setup() {
     throw new Error('DATABASE_URL introuvable dans apps/api/.env — les tests d\'intégration nécessitent la DB locale (docker-compose up).')
   }
 
-  const admin = new PrismaClient({ datasourceUrl: devUrl })
+  const admin = new PrismaClient({ adapter: new PrismaPg({ connectionString: devUrl }) })
   try {
     await admin.$executeRawUnsafe(`CREATE DATABASE "${TEST_DB_NAME}"`)
   } catch (err) {
