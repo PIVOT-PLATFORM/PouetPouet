@@ -63,7 +63,7 @@
 - [x] Politique de divulgation de vulnérabilités (`SECURITY.md` à la racine, contact pouetpouetsupport@gmail.com)
 - [ ] Formaliser le chantier sécurité avec Valentine
 - [~] Auditer les secrets GitHub Actions et GCP *(GitHub : 6 secrets revus via `gh secret list`, tous attendus, aucune fuite dans l'historique git ; reste côté console GCP : valeurs Secret Manager + IAM + migration `GCP_SA_KEY` → Workload Identity Federation)*
-- [x] Scan de dépendances vulnérables (npm audit / Snyk) *(npm audit critique en CI, seuil high à traiter après xlsx)*
+- [x] Scan de dépendances vulnérables (npm audit / Snyk) *(npm audit en CI ; seuil `critical` retenu — décision 2026-06-17 — les `high` restants sont documentés/acceptés dans SECURITY.md, revue manuelle périodique)*
 - [x] Scan de secrets dans le code (gitleaks dans `security.yml`, config `.gitleaks.toml`)
 - [x] Scan d'images Docker
 - [ ] Politique de rotation des secrets
