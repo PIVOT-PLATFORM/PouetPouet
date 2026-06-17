@@ -185,7 +185,7 @@
 - [x] Documenter l'installation locale (README.md)
 - [x] Documenter les CI/CD en place
 - [x] Documenter l'architecture applicative (README.md)
-- [ ] Documenter les décisions structurantes via ADR
+- [x] Documenter les décisions structurantes via ADR *(journal `docs/adr/` : process + 8 ADR rétroactives)*
 - [ ] Checklist d'incident
 
 ---
