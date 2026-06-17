@@ -235,6 +235,19 @@ La CI exécute actuellement :
 - tests Vitest ;
 - tests d'intégration API avec PostgreSQL.
 
+## Documentation
+
+| Sujet | Emplacement |
+|-------|-------------|
+| Décisions structurantes (ADR) | [`docs/adr/`](docs/adr/) |
+| Architecture des plugins | [`docs/specs/plugins-architecture.md`](docs/specs/plugins-architecture.md) |
+| Réponse à incident & post-mortem | [`docs/ops/incident-response.md`](docs/ops/incident-response.md) |
+| Backups, restauration & rollback | [`docs/ops/backup-restore-rollback.md`](docs/ops/backup-restore-rollback.md) |
+| Observabilité, SLO & alertes | [`docs/ops/observability-slo-alerting.md`](docs/ops/observability-slo-alerting.md) |
+| Activation infra (go-live) | [`docs/ops/go-live-checklist.md`](docs/ops/go-live-checklist.md) |
+| Réglages admin GitHub attendus | [`.github/admin-settings.md`](.github/admin-settings.md) |
+| Roadmap | [`ROADMAP.md`](ROADMAP.md) |
+
 ## Roadmap courte
 
 Les prochains chantiers identifiés sont suivis dans `ROADMAP.md`, notamment :
