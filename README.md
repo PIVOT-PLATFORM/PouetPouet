@@ -239,6 +239,11 @@ La CI exécute actuellement :
 
 | Sujet | Emplacement |
 |-------|-------------|
+| Contribuer (workflow, conventions, setup) | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| Code de conduite | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) |
+| Sécurité & divulgation de vulnérabilités | [`SECURITY.md`](SECURITY.md) |
+| Licence | [`LICENSE`](LICENSE) (AGPL-3.0) |
+| Journal des versions | [`CHANGELOG.md`](CHANGELOG.md) |
 | Décisions structurantes (ADR) | [`docs/adr/`](docs/adr/) |
 | Architecture des plugins | [`docs/specs/plugins-architecture.md`](docs/specs/plugins-architecture.md) |
 | Réponse à incident & post-mortem | [`docs/ops/incident-response.md`](docs/ops/incident-response.md) |

@@ -31,7 +31,7 @@
 - [x] Tag Docker `:version` (ex: `:0.15.0`) — lu depuis `package.json` racine, api + web (`deploy.yml`)
 - [x] Automatiser les tags git de release *(`release.yml` : tag `v<version>` au push master, idempotent)*
 - [x] Générer automatiquement les release notes *(extraites de `patch-notes.ts` → GitHub Release)*
-- [ ] `CHANGELOG.md` public à la racine *(optionnel — `patch-notes.ts` sert déjà de changelog in-app)*
+- [x] `CHANGELOG.md` public à la racine *(index condensé ; `patch-notes.ts` reste la source détaillée in-app)*
 
 ### Déploiement
 - [x] Healthcheck API `/health` (DB + Redis + version)
@@ -60,10 +60,10 @@
 - [x] Suppression de compte (`POST /api/auth/delete-account`)
 - [x] Rétention des données (cleanup automatique via retention.ts)
 - [x] Mentions légales, confidentialité, CGU
-- [ ] Politique de divulgation de vulnérabilités (`SECURITY.md` à la racine — absent aujourd'hui)
+- [x] Politique de divulgation de vulnérabilités (`SECURITY.md` à la racine, contact pouetpouetsupport@gmail.com)
 - [ ] Formaliser le chantier sécurité avec Valentine
-- [ ] Auditer les secrets GitHub Actions et GCP
-- [x] Scan de dépendances vulnérables (npm audit / Snyk) *(npm audit critique en CI, seuil high à traiter après xlsx)*
+- [~] Auditer les secrets GitHub Actions et GCP *(GitHub : 6 secrets revus via `gh secret list`, tous attendus, aucune fuite dans l'historique git ; reste côté console GCP : valeurs Secret Manager + IAM + migration `GCP_SA_KEY` → Workload Identity Federation)*
+- [x] Scan de dépendances vulnérables (npm audit / Snyk) *(npm audit en CI ; seuil `critical` retenu — décision 2026-06-17 — les `high` restants sont documentés/acceptés dans SECURITY.md, revue manuelle périodique)*
 - [x] Scan de secrets dans le code (gitleaks dans `security.yml`, config `.gitleaks.toml`)
 - [x] Scan d'images Docker
 - [ ] Politique de rotation des secrets
@@ -83,9 +83,9 @@
   - [x] Labels consommés par les templates/workflow : `bug`, `feature`, `tech`, `needs triage`
   - [x] Créer/normaliser dans GitHub : `security`, `ux`, `good first issue`
 - [x] Milestones GitHub *(`0.10.1 - Hardening`, `1.0.0 - Exploitable`)*
-- [ ] `LICENSE` à la racine du dépôt *(absent — choix de licence à acter ; bloquant pour l'écosystème de plugins)*
-- [ ] Guide de contribution `CONTRIBUTING.md` *(absent — workflow git, conventions, setup local)*
-- [ ] `CODE_OF_CONDUCT.md` *(optionnel — standard communauté, pertinent à l'ouverture aux contributeurs/plugins)*
+- [x] `LICENSE` à la racine du dépôt *(AGPL-3.0)*
+- [x] Guide de contribution `CONTRIBUTING.md` *(workflow git, conventions de commit, setup, règles d'isolation des modules)*
+- [x] `CODE_OF_CONDUCT.md` *(Contributor Covenant 2.1, contact pouetpouetsupport@gmail.com)*
 
 ---
 
