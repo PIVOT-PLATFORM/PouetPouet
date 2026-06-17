@@ -1,8 +1,15 @@
 # PIVOT / PouetPouet
 
+[![CI](https://github.com/0bno/PouetPouet/actions/workflows/ci.yml/badge.svg)](https://github.com/0bno/PouetPouet/actions/workflows/ci.yml)
+[![Security](https://github.com/0bno/PouetPouet/actions/workflows/security.yml/badge.svg)](https://github.com/0bno/PouetPouet/actions/workflows/security.yml)
+[![Release](https://github.com/0bno/PouetPouet/actions/workflows/release.yml/badge.svg)](https://github.com/0bno/PouetPouet/actions/workflows/release.yml)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=YOUR_SONAR_PROJECT_KEY&metric=alert_status)](https://sonarcloud.io/project/overview?id=YOUR_SONAR_PROJECT_KEY)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=YOUR_SONAR_PROJECT_KEY&metric=coverage)](https://sonarcloud.io/project/overview?id=YOUR_SONAR_PROJECT_KEY)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=YOUR_SONAR_PROJECT_KEY&metric=bugs)](https://sonarcloud.io/project/overview?id=YOUR_SONAR_PROJECT_KEY)
+
 Suite collaborative temps réel pour animer des ateliers, organiser les rituels d'équipe et centraliser les outils de facilitation dans un hub unique.
 
-Le projet est actuellement en version **0.15.0**. Le produit historique **PouetPouet** devient le premier module d'un socle plus large nommé **PIVOT**.
+Le projet est actuellement en version **0.15.1**. Le produit historique **PouetPouet** devient le premier module d'un socle plus large nommé **PIVOT**.
 
 ## Modules disponibles
 
