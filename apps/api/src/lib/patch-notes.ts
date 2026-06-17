@@ -20,6 +20,23 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.16.0',
+    date: '2026-06-17',
+    title: 'Partage des sessions Scrum & Daily',
+    summary: 'Vous pouvez désormais partager une salle Scrum Poker ou une session Daily avec vos collègues, en Lecteur (consultation) ou Éditeur (pilotage), comme pour les tableaux. Les ressources partagées apparaissent dans vos listes avec leur rôle.',
+    sections: [
+      {
+        heading: '🤝 Partage par rôle',
+        items: [
+          'Scrum Poker & Daily : un bouton « Partager » (réservé au propriétaire) permet d\'inviter un collègue par e-mail en Lecteur ou Éditeur.',
+          'Un Éditeur peut piloter la session (créer/estimer des tickets, lancer le tour de parole) ; un Lecteur suit en consultation seule.',
+          'Les salles et sessions partagées avec vous apparaissent dans vos listes avec un badge indiquant votre rôle.',
+          'Seul le propriétaire peut gérer les partages (inviter, changer un rôle, révoquer) et supprimer la ressource.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.15.1',
     date: '2026-06-16',
     title: 'Corrections : tableaux, cahiers de tests & moins de notifications',

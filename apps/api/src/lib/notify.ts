@@ -10,6 +10,7 @@ export type NotificationType =
   | 'SCRUM_ALL_ESTIMATED'
   | 'WHEEL_DRAW'
   | 'BOARD_IMPORTED'
+  | 'MODULE_SHARED'
 
 interface NotifyInput {
   userId: string

@@ -1,22 +1,27 @@
 ﻿import type { Server, Socket } from 'socket.io'
 import { prisma } from '../../lib/prisma.js'
 import { bus } from '../../lib/bus.js'
+import { resolveRole, canManage, type ModuleRole } from '../../lib/module-share.js'
 
 function roomKey(sessionId: string) {
   return `daily:${sessionId}`
 }
 
-// Daily sessions are owner-driven; every handler must gate on the
-// authenticated userId itself (the socket middleware never rejects).
-async function isOwner(socket: Socket, sessionId: string): Promise<boolean> {
+// Rôle de l'utilisateur sur la session (OWNER si créateur, sinon partage), en cache.
+// host_join ouvert à tout rôle (VIEWER+) ; piloter la session exige EDITOR+.
+async function getSessionRole(socket: Socket, sessionId: string): Promise<ModuleRole | null> {
   const userId = socket.data.userId as string | undefined
-  if (!userId) return false
-  const cache: Record<string, boolean> = (socket.data.dailyOwner ??= {})
+  if (!userId) return null
+  const cache: Record<string, ModuleRole | null> = (socket.data.dailyRole ??= {})
   if (cache[sessionId] === undefined) {
     const session = await prisma.dailySession.findUnique({ where: { id: sessionId }, select: { ownerId: true } })
-    cache[sessionId] = !!session && session.ownerId === userId
+    cache[sessionId] = session ? await resolveRole('daily', sessionId, userId, session.ownerId) : null
   }
   return cache[sessionId]
+}
+
+async function canManageSession(socket: Socket, sessionId: string): Promise<boolean> {
+  return canManage(await getSessionRole(socket, sessionId))
 }
 
 async function broadcastState(io: Server, sessionId: string) {
@@ -81,14 +86,14 @@ async function advanceSpeaker(io: Server, sessionId: string, skip: boolean) {
 export function dailySocketHandlers(io: Server, socket: Socket) {
   // â”€â”€ Host joins session room â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   socket.on('daily:host_join', async (sessionId: string) => {
-    if (!(await isOwner(socket, sessionId))) return
+    if (!(await getSessionRole(socket, sessionId))) return
     await socket.join(roomKey(sessionId))
     await broadcastState(io, sessionId)
   })
 
   // â”€â”€ Shuffle participant order (PENDING only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   socket.on('daily:shuffle', async (sessionId: string) => {
-    if (!(await isOwner(socket, sessionId))) return
+    if (!(await canManageSession(socket, sessionId))) return
     const participants = await prisma.dailyParticipant.findMany({
       where: { sessionId },
       orderBy: { order: 'asc' },
@@ -104,7 +109,7 @@ export function dailySocketHandlers(io: Server, socket: Socket) {
 
   // â”€â”€ Start session â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   socket.on('daily:start', async (sessionId: string) => {
-    if (!(await isOwner(socket, sessionId))) return
+    if (!(await canManageSession(socket, sessionId))) return
     const now = new Date()
     const first = await prisma.dailyParticipant.findFirst({
       where: { sessionId },
@@ -124,19 +129,19 @@ export function dailySocketHandlers(io: Server, socket: Socket) {
 
   // â”€â”€ Pass to next â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   socket.on('daily:next', async (sessionId: string) => {
-    if (!(await isOwner(socket, sessionId))) return
+    if (!(await canManageSession(socket, sessionId))) return
     await advanceSpeaker(io, sessionId, false)
   })
 
   // â”€â”€ Skip current speaker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   socket.on('daily:skip', async (sessionId: string) => {
-    if (!(await isOwner(socket, sessionId))) return
+    if (!(await canManageSession(socket, sessionId))) return
     await advanceSpeaker(io, sessionId, true)
   })
 
   // â”€â”€ End session manually â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   socket.on('daily:end', async (sessionId: string) => {
-    if (!(await isOwner(socket, sessionId))) return
+    if (!(await canManageSession(socket, sessionId))) return
     const now = new Date()
     await prisma.dailyParticipant.updateMany({
       where: { sessionId, status: 'SPEAKING' },

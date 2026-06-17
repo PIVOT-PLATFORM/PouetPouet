@@ -29,9 +29,12 @@ ENV NODE_ENV=production
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
 COPY --from=builder /app/package.json ./package.json
 # node_modules/@pouetpouet/shared is a symlink — copy the actual target so it resolves correctly.
 COPY --from=builder /app/packages/shared ./packages/shared
 EXPOSE 8080
-CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema=/app/apps/api/prisma/schema.prisma && node /app/apps/api/dist/index.js"]
+# Prisma 7 : l'URL de connexion (et le chemin du schéma) sont lus depuis
+# prisma.config.ts ; on le pointe explicitement car le CMD tourne depuis /app.
+CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --config=/app/apps/api/prisma.config.ts && node /app/apps/api/dist/index.js"]

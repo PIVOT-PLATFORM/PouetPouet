@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { ESTIMATION_SCALES } from '@/hooks/useScrum'
+import { ModuleShareModal } from '@/components/share/module-share-modal'
 
 interface TeamSummary {
   id: string
@@ -19,6 +20,7 @@ interface RoomSummary {
   updatedAt: string
   tickets: { id: string; status: string }[]
   team: TeamSummary | null
+  role: 'OWNER' | 'EDITOR' | 'VIEWER'
 }
 
 export default function ScrumPage() {
@@ -31,6 +33,7 @@ export default function ScrumPage() {
   const [newTeamId, setNewTeamId] = useState('')
   const [creating, setCreating] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [shareRoom, setShareRoom] = useState<RoomSummary | null>(null)
   const [search, setSearch] = useState('')
   const router = useRouter()
 
@@ -170,15 +173,34 @@ export default function ScrumPage() {
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate leading-tight">{room.name}</h3>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-mono">{room.code}</p>
                   </div>
-                  <button
-                    onClick={(e) => handleDelete(e, room.id)}
-                    disabled={deletingId === room.id}
-                    className="shrink-0 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+                  {room.role === 'OWNER' ? (
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setShareRoom(room) }}
+                        title="Partager"
+                        className="p-1.5 rounded-lg text-gray-300 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                          <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(e, room.id)}
+                        disabled={deletingId === room.id}
+                        title="Supprimer"
+                        className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full bg-secondary-50 dark:bg-secondary-950 text-secondary-600 dark:text-secondary-400">
+                      Partagé · {room.role === 'EDITOR' ? 'Éditeur' : 'Lecteur'}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs text-gray-400 dark:text-gray-500 truncate">
@@ -287,6 +309,15 @@ export default function ScrumPage() {
             </div>
           </form>
         </div>
+      )}
+
+      {shareRoom && (
+        <ModuleShareModal
+          module="scrum"
+          resourceId={shareRoom.id}
+          resourceName={shareRoom.name}
+          onClose={() => setShareRoom(null)}
+        />
       )}
     </>
   )

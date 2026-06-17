@@ -9,13 +9,13 @@
 
 Suite collaborative temps réel pour animer des ateliers, organiser les rituels d'équipe et centraliser les outils de facilitation dans un hub unique.
 
-Le projet est actuellement en version **0.15.1**. Le produit historique **PouetPouet** devient le premier module d'un socle plus large nommé **PIVOT**.
+Le projet est actuellement en version **0.16.0**. Le produit historique **PouetPouet** devient le premier module d'un socle plus large nommé **PIVOT**.
 
 ## Modules disponibles
 
 - **PouetPouet** : tableau blanc collaboratif temps réel avec cartes, cadres, groupes, connexions, votes, templates, import/export et partage par rôles.
-- **Daily** : stand-up minuté avec tour de parole équitable, participants et sessions d'équipe.
-- **Scrum Poker** : estimation d'équipe en temps réel avec tickets, votes et salles partageables.
+- **Daily** : stand-up minuté avec tour de parole équitable, participants, sessions d'équipe et partage par rôles (Lecteur / Éditeur).
+- **Scrum Poker** : estimation d'équipe en temps réel avec tickets, votes, salles partageables et partage par rôles (Lecteur / Éditeur).
 - **La Roue** : tirage au sort animé, lié aux équipes.
 - **Capacité** : planification de capacité d'équipe pour sprint, PI ou release.
 
@@ -241,6 +241,24 @@ La CI exécute actuellement :
 - lint / typecheck ;
 - tests Vitest ;
 - tests d'intégration API avec PostgreSQL.
+
+## Documentation
+
+| Sujet | Emplacement |
+|-------|-------------|
+| Contribuer (workflow, conventions, setup) | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| Code de conduite | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) |
+| Sécurité & divulgation de vulnérabilités | [`SECURITY.md`](SECURITY.md) |
+| Licence | [`LICENSE`](LICENSE) (AGPL-3.0) |
+| Journal des versions | [`CHANGELOG.md`](CHANGELOG.md) |
+| Décisions structurantes (ADR) | [`docs/adr/`](docs/adr/) |
+| Architecture des plugins | [`docs/specs/plugins-architecture.md`](docs/specs/plugins-architecture.md) |
+| Réponse à incident & post-mortem | [`docs/ops/incident-response.md`](docs/ops/incident-response.md) |
+| Backups, restauration & rollback | [`docs/ops/backup-restore-rollback.md`](docs/ops/backup-restore-rollback.md) |
+| Observabilité, SLO & alertes | [`docs/ops/observability-slo-alerting.md`](docs/ops/observability-slo-alerting.md) |
+| Activation infra (go-live) | [`docs/ops/go-live-checklist.md`](docs/ops/go-live-checklist.md) |
+| Réglages admin GitHub attendus | [`.github/admin-settings.md`](.github/admin-settings.md) |
+| Roadmap | [`ROADMAP.md`](ROADMAP.md) |
 
 ## Roadmap courte
 

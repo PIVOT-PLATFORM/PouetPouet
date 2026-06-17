@@ -6,6 +6,9 @@ apps/api/dist
 .turbo
 *.env
 .env.*
+.env
+**/.env
+**/.env.*
 backup.sql
 ideatank.txt
 *.pdf

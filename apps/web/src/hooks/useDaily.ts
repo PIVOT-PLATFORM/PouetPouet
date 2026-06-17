@@ -45,6 +45,7 @@ export interface DailySession {
   startedAt: string | null
   endedAt: string | null
   participants: DailyParticipant[]
+  role?: 'OWNER' | 'EDITOR' | 'VIEWER'
   createdAt: string
   updatedAt: string
 }
