@@ -10,6 +10,10 @@ updates:
       timezone: Europe/Paris
     open-pull-requests-limit: 5
     ignore:
+      # Les majors sont des décisions architecturales (breaking changes) à traiter
+      # manuellement — on ne les laisse pas entrer via dependabot auto-groupé.
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
       # Prisma est épinglé à 6.19.0 (cf. memory project-prisma-pin) : même le patch
       # 6.19.3 embarque un moteur v7 qui rejette `url` dans le datasource et casse
       # le build Docker. On bloque DONC tout bump (major, minor ET patch) tant
