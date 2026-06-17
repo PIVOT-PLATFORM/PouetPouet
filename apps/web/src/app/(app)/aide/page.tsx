@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import { APP_VERSION } from '@/lib/version'
 
 const MODULES = [
   {
@@ -244,7 +245,7 @@ export default function AidePage() {
       <CollapsibleSection title="Guide complet">
         <div className="bg-primary-50 dark:bg-primary-950/40 border border-primary-100 dark:border-primary-900 rounded-xl p-5 flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <p className="font-semibold text-primary-900 dark:text-primary-300 text-sm">Guide des fonctionnalités — v0.3.0</p>
+            <p className="font-semibold text-primary-900 dark:text-primary-300 text-sm">Guide des fonctionnalités — v{APP_VERSION}</p>
             <p className="text-xs text-primary-600 dark:text-primary-400 mt-0.5">
               Description détaillée de toutes les fonctionnalités de la plateforme.
             </p>
