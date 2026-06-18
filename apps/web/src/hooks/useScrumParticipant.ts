@@ -10,6 +10,7 @@ export function useScrumParticipant() {
   // Key: `${ticketId}:${scale}` → voted value
   const [myVotes, setMyVotes] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
+  const [isKicked, setIsKicked] = useState(false)
   const socketRef = useRef(connectSocket())
   // Stored for reconnect
   const joinParamsRef = useRef<{ code: string; name: string } | null>(null)
@@ -58,6 +59,7 @@ export function useScrumParticipant() {
     })
 
     socket.on('scrum:error', (msg: string) => setError(msg))
+    socket.on('scrum:kicked', () => setIsKicked(true))
     socket.on('scrum:participant_count', ({ count }: { count: number }) => setParticipantCount(count))
     socket.on('scrum:room:scale_updated', (scale: string) => {
       setRoom((prev) => prev ? { ...prev, scale } : prev)
@@ -102,7 +104,7 @@ export function useScrumParticipant() {
     return () => {
       socket.off('connect', handleConnect)
       socket.off('connect_error', handleConnectError)
-      ;['scrum:joined', 'scrum:error', 'scrum:participant_count', 'scrum:room:scale_updated',
+      ;['scrum:joined', 'scrum:error', 'scrum:kicked', 'scrum:participant_count', 'scrum:room:scale_updated',
         'scrum:ticket:added', 'scrum:ticket:activated', 'scrum:vote:received',
         'scrum:ticket:revealed', 'scrum:ticket:done', 'scrum:ticket:reset',
       ].forEach((e) => socket.off(e))
@@ -126,5 +128,5 @@ export function useScrumParticipant() {
 
   const activeTicket = room?.tickets.find((t) => t.status === 'VOTING' || t.status === 'REVEALED') ?? null
 
-  return { room, participantName, isJoined, participantCount, myVotes, error, activeTicket, join, vote }
+  return { room, participantName, isJoined, isKicked, participantCount, myVotes, error, activeTicket, join, vote }
 }

@@ -67,6 +67,48 @@ async function hasParticipantWithName(roomId: string, name: string): Promise<boo
   }
 }
 
+async function kickParticipantsByName(io: Server, roomId: string, name: string): Promise<void> {
+  if (redis.status === 'ready') {
+    const all: Record<string, string> = (await redis.hgetall(`scrum:participants:${roomId}`)) ?? {}
+    const toKick = Object.entries(all).filter(([, n]) => n === name).map(([sid]) => sid)
+    if (toKick.length === 0) return
+    const p = redis.pipeline()
+    for (const socketId of toKick) {
+      io.to(socketId).emit('scrum:kicked', "Exclu par l'hôte")
+      p.hdel(`scrum:participants:${roomId}`, socketId)
+      p.del(`scrum:socket:${socketId}`)
+    }
+    await p.exec()
+  } else {
+    const toKick = [...fallback.entries()].filter(([, p]) => p.roomId === roomId && p.name === name).map(([sid]) => sid)
+    for (const socketId of toKick) {
+      io.to(socketId).emit('scrum:kicked', "Exclu par l'hôte")
+      fallback.delete(socketId)
+    }
+  }
+}
+
+async function clearAllParticipants(io: Server, roomId: string): Promise<void> {
+  if (redis.status === 'ready') {
+    const all: Record<string, string> = (await redis.hgetall(`scrum:participants:${roomId}`)) ?? {}
+    const socketIds = Object.keys(all)
+    if (socketIds.length === 0) return
+    const p = redis.pipeline()
+    for (const socketId of socketIds) {
+      io.to(socketId).emit('scrum:kicked', "La salle a été vidée par l'hôte")
+      p.hdel(`scrum:participants:${roomId}`, socketId)
+      p.del(`scrum:socket:${socketId}`)
+    }
+    await p.exec()
+  } else {
+    const toKick = [...fallback.entries()].filter(([, p]) => p.roomId === roomId).map(([sid]) => sid)
+    for (const socketId of toKick) {
+      io.to(socketId).emit('scrum:kicked', "La salle a été vidée par l'hôte")
+      fallback.delete(socketId)
+    }
+  }
+}
+
 function roomKey(roomId: string) {
   return `scrum:${roomId}`
 }
@@ -309,6 +351,39 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
     if (!(await canManageRoom(socket, roomId))) return
     await prisma.scrumRoom.update({ where: { id: roomId }, data: { scale } })
     io.to(roomKey(roomId)).emit('scrum:room:scale_updated', scale)
+  })
+
+  // #129 — Exclure un participant par nom (owner/éditeur uniquement).
+  socket.on('scrum:participant:kick', async ({ roomId, participantName }: { roomId: string; participantName: string }) => {
+    if (!(await canManageRoom(socket, roomId))) return
+    await kickParticipantsByName(io, roomId, participantName)
+    const activeTicket = await prisma.scrumTicket.findFirst({ where: { roomId, status: 'VOTING' }, select: { id: true } })
+    if (activeTicket) {
+      const room = await prisma.scrumRoom.findUnique({ where: { id: roomId }, select: { scale: true } })
+      const scale = room?.scale ?? 'FIBONACCI'
+      await prisma.scrumVote.deleteMany({ where: { ticketId: activeTicket.id, participantName, scale } })
+      const [voteCount, voters] = await Promise.all([
+        prisma.scrumVote.count({ where: { ticketId: activeTicket.id, scale } }),
+        prisma.scrumVote.findMany({ where: { ticketId: activeTicket.id, scale }, select: { participantName: true }, orderBy: { createdAt: 'asc' } }),
+      ])
+      io.to(roomKey(roomId)).emit('scrum:vote:received', { ticketId: activeTicket.id, voteCount, voterNames: voters.map((v) => v.participantName) })
+    }
+    const { count, names } = await getParticipants(roomId)
+    io.to(roomKey(roomId)).emit('scrum:participant_count', { count, names })
+  })
+
+  // Vider tous les participants de la salle (owner/éditeur uniquement).
+  socket.on('scrum:participants:clear', async ({ roomId }: { roomId: string }) => {
+    if (!(await canManageRoom(socket, roomId))) return
+    await clearAllParticipants(io, roomId)
+    const activeTicket = await prisma.scrumTicket.findFirst({ where: { roomId, status: 'VOTING' }, select: { id: true } })
+    if (activeTicket) {
+      const room = await prisma.scrumRoom.findUnique({ where: { id: roomId }, select: { scale: true } })
+      const scale = room?.scale ?? 'FIBONACCI'
+      await prisma.scrumVote.deleteMany({ where: { ticketId: activeTicket.id, scale } })
+      io.to(roomKey(roomId)).emit('scrum:vote:received', { ticketId: activeTicket.id, voteCount: 0, voterNames: [] })
+    }
+    io.to(roomKey(roomId)).emit('scrum:participant_count', { count: 0, names: [] })
   })
 
   socket.on('disconnect', async () => {

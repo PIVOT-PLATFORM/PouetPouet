@@ -44,7 +44,7 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
     room, participantCount, participantNames, isLoading,
     addTicket, bulkAddTickets, activateTicket, reveal, vote,
     setEstimate, bulkEstimate, resetTicket, deleteTicket, updateScale,
-    setQueue, clearQueue,
+    setQueue, clearQueue, kickParticipant, clearParticipants,
   } = useScrum(id)
 
   const [newTicketTitle, setNewTicketTitle] = useState('')
@@ -62,6 +62,9 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
   // Participation de l'hôte au vote
   const [hostParticipating, setHostParticipating] = useState<boolean | null>(null)
   const [hostVote, setHostVote] = useState<string | null>(null)
+
+  // Panneau participants (kick)
+  const [showParticipants, setShowParticipants] = useState(false)
 
   // File d'estimation : mode construction + brouillon ordonné de ticketIds
   const [queueMode, setQueueMode] = useState(false)
@@ -198,21 +201,48 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
         </button>
 
         {/* Participants */}
-        <div className="relative group">
-          <span className="flex items-center gap-1.5 text-sm text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 cursor-default select-none">
+        <div className="relative">
+          <button
+            onClick={() => setShowParticipants((v) => !v)}
+            className="flex items-center gap-1.5 text-sm text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 hover:bg-gray-200 transition-colors select-none"
+          >
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
             {participantCount} participant{participantCount !== 1 ? 's' : ''}
-          </span>
-          {participantNames.length > 0 && (
-            <div className="absolute top-full left-0 mt-1.5 z-20 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 w-full">
-              <div className="bg-gray-900 text-white text-xs rounded-xl px-3 py-2 shadow-xl">
-                {participantNames.map((name) => (
-                  <div key={name} className="flex items-center gap-1.5 py-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
-                    {name}
-                  </div>
-                ))}
-              </div>
+          </button>
+          {showParticipants && (
+            <div
+              className="absolute top-full left-0 mt-1.5 z-30 min-w-[180px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-xl"
+              onMouseLeave={() => setShowParticipants(false)}
+            >
+              {participantNames.length === 0 ? (
+                <p className="text-xs text-gray-400 px-3 py-2">Aucun participant</p>
+              ) : (
+                <div className="py-1">
+                  {participantNames.map((name) => (
+                    <div key={name} className="group/row flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
+                      <span className="text-xs text-gray-700 dark:text-gray-200 flex-1 truncate">{name}</span>
+                      <button
+                        onClick={() => kickParticipant(name)}
+                        title="Exclure"
+                        className="opacity-0 group-hover/row:opacity-100 text-gray-300 hover:text-red-500 transition-opacity text-xs px-1"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {participantNames.length > 0 && (
+                <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-1.5">
+                  <button
+                    onClick={() => { clearParticipants(); setShowParticipants(false) }}
+                    className="text-xs text-red-500 hover:text-red-700 font-medium w-full text-left"
+                  >
+                    Vider la salle
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

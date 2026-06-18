@@ -6,7 +6,7 @@ import { ESTIMATION_SCALES } from '@/hooks/useScrum'
 
 export default function ScrumJoinPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params)
-  const { room, isJoined, participantCount, myVotes, error, activeTicket, participantName, join, vote } = useScrumParticipant()
+  const { room, isJoined, isKicked, participantCount, myVotes, error, activeTicket, participantName, join, vote } = useScrumParticipant()
   const [name, setName] = useState('')
   const [joining, setJoining] = useState(false)
 
@@ -46,6 +46,26 @@ export default function ScrumJoinPage({ params }: { params: Promise<{ code: stri
   const hasVoted = !!myVote
 
   const scaleInfo = ESTIMATION_SCALES[room?.scale ?? 'FIBONACCI'] ?? ESTIMATION_SCALES.FIBONACCI
+
+  // ── Kicked screen ────────────────────────────────────────────────────────────
+  if (isKicked) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-sm text-center">
+          <span className="text-5xl block mb-4">🚪</span>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Exclu de la salle</h1>
+          <p className="text-gray-500 text-sm mb-6">L'hôte vous a retiré de la session.</p>
+          <a
+            href={`/scrum/join/${code}`}
+            className="inline-block rounded-xl bg-primary-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 transition-colors"
+            onClick={() => { try { sessionStorage.removeItem(`klx_scrum_${code}`) } catch {} }}
+          >
+            Rejoindre à nouveau
+          </a>
+        </div>
+      </div>
+    )
+  }
 
   // ── Join form ────────────────────────────────────────────────────────────────
   if (!isJoined) {

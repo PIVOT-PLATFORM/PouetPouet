@@ -191,10 +191,19 @@ export function useScrum(roomId: string) {
     await api.delete(`/api/scrum/${roomId}`)
   }, [roomId])
 
+  const kickParticipant = useCallback((participantName: string) => {
+    socketRef.current.emit('scrum:participant:kick', { roomId, participantName })
+  }, [roomId])
+
+  const clearParticipants = useCallback(() => {
+    socketRef.current.emit('scrum:participants:clear', { roomId })
+  }, [roomId])
+
   return {
     room, participantCount, participantNames, isLoading,
     addTicket, bulkAddTickets, activateTicket, reveal, vote,
     setEstimate, bulkEstimate, resetTicket, deleteTicket,
     updateScale, deleteRoom, setQueue, clearQueue,
+    kickParticipant, clearParticipants,
   }
 }
