@@ -7,11 +7,19 @@ export interface FieldValue {
   value: string
 }
 
+export interface OgMeta {
+  title?: string
+  description?: string
+  image?: string
+  siteName?: string
+}
+
 export interface Card {
   id: string
   boardId: string
   type: string
   content: string
+  meta?: OgMeta | null
   posX: number
   posY: number
   width: number

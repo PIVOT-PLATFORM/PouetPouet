@@ -185,6 +185,7 @@ model Card {
   boardId   String
   type      CardType @default(TEXT)
   content   String
+  meta      Json?
   posX      Float    @default(0)
   posY      Float    @default(0)
   width     Float    @default(192)

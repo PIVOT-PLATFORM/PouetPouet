@@ -612,18 +612,34 @@ export const BoardCard = memo(function BoardCard({
             href={card.content}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-col items-center justify-center gap-2 h-full"
+            className="flex flex-col h-full overflow-hidden rounded"
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-            </div>
-            <p className="text-[11px] text-blue-600 text-center break-all line-clamp-2 leading-tight font-medium">
-              {card.content}
-            </p>
+            {card.meta ? (
+              <>
+                {card.meta.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={card.meta.image} alt="" className="w-full object-cover shrink-0" style={{ height: '55%' }} draggable={false} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                )}
+                <div className="flex-1 flex flex-col justify-center px-2.5 py-2 min-h-0 overflow-hidden">
+                  <p className="text-[11px] font-semibold text-gray-800 dark:text-gray-200 line-clamp-2 leading-snug">{card.meta.title}</p>
+                  {card.meta.siteName && <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">{card.meta.siteName}</p>}
+                  {!card.meta.siteName && <p className="text-[10px] text-blue-400 mt-0.5 truncate">{card.content}</p>}
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-2 h-full">
+                <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+                <p className="text-[11px] text-blue-600 text-center break-all line-clamp-2 leading-tight font-medium">
+                  {card.content}
+                </p>
+              </div>
+            )}
           </a>
         ) : isEditing ? (
           <textarea

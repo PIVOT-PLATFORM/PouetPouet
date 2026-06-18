@@ -3,6 +3,7 @@ import type { Server, Socket } from 'socket.io'
 import { MAX_FRAMES_PER_BOARD } from '@pouetpouet/shared'
 import { prisma } from '../../lib/prisma.js'
 import { redis } from '../../lib/redis.js'
+import { fetchOgMeta } from '../../lib/og-fetch.js'
 
 function canWrite(socket: Socket, boardId: string): boolean {
   const role = socket.data.boardRoles?.[boardId]
@@ -251,6 +252,13 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     if (cardData.type && !CARD_TYPES.has(cardData.type)) delete cardData.type
     const card = await prisma.card.create({ data: cardData as never, include: { fieldValues: true } })
     io.to(`board:${data.boardId}`).emit('card:created', clientTag ? { ...card, clientTag } : card)
+    if (card.type === 'LINK' && card.content) {
+      void fetchOgMeta(card.content).then(async (meta) => {
+        if (!meta) return
+        await prisma.card.update({ where: { id: card.id }, data: { meta: meta as never } })
+        io.to(`board:${data.boardId}`).emit('card:meta_updated', { id: card.id, meta })
+      })
+    }
   })
 
   // Pour les mutations de carte : `locked: false` dans le where est la garde
@@ -272,7 +280,17 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
   socket.on('card:update', async (data: { id: string; boardId: string; content: string }) => {
     if (!canWrite(socket, data.boardId)) return
     const { count } = await prisma.card.updateMany({ where: { id: data.id, boardId: data.boardId, locked: false }, data: { content: data.content } })
-    if (count > 0) io.to(`board:${data.boardId}`).emit('card:updated', { id: data.id, content: data.content })
+    if (count > 0) {
+      io.to(`board:${data.boardId}`).emit('card:updated', { id: data.id, content: data.content })
+      void (async () => {
+        const card = await prisma.card.findUnique({ where: { id: data.id }, select: { type: true } })
+        if (card?.type !== 'LINK' || !data.content) return
+        const meta = await fetchOgMeta(data.content)
+        if (!meta) return
+        await prisma.card.update({ where: { id: data.id }, data: { meta: meta as never } })
+        io.to(`board:${data.boardId}`).emit('card:meta_updated', { id: data.id, meta })
+      })()
+    }
   })
 
   socket.on('card:delete', async (data: { id: string; boardId: string }) => {

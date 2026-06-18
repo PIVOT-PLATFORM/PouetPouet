@@ -273,6 +273,9 @@ export function useBoard(boardId: string) {
       setSelectedIds((prev) => { const next = new Set(prev); next.delete(id as string); return next })
     })
     socket.on('card:recolored', (card) => setCards((prev) => prev.map((c) => c.id === (card as Card).id ? { ...c, ...(card as Card) } : c)))
+    socket.on('card:meta_updated', ({ id, meta }: { id: string; meta: Card['meta'] }) => {
+      setCards((prev) => prev.map((c) => c.id === id ? { ...c, meta } : c))
+    })
 
     // Groups
     socket.on('cards:grouped', ({ cardIds, groupId }: { cardIds: string[]; groupId: string }) => {
@@ -335,7 +338,7 @@ export function useBoard(boardId: string) {
       ;['board:state', 'board:error', 'board:resetted', 'board:presence', 'board:cursors', 'timer:started', 'timer:stopped',
         'vote:session:started', 'vote:updated', 'vote:session:closed',
         'cards:locked', 'card:layered', 'frame:layered',
-        'card:created', 'card:moved', 'card:resized', 'card:updated', 'card:deleted', 'card:recolored', 'card:editing',
+        'card:created', 'card:moved', 'card:resized', 'card:updated', 'card:deleted', 'card:recolored', 'card:editing', 'card:meta_updated',
         'cards:grouped', 'cards:ungrouped', 'cards:group-colored',
         'connection:created', 'connection:deleted', 'connection:updated',
         'frame:created', 'frame:moved', 'frame:resized', 'frame:updated', 'frame:deleted',
