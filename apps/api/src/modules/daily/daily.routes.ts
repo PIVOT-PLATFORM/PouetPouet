@@ -55,6 +55,43 @@ export const dailyRoutes: FastifyPluginAsync = async (app) => {
     return { ...session, role }
   })
 
+  // Stats sur les sessions terminées de l'utilisateur (30 dernières).
+  app.get('/stats', { preHandler: [app.authenticate] }, async (request) => {
+    const { id: userId } = request.user as { id: string }
+    const sessions = await prisma.dailySession.findMany({
+      where: { ownerId: userId, status: 'DONE', startedAt: { not: null }, endedAt: { not: null } },
+      include: { participants: { select: { name: true, speakingAt: true, doneSpeaking: true } } },
+      orderBy: { startedAt: 'asc' },
+      take: 30,
+    })
+
+    const sessionStats = sessions.map((s) => ({
+      name: s.name,
+      date: s.startedAt!.toISOString(),
+      durationSec: Math.round((s.endedAt!.getTime() - s.startedAt!.getTime()) / 1000),
+    }))
+
+    const speakerMap = new Map<string, { totalSec: number; sessionCount: number }>()
+    for (const s of sessions) {
+      const seen = new Set<string>()
+      for (const p of s.participants) {
+        const entry = speakerMap.get(p.name) ?? { totalSec: 0, sessionCount: 0 }
+        if (!seen.has(p.name)) { seen.add(p.name); entry.sessionCount++ }
+        if (p.speakingAt && p.doneSpeaking) {
+          entry.totalSec += Math.max(0, Math.round((p.doneSpeaking.getTime() - p.speakingAt.getTime()) / 1000))
+        }
+        speakerMap.set(p.name, entry)
+      }
+    }
+
+    const speakers = [...speakerMap.entries()]
+      .map(([name, { totalSec, sessionCount }]) => ({ name, totalSec, sessionCount }))
+      .sort((a, b) => b.sessionCount - a.sessionCount || b.totalSec - a.totalSec)
+      .slice(0, 10)
+
+    return { sessions: sessionStats, speakers, totalSessions: sessions.length }
+  })
+
   // Propriétaire uniquement ; nettoie les partages associés.
   app.delete('/sessions/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }

@@ -1,11 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTeams, useDailySessions } from '@/hooks/useDaily'
 import type { DailyTeam, DailySession } from '@/hooks/useDaily'
 import { formatDuration } from '@/lib/time'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
+import { api } from '@/lib/api'
+
+interface DailyStats {
+  totalSessions: number
+  sessions: { name: string; date: string; durationSec: number }[]
+  speakers: { name: string; totalSec: number; sessionCount: number }[]
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -139,7 +146,7 @@ function CreateSessionModal({
   onClose: () => void
 }) {
   const router = useRouter()
-  const [name, setName] = useState('')
+  const [name, setName] = useState(`Daily - ${new Date().toLocaleDateString('fr-FR')}`)
   const [timePerPerson, setTimePerPerson] = useState(120)
   const [customTime, setCustomTime] = useState('')
   const [selectedTeamId, setSelectedTeamId] = useState<string>(teams[0]?.id ?? '')
@@ -357,6 +364,85 @@ function CreateSessionModal({
   )
 }
 
+// ── Stats panel ──────────────────────────────────────────────────────────────
+
+function DailyStatsPanel({ stats }: { stats: DailyStats }) {
+  if (stats.totalSessions === 0) {
+    return (
+      <p className="text-sm text-gray-400 text-center py-6">
+        Aucune session terminée — les stats apparaîtront ici après vos premiers dailys.
+      </p>
+    )
+  }
+
+  const maxDuration = Math.max(...stats.sessions.map((s) => s.durationSec), 1)
+  const maxCount = Math.max(...stats.speakers.map((s) => s.sessionCount), 1)
+  const displaySessions = stats.sessions.slice(-20).reverse()
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Durée des sessions */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+          Durée des sessions <span className="font-normal text-gray-400">({displaySessions.length} dernières)</span>
+        </h3>
+        <div className="flex flex-col gap-2.5">
+          {displaySessions.map((s, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <span
+                className="text-[11px] text-gray-400 dark:text-gray-500 truncate shrink-0"
+                style={{ width: '7rem' }}
+                title={s.name}
+              >
+                {new Date(s.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+              </span>
+              <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-primary-500 rounded-full transition-all"
+                  style={{ width: `${Math.max(2, Math.round((s.durationSec / maxDuration) * 100))}%` }}
+                />
+              </div>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 shrink-0 w-16 text-right whitespace-nowrap">
+                {formatDuration(s.durationSec)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Participation */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+          Participation <span className="font-normal text-gray-400">({stats.speakers.length} personnes)</span>
+        </h3>
+        <div className="flex flex-col gap-2.5">
+          {stats.speakers.map((s, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <span
+                className="text-[11px] text-gray-700 dark:text-gray-200 truncate shrink-0"
+                style={{ width: '6rem' }}
+                title={s.name}
+              >
+                {s.name}
+              </span>
+              <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-green-500 rounded-full transition-all"
+                  style={{ width: `${Math.max(2, Math.round((s.sessionCount / maxCount) * 100))}%` }}
+                />
+              </div>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 shrink-0 w-28 text-right whitespace-nowrap">
+                {s.sessionCount} session{s.sessionCount > 1 ? 's' : ''}
+                {s.totalSec > 0 && <> · {formatDuration(s.totalSec)}</>}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DailyPage() {
@@ -369,6 +455,14 @@ export default function DailyPage() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [shareSession, setShareSession] = useState<DailySession | null>(null)
   const [search, setSearch] = useState('')
+  const [showStats, setShowStats] = useState(false)
+  const [stats, setStats] = useState<DailyStats | null>(null)
+
+  useEffect(() => {
+    if (showStats && !stats) {
+      api.get<DailyStats>('/api/daily/stats').then(setStats).catch(() => {})
+    }
+  }, [showStats, stats])
 
   async function handleSaveTeam(name: string, members: string[]) {
     if (teamModal.team) {
@@ -389,16 +483,47 @@ export default function DailyPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Mes dailys</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Gérez vos standups quotidiens</p>
         </div>
-        <button
-          onClick={() => setShowCreateSession(true)}
-          className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 active:scale-95 transition-all shadow-sm shadow-primary-200"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-          </svg>
-          Nouveau daily
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowStats((v) => !v)}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium border transition-all ${
+              showStats
+                ? 'bg-green-50 border-green-300 text-green-700 dark:bg-green-950 dark:border-green-700 dark:text-green-400'
+                : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Statistiques
+          </button>
+          <button
+            onClick={() => setShowCreateSession(true)}
+            className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 active:scale-95 transition-all shadow-sm shadow-primary-200"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            Nouveau daily
+          </button>
+        </div>
       </div>
+
+      {/* Stats panel */}
+      {showStats && (
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+            Statistiques
+          </h2>
+          {!stats ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {[1, 2].map((i) => <div key={i} className="h-40 bg-gray-100 dark:bg-gray-800 rounded-2xl animate-pulse" />)}
+            </div>
+          ) : (
+            <DailyStatsPanel stats={stats} />
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sessions list */}
