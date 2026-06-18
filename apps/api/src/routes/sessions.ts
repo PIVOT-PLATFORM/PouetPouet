@@ -81,4 +81,36 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     if (session.status === 'CLOSED') return reply.status(410).send({ error: 'Session terminée' })
     return reply.send(session)
   })
+
+  // Participants list (host only)
+  app.get('/:id/participants', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const userId = (request.user as { id: string }).id
+    const session = await prisma.session.findUnique({ where: { id }, include: { board: { select: { ownerId: true } } } })
+    if (!session) return reply.status(404).send({ error: 'Session introuvable' })
+    if (!(await canHostSession(session.boardId, session.board.ownerId, userId))) return reply.status(403).send({ error: 'Accès refusé' })
+    const participants = await prisma.sessionParticipant.findMany({
+      where: { sessionId: id },
+      include: { user: { select: { name: true } } },
+      orderBy: { joinedAt: 'asc' },
+    })
+    return reply.send(
+      participants.map((p) => ({ id: p.id, name: p.user?.name ?? p.guestName ?? 'Anonyme', joinedAt: p.joinedAt }))
+    )
+  })
+
+  // Activity history for a session (host only) — closed activities with responses
+  app.get('/:id/activities', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const userId = (request.user as { id: string }).id
+    const session = await prisma.session.findUnique({ where: { id }, include: { board: { select: { ownerId: true } } } })
+    if (!session) return reply.status(404).send({ error: 'Session introuvable' })
+    if (!(await canHostSession(session.boardId, session.board.ownerId, userId))) return reply.status(403).send({ error: 'Accès refusé' })
+    const activities = await prisma.activity.findMany({
+      where: { sessionId: id, status: 'CLOSED' },
+      include: { responses: true },
+      orderBy: { createdAt: 'asc' },
+    })
+    return reply.send(activities.map((a) => ({ ...a, responseCount: a.responses.length })))
+  })
 }

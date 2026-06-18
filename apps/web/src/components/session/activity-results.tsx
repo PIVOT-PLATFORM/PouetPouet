@@ -10,9 +10,11 @@ interface Props {
   onClose?: () => void
   // Rapport d'une activité clôturée : libellés adaptés, bouton "Fermer le rapport"
   reportMode?: boolean
+  // Libellé personnalisé pour le bouton de fermeture
+  closeLabel?: string
 }
 
-export function ActivityResults({ activity, responses, participantCount, onClose, reportMode }: Props) {
+export function ActivityResults({ activity, responses, participantCount, onClose, reportMode, closeLabel }: Props) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -37,7 +39,7 @@ export function ActivityResults({ activity, responses, participantCount, onClose
           onClick={onClose}
           className="w-full rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-600 hover:bg-gray-200 transition-colors"
         >
-          {reportMode ? 'Fermer le rapport' : 'Terminer l\'activité'}
+          {closeLabel ?? (reportMode ? 'Fermer le rapport' : 'Terminer l\'activité')}
         </button>
       )}
     </div>
@@ -48,6 +50,10 @@ function PollResults({ activity, responses, showCorrect = false }: { activity: A
   const options = activity.config.options as string[]
   const correctAnswer = activity.config.correctAnswer as number | undefined
   const total = responses.length
+
+  if (total === 0) {
+    return <p className="text-xs text-gray-400 text-center py-3">En attente de réponses…</p>
+  }
 
   const counts = options.map((_, i) =>
     responses.filter((r) => (r as { value: number }).value === i).length

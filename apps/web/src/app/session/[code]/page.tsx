@@ -131,6 +131,7 @@ export default function SessionPage({ params }: { params: Promise<{ code: string
             activity={currentActivity}
             hasResponded={hasResponded}
             responses={responses}
+            participantCount={participantCount}
             onRespond={respond}
           />
         ) : lastReport ? (
@@ -185,11 +186,19 @@ interface ActivityViewProps {
   activity: { id: string; type: string; title: string; config: Record<string, unknown> }
   hasResponded: boolean
   responses: unknown[]
+  participantCount: number
   onRespond: (id: string, value: unknown) => void
 }
 
-function PollActivity({ activity, hasResponded, onRespond }: ActivityViewProps) {
+function PollActivity({ activity, hasResponded, responses, participantCount, onRespond }: ActivityViewProps) {
   const options = activity.config.options as string[]
+  const correctAnswer = activity.config.correctAnswer as number | undefined
+  const total = responses.length
+
+  const counts = options.map((_, i) =>
+    responses.filter((r) => (r as { value: number }).value === i).length
+  )
+
   return (
     <div className="w-full max-w-lg">
       <div className="bg-white/10 backdrop-blur rounded-2xl px-5 py-3 mb-6 text-center">
@@ -197,13 +206,42 @@ function PollActivity({ activity, hasResponded, onRespond }: ActivityViewProps) 
           {activity.type === 'QUIZ' ? 'Quiz' : 'Sondage'}
         </p>
         <h2 className="text-xl font-bold text-white leading-snug">{activity.title}</h2>
+        {total > 0 && (
+          <p className="text-xs text-primary-200 mt-1">{total} / {participantCount} réponse{total !== 1 ? 's' : ''}</p>
+        )}
       </div>
 
       {hasResponded ? (
-        <div className="bg-white rounded-2xl p-8 text-center shadow-xl">
-          <div className="text-4xl mb-3">✅</div>
-          <p className="font-semibold text-gray-800">Réponse envoyée !</p>
-          <p className="text-gray-400 text-sm mt-1">En attente des autres participants…</p>
+        <div className="bg-white rounded-2xl p-5 shadow-xl">
+          <div className="text-center mb-4">
+            <div className="text-3xl mb-1">✅</div>
+            <p className="font-semibold text-gray-800 text-sm">Réponse envoyée !</p>
+          </div>
+          {total > 0 && (
+            <div className="flex flex-col gap-2">
+              {options.map((opt, i) => {
+                const count = counts[i]
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0
+                const isCorrect = activity.type === 'QUIZ' && correctAnswer === i
+                return (
+                  <div key={i}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className={`font-medium ${isCorrect ? 'text-green-600' : 'text-gray-700'}`}>
+                        {isCorrect && '✅ '}{opt}
+                      </span>
+                      <span className="text-gray-400">{count} ({pct}%)</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${isCorrect ? 'bg-green-500' : 'bg-primary-500'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
