@@ -226,7 +226,11 @@ export function useBoard(boardId: string) {
       })
     })
 
-    socket.on('timer:started', ({ endsAt }: { endsAt: number }) => setTimerEndsAt(endsAt))
+    // #112 — `endsAt` est en epoch ms de l'horloge serveur. On le rebase sur l'horloge
+    // locale (Date.now() + temps restant) pour que le décompte soit juste même si
+    // l'horloge du poste diffère de celle du serveur (clock skew). serverNow absent => ancien serveur.
+    socket.on('timer:started', ({ endsAt, serverNow }: { endsAt: number; serverNow?: number }) =>
+      setTimerEndsAt(typeof serverNow === 'number' ? Date.now() + (endsAt - serverNow) : endsAt))
     socket.on('timer:stopped', () => setTimerEndsAt(null))
 
     socket.on('vote:session:started', (session: VoteSession) => setActiveVoteSession(session))

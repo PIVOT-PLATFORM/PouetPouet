@@ -188,7 +188,7 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
 
     // Rejouer un timer encore actif à l'arrivant (sinon il ne le verrait pas).
     const timerEndsAt = await getActiveTimer(boardId)
-    if (timerEndsAt) socket.emit('timer:started', { endsAt: timerEndsAt })
+    if (timerEndsAt) socket.emit('timer:started', { endsAt: timerEndsAt, serverNow: Date.now() })
   })
 
   socket.on('board:leave', async (boardId: string) => {
@@ -509,7 +509,7 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     if (!canWrite(socket, data.boardId)) return
     const endsAt = Date.now() + data.duration * 1000
     await setTimer(data.boardId, endsAt)
-    io.to(`board:${data.boardId}`).emit('timer:started', { endsAt })
+    io.to(`board:${data.boardId}`).emit('timer:started', { endsAt, serverNow: Date.now() })
   })
 
   socket.on('timer:stop', async (data: { boardId: string }) => {
