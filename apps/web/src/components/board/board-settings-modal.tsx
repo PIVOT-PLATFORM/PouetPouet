@@ -42,6 +42,19 @@ export function BoardSettingsModal({ board, onClose, onSave }: Props) {
   const [templateSaved, setTemplateSaved] = useState(false)
   const [templateName, setTemplateName] = useState(board.name)
   const [showTemplateForm, setShowTemplateForm] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setUploadError('Fichier non supporté (image uniquement)'); return }
+    if (file.size > 1.5 * 1024 * 1024) { setUploadError('Fichier trop volumineux (max 1,5 Mo)'); return }
+    setUploadError(null)
+    const reader = new FileReader()
+    reader.onload = () => { if (typeof reader.result === 'string') setCoverImage(reader.result) }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
 
   function toggleActivity(key: string) {
     setEnabledActivities((prev) =>
@@ -109,7 +122,40 @@ export function BoardSettingsModal({ board, onClose, onSave }: Props) {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input label="Nom" value={name} onChange={(e) => setName(e.target.value)} />
             <Input label="Description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Quelques mots…" />
-            <Input label="Image de couverture (URL)" value={coverImage} onChange={(e) => setCoverImage(e.target.value)} placeholder="https://…" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Image de couverture</label>
+              {coverImage && (
+                <div className="relative mb-2 rounded-xl overflow-hidden h-28 bg-gray-100 dark:bg-gray-800">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={coverImage} alt="Couverture" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setCoverImage('')}
+                    className="absolute top-1.5 right-1.5 bg-black/50 hover:bg-black/70 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs transition-colors"
+                    title="Supprimer la couverture"
+                  >✕</button>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  value={coverImage.startsWith('data:') ? '' : coverImage}
+                  onChange={(e) => setCoverImage(e.target.value)}
+                  placeholder="https://…"
+                  className="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <label
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 dark:hover:bg-gray-800 border border-primary-200 dark:border-gray-700 rounded-xl cursor-pointer transition-colors shrink-0"
+                  title="Importer une image"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Importer
+                  <input type="file" accept="image/*" className="sr-only" onChange={handleFileChange} />
+                </label>
+              </div>
+              {uploadError && <p className="mt-1 text-xs text-red-500">{uploadError}</p>}
+            </div>
             <Input
               label="Nombre max de participants"
               type="number"
