@@ -10,6 +10,7 @@ const isDev = process.env.NODE_ENV !== 'production'
 // - socket.io connects to the API origin; ws:// allowed in dev, only wss:// in prod
 // - data: images: board import (base64 card content) and user avatars
 // - blob: images: pdf.js renders page images as blob URLs
+// - https: images: aperçus OG des cartes LINK (image provenant d'un domaine tiers arbitraire)
 const FRONTEND_URL = process.env.NEXT_PUBLIC_API_URL ?? (isDev ? 'http://localhost:4000' : '')
 const WS_ORIGIN = FRONTEND_URL.replace(/^http/, 'ws')
 
@@ -17,7 +18,7 @@ const cspDirectives = [
   `default-src 'self'`,
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : " 'wasm-unsafe-eval'"}`,
   `style-src 'self' 'unsafe-inline'`,
-  `img-src 'self' data: blob:`,
+  `img-src 'self' data: blob: https:`,
   `font-src 'self'`,
   // *.sentry.io / *.ingest.de.sentry.io: error reporting (@sentry/nextjs envelope endpoint)
   `connect-src 'self' ${FRONTEND_URL} ${WS_ORIGIN} https://*.sentry.io https://*.ingest.de.sentry.io`,
