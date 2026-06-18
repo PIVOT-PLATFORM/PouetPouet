@@ -11,6 +11,11 @@ interface ShareEntry {
   user: { id: string; name: string; email: string; avatar: string | null }
 }
 
+interface Team {
+  id: string
+  name: string
+}
+
 interface Props {
   module: string
   resourceId: string
@@ -28,9 +33,24 @@ export function ModuleShareModal({ module, resourceId, resourceName, onClose }: 
   const [error, setError] = useState<string | null>(null)
   const [inviting, setInviting] = useState(false)
 
+  // Team invite section
+  const [teams, setTeams] = useState<Team[] | null>(null)
+  const [teamId, setTeamId] = useState('')
+  const [teamRole, setTeamRole] = useState<Role>('EDITOR')
+  const [teamError, setTeamError] = useState<string | null>(null)
+  const [invitingTeam, setInvitingTeam] = useState(false)
+  const [showTeamSection, setShowTeamSection] = useState(false)
+
   useEffect(() => {
     api.get<ShareEntry[]>(base).then(setShares).catch(() => setShares([]))
   }, [base])
+
+  function openTeamSection() {
+    setShowTeamSection(true)
+    if (!teams) {
+      api.get<Team[]>('/api/teams').then((t) => { setTeams(t); if (t.length > 0) setTeamId(t[0].id) }).catch(() => setTeams([]))
+    }
+  }
 
   async function invite(e: React.FormEvent) {
     e.preventDefault()
@@ -55,6 +75,29 @@ export function ModuleShareModal({ module, resourceId, resourceName, onClose }: 
   async function revoke(id: string) {
     setShares((prev) => prev?.filter((s) => s.id !== id) ?? prev)
     await api.delete(`${base}/${id}`).catch(() => {})
+  }
+
+  async function inviteTeam(e: React.FormEvent) {
+    e.preventDefault()
+    setTeamError(null)
+    setInvitingTeam(true)
+    try {
+      const newShares = await api.post<ShareEntry[]>(`${base}/invite-team`, { teamId, role: teamRole })
+      setShares((prev) => {
+        const merged = [...(prev ?? [])]
+        for (const s of newShares) {
+          const idx = merged.findIndex((x) => x.user.id === s.user.id)
+          if (idx >= 0) merged[idx] = s
+          else merged.push(s)
+        }
+        return merged
+      })
+      setShowTeamSection(false)
+    } catch (err) {
+      setTeamError((err as Error).message)
+    } finally {
+      setInvitingTeam(false)
+    }
   }
 
   return (
@@ -107,6 +150,54 @@ export function ModuleShareModal({ module, resourceId, resourceName, onClose }: 
           {error && <p className="text-xs text-red-500">{error}</p>}
           <p className="text-[11px] text-gray-400">L'invité doit déjà avoir un compte. Éditeur = peut piloter ; Lecteur = lecture seule.</p>
         </div>
+
+        {/* Inviter via une équipe */}
+        {!showTeamSection ? (
+          <button
+            type="button"
+            onClick={openTeamSection}
+            className="self-start text-xs text-primary-600 dark:text-primary-400 hover:underline"
+          >
+            + Partager à une équipe
+          </button>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Partager à une équipe</span>
+            {teams === null ? (
+              <p className="text-xs text-gray-400">Chargement…</p>
+            ) : teams.length === 0 ? (
+              <p className="text-xs text-gray-400">Aucune équipe disponible.</p>
+            ) : (
+              <form onSubmit={inviteTeam} className="flex gap-2">
+                <select
+                  value={teamId}
+                  onChange={(e) => setTeamId(e.target.value)}
+                  className="flex-1 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"
+                >
+                  {teams.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={teamRole}
+                  onChange={(e) => setTeamRole(e.target.value as Role)}
+                  className="text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl px-2 py-2 focus:outline-none focus:ring-1 focus:ring-primary-400"
+                >
+                  <option value="VIEWER">Lecture</option>
+                  <option value="EDITOR">Édition</option>
+                </select>
+                <button
+                  type="submit"
+                  disabled={invitingTeam}
+                  className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {invitingTeam ? '…' : 'Inviter'}
+                </button>
+              </form>
+            )}
+            {teamError && <p className="text-xs text-red-500">{teamError}</p>}
+          </div>
+        )}
 
         {/* Partages existants */}
         {shares && shares.length > 0 && (
