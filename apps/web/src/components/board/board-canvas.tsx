@@ -234,6 +234,11 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [selectedConnId])
+  // #111 — changer d'outil ferme la barre contextuelle de connexion (sa palette de
+  // couleur incluse), comme la sélection de cartes est vidée au changement d'outil.
+  useEffect(() => {
+    setSelectedConnId(null)
+  }, [toolMode])
 
   // Reset linkSourceId whenever we leave link-cards mode
   useEffect(() => {
