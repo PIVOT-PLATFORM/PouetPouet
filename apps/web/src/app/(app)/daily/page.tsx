@@ -146,8 +146,7 @@ function CreateSessionModal({
   onClose: () => void
 }) {
   const router = useRouter()
-  const todayName = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-  const [name, setName] = useState(`Daily du ${todayName}`)
+  const [name, setName] = useState(`Daily - ${new Date().toLocaleDateString('fr-FR')}`)
   const [timePerPerson, setTimePerPerson] = useState(120)
   const [customTime, setCustomTime] = useState('')
   const [selectedTeamId, setSelectedTeamId] = useState<string>(teams[0]?.id ?? '')
@@ -403,7 +402,7 @@ function DailyStatsPanel({ stats }: { stats: DailyStats }) {
                   style={{ width: `${Math.max(2, Math.round((s.durationSec / maxDuration) * 100))}%` }}
                 />
               </div>
-              <span className="text-[11px] text-gray-500 dark:text-gray-400 shrink-0 w-14 text-right">
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 shrink-0 w-16 text-right whitespace-nowrap">
                 {formatDuration(s.durationSec)}
               </span>
             </div>
@@ -432,7 +431,7 @@ function DailyStatsPanel({ stats }: { stats: DailyStats }) {
                   style={{ width: `${Math.max(2, Math.round((s.sessionCount / maxCount) * 100))}%` }}
                 />
               </div>
-              <span className="text-[11px] text-gray-500 dark:text-gray-400 shrink-0 w-20 text-right">
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 shrink-0 w-28 text-right whitespace-nowrap">
                 {s.sessionCount} session{s.sessionCount > 1 ? 's' : ''}
                 {s.totalSec > 0 && <> · {formatDuration(s.totalSec)}</>}
               </span>
