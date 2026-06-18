@@ -6,6 +6,8 @@ import { PIVOT_MODULES } from '@pouetpouet/shared'
 import { useAuthStore } from '@/store/auth'
 import { useFlags } from '@/store/flags'
 import { api } from '@/lib/api'
+import { MODULE_ICONS, UPCOMING_ICONS } from '@/lib/module-icons'
+import type { LucideIcon } from 'lucide-react'
 
 interface HubStats {
   boards: number
@@ -55,13 +57,13 @@ interface RecentActivity {
   wheelDraws: RecentDraw[]
 }
 
-const STAT_CONFIG: { key: keyof HubStats; label: string; icon: string }[] = [
-  { key: 'boards', label: 'Boards', icon: '🧀' },
-  { key: 'teams', label: 'Équipes', icon: '👥' },
-  { key: 'scrumRooms', label: 'Salles Scrum', icon: '🃏' },
-  { key: 'dailySessions', label: 'Dailys', icon: '☀️' },
-  { key: 'capacityEvents', label: 'Sprints', icon: '📊' },
-  { key: 'wheelEvents', label: 'Tirages', icon: '🎡' },
+const STAT_CONFIG: { key: keyof HubStats; label: string; moduleId: string }[] = [
+  { key: 'boards',        label: 'Boards',       moduleId: 'pouetpouet' },
+  { key: 'teams',         label: 'Équipes',       moduleId: 'teams'      },
+  { key: 'scrumRooms',    label: 'Salles Scrum',  moduleId: 'scrum'      },
+  { key: 'dailySessions', label: 'Dailys',        moduleId: 'daily'      },
+  { key: 'capacityEvents',label: 'Sprints',       moduleId: 'capacity'   },
+  { key: 'wheelEvents',   label: 'Tirages',       moduleId: 'wheel'      },
 ]
 
 function timeAgo(iso: string): string {
@@ -77,15 +79,15 @@ function timeAgo(iso: string): string {
 }
 
 // Modules annoncés, affichage seul (pas encore cliquables)
-const UPCOMING_MODULES: { icon: string; name: string }[] = [
-  { icon: '🗺️', name: 'Roadmap' },
-  { icon: '📋', name: 'Mes PIP' },
-  { icon: '🧪', name: 'Création de cahiers de tests' },
-  { icon: '📄', name: 'Mes PDF' },
-  { icon: '📦', name: 'Mes poses (PV de pose & label)' },
-  { icon: '🔑', name: 'Demande d\'accès serveur' },
-  { icon: '🧭', name: 'Mes FDR' },
-  { icon: '✍️', name: 'SignDoc' },
+const UPCOMING_MODULES: { name: string }[] = [
+  { name: 'Roadmap' },
+  { name: 'Mes PIP' },
+  { name: 'Création de cahiers de tests' },
+  { name: 'Mes PDF' },
+  { name: 'Mes poses (PV de pose & label)' },
+  { name: "Demande d'accès serveur" },
+  { name: 'Mes FDR' },
+  { name: 'SignDoc' },
 ]
 
 export default function HubPage() {
@@ -115,23 +117,23 @@ export default function HubPage() {
   const recentItems = recent
     ? [
         ...recent.boards.map((b) => ({
-          key: `b-${b.id}`, href: `/dashboard/${b.id}`, icon: '🧀', title: b.name,
+          key: `b-${b.id}`, href: `/dashboard/${b.id}`, moduleId: 'pouetpouet', title: b.name,
           sub: timeAgo(b.updatedAt) as React.ReactNode, at: b.updatedAt,
         })),
         ...recent.dailySessions.map((d) => ({
-          key: `d-${d.id}`, href: '/daily', icon: '☀️', title: d.name,
+          key: `d-${d.id}`, href: '/daily', moduleId: 'daily', title: d.name,
           sub: (d.status === 'RUNNING'
             ? <span className="text-green-500">En cours</span>
             : timeAgo(d.endedAt ?? d.updatedAt)) as React.ReactNode,
           at: d.endedAt ?? d.updatedAt,
         })),
         ...recent.scrumRooms.map((r) => ({
-          key: `s-${r.id}`, href: `/scrum/${r.code}`, icon: '🃏', title: r.name,
+          key: `s-${r.id}`, href: `/scrum/${r.code}`, moduleId: 'scrum', title: r.name,
           sub: `${r._count.tickets} ticket${r._count.tickets !== 1 ? 's' : ''}${r.team ? ` · ${r.team.name}` : ''} · ${timeAgo(r.updatedAt)}` as React.ReactNode,
           at: r.updatedAt,
         })),
         ...recent.wheelDraws.map((w) => ({
-          key: `w-${w.id}`, href: '/wheel', icon: '🎡', title: w.teamName ?? 'Tirage',
+          key: `w-${w.id}`, href: '/wheel', moduleId: 'wheel', title: w.teamName ?? 'Tirage',
           sub: `${w.results.slice(0, 2).join(', ')}${w.results.length > 2 ? '…' : ''} · ${timeAgo(w.createdAt)}` as React.ReactNode,
           at: w.createdAt,
         })),
@@ -156,18 +158,23 @@ export default function HubPage() {
       {/* Cross-module stats */}
       {stats && (
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-          {STAT_CONFIG.map(({ key, label, icon }) => (
-            <div
-              key={key}
-              className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-3 text-center"
-            >
-              <div className="text-xl">{icon}</div>
-              <div className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-0.5">
-                {stats[key]}
+          {STAT_CONFIG.map(({ key, label, moduleId }) => {
+            const Icon = MODULE_ICONS[moduleId]
+            return (
+              <div
+                key={key}
+                className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-3 text-center"
+              >
+                <div className="flex justify-center text-gray-400 dark:text-gray-500 mb-0.5">
+                  {Icon && <Icon className="w-5 h-5" />}
+                </div>
+                <div className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-0.5">
+                  {stats[key]}
+                </div>
+                <div className="text-[11px] text-gray-500 dark:text-gray-500">{label}</div>
               </div>
-              <div className="text-[11px] text-gray-500 dark:text-gray-500">{label}</div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -188,21 +195,26 @@ export default function HubPage() {
             )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {visibleRecents.map((item) => (
-              <Link
-                key={item.key}
-                href={item.href}
-                className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm transition-all"
-              >
-                <span className="text-lg shrink-0">{item.icon}</span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                    {item.title}
-                  </p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{item.sub}</p>
-                </div>
-              </Link>
-            ))}
+            {visibleRecents.map((item) => {
+              const Icon = MODULE_ICONS[item.moduleId]
+              return (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  className="group flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm transition-all"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0 text-gray-500 dark:text-gray-400">
+                    {Icon && <Icon className="w-4 h-4" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                      {item.title}
+                    </p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{item.sub}</p>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </div>
       )}
@@ -215,6 +227,7 @@ export default function HubPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedModules.map((mod) => {
             const isFav = favorites.has(mod.id)
+            const ModIcon = MODULE_ICONS[mod.id]
             return (
               <div
                 key={mod.id}
@@ -222,10 +235,10 @@ export default function HubPage() {
               >
                 <Link href={mod.nav[0].href} className="absolute inset-0 rounded-2xl" aria-label={mod.name} />
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
-                  style={{ background: `${mod.color}1a` }}
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: `${mod.color}1a`, color: mod.color }}
                 >
-                  {mod.icon}
+                  {ModIcon ? <ModIcon className="w-6 h-6" /> : <span className="text-2xl">{mod.icon}</span>}
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
@@ -274,19 +287,24 @@ export default function HubPage() {
           Modules à venir
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {UPCOMING_MODULES.map((m) => (
-            <div
-              key={m.name}
-              aria-disabled="true"
-              className="flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/40 px-4 py-3.5 select-none"
-            >
-              <span className="text-xl opacity-60">{m.icon}</span>
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-500 truncate">{m.name}</span>
-              <span className="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-full px-2 py-0.5">
-                À venir
-              </span>
-            </div>
-          ))}
+          {UPCOMING_MODULES.map((m) => {
+            const UpIcon = UPCOMING_ICONS[m.name]
+            return (
+              <div
+                key={m.name}
+                aria-disabled="true"
+                className="flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/40 px-4 py-3.5 select-none"
+              >
+                <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0 opacity-50">
+                  {UpIcon ? <UpIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" /> : null}
+                </div>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-500 truncate">{m.name}</span>
+                <span className="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-full px-2 py-0.5">
+                  À venir
+                </span>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
