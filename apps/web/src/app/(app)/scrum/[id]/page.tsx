@@ -54,6 +54,9 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
   // Import en masse
   const [showImport, setShowImport] = useState(false)
   const [importText, setImportText] = useState('')
+  const [importTab, setImportTab] = useState<'text' | 'excel'>('text')
+  const [excelTitles, setExcelTitles] = useState<string[]>([])
+  const [excelFileName, setExcelFileName] = useState('')
 
   // Sélection pour estimation / suppression en masse
   const [selectedTicketIds, setSelectedTicketIds] = useState<Set<string>>(new Set())
@@ -97,6 +100,41 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
     bulkAddTickets(titles)
     setImportText('')
     setShowImport(false)
+  }
+
+  async function handleExcelFile(file: File) {
+    if (!file.name.match(/\.(xlsx|xls)$/i)) return
+    const { read, utils } = await import('xlsx')
+    const buf = await file.arrayBuffer()
+    const wb = read(buf)
+    const ws = wb.Sheets[wb.SheetNames[0]]
+    const rows = utils.sheet_to_json<string[]>(ws, { header: 1 }) as string[][]
+    const titles = rows.slice(1).map((r) => String(r[0] ?? '').trim()).filter(Boolean)
+    setExcelTitles(titles)
+    setExcelFileName(file.name)
+  }
+
+  function handleExcelImport() {
+    if (excelTitles.length === 0) return
+    bulkAddTickets(excelTitles)
+    setExcelTitles([])
+    setExcelFileName('')
+    setShowImport(false)
+  }
+
+  function downloadTemplate() {
+    import('xlsx').then(({ utils, writeFile }) => {
+      const ws = utils.aoa_to_sheet([
+        ['Titre'],
+        ['US-001 Page de connexion'],
+        ['US-002 Dashboard'],
+        ['US-003 Profil utilisateur'],
+      ])
+      ws['!cols'] = [{ wch: 40 }]
+      const wb = utils.book_new()
+      utils.book_append_sheet(wb, ws, 'Tickets')
+      writeFile(wb, 'template-scrum-tickets.xlsx')
+    })
   }
 
   function handleSetEstimate() {
@@ -311,33 +349,100 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
 
           {/* Bulk import panel */}
           {showImport && (
-            <form onSubmit={handleImport} className="flex flex-col gap-2 bg-primary-50 border border-primary-200 rounded-xl p-3">
-              <p className="text-xs font-semibold text-primary-700">Importer plusieurs tickets</p>
-              <textarea
-                autoFocus
-                value={importText}
-                onChange={(e) => setImportText(e.target.value)}
-                placeholder={"Un ticket par ligne :\nLogin page\nDashboard\nUser settings…"}
-                rows={5}
-                className="w-full text-sm border border-primary-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none bg-white"
-              />
-              <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => { setShowImport(false); setImportText('') }}
-                  className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={!importText.trim()}
-                  className="px-3 py-1.5 text-xs font-semibold bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-40"
-                >
-                  Importer ({importText.split('\n').filter((l) => l.trim()).length})
-                </button>
+            <div className="flex flex-col gap-2 bg-primary-50 border border-primary-200 rounded-xl p-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-primary-700">Importer plusieurs tickets</p>
+                <div className="flex gap-1 bg-white border border-primary-200 rounded-lg p-0.5">
+                  {(['text', 'excel'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setImportTab(tab)}
+                      className={`px-2 py-0.5 text-[11px] font-medium rounded transition-colors ${
+                        importTab === tab ? 'bg-primary-600 text-white' : 'text-primary-600 hover:bg-primary-50'
+                      }`}
+                    >
+                      {tab === 'text' ? 'Texte' : 'Excel'}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </form>
+
+              {importTab === 'text' ? (
+                <form onSubmit={handleImport} className="flex flex-col gap-2">
+                  <textarea
+                    autoFocus
+                    value={importText}
+                    onChange={(e) => setImportText(e.target.value)}
+                    placeholder={"Un ticket par ligne :\nLogin page\nDashboard\nUser settings…"}
+                    rows={5}
+                    className="w-full text-sm border border-primary-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none bg-white"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => { setShowImport(false); setImportText('') }}
+                      className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!importText.trim()}
+                      className="px-3 py-1.5 text-xs font-semibold bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-40"
+                    >
+                      Importer ({importText.split('\n').filter((l) => l.trim()).length})
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <label className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-primary-200 rounded-xl px-3 py-4 cursor-pointer hover:border-primary-400 hover:bg-white/60 transition-colors">
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      className="sr-only"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleExcelFile(f) }}
+                    />
+                    <svg className="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-xs text-primary-600 font-medium">
+                      {excelFileName || 'Choisir un fichier .xlsx'}
+                    </span>
+                    {excelTitles.length > 0 && (
+                      <span className="text-[11px] text-green-600 font-semibold">
+                        {excelTitles.length} ticket{excelTitles.length > 1 ? 's' : ''} détecté{excelTitles.length > 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={downloadTemplate}
+                    className="text-[11px] text-primary-500 hover:text-primary-700 hover:underline text-left"
+                  >
+                    Télécharger le modèle Excel
+                  </button>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => { setShowImport(false); setExcelTitles([]); setExcelFileName('') }}
+                      className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleExcelImport}
+                      disabled={excelTitles.length === 0}
+                      className="px-3 py-1.5 text-xs font-semibold bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-40"
+                    >
+                      Importer ({excelTitles.length})
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* ── File d'estimation ── */}
