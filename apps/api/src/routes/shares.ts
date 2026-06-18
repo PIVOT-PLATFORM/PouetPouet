@@ -11,10 +11,11 @@ type ResourceInfo = { ownerId: string; name: string }
 const RESOLVERS: Record<string, (id: string) => Promise<ResourceInfo | null>> = {
   scrum: (id) => prisma.scrumRoom.findUnique({ where: { id }, select: { ownerId: true, name: true } }),
   daily: (id) => prisma.dailySession.findUnique({ where: { id }, select: { ownerId: true, name: true } }),
+  team: (id) => prisma.team.findUnique({ where: { id }, select: { ownerId: true, name: true } }),
 }
 
-const MODULE_LABEL: Record<string, string> = { scrum: 'Scrum Poker', daily: 'Daily' }
-const MODULE_LINK: Record<string, string> = { scrum: '/scrum', daily: '/daily' }
+const MODULE_LABEL: Record<string, string> = { scrum: 'Scrum Poker', daily: 'Daily', team: 'Équipe' }
+const MODULE_LINK: Record<string, string> = { scrum: '/scrum', daily: '/daily', team: '/equipes' }
 
 const inviteSchema = z.object({ email: z.string().email(), role: z.enum(['VIEWER', 'EDITOR']) })
 const roleSchema = z.object({ role: z.enum(['VIEWER', 'EDITOR']) })

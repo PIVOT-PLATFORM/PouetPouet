@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useTeams } from '@/hooks/useDaily'
 import type { DailyTeam } from '@/hooks/useDaily'
 import { ColorPicker } from '@/components/ui/color-picker'
+import { ModuleShareModal } from '@/components/share/module-share-modal'
 import { DEFAULT_SHAPE_COLOR } from '@/lib/colors'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -224,12 +225,17 @@ function TeamCard({
   team,
   onEdit,
   onDelete,
+  onShare,
 }: {
   team: DailyTeam
   onEdit: (t: DailyTeam) => void
   onDelete: (id: string) => void
+  onShare: (t: DailyTeam) => void
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const role = team.role ?? 'OWNER'
+  const isOwner = role === 'OWNER'
+  const canEdit = role === 'OWNER' || role === 'EDITOR'
   const sessions = team._count?.dailySessions ?? 0
   const draws = team._count?.wheelDraws ?? 0
   const scrums = team._count?.scrumRooms ?? 0
@@ -251,20 +257,38 @@ function TeamCard({
               {initials(team.name)}
             </div>
             <div className="min-w-0">
-              <h3 className="font-semibold text-gray-900 dark:text-white truncate">{team.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-gray-900 dark:text-white truncate">{team.name}</h3>
+                {!isOwner && (
+                  <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-400">
+                    {role === 'EDITOR' ? 'Éditeur' : 'Lecture'}
+                  </span>
+                )}
+              </div>
               {team.description && (
                 <p className="text-xs text-gray-400 truncate mt-0.5">{team.description}</p>
               )}
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => onEdit(team)}
-              className="text-xs text-gray-400 hover:text-primary-600 transition-colors px-2 py-1 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-950"
-            >
-              Modifier
-            </button>
-            {confirmDelete ? (
+            {canEdit && (
+              <button
+                onClick={() => onEdit(team)}
+                className="text-xs text-gray-400 hover:text-primary-600 transition-colors px-2 py-1 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-950"
+              >
+                Modifier
+              </button>
+            )}
+            {isOwner && (
+              <button
+                onClick={() => onShare(team)}
+                title="Partager l'équipe"
+                className="text-xs text-gray-400 hover:text-primary-600 transition-colors px-2 py-1 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-950"
+              >
+                Partager
+              </button>
+            )}
+            {isOwner && (confirmDelete ? (
               <div className="flex gap-1">
                 <button
                   onClick={() => onDelete(team.id)}
@@ -288,7 +312,7 @@ function TeamCard({
                   <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
-            )}
+            ))}
           </div>
         </div>
 
@@ -349,6 +373,7 @@ export default function EquipesPage() {
   const { teams, isLoading, createTeam, updateTeam, deleteTeam } = useTeams()
   const [showModal, setShowModal] = useState(false)
   const [editTarget, setEditTarget] = useState<DailyTeam | null>(null)
+  const [shareTarget, setShareTarget] = useState<DailyTeam | null>(null)
   const [search, setSearch] = useState('')
 
   const handleSave = useCallback(async (name: string, members: string[], color: string, description: string) => {
@@ -387,6 +412,15 @@ export default function EquipesPage() {
           initial={editTarget ?? undefined}
           onSave={handleSave}
           onClose={() => setShowModal(false)}
+        />
+      )}
+
+      {shareTarget && (
+        <ModuleShareModal
+          module="team"
+          resourceId={shareTarget.id}
+          resourceName={shareTarget.name}
+          onClose={() => setShareTarget(null)}
         />
       )}
 
@@ -463,6 +497,7 @@ export default function EquipesPage() {
                 team={team}
                 onEdit={openEdit}
                 onDelete={deleteTeam}
+                onShare={setShareTarget}
               />
             ))}
 
