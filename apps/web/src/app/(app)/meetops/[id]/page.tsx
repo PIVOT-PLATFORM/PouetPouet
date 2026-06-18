@@ -593,7 +593,7 @@ export default function MeetopsEventPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/meetops" className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">← MeetOps</Link>
+      <Link href="/meetops" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>MeetOps</Link>
 
       {/* En-tête événement */}
       <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6">

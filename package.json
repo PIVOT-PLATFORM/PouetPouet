@@ -13,6 +13,7 @@
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "security:audit": "npm audit --audit-level=critical --omit=dev",
+    "docs:features": "node docs/generate-features.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
   },
   "devDependencies": {

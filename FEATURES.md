@@ -336,6 +336,7 @@ Module d'estimation collaborative pour les sprints.
 - Historique des votes et estimation par ticket
 - Changement d'échelle en cours de session (les votes en cours sont réinitialisés)
 - Se **reconnecte automatiquement** à sa room après un rafraîchissement ou une perte réseau
+- **Partage de la salle** (v0.16.0) : le propriétaire peut inviter un collègue par e-mail en **Lecteur** (consultation seule) ou **Éditeur** (pilotage : tickets, ouverture/révélation des votes). Les salles partagées avec vous apparaissent dans la liste avec un badge indiquant votre rôle ; seul le propriétaire gère les partages et supprime la salle.
 
 ### Participants
 - Rejoignent via URL ou code, avec un nom (pas besoin de compte)
@@ -363,6 +364,10 @@ Pour animer les daily meetings avec timer par personne.
   - Timer par personne, affiché en temps réel
   - Statuts par participant : `WAITING` / `SPEAKING` / `DONE` / `SKIPPED`
 
+### Partage (v0.16.0)
+- Le propriétaire peut **partager une session Daily** par e-mail en **Lecteur** ou **Éditeur**, comme pour les boards et le Scrum Poker.
+- Un **Éditeur** peut piloter le déroulé (suivant / skip / timer) ; un **Lecteur** suit en consultation. Les sessions partagées apparaissent avec un badge de rôle.
+
 ---
 
 ## 10. Roue aléatoire (La roue)
@@ -384,7 +389,29 @@ Les personnes tirées récemment ont moins de chances d'être retirées : `poids
 
 ---
 
-## 11. Raccourcis clavier
+## 11. Capacité
+
+Planification de la capacité d'une équipe sur un sprint, un PI ou une release.
+
+- Créer un **événement de capacité** rattaché à une équipe et à une période.
+- Renseigner les **disponibilités** par membre (jours, taux d'occupation, congés/absences).
+- Visualiser la **capacité totale** de l'équipe et la répartition individuelle.
+- Réutiliser les équipes persistées de « Mes équipes ».
+
+---
+
+## 12. MeetOps
+
+Gestion des réunions et rituels d'équipe : événements, modèles et calendriers.
+
+- **Événements** : créer, éditer, dupliquer, suivre l'historique ; modification de masse et liste à plat.
+- **Modèles** réutilisables pour standardiser des réunions récurrentes (avec récurrence).
+- **Calendrier global** agrégeant les événements (vues mois / semaine / jour).
+- **Reporting** et listes de diffusion associées.
+
+---
+
+## 13. Raccourcis clavier
 
 | Raccourci | Action |
 |---|---|
@@ -404,7 +431,7 @@ Les personnes tirées récemment ont moins de chances d'être retirées : `poids
 
 ---
 
-## 12. Indicateurs visuels et états
+## 14. Indicateurs visuels et états
 
 - **Liseré gris fin** autour d'une carte = verrouillée
 - **Contour coloré commun** = cartes groupées
@@ -421,7 +448,7 @@ Les personnes tirées récemment ont moins de chances d'être retirées : `poids
 
 ---
 
-## 13. Limitations connues
+## 15. Limitations connues
 
 - L'undo/redo est local au client : un utilisateur ne peut pas annuler les actions des autres.
 - Les drafts de templates abandonnés ne sont pas auto-nettoyés (visibles uniquement via le re-clic sur "Modifier le contenu").

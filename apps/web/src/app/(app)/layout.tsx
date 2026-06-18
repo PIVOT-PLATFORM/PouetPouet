@@ -13,7 +13,6 @@ import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useNotificationsStore } from '@/store/notifications'
 import { useFlagsStore } from '@/store/flags'
 import { APP_VERSION } from '@/lib/version'
-import { PIVOT_MODULES } from '@pouetpouet/shared'
 
 function Avatar({ name, src }: { name: string; src?: string | null }) {
   if (src) {
@@ -130,8 +129,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           {!isBoardPage && (
-            /* FORGE F0 : la navigation du shell est rendue depuis les manifests
-               des modules — activer un module l'ajoute ici sans toucher au layout. */
+            /* Hub-centré : la navbar n'expose plus la liste des modules (redondant
+               avec le hub, et ne reflétait pas le gating feature-flag). Seul reste
+               le raccourci « Tous les modules » vers le hub + un accès direct à
+               « Mes équipes » (ressource transverse Daily/Roue/Capacité). */
             <nav className="flex items-center gap-1 ml-2">
               <Link
                 href="/hub"
@@ -146,22 +147,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z" />
                 </svg>
               </Link>
-              {PIVOT_MODULES.flatMap((m) => m.nav).map((link) => {
-                const active = link.match === 'exact' ? pathname === link.href : pathname.startsWith(link.match)
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      active
-                        ? 'bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-400'
-                        : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                )
-              })}
+              <Link
+                href="/equipes"
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  pathname.startsWith('/equipes')
+                    ? 'bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-400'
+                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                Mes équipes
+              </Link>
             </nav>
           )}
 

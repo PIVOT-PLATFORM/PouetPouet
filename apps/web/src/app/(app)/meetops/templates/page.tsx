@@ -185,7 +185,7 @@ export default function MeetopsTemplatesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <Link href="/meetops" className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">← MeetOps</Link>
+          <Link href="/meetops" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>MeetOps</Link>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight mt-2">🧩 Modèles</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Structures d&apos;événements réutilisables. Crée-en un ici, ou depuis un événement existant (« 💾 Modèle »).</p>
         </div>

@@ -22,6 +22,7 @@ function MemberRow({
   onRemove,
   onMoveUp,
   onMoveDown,
+  onEnter,
 }: {
   name: string
   index: number
@@ -30,6 +31,7 @@ function MemberRow({
   onRemove: () => void
   onMoveUp: () => void
   onMoveDown: () => void
+  onEnter: () => void
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -54,6 +56,13 @@ function MemberRow({
       <input
         value={name}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            onEnter()
+          }
+        }}
+        autoFocus={index === total - 1 && name === '' && total > 1}
         placeholder={`Membre ${index + 1}`}
         className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-800 dark:text-white"
       />
@@ -169,6 +178,13 @@ function TeamModal({
                   onRemove={() => setMembers((prev) => prev.filter((_, j) => j !== i))}
                   onMoveUp={() => moveUp(i)}
                   onMoveDown={() => moveDown(i)}
+                  onEnter={() => {
+                    // Entrée sur la dernière ligne remplie : ajoute un champ vide
+                    // (qui prend le focus via autoFocus) pour saisir le suivant.
+                    if (i === members.length - 1 && m.trim()) {
+                      setMembers((prev) => [...prev, ''])
+                    }
+                  }}
                 />
               ))}
               <button
