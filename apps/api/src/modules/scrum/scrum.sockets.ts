@@ -320,11 +320,14 @@ export function scrumSocketHandlers(io: Server, socket: Socket) {
 
   socket.on('scrum:ticket:add_bulk', async ({ roomId, titles }: { roomId: string; titles: string[] }) => {
     if (!(await canManageRoom(socket, roomId))) return
+    // Strip null bytes (PostgreSQL rejects \0 in UTF-8) then discard empty results
+    const sanitized = titles.map((t) => t.replace(/\0/g, '').trim()).filter(Boolean)
+    if (sanitized.length === 0) return
     const count = await prisma.scrumTicket.count({ where: { roomId } })
     const tickets = await prisma.$transaction(
-      titles.map((title, i) =>
+      sanitized.map((title, i) =>
         prisma.scrumTicket.create({
-          data: { roomId, title: title.trim(), order: count + i },
+          data: { roomId, title, order: count + i },
           include: { votes: true },
         })
       )
