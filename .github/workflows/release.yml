@@ -53,8 +53,11 @@ jobs:
       - name: Build release notes
         if: steps.tag.outputs.exists == 'false'
         # tsx n'est qu'en devDependency d'apps/api (non hoisté à la racine en CI) :
-        # --yes garantit sa disponibilité même quand `npm ci` ne l'expose pas au root.
-        run: npx --yes tsx apps/api/scripts/format-release-notes.ts "${{ steps.ver.outputs.version }}" > RELEASE_NOTES.md
+        # on l'exécute depuis le workspace apps/api, où son binaire est résolu,
+        # et on écrit le résultat à la racine du dépôt.
+        run: |
+          cd apps/api
+          npx tsx scripts/format-release-notes.ts "${{ steps.ver.outputs.version }}" > "$GITHUB_WORKSPACE/RELEASE_NOTES.md"
 
       - name: Create tag & GitHub Release
         if: steps.tag.outputs.exists == 'false'
