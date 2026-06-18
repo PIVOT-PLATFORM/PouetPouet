@@ -423,6 +423,7 @@ export default function MeetopsCalendarPage() {
                   </svg>
                   <input
                     autoFocus value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                    onBlur={() => { if (!searchQuery) setSearchOpen(false) }}
                     placeholder="Rechercher…"
                     className="pl-9 pr-3 py-1.5 rounded-xl border border-primary-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 w-44 dark:bg-gray-900 dark:text-white dark:border-primary-700"
                   />
