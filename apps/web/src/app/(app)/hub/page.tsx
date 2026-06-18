@@ -14,6 +14,7 @@ interface HubStats {
   dailySessions: number
   capacityEvents: number
   wheelEvents: number
+  testBooks: number
 }
 
 interface RecentBoard {
@@ -62,6 +63,7 @@ const STAT_CONFIG: { key: keyof HubStats; label: string; icon: string }[] = [
   { key: 'dailySessions', label: 'Dailys', icon: '☀️' },
   { key: 'capacityEvents', label: 'Sprints', icon: '📊' },
   { key: 'wheelEvents', label: 'Tirages', icon: '🎡' },
+  { key: 'testBooks', label: 'Cahiers', icon: '🧪' },
 ]
 
 function timeAgo(iso: string): string {
@@ -80,7 +82,6 @@ function timeAgo(iso: string): string {
 const UPCOMING_MODULES: { icon: string; name: string }[] = [
   { icon: '🗺️', name: 'Roadmap' },
   { icon: '📋', name: 'Mes PIP' },
-  { icon: '🧪', name: 'Création de cahiers de tests' },
   { icon: '📄', name: 'Mes PDF' },
   { icon: '📦', name: 'Mes poses (PV de pose & label)' },
   { icon: '🔑', name: 'Demande d\'accès serveur' },

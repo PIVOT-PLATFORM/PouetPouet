@@ -47,6 +47,7 @@ model User {
   auditLogs      AuditLog[]
   oauthAccounts  OAuthAccount[]
   moduleShares   ModuleShare[]
+  testBooks      TestBook[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -796,6 +797,62 @@ model MeetHistory {
   event MeetEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId, createdAt])
+}
+
+// ── Cahiers de tests ───────────────────────────────────────────────────────────
+
+model TestBook {
+  id          String         @id @default(cuid())
+  ownerId     String
+  title       String
+  description String?
+  version     String?
+  status      TestBookStatus @default(DRAFT)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  owner    User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  sections TestSection[]
+}
+
+model TestSection {
+  id        String     @id @default(cuid())
+  bookId    String
+  title     String
+  order     Int        @default(0)
+  createdAt DateTime   @default(now())
+
+  book  TestBook   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  cases TestCase[]
+}
+
+model TestCase {
+  id           String         @id @default(cuid())
+  sectionId    String
+  title        String
+  precondition String?
+  steps        String?
+  expected     String?
+  status       TestCaseStatus @default(TODO)
+  order        Int            @default(0)
+  createdAt    DateTime       @default(now())
+
+  section TestSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+}
+
+enum TestBookStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  ARCHIVED
+}
+
+enum TestCaseStatus {
+  TODO
+  PASS
+  FAIL
+  BLOCKED
+  SKIP
 }
 
 // Modèle d'événement réutilisable. `lines` = réunions en décalages relatifs :

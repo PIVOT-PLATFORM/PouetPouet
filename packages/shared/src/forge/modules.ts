@@ -92,6 +92,20 @@ export const MEETOPS_MODULE: ModuleManifest = {
   listensTo: [],
 }
 
+export const TESTBOOKS_MODULE: ModuleManifest = {
+  id: 'testbooks',
+  name: 'Cahiers de tests',
+  description: 'Création et gestion de cahiers de tests structurés',
+  icon: '🧪',
+  color: '#8b5cf6',
+  nav: [{ label: 'Cahiers de tests', href: '/cahiers-tests', match: '/cahiers-tests' }],
+  apiPrefix: '/api/testbooks',
+  ownedEntities: ['TestBook', 'TestSection', 'TestCase'],
+  referencedPivots: ['User'],
+  emits: [],
+  listensTo: [],
+}
+
 /** Modules actifs, dans l'ordre d'affichage de la navigation. */
 export const PIVOT_MODULES: ModuleManifest[] = [
   POUETPOUET_MODULE,
@@ -100,4 +114,5 @@ export const PIVOT_MODULES: ModuleManifest[] = [
   WHEEL_MODULE,
   CAPACITY_MODULE,
   MEETOPS_MODULE,
+  TESTBOOKS_MODULE,
 ]
