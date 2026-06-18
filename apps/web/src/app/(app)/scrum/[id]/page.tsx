@@ -103,6 +103,7 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
   }
 
   async function handleExcelFile(file: File) {
+    if (!file.name.match(/\.(xlsx|xls)$/i)) return
     const { read, utils } = await import('xlsx')
     const buf = await file.arrayBuffer()
     const wb = read(buf)
