@@ -131,7 +131,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {!isBoardPage && (
             /* Hub-centré : la navbar n'expose plus la liste des modules (redondant
                avec le hub, et ne reflétait pas le gating feature-flag). Seul reste
-               le raccourci « Tous les modules » vers le hub. */
+               le raccourci « Tous les modules » vers le hub + un accès direct à
+               « Mes équipes » (ressource transverse Daily/Roue/Capacité). */
             <nav className="flex items-center gap-1 ml-2">
               <Link
                 href="/hub"
@@ -145,6 +146,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z" />
                 </svg>
+              </Link>
+              <Link
+                href="/equipes"
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  pathname.startsWith('/equipes')
+                    ? 'bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-400'
+                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                Mes équipes
               </Link>
             </nav>
           )}
