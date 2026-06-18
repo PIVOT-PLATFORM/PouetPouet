@@ -1008,8 +1008,10 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     ]
     return pool.map((card) => {
       const dimmed = !!highlightedGroupId && card.groupId !== highlightedGroupId
+      // #110 — isolation: confine les z-index internes (points d'ancrage z:40, barres)
+      // à la carte, sinon ils se peignent au-dessus du corps des autres cartes (z:auto).
       return (
-        <div key={card.id} style={{ opacity: dimmed ? 0.12 : 1, transition: 'opacity 0.2s', pointerEvents: dimmed ? 'none' : undefined }}>
+        <div key={card.id} style={{ isolation: 'isolate', opacity: dimmed ? 0.12 : 1, transition: 'opacity 0.2s', pointerEvents: dimmed ? 'none' : undefined }}>
           <BoardCard
             card={card}
             fields={fields}
