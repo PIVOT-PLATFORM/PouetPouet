@@ -6,6 +6,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 > Les notes de version **détaillées** (groupées par thème, orientées utilisateur) sont la source de vérité in-app : [`apps/api/src/lib/patch-notes.ts`](apps/api/src/lib/patch-notes.ts), affichées dans le panneau de notifications. Ce fichier en est l'index public condensé.
 
+## [0.18.0] — 2026-06-18
+Cartes **lien** avec aperçu Open Graph (image, titre, nom du site) et **édition** de l'URL ; **image de couverture** de board par import de fichier.
+
 ## [0.17.0] — 2026-06-18
 Nouveau module **Cahiers de tests** (sections, cas, statuts, progression), partage d'**équipes** par e-mail et de salles Scrum à une équipe, **retrait de participants** et **import Excel** dans Scrum Poker, **statistiques de Daily**, gestion des **activités en session**, et Hub aux **icônes** homogènes.
 

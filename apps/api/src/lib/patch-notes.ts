@@ -20,6 +20,27 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.18.0',
+    date: '2026-06-18',
+    title: 'Aperçu des liens & couverture de board',
+    summary: 'Les cartes lien affichent un aperçu enrichi (image, titre, nom du site) et deviennent éditables, et vous pouvez définir l\'image de couverture d\'un board par import de fichier.',
+    sections: [
+      {
+        heading: '🔗 Cartes lien',
+        items: [
+          'Coller une URL crée une carte qui se transforme automatiquement en aperçu : image Open Graph, titre et nom du site.',
+          'L\'URL d\'une carte lien est désormais modifiable (bouton crayon au survol, ou double-clic).',
+        ],
+      },
+      {
+        heading: '🖼️ Couverture de board',
+        items: [
+          'Définissez l\'image de couverture d\'un board par import de fichier, au lieu de coller un lien.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.17.0',
     date: '2026-06-18',
     title: 'Cahiers de tests, partage d\'équipes & ateliers enrichis',
