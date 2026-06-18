@@ -18,6 +18,8 @@ interface Props {
   onToolChange: (tool: ToolMode, color?: string, stroke?: StrokeSize, fill?: boolean, opacity?: number) => void
   onAddFrame?: () => void
   frameLimitReached?: boolean
+  // #109 — fonctionnalité « dessin » désactivable dans les paramètres du board.
+  drawingEnabled?: boolean
   // Aimantation : grille + guides d'alignement
   snapToGrid?: boolean
   alignGuides?: boolean
@@ -44,7 +46,7 @@ function ShapeGlyph({ mode }: { mode: ShapeMode }) {
   }
 }
 
-export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, toolOpacity, minTop, onToolChange, onAddFrame, frameLimitReached, snapToGrid, alignGuides, onToggleGrid, onToggleAlign }: Props) {
+export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, toolOpacity, minTop, onToolChange, onAddFrame, frameLimitReached, drawingEnabled = true, snapToGrid, alignGuides, onToggleGrid, onToggleAlign }: Props) {
   const MIN_Y = minTop ?? 120
   const tablesEnabled = useFlag('board.tables')
   const [pos, setPos] = useState({ x: 16, y: MIN_Y })
@@ -204,11 +206,13 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
 
             <Sep />
 
-            <Btn ref={isDraw ? flyoutAnchorRef : undefined} mode="draw" current={toolMode} label="Dessin libre" onClick={() => onToolChange('draw', toolMode === 'draw' ? toolColor : DEFAULT_SHAPE_COLOR)}>
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </Btn>
+            {drawingEnabled && (
+              <Btn ref={isDraw ? flyoutAnchorRef : undefined} mode="draw" current={toolMode} label="Dessin libre" onClick={() => onToolChange('draw', toolMode === 'draw' ? toolColor : DEFAULT_SHAPE_COLOR)}>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </Btn>
+            )}
             <Btn mode="link" current={toolMode} label="Lien URL" onClick={() => onToolChange('link')}>
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />

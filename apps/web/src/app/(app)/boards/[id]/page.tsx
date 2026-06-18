@@ -253,6 +253,10 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const voteTimerSecondsLeft = voteTimerEndsAt !== null ? Math.max(0, Math.ceil((voteTimerEndsAt - now) / 1000)) : null
   const voteTimerExpired = voteTimerEndsAt !== null && now >= voteTimerEndsAt
 
+  // #109 — gating des fonctionnalités du board (paramètres). enabledActivities
+  // null = tout activé (défaut) ; sinon seule une clé présente est disponible.
+  const featureOn = (key: string) => !board?.enabledActivities || board.enabledActivities.includes(key)
+
   useEffect(() => {
     if (importCount > 0) canvasApiRef.current?.fitToContent()
   }, [importCount])
@@ -682,7 +686,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           </div>
         ) : (
           <>
-            {!isReadonly && (
+            {!isReadonly && featureOn('voting') && (
               <div ref={voteMenuContainerRef} className="relative shrink-0">
                 <button
                   onClick={() => {
@@ -768,7 +772,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
               </button>
             )}
           </div>
-        ) : !isReadonly && (
+        ) : !isReadonly && featureOn('timer') && (
           <div ref={timerPickerRef} className="relative shrink-0">
             <button
               onClick={() => {
@@ -911,6 +915,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                       <span className="text-xs font-bold text-primary-500 bg-primary-50 rounded-full px-1.5 py-0.5">{groupCount}</span>
                     )}
                   </button>
+                  {featureOn('fields') && (
                   <button
                     onClick={() => { setShowOverflowMenu(false); setShowGroupsPanel(false); setShowFieldsPanel(true) }}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${fields.length > 0 ? 'text-primary-600' : 'text-gray-700 hover:bg-gray-50'}`}
@@ -923,6 +928,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                       <span className="text-xs font-bold text-primary-500 bg-primary-50 rounded-full px-1.5 py-0.5">{fields.length}</span>
                     )}
                   </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1038,7 +1044,8 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             toolOpacity={toolOpacity}
             minTop={templateDraftOf ? 170 : 120}
             onToolChange={handleToolChange}
-            onAddFrame={() => addFrame(200, 200)}
+            drawingEnabled={featureOn('drawing')}
+            onAddFrame={featureOn('frames') ? () => addFrame(200, 200) : undefined}
             frameLimitReached={frames.length >= MAX_FRAMES_PER_BOARD}
             snapToGrid={snapToGrid}
             alignGuides={alignGuides}

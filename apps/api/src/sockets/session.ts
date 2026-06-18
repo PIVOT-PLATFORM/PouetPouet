@@ -44,7 +44,10 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
     const userId = socket.data.userId as string | undefined
     if (!userId) return socket.emit('error', 'Non authentifié')
 
-    const session = await prisma.session.findUnique({ where: { id: sessionId } })
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: { board: { select: { maxParticipants: true } } },
+    })
     if (!session || session.status === 'CLOSED') return socket.emit('error', 'Session introuvable ou terminée')
 
     // Find or create participant (avoid duplicates across refreshes)
@@ -52,6 +55,10 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
       where: { sessionId, userId },
     })
     if (!participant) {
+      // #109 — plafond de participants ; un membre déjà inscrit (reconnexion) passe outre.
+      if (session.board.maxParticipants != null && (await getParticipantCount(io, sessionId)) >= session.board.maxParticipants) {
+        return socket.emit('error', 'Session complète : nombre maximum de participants atteint')
+      }
       const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } })
       participant = await prisma.sessionParticipant.create({
         data: { sessionId, userId, guestName: user?.name ?? 'Membre' },
@@ -98,10 +105,15 @@ export function sessionSocketHandlers(io: Server, socket: Socket) {
   socket.on('session:join', async (data: { code: string; guestName?: string }) => {
     const session = await prisma.session.findUnique({
       where: { code: data.code },
-      include: { board: { select: { name: true, ownerId: true } } },
+      include: { board: { select: { name: true, ownerId: true, maxParticipants: true } } },
     })
     if (!session) return socket.emit('error', 'Session introuvable')
     if (session.status === 'CLOSED') return socket.emit('error', 'Session terminée')
+
+    // #109 — plafond de participants (hors animateur). null = illimité.
+    if (session.board.maxParticipants != null && (await getParticipantCount(io, session.id)) >= session.board.maxParticipants) {
+      return socket.emit('error', 'Session complète : nombre maximum de participants atteint')
+    }
 
     const participant = await prisma.sessionParticipant.create({
       data: { sessionId: session.id, guestName: data.guestName ?? 'Anonyme' },
