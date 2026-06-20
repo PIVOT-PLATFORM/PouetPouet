@@ -291,6 +291,18 @@ export default function AidePage() {
         </div>
       </CollapsibleSection>
 
+      {/* Easter egg — lien discret vers les mini-jeux */}
+      <div className="flex justify-end pt-2">
+        <Link
+          href="/games"
+          title="..."
+          className="text-gray-200 dark:text-gray-800 hover:text-gray-400 dark:hover:text-gray-600 transition-colors text-base select-none"
+          tabIndex={-1}
+        >
+          🎮
+        </Link>
+      </div>
+
     </div>
   )
 }
