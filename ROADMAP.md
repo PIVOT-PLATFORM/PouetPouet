@@ -196,6 +196,24 @@
 
 ---
 
+## P1 - Nouveaux modules
+
+### Module Quiz interactif (style Kahoot) — #164
+- [ ] CRUD quiz : titre, questions (texte + 2–4 options, bonne réponse, timer, points)
+- [ ] Réordonner les questions par glisser-déposer
+- [ ] Session live : code d'accès 6 caractères, participants anonymes
+- [ ] Déroulé temps réel : question → réponses → révélation + stats → classement
+- [ ] Bonus de rapidité (points proportionnels au temps de réponse)
+- [ ] Podium final
+
+### Assistant IA Pouet — #163 (PR ouverte)
+- [x] F0 : Ollama docker + LLMProvider/OllamaProvider + route SSE `/api/pouet/chat`
+- [x] F1 : auth, rate-limit Redis, audit, base de connaissances rédigée
+- [x] F2 : contexte route/module, prompts suggérés, widget flottant
+- [ ] F3 : hébergement Ollama en prod (VM/VPS, `OLLAMA_BASE_URL`) — différé
+
+---
+
 ## Points clarifiés
 - [x] Branche principale : `master`
 - [x] Modules Hub : PouetPouet, Daily, Scrum Poker, La Roue, Capacité, **MeetOps** *(MeetOps livré — cf. docs/specs/meetops.md v0.4)*
