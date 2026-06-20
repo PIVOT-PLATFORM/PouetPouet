@@ -10,8 +10,7 @@ test('un participant anonyme vote dans une salle Scrum Poker', async ({ page, br
   await page.getByRole('button', { name: 'Créer', exact: true }).click()
   await page.waitForURL(/\/scrum\/.+/)
 
-  // Code de la salle (bouton "Copier le code")
-  const codeButton = page.getByTitle('Copier le code')
+  const codeButton = page.getByTitle("Copier le lien d'invitation")
   await expect(codeButton).toBeVisible({ timeout: 10_000 })
   const code = (await codeButton.innerText()).trim()
   expect(code).not.toBe('')
