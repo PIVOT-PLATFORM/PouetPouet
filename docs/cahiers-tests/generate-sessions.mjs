@@ -116,6 +116,17 @@ const SECTIONS = [
       { num: '12.3', action: 'Clôturer un vote de board pendant la session', expected: 'Les résultats s\'affichent chez tous les participants ; les formes ne sont pas votables.' },
     ],
   },
+  {
+    title: '13. Activités — vue animateur',
+    tests: [
+      { num: '13.1', action: 'Lancer un sondage depuis le panneau hôte, observer le panneau "En cours"', expected: 'Les résultats apparaissent en temps réel (barres et compteur) dans le panneau hôte.' },
+      { num: '13.2', action: 'Un participant répond ; observer le compteur dans le panneau hôte', expected: 'Le compteur "X/Y" se met à jour immédiatement sans rechargement.' },
+      { num: '13.3', action: 'Cliquer "Enregistrer et fermer" sur l\'activité en cours', expected: 'L\'activité passe dans l\'onglet Historique ; panneau "En cours" revient au bouton de lancement.' },
+      { num: '13.4', action: 'Ouvrir l\'onglet Historique du panneau hôte', expected: 'Les activités clôturées sont listées avec leur type, titre et nombre de réponses.' },
+      { num: '13.5', action: 'Déplier une activité dans l\'historique', expected: 'Les résultats détaillés (barres POLL, nuage WORDCLOUD, idées BRAINSTORM) s\'affichent.' },
+      { num: '13.6', action: 'Lancer un nuage de mots ; plusieurs participants saisissent "Idée", "idée", "idées"', expected: 'Un seul mot pondéré (x3) apparaît dans le nuage côté hôte.' },
+    ],
+  },
 ]
 
 const TOTAL = SECTIONS.reduce((s, sec) => s + sec.tests.length, 0)
@@ -196,7 +207,7 @@ async function generate() {
   newPage()
   drawRect(M, currentY, CW, 42, cl.indigo, null)
   drawText('CAHIER DE TESTS — SESSIONS LIVE', M + 12, currentY + 12 + 14, fB, 15, cl.white)
-  drawText(`PouetPouet v0.15.1  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
+  drawText(`PouetPouet v0.19.0  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
   currentY += 42 + 8
 
   const META_H = 21, META_COL = CW / 2
@@ -275,7 +286,7 @@ async function generate() {
   tfSig.setFontSize(FS)
 
   const bytes = await doc.save()
-  const outPath = 'apps/web/public/aide/CT-v0.15.1-sessions.pdf'
+  const outPath = 'apps/web/public/aide/CT-v0.19.0-sessions.pdf'
   writeFileSync(outPath, bytes)
   console.log(`✓  ${outPath}  (${TOTAL} tests · ${doc.getPageCount()} page${doc.getPageCount() > 1 ? 's' : ''})`)
 }

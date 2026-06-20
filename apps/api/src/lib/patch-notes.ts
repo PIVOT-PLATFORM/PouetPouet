@@ -20,6 +20,38 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.19.0',
+    date: '2026-06-20',
+    title: 'Correctifs board, sessions & Scrum',
+    summary: 'Nombreux correctifs sur le tableau blanc (hitbox des formes, étiquettes, zoom, timer, paramètres) et correction critique de la session : l\'animateur voit enfin les résultats d\'activité en temps réel.',
+    sections: [
+      {
+        heading: '🎨 Tableau blanc',
+        items: [
+          'Les fonctionnalités désactivées dans les paramètres du board (vote, timer, dessin, cadres, champs) sont masquées dans l\'interface ; le plafond de participants est respecté à la connexion.',
+          'La zone cliquable des formes, traits et dessins épouse leur géométrie exacte — plus de zone morte autour.',
+          'Les étiquettes texte sont déplaçables sans gêne des poignées d\'ancrage ; elles s\'auto-redimensionnent au contenu après édition et ne passent plus à la ligne quel que soit le zoom.',
+          'Les items créés (sticky, forme, étiquette…) ont une taille à l\'écran identique quel que soit le niveau de zoom au moment de la création.',
+          'Le timer affiche un décompte exact même si l\'horloge du navigateur est décalée par rapport au serveur.',
+          'Le nuage de mots regroupe les variantes proches (casse, accents, pluriel simple) en un seul mot pondéré.',
+          'Corrections mineures : z-index des cartes confinés, barre de connexion fermée au changement d\'outil.',
+        ],
+      },
+      {
+        heading: '🎬 Sessions & activités',
+        items: [
+          'Correction critique : l\'animateur voit les résultats d\'une activité en temps réel après l\'avoir lancée (handler socket supprimé au chargement du board — bug résolu).',
+        ],
+      },
+      {
+        heading: '🎯 Scrum Poker',
+        items: [
+          'Le lien d\'invitation est affiché sous le code de salle avec un bouton « Copier », plutôt qu\'en texte clair difficilement sélectionnable.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.18.0',
     date: '2026-06-18',
     title: 'Aperçu des liens & couverture de board',

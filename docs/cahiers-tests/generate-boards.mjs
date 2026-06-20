@@ -54,8 +54,11 @@ const SECTIONS = [
     title: '4. Formes, dessins et libellés',
     tests: [
       { num: '4.1', action: 'Sélectionner une forme dans la barre d\'outils et tracer sur le canvas', expected: 'Forme créée (rectangle, cercle, étoile, trait, etc.) à la taille dessinée.' },
-      { num: '4.2', action: 'Utiliser l\'outil Dessin libre', expected: 'Tracé libre visible en temps réel. Couleur et épaisseur configurables.' },
-      { num: '4.3', action: 'Ajouter un libellé (LABEL)', expected: 'Libellé créé, éditable directement. Suit le déplacement de la carte associée si applicable.' },
+      { num: '4.2', action: 'Cliquer sur une forme ou un trait (pas autour)', expected: 'La forme est sélectionnée. Cliquer en dehors de la géométrie exacte ne la sélectionne pas.' },
+      { num: '4.3', action: 'Utiliser l\'outil Dessin libre', expected: 'Tracé libre visible en temps réel. Couleur et épaisseur configurables.' },
+      { num: '4.4', action: 'Ajouter un libellé (LABEL) et saisir du texte', expected: 'Libellé créé et éditable. Aucune poignée d\'ancrage ne couvre le texte.' },
+      { num: '4.5', action: 'Quitter l\'édition du libellé (clic ailleurs ou Échap)', expected: 'Le libellé se redimensionne automatiquement pour contenir le texte, sans retour à la ligne.' },
+      { num: '4.6', action: 'Zoomer à 200 % puis créer un libellé', expected: 'Libellé créé à la même taille écran qu\'à 100 %. Aucun retour à la ligne forcé par le zoom.' },
     ],
   },
   {
@@ -196,6 +199,22 @@ const SECTIONS = [
       { num: '19.1', action: 'Basculer en thème sombre et recharger le board', expected: 'Canvas, barre d\'outils et panneaux respectent le thème sombre. Cartes lisibles.' },
     ],
   },
+  {
+    title: '20. Paramètres du board',
+    tests: [
+      { num: '20.1', action: 'Désactiver "Vote" dans les paramètres, recharger la page', expected: 'Le bouton Vote n\'apparaît plus dans la barre d\'outils.' },
+      { num: '20.2', action: 'Désactiver "Timer" dans les paramètres', expected: 'Le bouton Timer n\'apparaît plus dans la barre d\'outils.' },
+      { num: '20.3', action: 'Fixer un max de participants (ex. 2), faire rejoindre un 3e participant', expected: 'Le 3e participant reçoit "Session complète". L\'animateur ne compte pas.' },
+      { num: '20.4', action: 'Réactiver une fonctionnalité désactivée', expected: 'Le bouton correspondant réapparaît sans rechargement de page.' },
+    ],
+  },
+  {
+    title: '21. Zoom & création d\'items',
+    tests: [
+      { num: '21.1', action: 'Zoomer à 50 % puis créer un sticky, une forme et un libellé', expected: 'Chaque item a une empreinte à l\'écran identique à celle à 100 % de zoom.' },
+      { num: '21.2', action: 'Zoomer à 200 % puis créer les mêmes items', expected: 'Même empreinte écran. Les items ne sont pas disproportionnés.' },
+    ],
+  },
 ]
 
 const TOTAL = SECTIONS.reduce((s, sec) => s + sec.tests.length, 0)
@@ -276,7 +295,7 @@ async function generate() {
   newPage()
   drawRect(M, currentY, CW, 42, cl.indigo, null)
   drawText('CAHIER DE TESTS — ÉDITEUR DE BOARDS', M + 12, currentY + 12 + 14, fB, 14, cl.white)
-  drawText(`PouetPouet v0.15.1  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
+  drawText(`PouetPouet v0.19.0  ·  ${TOTAL} tests à exécuter`, M + 12, currentY + 30 + FS, fR, 8, rgb(0.82, 0.80, 1.0))
   currentY += 42 + 8
 
   const META_H = 21, META_COL = CW / 2
@@ -355,7 +374,7 @@ async function generate() {
   tfSig.setFontSize(FS)
 
   const bytes = await doc.save()
-  const outPath = 'apps/web/public/aide/CT-v0.15.1-boards.pdf'
+  const outPath = 'apps/web/public/aide/CT-v0.19.0-boards.pdf'
   writeFileSync(outPath, bytes)
   console.log(`✓  ${outPath}  (${TOTAL} tests · ${doc.getPageCount()} page${doc.getPageCount() > 1 ? 's' : ''})`)
 }
