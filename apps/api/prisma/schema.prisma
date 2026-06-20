@@ -48,6 +48,8 @@ model User {
   oauthAccounts  OAuthAccount[]
   moduleShares   ModuleShare[]
   testBooks      TestBook[]
+  kahootQuizzes  KahootQuiz[]
+  kahootSessions KahootSession[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -920,4 +922,82 @@ enum MeetingRsvp {
   ACCEPTED
   DECLINED
   TENTATIVE
+}
+
+// ── Kahoot Quiz interactif ────────────────────────────────────────────────────
+
+model KahootQuiz {
+  id        String   @id @default(cuid())
+  title     String
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  questions KahootQuestion[]
+  sessions  KahootSession[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model KahootQuestion {
+  id        String     @id @default(cuid())
+  quizId    String
+  quiz      KahootQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  text      String
+  options   Json       // string[] de 2 à 4 options
+  correct   Int        // index de la bonne réponse (0-based)
+  timeLimit Int        @default(30)   // secondes
+  points    Int        @default(1000)
+  order     Int
+  answers   KahootAnswer[]
+}
+
+model KahootSession {
+  id              String              @id @default(cuid())
+  quizId          String
+  quiz            KahootQuiz          @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  ownerId         String
+  owner           User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  code            String              @unique
+  status          KahootStatus        @default(LOBBY)
+  currentQuestion Int                 @default(0)
+  questionEndAt   DateTime?
+  participants    KahootParticipant[]
+  answers         KahootAnswer[]
+  createdAt       DateTime            @default(now())
+}
+
+enum KahootStatus {
+  LOBBY
+  QUESTION
+  REVEAL
+  LEADERBOARD
+  ENDED
+}
+
+model KahootParticipant {
+  id        String        @id @default(cuid())
+  sessionId String
+  session   KahootSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name      String
+  score     Int           @default(0)
+  answers   KahootAnswer[]
+  createdAt DateTime      @default(now())
+
+  @@unique([sessionId, name])
+}
+
+model KahootAnswer {
+  id            String            @id @default(cuid())
+  sessionId     String
+  session       KahootSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionId    String
+  question      KahootQuestion    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   KahootParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  optionIndex   Int
+  isCorrect     Boolean
+  responseMs    Int
+  pointsEarned  Int
+  createdAt     DateTime          @default(now())
+
+  @@unique([sessionId, questionId, participantId])
 }

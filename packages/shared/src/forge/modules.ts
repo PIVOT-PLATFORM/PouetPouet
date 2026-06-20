@@ -106,6 +106,20 @@ export const TESTBOOKS_MODULE: ModuleManifest = {
   listensTo: [],
 }
 
+export const KAHOOT_MODULE: ModuleManifest = {
+  id: 'kahoot',
+  name: 'Quiz interactif',
+  description: 'Quiz style Kahoot : questions en temps réel avec classement',
+  icon: '🎯',
+  color: '#e11d48',
+  nav: [{ label: 'Quiz interactif', href: '/kahoot', match: '/kahoot' }],
+  apiPrefix: '/api/kahoot',
+  ownedEntities: ['KahootQuiz', 'KahootQuestion', 'KahootSession', 'KahootParticipant', 'KahootAnswer'],
+  referencedPivots: ['User'],
+  emits: [],
+  listensTo: [],
+}
+
 /** Modules actifs, dans l'ordre d'affichage de la navigation. */
 export const PIVOT_MODULES: ModuleManifest[] = [
   POUETPOUET_MODULE,
@@ -115,4 +129,5 @@ export const PIVOT_MODULES: ModuleManifest[] = [
   CAPACITY_MODULE,
   MEETOPS_MODULE,
   TESTBOOKS_MODULE,
+  KAHOOT_MODULE,
 ]
