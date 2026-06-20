@@ -14,7 +14,7 @@ test('un participant scrum qui rafraîchit pendant un vote re-rejoint automatiqu
   await page.getByRole('button', { name: 'Créer', exact: true }).click()
   await page.waitForURL(/\/scrum\/.+/)
 
-  const codeButton = page.getByTitle('Copier le code')
+  const codeButton = page.getByTitle("Copier le lien d'invitation")
   await expect(codeButton).toBeVisible({ timeout: 10_000 })
   const code = (await codeButton.innerText()).trim()
 
