@@ -17,7 +17,8 @@ export function ConnectHandles({ cardId, onStart }: { cardId: string; onStart?: 
           key={i}
           data-connect-handle="true"
           className="absolute w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ ...style, zIndex: 40, cursor: 'crosshair' }}
+          // pointerEvents:auto — reste cliquable même si le conteneur de carte est en pointer-events:none (#115)
+          style={{ ...style, zIndex: 40, cursor: 'crosshair', pointerEvents: 'auto' }}
           onMouseDown={(e) => {
             e.preventDefault()
             e.stopPropagation()
@@ -43,6 +44,7 @@ export function LinkCardsOverlay({ cardId, isSource, onClick }: { cardId: string
       style={{
         zIndex: 50,
         cursor: 'crosshair',
+        pointerEvents: 'auto', // #115 — cliquable même si le conteneur est en pointer-events:none
         background: isSource ? 'rgba(99,102,241,0.15)' : 'transparent',
         boxShadow: isSource ? 'inset 0 0 0 3px #6366f1' : undefined,
       }}
@@ -64,18 +66,20 @@ export function BorderResizeHandles({ onStart }: { onStart: (e: React.MouseEvent
     return (e: React.MouseEvent) => { if (e.button === 0) { e.preventDefault(); e.stopPropagation(); onStart(e, dir) } }
   }
   const z = 45
+  // pa = pointerEvents:auto — restent cliquables même si le conteneur de carte est en pointer-events:none (#115)
+  const pa = 'auto' as const
   return (
     <>
       {/* Corners */}
-      <div onMouseDown={md('nw')} style={{ position: 'absolute', top: 0,    left: 0,    width: C, height: C, cursor: 'nwse-resize', zIndex: z }} />
-      <div onMouseDown={md('ne')} style={{ position: 'absolute', top: 0,    right: 0,   width: C, height: C, cursor: 'nesw-resize', zIndex: z }} />
-      <div onMouseDown={md('sw')} style={{ position: 'absolute', bottom: 0, left: 0,    width: C, height: C, cursor: 'nesw-resize', zIndex: z }} />
-      <div onMouseDown={md('se')} style={{ position: 'absolute', bottom: 0, right: 0,   width: C, height: C, cursor: 'nwse-resize', zIndex: z }} />
+      <div onMouseDown={md('nw')} style={{ position: 'absolute', top: 0,    left: 0,    width: C, height: C, cursor: 'nwse-resize', zIndex: z, pointerEvents: pa }} />
+      <div onMouseDown={md('ne')} style={{ position: 'absolute', top: 0,    right: 0,   width: C, height: C, cursor: 'nesw-resize', zIndex: z, pointerEvents: pa }} />
+      <div onMouseDown={md('sw')} style={{ position: 'absolute', bottom: 0, left: 0,    width: C, height: C, cursor: 'nesw-resize', zIndex: z, pointerEvents: pa }} />
+      <div onMouseDown={md('se')} style={{ position: 'absolute', bottom: 0, right: 0,   width: C, height: C, cursor: 'nwse-resize', zIndex: z, pointerEvents: pa }} />
       {/* Edges (between corners) */}
-      <div onMouseDown={md('n')}  style={{ position: 'absolute', top: 0,    left: C, right: C,   height: E, cursor: 'ns-resize',   zIndex: z }} />
-      <div onMouseDown={md('s')}  style={{ position: 'absolute', bottom: 0, left: C, right: C,   height: E, cursor: 'ns-resize',   zIndex: z }} />
-      <div onMouseDown={md('w')}  style={{ position: 'absolute', top: C, bottom: C, left: 0,     width: E,  cursor: 'ew-resize',   zIndex: z }} />
-      <div onMouseDown={md('e')}  style={{ position: 'absolute', top: C, bottom: C, right: 0,    width: E,  cursor: 'ew-resize',   zIndex: z }} />
+      <div onMouseDown={md('n')}  style={{ position: 'absolute', top: 0,    left: C, right: C,   height: E, cursor: 'ns-resize',   zIndex: z, pointerEvents: pa }} />
+      <div onMouseDown={md('s')}  style={{ position: 'absolute', bottom: 0, left: C, right: C,   height: E, cursor: 'ns-resize',   zIndex: z, pointerEvents: pa }} />
+      <div onMouseDown={md('w')}  style={{ position: 'absolute', top: C, bottom: C, left: 0,     width: E,  cursor: 'ew-resize',   zIndex: z, pointerEvents: pa }} />
+      <div onMouseDown={md('e')}  style={{ position: 'absolute', top: C, bottom: C, right: 0,    width: E,  cursor: 'ew-resize',   zIndex: z, pointerEvents: pa }} />
     </>
   )
 }

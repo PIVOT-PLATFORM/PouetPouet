@@ -41,6 +41,12 @@ export function ShapeCard({
   const h = Math.max(card.height, SHAPE_MIN)
   const pad = Math.ceil(sw / 2) + 4
 
+  // Pour les lignes : longueur fixe = w (ne change pas à la rotation)
+  // Le conteneur est rendu fin (24px) centré sur le milieu vertical du bbox stocké.
+  const lineHalf = shapeType === 'line' ? Math.max(0, w / 2 - pad) : 0
+  const lineContainerH = 24
+  const lineCY = lineContainerH / 2 // centre vertical dans le SVG fin
+
   function updateShape(overrides: { stroke?: string; fill?: boolean; opacity?: number; rotation?: number }) {
     const s = overrides.stroke ?? strokeSize
     const f = overrides.fill ?? hasFill
@@ -49,13 +55,27 @@ export function ShapeCard({
     onUpdate(card.id, `${shapeType}|${s}|${f}|${o}${shapeType === 'line' ? `|${r}` : ''}`)
   }
 
+  const isLine = shapeType === 'line'
+
   const shapeAttrs = {
     fill: hasFill ? card.color : 'none',
     fillOpacity: hasFill ? fillOpacity : 0,
     stroke: card.color,
     strokeWidth: sw,
     vectorEffect: 'non-scaling-stroke' as const,
+    // #115 — la hitbox épouse la géométrie. Pour formes remplies, intérieur + contour.
+    // Pour formes creuses, seul le contour (via hit-shape invisible).
+    pointerEvents: hasFill ? ('all' as const) : ('none' as const),
   }
+
+  // Pour formes creuses : hit-zone invisible ±10px autour du contour
+  const hitShapeAttrs = !hasFill ? {
+    fill: 'none',
+    stroke: 'transparent',
+    strokeWidth: sw + 40, // +20px de chaque côté
+    vectorEffect: 'non-scaling-stroke' as const,
+    pointerEvents: 'stroke' as const,
+  } : null
 
   // 5-point star centred in the box.
   const starCx = w / 2, starCy = h / 2
@@ -70,7 +90,21 @@ export function ShapeCard({
     <div
       data-card-id={card.id}
       className="absolute group select-none"
-      style={{ left: card.posX, top: card.posY, width: w, height: h, cursor: isReadonly ? 'default' : 'grab', outline, outlineOffset: '2px' }}
+      // #115 — pointer-events:none sur le conteneur : seuls la géométrie SVG (pointer-events:all)
+      // et les overlays interactifs (réactivés en auto) captent les clics ; les coins vides du
+      // bounding box laissent passer le clic vers le canvas. Le survol de groupe se déclenche via
+      // le survol de la forme (un descendant hover met aussi l'ancêtre en :hover).
+      style={{
+        left: card.posX,
+        top: shapeType === 'line' ? card.posY + h / 2 - lineContainerH / 2 : card.posY,
+        width: w,
+        height: shapeType === 'line' ? lineContainerH : h,
+        cursor: isReadonly ? 'default' : 'grab',
+        outline: shapeType === 'line' ? undefined : outline,
+        outlineOffset: '2px',
+        pointerEvents: 'none',
+        ...(shapeType === 'line' && { transform: `rotate(${rotation}deg)`, transformOrigin: 'center' }),
+      }}
       onMouseDown={handleMouseDown}
       onClick={(e) => {
         if (isDragging.current) return
@@ -81,8 +115,19 @@ export function ShapeCard({
       {/* ── Shape editing panel (visible when a single, unlocked object is selected) ── */}
       {isSelected && !isReadonly && !isMultiSelect && !card.locked && (
         <div
-          className="absolute bottom-full left-0 mb-2 flex items-center gap-0.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-xl shadow-xl px-2 py-1.5 whitespace-nowrap"
-          style={{ zIndex: 10 }}
+          className={`absolute flex items-center gap-0.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-xl shadow-xl px-2 py-1.5 whitespace-nowrap ${isLine ? '' : 'bottom-full mb-2'}`}
+          style={
+            isLine
+              ? {
+                  // Pinned above the line center in world space: container rotates +θ,
+                  // origin at the center point counter-rotates -θ → popup stays horizontal
+                  // and centered, never spins, never overlaps the line.
+                  zIndex: 10, pointerEvents: 'auto', left: '50%', top: '50%',
+                  transformOrigin: '0 0',
+                  transform: `rotate(${-rotation}deg) translate(-50%, calc(-100% - 28px))`,
+                }
+              : { zIndex: 10, pointerEvents: 'auto', left: '50%', transform: 'translateX(-50%)' }
+          }
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         >
@@ -148,34 +193,86 @@ export function ShapeCard({
         </div>
       )}
 
-      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block' }}>
-        {shapeType === 'rect' && <rect x={pad} y={pad} width={w - 2 * pad} height={h - 2 * pad} rx={8} {...shapeAttrs} />}
-        {shapeType === 'circle' && <circle cx={w / 2} cy={h / 2} r={Math.min(w, h) / 2 - pad} {...shapeAttrs} />}
-        {shapeType === 'diamond' && <polygon points={`${w / 2},${pad} ${w - pad},${h / 2} ${w / 2},${h - pad} ${pad},${h / 2}`} {...shapeAttrs} />}
-        {shapeType === 'triangle' && <polygon points={`${w / 2},${pad} ${w - pad},${h - pad} ${pad},${h - pad}`} {...shapeAttrs} />}
-        {shapeType === 'line' && (() => {
-          const theta = (rotation * Math.PI) / 180
-          const cosA = Math.abs(Math.cos(theta))
-          const sinA = Math.abs(Math.sin(theta))
-          // Length of the chord spanning the bounding box at the current angle.
-          const chord = cosA < 1e-9 ? h : sinA < 1e-9 ? w : Math.min(w / cosA, h / sinA)
-          const half = Math.max(0, chord / 2 - pad)
-          return (
-            <g transform={`rotate(${rotation}, ${w / 2}, ${h / 2})`}>
+      <svg
+        width={w}
+        height={shapeType === 'line' ? lineContainerH : h}
+        viewBox={`0 0 ${w} ${shapeType === 'line' ? lineContainerH : h}`}
+        style={{ display: 'block', pointerEvents: 'none', overflow: 'visible' }}
+      >
+        {shapeType === 'rect' && (
+          <>
+            {hitShapeAttrs && <rect x={pad} y={pad} width={w - 2 * pad} height={h - 2 * pad} rx={8} {...hitShapeAttrs} />}
+            <rect x={pad} y={pad} width={w - 2 * pad} height={h - 2 * pad} rx={8} {...shapeAttrs} />
+          </>
+        )}
+        {shapeType === 'circle' && (
+          <>
+            {hitShapeAttrs && <circle cx={w / 2} cy={h / 2} r={Math.min(w, h) / 2 - pad} {...hitShapeAttrs} />}
+            <circle cx={w / 2} cy={h / 2} r={Math.min(w, h) / 2 - pad} {...shapeAttrs} />
+          </>
+        )}
+        {shapeType === 'diamond' && (
+          <>
+            {hitShapeAttrs && <polygon points={`${w / 2},${pad} ${w - pad},${h / 2} ${w / 2},${h - pad} ${pad},${h / 2}`} {...hitShapeAttrs} />}
+            <polygon points={`${w / 2},${pad} ${w - pad},${h / 2} ${w / 2},${h - pad} ${pad},${h / 2}`} {...shapeAttrs} />
+          </>
+        )}
+        {shapeType === 'triangle' && (
+          <>
+            {hitShapeAttrs && <polygon points={`${w / 2},${pad} ${w - pad},${h - pad} ${pad},${h - pad}`} {...hitShapeAttrs} />}
+            <polygon points={`${w / 2},${pad} ${w - pad},${h - pad} ${pad},${h - pad}`} {...shapeAttrs} />
+          </>
+        )}
+        {shapeType === 'line' && (
+          // Pas de rotation SVG — le conteneur CSS tourne à la place (tout s'aligne)
+          <>
+            {isSelected && (
               <line
-                x1={w / 2 - half} y1={h / 2}
-                x2={w / 2 + half} y2={h / 2}
-                stroke={shapeAttrs.stroke} strokeWidth={shapeAttrs.strokeWidth}
+                x1={w / 2 - lineHalf} y1={lineCY}
+                x2={w / 2 + lineHalf} y2={lineCY}
+                stroke="#6366f1" strokeWidth={sw + 6}
                 strokeLinecap="round" vectorEffect="non-scaling-stroke"
+                style={{ pointerEvents: 'none' }}
               />
-            </g>
-          )
-        })()}
-        {shapeType === 'star' && <polygon points={starPoints} strokeLinejoin="round" {...shapeAttrs} />}
+            )}
+            <line
+              x1={w / 2 - lineHalf} y1={lineCY}
+              x2={w / 2 + lineHalf} y2={lineCY}
+              stroke="transparent" strokeWidth={Math.max(sw + 40, 44)}
+              strokeLinecap="round" vectorEffect="non-scaling-stroke"
+              style={{ pointerEvents: 'stroke' }}
+            />
+            <line
+              x1={w / 2 - lineHalf} y1={lineCY}
+              x2={w / 2 + lineHalf} y2={lineCY}
+              stroke={shapeAttrs.stroke} strokeWidth={shapeAttrs.strokeWidth}
+              strokeLinecap="round" vectorEffect="non-scaling-stroke"
+              style={{ pointerEvents: 'none' }}
+            />
+          </>
+        )}
+        {shapeType === 'star' && (
+          <>
+            {hitShapeAttrs && <polygon points={starPoints} strokeLinejoin="round" {...hitShapeAttrs} />}
+            <polygon points={starPoints} strokeLinejoin="round" {...shapeAttrs} />
+          </>
+        )}
       </svg>
 
       {!isReadonly && !card.locked && (
-        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div
+          className="absolute opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{
+            pointerEvents: 'auto',
+            ...(isLine
+              ? {
+                  // Symmetric to the popup: pinned below the line center, world-aligned.
+                  left: '50%', top: '50%', transformOrigin: '0 0',
+                  transform: `rotate(${-rotation}deg) translate(-50%, 20px)`,
+                }
+              : { top: '4px', right: '4px' }),
+          }}
+        >
           <button
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
@@ -188,9 +285,31 @@ export function ShapeCard({
         </div>
       )}
       {!isReadonly && !card.locked && !isMultiSelect && (
-        <BorderResizeHandles onStart={handleResizeMouseDown} />
+        isLine ? (
+          /* Poignées d'extrémité pour les lignes : visibles uniquement quand sélectionnée */
+          isSelected && (
+          <>
+            {(['w', 'e'] as const).map((dir) => (
+              <div
+                key={dir}
+                onMouseDown={(e) => { if (e.button === 0) { e.preventDefault(); e.stopPropagation(); handleResizeMouseDown(e, dir) } }}
+                style={{
+                  position: 'absolute', top: '50%', transform: 'translateY(-50%)',
+                  [dir === 'w' ? 'left' : 'right']: -6,
+                  width: 12, height: 12, cursor: 'ew-resize', zIndex: 45,
+                  pointerEvents: 'auto', borderRadius: '50%',
+                  background: 'white', border: '2px solid #6366f1',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                }}
+              />
+            ))}
+          </>
+          )
+        ) : (
+          <BorderResizeHandles onStart={handleResizeMouseDown} />
+        )
       )}
-      {!isSelected && <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />}
+      {!isSelected && shapeType !== 'line' && <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />}
       {linkCardsMode && onLinkCardsClick && (
         <LinkCardsOverlay cardId={card.id} isSource={isLinkSource} onClick={onLinkCardsClick} />
       )}
