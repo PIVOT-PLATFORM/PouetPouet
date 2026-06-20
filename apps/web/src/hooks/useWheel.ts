@@ -22,6 +22,7 @@ export interface WheelEvent {
   name: string
   ownerId: string
   draws: WheelDraw[]
+  role?: 'OWNER' | 'EDITOR' | 'VIEWER'
   createdAt: string
   updatedAt: string
 }
