@@ -10,6 +10,7 @@ import { Logo } from '@/components/ui/logo'
 import { SessionExpiredModal } from '@/components/session-expired-modal'
 import { SessionCountdown } from '@/components/session-countdown'
 import { NotificationBell } from '@/components/notifications/notification-bell'
+import { PouetWidget } from '@/components/pouet/pouet-widget'
 import { useNotificationsStore } from '@/store/notifications'
 import { useFlagsStore } from '@/store/flags'
 import { MessageSquare } from 'lucide-react'
@@ -291,6 +292,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {sessionExpired && <SessionExpiredModal />}
       <SessionCountdown />
+      <PouetWidget />
     </div>
   )
 }
