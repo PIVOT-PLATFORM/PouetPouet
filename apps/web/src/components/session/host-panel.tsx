@@ -131,7 +131,7 @@ export function HostPanel({
             onClick={() => setShowParticipants((v) => !v)}
             className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-gray-500 hover:bg-gray-50 transition-colors"
           >
-            <span className="font-medium uppercase tracking-wide">Participants ({participantCount})</span>
+            <span className="font-medium uppercase tracking-wide">Participants ({participants !== null ? participants.length : participantCount})</span>
             <svg
               className={`w-3.5 h-3.5 transition-transform ${showParticipants ? 'rotate-180' : ''}`}
               fill="none" stroke="currentColor" viewBox="0 0 24 24"

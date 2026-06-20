@@ -35,30 +35,36 @@ export function useSession(boardId: string) {
   useEffect(() => {
     const socket = socketRef.current
 
-    socket.on('session:participant_count', (count: number) => setParticipantCount(count))
-    socket.on('activity:launched', (activity: Activity) => {
+    const onParticipantCount = (count: number) => setParticipantCount(count)
+    const onActivityLaunched = (activity: Activity) => {
       setCurrentActivity(activity)
       setActivityResponses([])
       setLastReport(null)
-    })
-    socket.on('activity:closed', (payload: { activity?: Activity; responses?: unknown[] } | string) => {
+    }
+    const onActivityClosed = (payload: { activity?: Activity; responses?: unknown[] } | string) => {
       // Le serveur joint le rapport final ; on le conserve pour affichage.
       if (typeof payload === 'object' && payload.activity) {
         setLastReport({ activity: payload.activity, responses: payload.responses ?? [] })
       }
       setCurrentActivity(null)
       setActivityResponses([])
-    })
-    socket.on('activity:responses_updated', ({ responses }: { activityId: string; responses: unknown[] }) => {
+    }
+    const onActivityResponsesUpdated = ({ responses }: { activityId: string; responses: unknown[] }) => {
       setActivityResponses(responses)
-    })
-    socket.on('session:closed', () => {
+    }
+    const onSessionClosed = () => {
       setSession(null)
       setParticipantCount(0)
       setCurrentActivity(null)
       setActivityResponses([])
       try { localStorage.removeItem(LS_KEY) } catch {}
-    })
+    }
+
+    socket.on('session:participant_count', onParticipantCount)
+    socket.on('activity:launched', onActivityLaunched)
+    socket.on('activity:closed', onActivityClosed)
+    socket.on('activity:responses_updated', onActivityResponsesUpdated)
+    socket.on('session:closed', onSessionClosed)
 
     // On reconnect, re-join the session room if one was active
     const handleReconnect = () => {
@@ -69,11 +75,11 @@ export function useSession(boardId: string) {
     socket.io.on('reconnect', handleReconnect)
 
     return () => {
-      socket.off('session:participant_count')
-      socket.off('activity:launched')
-      socket.off('activity:closed')
-      socket.off('activity:responses_updated')
-      socket.off('session:closed')
+      socket.off('session:participant_count', onParticipantCount)
+      socket.off('activity:launched', onActivityLaunched)
+      socket.off('activity:closed', onActivityClosed)
+      socket.off('activity:responses_updated', onActivityResponsesUpdated)
+      socket.off('session:closed', onSessionClosed)
       socket.io.off('reconnect', handleReconnect)
     }
   }, [])

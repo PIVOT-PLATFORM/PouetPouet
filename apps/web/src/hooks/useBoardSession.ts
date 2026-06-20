@@ -33,30 +33,31 @@ export function useBoardSession(boardId: string, userId: string | undefined, isO
     if (!userId || isOwner) return
     const socket = socketRef.current
 
-    socket.on('session:started', ({ sessionId, code }: { sessionId: string; code: string }) => {
+    const onSessionStarted = ({ sessionId, code }: { sessionId: string; code: string }) => {
       setActiveSession({ id: sessionId, code })
       sessionIdRef.current = sessionId
       socket.emit('session:member_join', sessionId)
-    })
-
-    socket.on('activity:launched', (activity: Activity) => {
-      // Only handle if we're in this session
+    }
+    const onActivityLaunched = (activity: Activity) => {
       if (!sessionIdRef.current) return
       setCurrentActivity(activity)
       setHasResponded(false)
-    })
-
-    socket.on('activity:closed', () => {
+    }
+    const onActivityClosed = () => {
       setCurrentActivity(null)
       setHasResponded(false)
-    })
-
-    socket.on('session:closed', () => {
+    }
+    const onSessionClosed = () => {
       setActiveSession(null)
       setCurrentActivity(null)
       setHasResponded(false)
       sessionIdRef.current = null
-    })
+    }
+
+    socket.on('session:started', onSessionStarted)
+    socket.on('activity:launched', onActivityLaunched)
+    socket.on('activity:closed', onActivityClosed)
+    socket.on('session:closed', onSessionClosed)
 
     const handleReconnect = () => {
       if (sessionIdRef.current) {
@@ -66,10 +67,10 @@ export function useBoardSession(boardId: string, userId: string | undefined, isO
     socket.io.on('reconnect', handleReconnect)
 
     return () => {
-      socket.off('session:started')
-      socket.off('activity:launched')
-      socket.off('activity:closed')
-      socket.off('session:closed')
+      socket.off('session:started', onSessionStarted)
+      socket.off('activity:launched', onActivityLaunched)
+      socket.off('activity:closed', onActivityClosed)
+      socket.off('session:closed', onSessionClosed)
       socket.io.off('reconnect', handleReconnect)
     }
   }, [userId, isOwner])
