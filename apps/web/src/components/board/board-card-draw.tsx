@@ -38,8 +38,8 @@ export function DrawCard({
       onClick={handleClick}
     >
       <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block', pointerEvents: 'none' }}>
-        {/* hit-stroke transparent plus large : le tracé reste cliquable sans capter tout le cadre */}
-        <path d={card.content} stroke="transparent" strokeWidth={14} fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ pointerEvents: 'stroke' }} />
+        {/* hit-stroke transparent plus large (±20px) : le tracé reste cliquable sans capter tout le cadre */}
+        <path d={card.content} stroke="transparent" strokeWidth={44} fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ pointerEvents: 'stroke' }} />
         <path d={card.content} stroke={card.color} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ pointerEvents: 'none' }} />
       </svg>
       {!isReadonly && !card.locked && (
