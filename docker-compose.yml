@@ -21,6 +21,18 @@ services:
     volumes:
       - redis_data:/data
 
+  # LLM local pour l'assistant Pouet (opt-in) :
+  #   docker compose --profile ollama up -d ollama
+  #   docker compose --profile ollama exec ollama ollama pull llama3.2:3b
+  ollama:
+    image: ollama/ollama:latest
+    container_name: pouetpouet_ollama
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
   # IdP local pour tester le SSO OIDC (opt-in) :
   #   docker compose --profile sso up -d keycloak
   # Realm "forge" importé depuis keycloak/ — utilisateur test : sso-user / sso-password
@@ -40,3 +52,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  ollama_data:
