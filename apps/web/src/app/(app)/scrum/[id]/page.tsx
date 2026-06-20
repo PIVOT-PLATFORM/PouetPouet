@@ -50,7 +50,6 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
   const [newTicketTitle, setNewTicketTitle] = useState('')
   const [selectedEstimate, setSelectedEstimate] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const [copiedLink, setCopiedLink] = useState(false)
 
   // Import en masse
   const [showImport, setShowImport] = useState(false)
@@ -80,19 +79,12 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
   // Réinitialiser le vote de l'hôte à chaque nouveau ticket actif
   useEffect(() => { setHostVote(null) }, [activeTicket?.id])
 
-  function copyCode() {
-    if (!room) return
-    navigator.clipboard.writeText(room.code)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
   function copyLink() {
     if (!room) return
     const url = `${window.location.origin}/scrum/join/${room.code}`
     navigator.clipboard.writeText(url)
-    setCopiedLink(true)
-    setTimeout(() => setCopiedLink(false), 2000)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   function handleAddTicket(e: React.FormEvent) {
@@ -230,30 +222,17 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
         </Link>
         <h1 className="text-2xl font-bold text-gray-900">{room.name}</h1>
 
-        {/* Code + lien d'invitation (le lien se copie au lieu d'être affiché en clair) */}
-        <div className="flex flex-col items-start gap-1">
-          <button
-            onClick={copyCode}
-            title="Copier le code"
-            className="flex items-center gap-1.5 rounded-lg bg-primary-50 border border-primary-200 px-3 py-1.5 text-sm font-mono font-bold text-primary-700 hover:bg-primary-100 transition-colors"
-          >
-            {room.code}
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            {copied && <span className="text-green-600 font-normal text-xs">Copié !</span>}
-          </button>
-          <button
-            onClick={copyLink}
-            title="Copier le lien d'invitation"
-            className="flex items-center gap-1 pl-0.5 text-xs text-gray-400 hover:text-primary-500 transition-colors"
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 11-5.656-5.656l1.5-1.5m6.328-1.328a4 4 0 010-5.656l3-3a4 4 0 115.656 5.656l-1.5 1.5" />
-            </svg>
-            {copiedLink ? <span className="text-green-600">Lien copié !</span> : 'Copier le lien d\'invitation'}
-          </button>
-        </div>
+        <button
+          onClick={copyLink}
+          title="Copier le lien d'invitation"
+          className="flex items-center gap-1.5 rounded-lg bg-primary-50 border border-primary-200 px-3 py-1.5 text-sm font-mono font-bold text-primary-700 hover:bg-primary-100 transition-colors"
+        >
+          {room.code}
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          {copied && <span className="text-green-600 font-normal text-xs">Lien copié !</span>}
+        </button>
 
         {/* Participants */}
         <div className="relative">
