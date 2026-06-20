@@ -599,7 +599,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     const s = 1 / zoom
 
     if (toolMode === 'text') {
-      onAddCard(p.x - 80 * s, p.y - 14 * s, 'LABEL', '', '#374151', 160 * s, 28 * s)
+      onAddCard(p.x - 50 * s, p.y - 14 * s, 'LABEL', '', '#374151', 100 * s, 28 * s)
     } else if (toolMode === 'sticky') {
       onAddCard(p.x - 96 * s, p.y - 64 * s, 'TEXT', '', toolColor, 192 * s, 128 * s)
     } else if (toolMode === 'table') {

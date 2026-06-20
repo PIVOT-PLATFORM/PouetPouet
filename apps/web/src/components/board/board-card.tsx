@@ -1,10 +1,10 @@
 'use client'
 
-import { memo, useState, useRef, useEffect } from 'react'
+import { memo, useState, useRef, useEffect, useLayoutEffect } from 'react'
 import type { Card, BoardField } from '@/hooks/useBoard'
 import { parseLabelFmt, parseTextFmt, serializeTextFmt, formatFieldValue, type LabelFmt, type TextFmt } from '@/lib/card-format'
 import { ConnectHandles, LinkCardsOverlay, FmtBtn, BorderResizeHandles, type ResizeDir } from './board-card-parts'
-import { CHIP_STYLE, MIN_W, MIN_H, SHAPE_MIN } from './board-card-constants'
+import { CHIP_STYLE, MIN_W, MIN_H, SHAPE_MIN, MIN_LABEL_W } from './board-card-constants'
 import { ColorPicker } from '@/components/ui/color-picker'
 import { headerTint } from '@/lib/colors'
 import { ShapeCard } from './board-card-shape'
@@ -76,8 +76,12 @@ export const BoardCard = memo(function BoardCard({
     const f = parseTextFmt(card.content)
     return { size: f.size, bold: f.bold, italic: f.italic, underline: f.underline, strike: f.strike, color: f.color, align: f.align }
   })
+  // Largeur mesurée du texte (CSS px) — mise à jour après chaque rendu pour éliminer
+  // tout retour à la ligne, quel que soit le zoom.
+  const [labelDisplayW, setLabelDisplayW] = useState(MIN_LABEL_W)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const labelMeasureRef = useRef<HTMLSpanElement>(null)
   const isDragging = useRef(false)
   const editEntryPointRef = useRef<{ x: number; y: number } | null>(null)
 
@@ -127,6 +131,12 @@ export const BoardCard = memo(function BoardCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing])
 
+  useLayoutEffect(() => {
+    if (!isLabel || !labelMeasureRef.current) return
+    const w = labelMeasureRef.current.offsetWidth + 12
+    setLabelDisplayW(prev => Math.abs(prev - w) > 2 ? Math.max(w, MIN_LABEL_W) : prev)
+  }, [isLabel, content, labelFmt.size, labelFmt.bold, labelFmt.italic])
+
   useEffect(() => {
     if (isLabel) {
       const f = parseLabelFmt(card.content)
@@ -170,7 +180,7 @@ export const BoardCard = memo(function BoardCard({
     window.addEventListener('mouseup', onMouseUp)
   }
 
-  const minW = card.type === 'SHAPE' || card.type === 'DRAW' ? SHAPE_MIN : isLabel ? 40 : MIN_W
+  const minW = card.type === 'SHAPE' || card.type === 'DRAW' ? SHAPE_MIN : isLabel ? MIN_LABEL_W : MIN_W
   const minH = card.type === 'SHAPE' || card.type === 'DRAW' ? SHAPE_MIN : isLabel ? 20 : MIN_H
 
   function handleResizeMouseDown(e: React.MouseEvent, dir: ResizeDir = 'se') {
@@ -201,6 +211,11 @@ export const BoardCard = memo(function BoardCard({
     window.addEventListener('mouseup', onMouseUp)
   }
 
+  function autoResizeLabelToContent() {
+    if (!content.trim()) return
+    if (Math.abs(labelDisplayW - card.width) > 2) onResize(card.id, labelDisplayW, card.height)
+  }
+
   function saveLabelContent(text: string, fmt: Omit<LabelFmt, 'text'>) {
     if (!text.trim()) { onDelete(card.id); return }
     onUpdate(card.id, JSON.stringify({ ...fmt, text }))
@@ -215,7 +230,7 @@ export const BoardCard = memo(function BoardCard({
     // Read scrollHeight synchronously BEFORE setIsEditing unmounts the textarea.
     const ta = textareaRef.current
     setIsEditing(false)
-    if (isLabel) saveLabelContent(content, labelFmt)
+    if (isLabel) { saveLabelContent(content, labelFmt); autoResizeLabelToContent(); return }
     else if (isText) saveTextContent(content)
     else onUpdate(card.id, content)
     if (card.type === 'TEXT' && ta) {
@@ -233,7 +248,7 @@ export const BoardCard = memo(function BoardCard({
     if (e.key === 'Escape') {
       const ta = textareaRef.current
       setIsEditing(false)
-      if (isLabel) saveLabelContent(content, labelFmt)
+      if (isLabel) { saveLabelContent(content, labelFmt); autoResizeLabelToContent(); return }
       else onUpdate(card.id, content)
       if (card.type === 'TEXT' && ta) {
         ta.style.height = 'auto'
@@ -402,12 +417,18 @@ export const BoardCard = memo(function BoardCard({
       <div
         data-card-id={card.id}
         className="absolute group select-none"
+        // #116 — boîte déterministe (largeur = card.width, hauteur mini = card.height) :
+        // le centre reste déplaçable, les points d'ancrage et poignées s'alignent sur une
+        // vraie boîte au lieu d'épouser un texte minuscule (où ils couvraient tout et
+        // interceptaient le glisser), et le redimensionnement devient visible.
         style={{
           left: card.posX,
           top: card.posY,
+          minWidth: Math.max(card.width, labelDisplayW),
+          minHeight: Math.max(card.height, 24),
           cursor: isReadonly ? 'default' : (isEditing ? 'default' : 'grab'),
           outline: isSelected ? '1.5px dashed #818cf8' : 'none',
-          outlineOffset: 6,
+          outlineOffset: 2,
           borderRadius: 4,
         }}
         onMouseDown={handleMouseDown}
@@ -468,7 +489,7 @@ export const BoardCard = memo(function BoardCard({
             className="bg-transparent resize-none focus:outline-none"
             style={{
               ...textStyle,
-              width: Math.max(card.width, 80),
+              width: Math.max(card.width, labelDisplayW),
               height: Math.max(card.height, 28),
               border: '1px dashed #cbd5e1',
               borderRadius: 4,
@@ -478,16 +499,16 @@ export const BoardCard = memo(function BoardCard({
             onMouseDown={(e) => e.stopPropagation()}
           />
         ) : (
-          <p className="whitespace-pre-wrap px-1.5 py-0.5" style={{ ...textStyle, minWidth: 40, minHeight: 24 }}>
+          <p className="whitespace-pre px-1.5 py-0.5" style={{ ...textStyle, minHeight: 24 }}>
             {content || <span style={{ color: '#d1d5db', fontSize: 14, fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none' }}>Étiquette…</span>}
           </p>
         )}
 
-        {/* ── Delete button (inside bounds, top-right) ── */}
+        {/* ── Delete button (centered below label) ── */}
         {!isReadonly && !card.locked && (
           <button
-            className="absolute top-0 right-0 w-5 h-5 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ zIndex: 5 }}
+            className="absolute w-5 h-5 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ zIndex: 5, left: '50%', transform: 'translateX(-50%)', bottom: -22 }}
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); onDelete(card.id) }}
             title="Supprimer"
@@ -502,10 +523,23 @@ export const BoardCard = memo(function BoardCard({
         {!isReadonly && !card.locked && !isMultiSelect && (
           <BorderResizeHandles onStart={handleResizeMouseDown} />
         )}
-        {!isSelected && <ConnectHandles cardId={card.id} onStart={isReadonly ? undefined : onStartConnect} />}
         {linkCardsMode && onLinkCardsClick && (
           <LinkCardsOverlay cardId={card.id} isSource={isLinkSource} onClick={onLinkCardsClick} />
         )}
+        {/* Span hors-écran pour mesurer la largeur du texte (auto-resize on blur) */}
+        <span
+          ref={labelMeasureRef}
+          aria-hidden="true"
+          style={{
+            position: 'fixed', left: -9999, top: -9999,
+            whiteSpace: 'pre', visibility: 'hidden', pointerEvents: 'none',
+            fontSize: labelFmt.size,
+            fontWeight: labelFmt.bold ? 'bold' : 'normal',
+            fontStyle: labelFmt.italic ? 'italic' : 'normal',
+          }}
+        >
+          {content || 'Étiquette…'}
+        </span>
       </div>
     )
   }

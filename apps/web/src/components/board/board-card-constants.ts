@@ -8,3 +8,5 @@ export const CHIP_STYLE: Record<string, string> = {
 export const MIN_W = 150
 export const MIN_H = 110
 export const SHAPE_MIN = 80
+// Largeur mini d'une étiquette (LABEL) — boîte déterministe pour des poignées alignées (#116)
+export const MIN_LABEL_W = 60
