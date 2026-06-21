@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { ESTIMATION_SCALES } from '@/hooks/useScrum'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
+import { useFlagGuard } from '@/hooks/useFlagGuard'
 
 interface TeamSummary {
   id: string
@@ -24,6 +25,7 @@ interface RoomSummary {
 }
 
 export default function ScrumPage() {
+  useFlagGuard('module.scrum')
   const [rooms, setRooms] = useState<RoomSummary[]>([])
   const [teams, setTeams] = useState<TeamSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)

@@ -10,6 +10,7 @@ import {
   computeEventCapacity, formatDateRange,
 } from '@/lib/capacity'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
+import { useFlagGuard } from '@/hooks/useFlagGuard'
 
 interface TeamMemberDraft { name: string; role: string; fte: number }
 
@@ -369,6 +370,7 @@ function EventCard({ event, onOpen, onDelete, onShare }: { event: CapacityEvent;
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function CapacityPage() {
+  useFlagGuard('module.capacity')
   const router = useRouter()
   const { teams, isLoading: teamsLoading, createTeam, updateTeam, deleteTeam } = useCapacityTeams()
   const { events, isLoading: eventsLoading, createEvent, deleteEvent } = useCapacityEvents()

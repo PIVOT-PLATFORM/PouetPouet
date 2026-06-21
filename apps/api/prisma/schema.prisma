@@ -48,6 +48,7 @@ model User {
   oauthAccounts  OAuthAccount[]
   moduleShares   ModuleShare[]
   testBooks      TestBook[]
+  gameScores     GameScore[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -920,4 +921,19 @@ enum MeetingRsvp {
   ACCEPTED
   DECLINED
   TENTATIVE
+}
+
+// ── Mini-jeux ────────────────────────────────────────────────────────────────
+
+model GameScore {
+  id        String   @id @default(cuid())
+  userId    String
+  game      String   // 'postit-rush' | 'trivia' | 'bingo'
+  score     Int
+  metadata  Json?    // ex: { combo, accuracy, correctAnswers }
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([game, score(sort: Desc)])
 }
