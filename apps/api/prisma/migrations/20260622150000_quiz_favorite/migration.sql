@@ -1,0 +1,1 @@
+ALTER TABLE "Quiz" ADD COLUMN "isFavorite" BOOLEAN NOT NULL DEFAULT false;

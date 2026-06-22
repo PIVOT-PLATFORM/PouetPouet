@@ -3,7 +3,7 @@
 import { use, useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { ArrowLeft, Plus, Trash2, Play, GripVertical, Check } from 'lucide-react'
+import { ChevronLeft, Plus, Trash2, Play, GripVertical, Check, Trophy, ChevronDown, ChevronUp, Search, Pencil, X } from 'lucide-react'
 import Link from 'next/link'
 
 interface Question {
@@ -20,6 +20,15 @@ interface Question {
 interface Quiz {
   id: string
   title: string
+}
+
+interface SessionResult {
+  id: string
+  code: string
+  title: string | null
+  createdAt: string
+  participantCount: number
+  podium: { name: string; score: number }[]
 }
 
 const OPTION_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500']
@@ -135,15 +144,23 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
   const [editingId, setEditingId] = useState<string | null>(null)
   const [launching, setLaunching] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [sessions, setSessions] = useState<SessionResult[]>([])
+  const [expandedSession, setExpandedSession] = useState<string | null>(null)
+  const [sessionSearch, setSessionSearch] = useState('')
+  const [sessionSort, setSessionSort] = useState<'date' | 'name' | 'participants'>('date')
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
   const dragIdx = useRef<number | null>(null)
 
   useEffect(() => {
     Promise.all([
       api.get<Quiz>(`/api/quiz/${quizId}`).catch(() => null),
       api.get<Question[]>(`/api/quiz/${quizId}/questions`),
-    ]).then(([q, qs]) => {
+      api.get<SessionResult[]>(`/api/quiz/${quizId}/sessions`).catch(() => []),
+    ]).then(([q, qs, ss]) => {
       if (q) setQuiz(q)
       setQuestions(qs ?? [])
+      setSessions(ss ?? [])
     }).catch(() => {}).finally(() => setLoading(false))
   }, [quizId])
 
@@ -211,10 +228,10 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
-        <Link href="/quiz" className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-500">
-          <ArrowLeft className="w-4 h-4" />
+        <Link href="/quiz" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+          <ChevronLeft className="w-5 h-5" />
         </Link>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 truncate">{quiz?.title ?? 'Quiz'}</h1>
@@ -305,6 +322,135 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
           </button>
         )}
       </div>
+
+      {sessions.length > 0 && (() => {
+        const filtered = sessions
+          .filter((s) => {
+            const q = sessionSearch.toLowerCase()
+            if (!q) return true
+            const label = s.title ?? s.code
+            return (
+              label.toLowerCase().includes(q) ||
+              s.code.toLowerCase().includes(q) ||
+              s.podium.some((p) => p.name.toLowerCase().includes(q))
+            )
+          })
+          .sort((a, b) => {
+            if (sessionSort === 'name') return (a.title ?? a.code).localeCompare(b.title ?? b.code)
+            if (sessionSort === 'participants') return b.participantCount - a.participantCount
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          })
+
+        async function handleRenameSubmit(sessionId: string) {
+          await api.patch(`/api/quiz/session/${sessionId}`, { title: renameValue }).catch(() => {})
+          setSessions((prev) => prev.map((s) => s.id === sessionId ? { ...s, title: renameValue.trim() || null } : s))
+          setRenamingId(null)
+        }
+
+        return (
+          <div className="flex flex-col gap-3">
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-amber-500" />
+              Sessions passées ({sessions.length})
+            </h2>
+
+            <div className="flex gap-2 flex-wrap">
+              <div className="relative flex-1 min-w-48">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Rechercher…"
+                  value={sessionSearch}
+                  onChange={(e) => setSessionSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                />
+              </div>
+              <div className="flex gap-1">
+                {(['date', 'name', 'participants'] as const).map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => setSessionSort(key)}
+                    className={`px-3 py-2 rounded-xl text-xs font-medium transition-colors ${sessionSort === key ? 'bg-rose-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                  >
+                    {key === 'date' ? 'Date' : key === 'name' ? 'Nom' : 'Participants'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {filtered.length === 0 && (
+              <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">Aucune session trouvée</p>
+            )}
+
+            {filtered.map((s) => {
+              const isOpen = expandedSession === s.id
+              const isRenaming = renamingId === s.id
+              const date = new Date(s.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+              const label = s.title ?? `Session du ${date}`
+              return (
+                <div key={s.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+                  <div className="flex items-center gap-3 px-5 py-4">
+                    {isRenaming ? (
+                      <form
+                        className="flex-1 flex gap-2"
+                        onSubmit={(e) => { e.preventDefault(); handleRenameSubmit(s.id) }}
+                      >
+                        <input
+                          autoFocus
+                          type="text"
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          placeholder={label}
+                          className="flex-1 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                        />
+                        <button type="submit" className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors">OK</button>
+                        <button type="button" onClick={() => setRenamingId(null)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition-colors"><X className="w-4 h-4" /></button>
+                      </form>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setExpandedSession(isOpen ? null : s.id)}
+                          className="flex-1 min-w-0 text-left"
+                        >
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{label}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                            {date} · {s.participantCount} participant{s.participantCount !== 1 ? 's' : ''}
+                            {s.podium[0] && <> · 🥇 {s.podium[0].name}</>}
+                          </p>
+                        </button>
+                        <button
+                          onClick={() => { setRenamingId(s.id); setRenameValue(s.title ?? '') }}
+                          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors shrink-0"
+                          title="Renommer"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="font-mono text-xs text-gray-300 dark:text-gray-600 shrink-0">{s.code}</span>
+                        <button onClick={() => setExpandedSession(isOpen ? null : s.id)} className="shrink-0 text-gray-400">
+                          {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {isOpen && (
+                    <div className="border-t border-gray-100 dark:border-gray-800 divide-y divide-gray-50 dark:divide-gray-800">
+                      {s.podium.map((p, idx) => (
+                        <div key={p.name} className="flex items-center gap-4 px-5 py-3">
+                          <span className="text-sm w-6 shrink-0 text-center">
+                            {idx < 3 ? ['🥇', '🥈', '🥉'][idx] : <span className="font-bold text-gray-300 dark:text-gray-600">{idx + 1}</span>}
+                          </span>
+                          <span className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">{p.name}</span>
+                          <span className="text-sm font-bold text-rose-600">{p.score.toLocaleString()} pts</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
     </div>
   )
 }

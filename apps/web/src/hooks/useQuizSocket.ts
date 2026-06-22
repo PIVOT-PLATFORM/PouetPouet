@@ -141,6 +141,10 @@ export function useQuizParticipant() {
     })
     socket.on('quiz:leaderboard', (l: QuizLeaderboard) => setLeaderboard(l))
     socket.on('quiz:ended', (e: QuizEnded) => setEnded(e))
+    socket.on('quiz:joined', ({ participantId: pid }: { participantId: string }) => {
+      participantIdRef.current = pid
+      setParticipantId(pid)
+    })
     socket.on('quiz:answer_ack', ({ participantId: pid }: { participantId: string; received: boolean }) => {
       participantIdRef.current = pid
       setParticipantId(pid)
@@ -150,7 +154,7 @@ export function useQuizParticipant() {
 
     return () => {
       socket.off('connect', handleConnect)
-      ;['quiz:state', 'quiz:reveal', 'quiz:leaderboard', 'quiz:ended', 'quiz:answer_ack', 'quiz:error'].forEach(
+      ;['quiz:state', 'quiz:reveal', 'quiz:leaderboard', 'quiz:ended', 'quiz:joined', 'quiz:answer_ack', 'quiz:error'].forEach(
         (e) => socket.off(e)
       )
     }

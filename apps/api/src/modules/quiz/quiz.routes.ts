@@ -14,9 +14,15 @@ export const quizRoutes: FastifyPluginAsync = async (app) => {
     const quizzes = await prisma.quiz.findMany({
       where: { ownerId },
       include: { _count: { select: { questions: true } } },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: [{ isFavorite: 'desc' }, { updatedAt: 'desc' }],
     })
-    return quizzes
+    const shareCounts = await prisma.moduleShare.groupBy({
+      by: ['resourceId'],
+      where: { module: 'quiz', resourceId: { in: quizzes.map((q) => q.id) } },
+      _count: true,
+    })
+    const shareMap = Object.fromEntries(shareCounts.map((s) => [s.resourceId, s._count]))
+    return quizzes.map((q) => ({ ...q, shareCount: shareMap[q.id] ?? 0 }))
   })
 
   // POST /api/quiz — créer un quiz
@@ -24,7 +30,10 @@ export const quizRoutes: FastifyPluginAsync = async (app) => {
     const { id: ownerId } = request.user as { id: string }
     const { title } = request.body as { title: string }
     if (!title?.trim()) return reply.status(400).send({ error: 'Title required' })
-    const quiz = await prisma.quiz.create({ data: { title: title.trim(), ownerId } })
+    const quiz = await prisma.quiz.create({
+      data: { title: title.trim(), ownerId },
+      include: { _count: { select: { questions: true } } },
+    })
     return reply.status(201).send(quiz)
   })
 
@@ -50,6 +59,16 @@ export const quizRoutes: FastifyPluginAsync = async (app) => {
     if (!quiz) return reply.status(404).send({ error: 'Quiz introuvable' })
     const updated = await prisma.quiz.update({ where: { id }, data: { title: title.trim() } })
     return updated
+  })
+
+  // PATCH /api/quiz/:id/favorite — toggle favori
+  app.patch('/:id/favorite', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { id: ownerId } = request.user as { id: string }
+    const quiz = await prisma.quiz.findFirst({ where: { id, ownerId } })
+    if (!quiz) return reply.status(404).send({ error: 'Quiz introuvable' })
+    const updated = await prisma.quiz.update({ where: { id }, data: { isFavorite: !quiz.isFavorite } })
+    return { isFavorite: updated.isFavorite }
   })
 
   // DELETE /api/quiz/:id — supprimer
@@ -183,10 +202,49 @@ export const quizRoutes: FastifyPluginAsync = async (app) => {
       if (++attempts > 10) return reply.status(500).send({ error: 'Code generation failed' })
     }
 
+    const { title } = (request.body ?? {}) as { title?: string }
     const session = await prisma.quizSession.create({
-      data: { quizId, ownerId, code },
+      data: { quizId, ownerId, code, title: title?.trim() || null },
     })
     return reply.status(201).send({ sessionId: session.id, code: session.code })
+  })
+
+  // GET /api/quiz/:id/sessions — historique des sessions terminées
+  app.get('/:id/sessions', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: quizId } = request.params as { id: string }
+    const { id: ownerId } = request.user as { id: string }
+    const quiz = await prisma.quiz.findFirst({ where: { id: quizId, ownerId } })
+    if (!quiz) return reply.status(404).send({ error: 'Quiz introuvable' })
+
+    const sessions = await prisma.quizSession.findMany({
+      where: { quizId, status: 'ENDED' },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        participants: {
+          orderBy: { score: 'desc' },
+          select: { name: true, score: true },
+        },
+      },
+    })
+    return sessions.map((s) => ({
+      id: s.id,
+      code: s.code,
+      title: s.title,
+      createdAt: s.createdAt,
+      participantCount: s.participants.length,
+      podium: s.participants,
+    }))
+  })
+
+  // PATCH /api/quiz/session/:sessionId — renommer une session
+  app.patch('/session/:sessionId', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { sessionId } = request.params as { sessionId: string }
+    const { id: ownerId } = request.user as { id: string }
+    const { title } = request.body as { title: string }
+    const session = await prisma.quizSession.findFirst({ where: { id: sessionId, ownerId } })
+    if (!session) return reply.status(404).send({ error: 'Session introuvable' })
+    await prisma.quizSession.update({ where: { id: sessionId }, data: { title: title?.trim() || null } })
+    return reply.status(204).send()
   })
 
   // GET /api/quiz/session/:code — état public de la session

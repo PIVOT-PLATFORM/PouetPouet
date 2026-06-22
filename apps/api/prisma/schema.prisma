@@ -927,14 +927,15 @@ enum MeetingRsvp {
 // ── Quiz interactif ───────────────────────────────────────────────────────────
 
 model Quiz {
-  id        String   @id @default(cuid())
-  title     String
-  ownerId   String
-  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  questions QuizQuestion[]
-  sessions  QuizSession[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String        @id @default(cuid())
+  title      String
+  ownerId    String
+  owner      User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  questions  QuizQuestion[]
+  sessions   QuizSession[]
+  isFavorite Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 }
 
 model QuizQuestion {
@@ -957,6 +958,7 @@ model QuizSession {
   ownerId         String
   owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   code            String           @unique
+  title           String?
   status          QuizStatus       @default(LOBBY)
   currentQuestion Int              @default(0)
   questionEndAt   DateTime?

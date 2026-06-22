@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from 'react'
 import { useQuizHost } from '@/hooks/useQuizSocket'
-import { ArrowLeft, Users, Play, ChevronRight, Trophy, Clock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Users, Play, Trophy, Clock, Copy, Check } from 'lucide-react'
 import Link from 'next/link'
 
 const OPTION_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500']
@@ -39,17 +39,25 @@ function Timer({ endsAt }: { endsAt: string }) {
 export default function QuizSessionPage({ params }: { params: Promise<{ id: string; sessionId: string }> }) {
   const { id: quizId, sessionId } = use(params)
   const { state, reveal, leaderboard, ended, error, start, next, end } = useQuizHost(sessionId)
+  const [copied, setCopied] = useState(false)
 
   const joinUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/quiz/join/${state?.code ?? '...'}`
     : ''
+
+  function copyLink() {
+    if (!state?.code) return
+    navigator.clipboard.writeText(joinUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <p className="text-red-500">{error}</p>
         <Link href={`/quiz/${quizId}`} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
-          <ArrowLeft className="w-4 h-4" /> Retour
+          <ChevronLeft className="w-5 h-5" /> Retour
         </Link>
       </div>
     )
@@ -62,7 +70,7 @@ export default function QuizSessionPage({ params }: { params: Promise<{ id: stri
   // ── ENDED ─────────────────────────────────────────────────────────────────
   if (state.status === 'ENDED' && ended) {
     return (
-      <div className="max-w-lg mx-auto flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
           <Trophy className="w-6 h-6 text-amber-500" />
           Résultats finaux — {state.quizTitle}
@@ -77,7 +85,7 @@ export default function QuizSessionPage({ params }: { params: Promise<{ id: stri
           ))}
         </div>
         <Link href={`/quiz/${quizId}`} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
-          <ArrowLeft className="w-4 h-4" /> Retour à l'éditeur
+          <ChevronLeft className="w-5 h-5" /> Retour à l'éditeur
         </Link>
       </div>
     )
@@ -86,18 +94,24 @@ export default function QuizSessionPage({ params }: { params: Promise<{ id: stri
   // ── LOBBY ──────────────────────────────────────────────────────────────────
   if (state.status === 'LOBBY') {
     return (
-      <div className="max-w-lg mx-auto flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <div className="flex items-center gap-3">
-          <Link href={`/quiz/${quizId}`} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-500">
-            <ArrowLeft className="w-4 h-4" />
+          <Link href="/quiz" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+            <ChevronLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{state.quizTitle}</h1>
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 text-center">
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Code de session</p>
-          <p className="text-5xl font-black tracking-widest text-gray-900 dark:text-gray-100 mb-3">{state.code}</p>
-          <p className="text-xs text-gray-400 break-all">{joinUrl}</p>
+          <p className="text-5xl font-black tracking-widest text-gray-900 dark:text-gray-100 mb-4">{state.code}</p>
+          <button
+            onClick={copyLink}
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 transition-colors"
+          >
+            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+            {copied ? 'Lien copié !' : 'Copier le lien d\'invitation'}
+          </button>
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
@@ -136,7 +150,7 @@ export default function QuizSessionPage({ params }: { params: Promise<{ id: stri
     const q = state.question
     const answeredCount = reveal ? reveal.stats.reduce((a, b) => a + b, 0) : 0
     return (
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
             Question {q.index + 1} / {q.total}
@@ -175,7 +189,7 @@ export default function QuizSessionPage({ params }: { params: Promise<{ id: stri
     const q = state.question
     const total = reveal.stats.reduce((a, b) => a + b, 0) || 1
     return (
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
             Question {q.index + 1} / {q.total} — Résultat
@@ -223,7 +237,7 @@ export default function QuizSessionPage({ params }: { params: Promise<{ id: stri
   if (state.status === 'LEADERBOARD' && leaderboard) {
     const isLast = state.currentQuestion + 1 >= state.totalQuestions
     return (
-      <div className="max-w-lg mx-auto flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
           <Trophy className="w-5 h-5 text-amber-500" />
           Classement — Q{state.currentQuestion + 1}/{state.totalQuestions}

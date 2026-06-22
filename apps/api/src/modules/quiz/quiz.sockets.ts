@@ -91,6 +91,8 @@ export function quizSocketHandlers(io: Server, socket: Socket) {
     socket.data.quizParticipantId = participant.id
     socket.data.quizSessionId = session.id
 
+    socket.emit('quiz:joined', { participantId: participant.id })
+
     const state = await buildState(session.id)
     if (state) {
       socket.emit('quiz:state', state)
