@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { WheelDraw, WheelEvent, DrawMode } from '@/hooks/useWheel'
+import { ModuleShareModal } from '@/components/share/module-share-modal'
 
 function formatShortDate(iso: string) {
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
@@ -86,10 +87,12 @@ export function EventSection({
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(event.name)
   const [page, setPage] = useState(0)
+  const [sharing, setSharing] = useState(false)
 
   const visibleDraws = event.draws.slice(page * PAGE_SIZE_EVENT, (page + 1) * PAGE_SIZE_EVENT)
 
   return (
+    <>
     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
       <div
         className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -112,21 +115,40 @@ export function EventSection({
         ) : (
           <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-white truncate">{event.name}</span>
         )}
+        {event.role && event.role !== 'OWNER' && (
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-secondary-50 dark:bg-secondary-950 text-secondary-600 dark:text-secondary-400">
+            {event.role === 'EDITOR' ? 'Éditeur' : 'Lecteur'}
+          </span>
+        )}
         <span className="text-xs text-gray-400 shrink-0">{event.draws.length} tirage{event.draws.length !== 1 ? 's' : ''}</span>
-        <button
-          onClick={(e) => { e.stopPropagation(); setEditing(true) }}
-          className="text-gray-300 hover:text-primary-500 transition-colors text-xs px-1"
-          title="Renommer"
-        >
-          ✎
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(event.id) }}
-          className="text-gray-300 hover:text-red-400 transition-colors text-xs px-1"
-          title="Supprimer"
-        >
-          ✕
-        </button>
+        {(!event.role || event.role === 'OWNER') && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditing(true) }}
+              className="text-gray-300 hover:text-primary-500 transition-colors text-xs px-1"
+              title="Renommer"
+            >
+              ✎
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setSharing(true) }}
+              className="text-gray-300 hover:text-primary-500 transition-colors text-xs px-1"
+              title="Partager"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+              </svg>
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(event.id) }}
+              className="text-gray-300 hover:text-red-400 transition-colors text-xs px-1"
+              title="Supprimer"
+            >
+              ✕
+            </button>
+          </>
+        )}
       </div>
 
       {expanded && (
@@ -144,6 +166,15 @@ export function EventSection({
         </div>
       )}
     </div>
+    {sharing && (
+      <ModuleShareModal
+        module="wheel"
+        resourceId={event.id}
+        resourceName={event.name}
+        onClose={() => setSharing(false)}
+      />
+    )}
+    </>
   )
 }
 

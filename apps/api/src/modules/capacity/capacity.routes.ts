@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../../lib/prisma.js'
+import { resolveRole, sharedResourceIds, deleteResourceShares } from '../../lib/module-share.js'
 
 // Full graph returned for the event detail screen.
 const EVENT_INCLUDE = {
@@ -34,9 +35,11 @@ export const capacityRoutes: FastifyPluginAsync = async (app) => {
   // ── Events ──────────────────────────────────────────────────────────────────
 
   app.get('/events', { preHandler: [app.authenticate] }, async (request) => {
-    const { id: ownerId } = request.user as { id: string }
-    return prisma.capacityEvent.findMany({
-      where: { ownerId },
+    const { id: userId } = request.user as { id: string }
+    const shared = await sharedResourceIds('capacity', userId)
+    const sharedRole = new Map(shared.map((s) => [s.id, s.role]))
+    const events = await prisma.capacityEvent.findMany({
+      where: { OR: [{ ownerId: userId }, { id: { in: shared.map((s) => s.id) } }] },
       include: {
         team: { select: { id: true, name: true, color: true } },
         parent: { select: { id: true, name: true } },
@@ -46,6 +49,7 @@ export const capacityRoutes: FastifyPluginAsync = async (app) => {
       },
       orderBy: { startDate: 'desc' },
     })
+    return events.map((e) => ({ ...e, role: e.ownerId === userId ? 'OWNER' : (sharedRole.get(e.id) ?? 'VIEWER') }))
   })
 
   app.post('/events', { preHandler: [app.authenticate] }, async (request, reply) => {
@@ -120,20 +124,25 @@ export const capacityRoutes: FastifyPluginAsync = async (app) => {
 
   app.get('/events/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
-    const event = await prisma.capacityEvent.findFirst({
-      where: { id, ownerId },
+    const { id: userId } = request.user as { id: string }
+    const event = await prisma.capacityEvent.findUnique({
+      where: { id },
       include: EVENT_INCLUDE,
     })
     if (!event) return reply.status(404).send({ error: 'Événement introuvable' })
-    return event
+    const role = await resolveRole('capacity', id, userId, event.ownerId)
+    if (!role) return reply.status(404).send({ error: 'Événement introuvable' })
+    return { ...event, role }
   })
 
   app.put('/events/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
-    const existing = await prisma.capacityEvent.findFirst({ where: { id, ownerId } })
+    const { id: userId } = request.user as { id: string }
+    const existing = await prisma.capacityEvent.findUnique({ where: { id } })
     if (!existing) return reply.status(404).send({ error: 'Événement introuvable' })
+    const role = await resolveRole('capacity', id, userId, existing.ownerId)
+    if (role !== 'OWNER' && role !== 'EDITOR') return reply.status(404).send({ error: 'Événement introuvable' })
+    const ownerId = existing.ownerId
 
     const body = request.body as Partial<{
       name: string
@@ -183,15 +192,19 @@ export const capacityRoutes: FastifyPluginAsync = async (app) => {
     const event = await prisma.capacityEvent.findFirst({ where: { id, ownerId } })
     if (!event) return reply.status(404).send({ error: 'Événement introuvable' })
     await prisma.capacityEvent.delete({ where: { id } })
+    await deleteResourceShares('capacity', id)
     return reply.status(204).send()
   })
 
   // Past finished events of the same team — basis for the realization feedback.
   app.get('/events/:id/history', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
-    const event = await prisma.capacityEvent.findFirst({ where: { id, ownerId } })
+    const { id: userId } = request.user as { id: string }
+    const event = await prisma.capacityEvent.findUnique({ where: { id } })
     if (!event) return reply.status(404).send({ error: 'Événement introuvable' })
+    const role = await resolveRole('capacity', id, userId, event.ownerId)
+    if (!role) return reply.status(404).send({ error: 'Événement introuvable' })
+    const ownerId = event.ownerId
 
     return prisma.capacityEvent.findMany({
       where: {

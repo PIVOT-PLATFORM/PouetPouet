@@ -7,6 +7,7 @@ import type { DailyTeam, DailySession } from '@/hooks/useDaily'
 import { formatDuration } from '@/lib/time'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
 import { api } from '@/lib/api'
+import { useFlagGuard } from '@/hooks/useFlagGuard'
 
 interface DailyStats {
   totalSessions: number
@@ -446,6 +447,7 @@ function DailyStatsPanel({ stats }: { stats: DailyStats }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DailyPage() {
+  useFlagGuard('module.daily')
   const router = useRouter()
   const { teams, isLoading: teamsLoading, createTeam, updateTeam, deleteTeam } = useTeams()
   const { sessions, isLoading: sessionsLoading, createSession, deleteSession } = useDailySessions()

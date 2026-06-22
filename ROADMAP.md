@@ -196,6 +196,29 @@
 
 ---
 
+## P1 - Nouveaux modules
+
+### Module Quiz interactif (style Kahoot) — #164
+- [x] CRUD quiz : titre, questions (texte + 2–4 options, bonne réponse, timer, points)
+- [x] Réordonner les questions par glisser-déposer
+- [x] Session live : code d'accès 6 caractères, participants anonymes
+- [x] Déroulé temps réel : question → réponses → révélation + stats → classement
+- [x] Bonus de rapidité (points proportionnels au temps de réponse)
+- [x] Podium final
+
+### Mini-jeux collaboratifs (module caché `/games`) — #165
+- [ ] Bingo des Réunions — grille 5×5, phrases cultes de réunion, coche en temps réel
+- [ ] Post-it Rush — cliquer sur les post-its avant qu'ils disparaissent, combo multiplier
+- [ ] Trivia Agile — 20 questions Scrum/agile, timer 15s, score final
+
+### Assistant IA Pouet — #163 (PR ouverte)
+- [x] F0 : Ollama docker + LLMProvider/OllamaProvider + route SSE `/api/pouet/chat`
+- [x] F1 : auth, rate-limit Redis, audit, base de connaissances rédigée
+- [x] F2 : contexte route/module, prompts suggérés, widget flottant
+- [ ] F3 : hébergement Ollama en prod (VM/VPS, `OLLAMA_BASE_URL`) — différé
+
+---
+
 ## Points clarifiés
 - [x] Branche principale : `master`
 - [x] Modules Hub : PouetPouet, Daily, Scrum Poker, La Roue, Capacité, **MeetOps** *(MeetOps livré — cf. docs/specs/meetops.md v0.4)*

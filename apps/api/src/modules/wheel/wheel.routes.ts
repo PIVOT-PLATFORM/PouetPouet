@@ -1,6 +1,7 @@
 ﻿import type { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../../lib/prisma.js'
 import { bus } from '../../lib/bus.js'
+import { resolveRole, sharedResourceIds, deleteResourceShares } from '../../lib/module-share.js'
 
 // Weighted pick without replacement.
 // Members drawn recently get a lower weight so they're less likely to be picked again.
@@ -35,16 +36,15 @@ export const wheelRoutes: FastifyPluginAsync = async (app) => {
   // â”€â”€ Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   app.get('/events', { preHandler: [app.authenticate] }, async (request) => {
-    const { id: ownerId } = request.user as { id: string }
-    return prisma.wheelEvent.findMany({
-      where: { ownerId },
-      include: {
-        draws: {
-          orderBy: { createdAt: 'desc' },
-        },
-      },
+    const { id: userId } = request.user as { id: string }
+    const shared = await sharedResourceIds('wheel', userId)
+    const sharedRole = new Map(shared.map((s) => [s.id, s.role]))
+    const events = await prisma.wheelEvent.findMany({
+      where: { OR: [{ ownerId: userId }, { id: { in: shared.map((s) => s.id) } }] },
+      include: { draws: { orderBy: { createdAt: 'desc' } } },
       orderBy: { updatedAt: 'desc' },
     })
+    return events.map((e) => ({ ...e, role: e.ownerId === userId ? 'OWNER' : (sharedRole.get(e.id) ?? 'VIEWER') }))
   })
 
   app.post('/events', { preHandler: [app.authenticate] }, async (request, reply) => {
@@ -60,10 +60,12 @@ export const wheelRoutes: FastifyPluginAsync = async (app) => {
 
   app.patch('/events/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
+    const { id: userId } = request.user as { id: string }
     const { name } = request.body as { name: string }
-    const event = await prisma.wheelEvent.findFirst({ where: { id, ownerId } })
+    const event = await prisma.wheelEvent.findUnique({ where: { id } })
     if (!event) return reply.status(404).send({ error: 'Event not found' })
+    const role = await resolveRole('wheel', id, userId, event.ownerId)
+    if (role !== 'OWNER' && role !== 'EDITOR') return reply.status(404).send({ error: 'Event not found' })
     const updated = await prisma.wheelEvent.update({
       where: { id },
       data: { name: name.trim() },
@@ -78,6 +80,7 @@ export const wheelRoutes: FastifyPluginAsync = async (app) => {
     const event = await prisma.wheelEvent.findFirst({ where: { id, ownerId } })
     if (!event) return reply.status(404).send({ error: 'Event not found' })
     await prisma.wheelEvent.delete({ where: { id } })
+    await deleteResourceShares('wheel', id)
     return reply.status(204).send()
   })
 

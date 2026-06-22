@@ -18,6 +18,7 @@ import {
   Lightbulb,
   CircleCheckBig,
   Timer,
+  Zap,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -31,6 +32,7 @@ export const MODULE_ICONS: Record<string, LucideIcon> = {
   meetops:     Calendar,
   teams:       Users,
   testbooks:   FlaskConical,
+  quiz:        Zap,
 }
 
 // Icônes pour les activités de board (activity-launcher et boards).

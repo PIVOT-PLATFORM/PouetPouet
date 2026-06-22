@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify'
 import type { Server, Socket } from 'socket.io'
 import type { ModuleManifest } from '@pouetpouet/shared'
-import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE, MEETOPS_MODULE, TESTBOOKS_MODULE } from '@pouetpouet/shared'
+import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE, MEETOPS_MODULE, TESTBOOKS_MODULE, QUIZ_MODULE } from '@pouetpouet/shared'
 
 import { boardRoutes } from './pouetpouet/boards.routes.js'
 import { templateRoutes } from './pouetpouet/templates.routes.js'
@@ -15,6 +15,8 @@ import { wheelRoutes } from './wheel/wheel.routes.js'
 import { capacityRoutes } from './capacity/capacity.routes.js'
 import { meetopsRoutes } from './meetops/meetops.routes.js'
 import { testbooksRoutes } from './testbooks/testbooks.routes.js'
+import { quizRoutes } from './quiz/quiz.routes.js'
+import { quizSocketHandlers } from './quiz/quiz.sockets.js'
 
 // FORGE F0 — registre des modules côté API.
 // Le socle (index.ts) monte routes et handlers socket en itérant ce registre :
@@ -68,6 +70,11 @@ export const API_MODULES: ApiModule[] = [
     manifest: TESTBOOKS_MODULE,
     routes: [{ plugin: testbooksRoutes, prefix: '/api/testbooks' }],
     socketHandlers: [],
+  },
+  {
+    manifest: QUIZ_MODULE,
+    routes: [{ plugin: quizRoutes, prefix: '/api/quiz' }],
+    socketHandlers: [quizSocketHandlers],
   },
 ]
 
