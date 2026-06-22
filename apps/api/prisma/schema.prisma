@@ -50,6 +50,7 @@ model User {
   testBooks      TestBook[]
   quizzes        Quiz[]
   quizSessions   QuizSession[]
+  gameScores     GameScore[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1002,4 +1003,19 @@ model QuizAnswer {
   createdAt     DateTime        @default(now())
 
   @@unique([sessionId, questionId, participantId])
+}
+
+// ── Mini-jeux ────────────────────────────────────────────────────────────────
+
+model GameScore {
+  id        String   @id @default(cuid())
+  userId    String
+  game      String   // 'postit-rush' | 'trivia' | 'bingo'
+  score     Int
+  metadata  Json?    // ex: { combo, accuracy, correctAnswers }
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([game, score(sort: Desc)])
 }

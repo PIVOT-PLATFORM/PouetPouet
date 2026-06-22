@@ -9,6 +9,8 @@ import {
   EVENT_TYPE_LABELS, EVENT_TYPE_EMOJI, EVENT_STATUS_LABELS, WEEKDAY_LABELS,
   computeEventCapacity, formatDateRange,
 } from '@/lib/capacity'
+import { ModuleShareModal } from '@/components/share/module-share-modal'
+import { useFlagGuard } from '@/hooks/useFlagGuard'
 
 interface TeamMemberDraft { name: string; role: string; fte: number }
 
@@ -300,9 +302,10 @@ function CreateEventModal({
 
 // ── Event card ────────────────────────────────────────────────────────────────
 
-function EventCard({ event, onOpen, onDelete }: { event: CapacityEvent; onOpen: () => void; onDelete: () => void }) {
+function EventCard({ event, onOpen, onDelete, onShare }: { event: CapacityEvent; onOpen: () => void; onDelete: () => void; onShare: () => void }) {
   const cap = computeEventCapacity(event)
   const status = EVENT_STATUS_LABELS[event.status]
+  const isOwner = !event.role || event.role === 'OWNER'
   return (
     <div
       onClick={onOpen}
@@ -330,16 +333,35 @@ function EventCard({ event, onOpen, onDelete }: { event: CapacityEvent; onOpen: 
             {event.team.name}
           </span>
         )}
+        {event.role && event.role !== 'OWNER' && (
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-secondary-50 dark:bg-secondary-950 text-secondary-600 dark:text-secondary-400">
+            {event.role === 'EDITOR' ? 'Éditeur' : 'Lecteur'}
+          </span>
+        )}
         <span className={`text-xs font-medium px-2.5 py-1 rounded-lg ${status.cls}`}>{status.label}</span>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete() }}
-          className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-          title="Supprimer"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
+        {isOwner && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onShare() }}
+            className="p-1.5 rounded-lg text-gray-300 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors"
+            title="Partager"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+          </button>
+        )}
+        {isOwner && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete() }}
+            className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+            title="Supprimer"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   )
@@ -348,6 +370,7 @@ function EventCard({ event, onOpen, onDelete }: { event: CapacityEvent; onOpen: 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function CapacityPage() {
+  useFlagGuard('module.capacity')
   const router = useRouter()
   const { teams, isLoading: teamsLoading, createTeam, updateTeam, deleteTeam } = useCapacityTeams()
   const { events, isLoading: eventsLoading, createEvent, deleteEvent } = useCapacityEvents()
@@ -355,6 +378,7 @@ export default function CapacityPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [teamModal, setTeamModal] = useState<{ open: boolean; team: CapacityTeam | null }>({ open: false, team: null })
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [shareEvent, setShareEvent] = useState<CapacityEvent | null>(null)
   const [search, setSearch] = useState('')
 
   async function handleSaveTeam(name: string, members: TeamMemberDraft[], color: string, description: string) {
@@ -419,6 +443,7 @@ export default function CapacityPage() {
                   event={event}
                   onOpen={() => router.push(`/capacity/${event.id}`)}
                   onDelete={() => setConfirmDelete(event.id)}
+                  onShare={() => setShareEvent(event)}
                 />
               ))}
             </div>
@@ -469,6 +494,14 @@ export default function CapacityPage() {
       {/* Modals */}
       {showCreate && <CreateEventModal teams={teams} events={events} onCreate={createEvent} onClose={() => setShowCreate(false)} />}
       {teamModal.open && <TeamModal team={teamModal.team} onSave={handleSaveTeam} onClose={() => setTeamModal({ open: false, team: null })} />}
+      {shareEvent && (
+        <ModuleShareModal
+          module="capacity"
+          resourceId={shareEvent.id}
+          resourceName={shareEvent.name}
+          onClose={() => setShareEvent(null)}
+        />
+      )}
 
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

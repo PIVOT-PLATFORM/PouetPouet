@@ -81,6 +81,7 @@ export interface CapacityEvent {
   children?: { id: string; name: string; type: CapacityEventType; status: CapacityEventStatus }[]
   members: CapacityEventMember[]
   _count?: { members: number; children: number }
+  role?: 'OWNER' | 'EDITOR' | 'VIEWER'
   createdAt: string
   updatedAt: string
 }

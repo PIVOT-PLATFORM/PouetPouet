@@ -206,6 +206,11 @@
 - [ ] Bonus de rapidité (points proportionnels au temps de réponse)
 - [ ] Podium final
 
+### Mini-jeux collaboratifs (module caché `/games`) — #165
+- [ ] Bingo des Réunions — grille 5×5, phrases cultes de réunion, coche en temps réel
+- [ ] Post-it Rush — cliquer sur les post-its avant qu'ils disparaissent, combo multiplier
+- [ ] Trivia Agile — 20 questions Scrum/agile, timer 15s, score final
+
 ### Assistant IA Pouet — #163 (PR ouverte)
 - [x] F0 : Ollama docker + LLMProvider/OllamaProvider + route SSE `/api/pouet/chat`
 - [x] F1 : auth, rate-limit Redis, audit, base de connaissances rédigée
