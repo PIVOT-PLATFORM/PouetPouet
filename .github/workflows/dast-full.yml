@@ -1,0 +1,116 @@
+name: DAST — Full Scan (ISO prod)
+
+# Scan actif OWASP ZAP contre une stack complète montée en CI (= ISO prod).
+# Plus agressif que le baseline : envoie de vraies requêtes malformées.
+# Découplé de la prod — tourne dans l'environnement CI uniquement.
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # dimanche 03:00 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  zap-full:
+    name: ZAP Full Scan (stack CI)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      issues: write
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: pouetpouet
+          POSTGRES_PASSWORD: pouetpouet_ci
+          POSTGRES_DB: pouetpouet
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://pouetpouet:pouetpouet_ci@localhost:5432/pouetpouet
+      JWT_SECRET: ci-dast-secret-not-for-production
+      ALLOW_EMAIL_BYPASS: 'true'
+      REDIS_HOST: localhost
+      REDIS_PORT: '6379'
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_SOCKET_URL: http://localhost:4000
+      NEXT_PUBLIC_ALLOW_EMAIL_BYPASS: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: apps/api
+        run: npx prisma generate
+
+      - name: Apply database migrations
+        working-directory: apps/api
+        run: npx prisma migrate deploy
+
+      - name: Start API (background)
+        working-directory: apps/api
+        run: |
+          npx tsx src/index.ts &
+          echo $! > /tmp/api.pid
+          timeout 30 bash -c 'until curl -sf http://localhost:4000/health; do sleep 1; done'
+          echo "API prête."
+
+      - name: Build Web
+        working-directory: apps/web
+        run: npm run build
+
+      - name: Start Web (background)
+        working-directory: apps/web
+        run: |
+          npm run start &
+          echo $! > /tmp/web.pid
+          timeout 60 bash -c 'until curl -sf http://localhost:3000; do sleep 2; done'
+          echo "Web prêt."
+
+      - name: ZAP Full Scan
+        uses: zaproxy/action-full-scan@v0.12.0
+        with:
+          target: 'http://localhost:3000'
+          rules_file_name: '.zap/rules.tsv'
+          issue_title: '[DAST] ZAP Full Scan — findings ISO prod'
+          fail_action: false
+          allow_issue_writing: true
+          cmd_options: '-z "-config ajaxSpider.browserId=htmlunit"'
+
+      - name: Upload ZAP report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: zap-full-report
+          path: report_html.html
+          retention-days: 14

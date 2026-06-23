@@ -1,0 +1,47 @@
+name: DAST — Baseline Scan (prod)
+
+# Scan passif OWASP ZAP contre la prod.
+# Non bloquant : crée des issues GitHub sur les findings, n'échoue pas le pipeline.
+# Prérequis : variable PROD_URL définie dans les paramètres du dépôt.
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # lundi 06:00 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  zap-baseline:
+    name: ZAP Baseline — ${{ vars.PROD_URL }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check PROD_URL
+        run: |
+          if [ -z "${{ vars.PROD_URL }}" ]; then
+            echo "::error::Variable PROD_URL non configurée dans les paramètres du dépôt."
+            exit 1
+          fi
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: ${{ vars.PROD_URL }}
+          rules_file_name: '.zap/rules.tsv'
+          issue_title: '[DAST] ZAP Baseline — findings prod'
+          fail_action: false
+
+      - name: Upload ZAP report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: zap-baseline-report
+          path: report_html.html
+          retention-days: 14

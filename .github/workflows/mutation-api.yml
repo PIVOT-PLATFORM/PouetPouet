@@ -1,0 +1,51 @@
+name: Mutation Testing
+
+# Stryker — mesure la qualité des tests unitaires de l'API en injectant des
+# mutations dans le code source et en vérifiant que les tests les détectent.
+# Non bloquant (thresholds.break: null) — run hebdomadaire pour suivre la tendance.
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # dimanche 02:00 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  stryker-api:
+    name: Stryker — API
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: apps/api
+        run: npx prisma generate
+
+      - name: Run Stryker
+        working-directory: apps/api
+        run: npx stryker run
+
+      - name: Upload mutation report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: stryker-api-report
+          path: apps/api/reports/mutation
+          retention-days: 14

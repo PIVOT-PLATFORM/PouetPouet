@@ -1,0 +1,51 @@
+name: SBOM
+
+# Génère un Software Bill of Materials (SPDX 2.3) à chaque release master.
+# L'artifact est attaché à la GitHub Release correspondante.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: sbom
+  cancel-in-progress: false
+
+jobs:
+  sbom:
+    name: Generate & attach SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write  # requis par anchore/sbom-action pour la provenance SLSA
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Generate SBOM (Syft / SPDX 2.3)
+        uses: anchore/sbom-action@v0
+        with:
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: true
+          upload-artifact-retention: 30
+
+      - name: Resolve version
+        id: ver
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Attach SBOM to GitHub Release (if tag exists)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ steps.ver.outputs.version }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" sbom.spdx.json --clobber
+            echo "SBOM attaché à la release $TAG."
+          else
+            echo "Pas de release $TAG — SBOM conservé en artifact uniquement."
+          fi
