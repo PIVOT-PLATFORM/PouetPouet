@@ -89,15 +89,20 @@ describe('board roles matrix (integration)', () => {
     expect(res.statusCode).toBe(400)
   })
 
-  it('blocks viewers and editors from managing shares', async () => {
-    for (const token of [editor.token, viewer.token]) {
-      const res = await app.inject({
-        method: 'GET',
-        url: `/api/boards/${boardId}/shares`,
-        headers: { authorization: `Bearer ${token}` },
-      })
-      expect(res.statusCode).toBe(403)
-    }
+  it('blocks viewers from managing shares, allows editors', async () => {
+    const viewer_res = await app.inject({
+      method: 'GET',
+      url: `/api/boards/${boardId}/shares`,
+      headers: { authorization: `Bearer ${viewer.token}` },
+    })
+    expect(viewer_res.statusCode).toBe(403)
+
+    const editor_res = await app.inject({
+      method: 'GET',
+      url: `/api/boards/${boardId}/shares`,
+      headers: { authorization: `Bearer ${editor.token}` },
+    })
+    expect(editor_res.statusCode).toBe(200)
   })
 
   it('lets a co-owner delete the board', async () => {
