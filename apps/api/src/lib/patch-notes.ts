@@ -22,9 +22,25 @@ export const PATCH_NOTES: PatchNote[] = [
   {
     version: '0.20.0',
     date: '2026-06-23',
-    title: 'Images, liens & droits éditeur — et une surprise',
-    summary: 'Importez des images par coller ou glisser-déposer, recadrez-les sur le board, profitez de l\'aperçu automatique des liens dans les tickets — plus une feature cachée quelque part dans l\'application.',
+    title: 'Quiz Kahoot, partage étendu, images & une surprise',
+    summary: 'Nouveau module Quiz interactif style Kahoot, partage par rôle étendu à La Roue, Capacité et MeetOps, import d\'images par glisser-déposer, aperçu de liens dans les tickets — et une feature cachée à découvrir.',
     sections: [
+      {
+        heading: '🎯 Quiz interactif (style Kahoot)',
+        items: [
+          'Nouveau module Quiz : créez vos quiz (questions à choix multiples, timer, points), réordonnez les questions par glisser-déposer.',
+          'Sessions live en temps réel : code d\'accès 6 caractères, participants anonymes, révélation des réponses et classement instantanés.',
+          'Multiplicateur de série (streak) : les bonnes réponses consécutives multiplient les points — bonus de rapidité inclus.',
+          'Podium final animé à la fin de chaque session.',
+        ],
+      },
+      {
+        heading: '🔗 Partage étendu',
+        items: [
+          'La Roue, Capacité d\'équipe et MeetOps sont désormais partageables par rôle (Lecteur / Éditeur), sur le même modèle que les boards et les salles Scrum/Daily.',
+          'Les éditeurs d\'un board ont désormais accès à l\'import, l\'export, les paramètres et la gestion des partages (rôles Lecteur et Éditeur uniquement).',
+        ],
+      },
       {
         heading: '🖼️ Tableau blanc — Images',
         items: [
@@ -41,16 +57,16 @@ export const PATCH_NOTES: PatchNote[] = [
         ],
       },
       {
-        heading: '✅ Tableau blanc — Sélection & droits',
+        heading: '✅ Tableau blanc — Sélection & corrections',
         items: [
           'Sélection multiple au lasso : seuls les objets entièrement dans le rectangle sont capturés — les grandes formes de zone ne sont plus sélectionnées par erreur.',
-          'Les éditeurs d\'un board ont désormais accès à l\'import, l\'export, les paramètres et la gestion des partages (rôles Lecteur et Éditeur uniquement).',
         ],
       },
       {
         heading: '🎨 Interface',
         items: [
           'Nouveau logo hexagone Pivot sur l\'écran de connexion, le favicon et la barre de navigation.',
+          'Scrum Poker : le code de salle copie désormais directement le lien d\'invitation.',
         ],
       },
       {
