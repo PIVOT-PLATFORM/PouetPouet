@@ -20,6 +20,48 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.20.0',
+    date: '2026-06-23',
+    title: 'Images, liens & droits éditeur — et une surprise',
+    summary: 'Importez des images par coller ou glisser-déposer, recadrez-les sur le board, profitez de l\'aperçu automatique des liens dans les tickets — plus une feature cachée quelque part dans l\'application.',
+    sections: [
+      {
+        heading: '🖼️ Tableau blanc — Images',
+        items: [
+          'Importez une image locale via la barre d\'outils, collez-la (Ctrl+V) ou faites-la glisser directement depuis votre explorateur de fichiers.',
+          'Outil de rognage : 8 poignées de redimensionnement, grille des tiers, recadrage pixel-perfect en un clic.',
+          'Prise en charge des images jusqu\'à 50 Mo (PNG, JPG, GIF, WebP, BMP).',
+        ],
+      },
+      {
+        heading: '🔗 Tableau blanc — Aperçu de liens',
+        items: [
+          'Collez une URL dans un ticket texte : un aperçu enrichi (image, titre, domaine) apparaît automatiquement en bas de la carte.',
+          'L\'URL brute est masquée en mode affichage — elle reste visible et éditable en mode édition.',
+        ],
+      },
+      {
+        heading: '✅ Tableau blanc — Sélection & droits',
+        items: [
+          'Sélection multiple au lasso : seuls les objets entièrement dans le rectangle sont capturés — les grandes formes de zone ne sont plus sélectionnées par erreur.',
+          'Les éditeurs d\'un board ont désormais accès à l\'import, l\'export, les paramètres et la gestion des partages (rôles Lecteur et Éditeur uniquement).',
+        ],
+      },
+      {
+        heading: '🎨 Interface',
+        items: [
+          'Nouveau logo hexagone Pivot sur l\'écran de connexion, le favicon et la barre de navigation.',
+        ],
+      },
+      {
+        heading: '🎮 Feature mystère',
+        items: [
+          'Quelque chose de nouveau se cache dans Pivot… Un indice se trouve dans la section Aide. À vous de trouver.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.19.0',
     date: '2026-06-20',
     title: 'Correctifs board, sessions & Scrum',

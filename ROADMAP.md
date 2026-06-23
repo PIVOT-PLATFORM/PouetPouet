@@ -1,6 +1,6 @@
-# Roadmap Pivot — état au 2026-06-18
+# Roadmap Pivot — état au 2026-06-23
 
-> Version courante : **0.18.0**
+> Version courante : **0.20.0**
 >
 > Source unique de suivi : ce fichier centralise la roadmap et les chantiers ouverts.
 

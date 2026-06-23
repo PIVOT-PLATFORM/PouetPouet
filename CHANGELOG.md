@@ -6,6 +6,12 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 > Les notes de version **détaillées** (groupées par thème, orientées utilisateur) sont la source de vérité in-app : [`apps/api/src/lib/patch-notes.ts`](apps/api/src/lib/patch-notes.ts), affichées dans le panneau de notifications. Ce fichier en est l'index public condensé.
 
+## [0.20.0] — 2026-06-23
+Import d'**images** par coller/glisser-déposer et outil de **rognage** sur le board ; **aperçu automatique des liens** dans les tickets texte (image OG, titre, domaine) avec masquage de l'URL brute ; **droits éditeur** étendus (import/export/paramètres/partage) ; nouveau **logo hexagone** Pivot ; et une feature mystère accessible via la section Aide.
+
+## [0.19.0] — 2026-06-20
+Nombreux **correctifs board** (hitbox formes/traits, étiquettes, zoom, timer, feature flags) ; correction critique : l'animateur voit les résultats d'activité en temps réel ; lien d'invitation Scrum Poker avec bouton Copier.
+
 ## [0.18.0] — 2026-06-18
 Cartes **lien** avec aperçu Open Graph (image, titre, nom du site) et **édition** de l'URL ; **image de couverture** de board par import de fichier.
 
