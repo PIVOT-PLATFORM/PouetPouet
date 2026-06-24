@@ -10,6 +10,7 @@ import { ModuleShareModal } from '@/components/share/module-share-modal'
 import { RoadmapTimeline } from '@/components/roadmap/roadmap-timeline'
 import { RoadmapItemsPanel } from '@/components/roadmap/roadmap-items-panel'
 import { RoadmapItemModal } from '@/components/roadmap/roadmap-item-modal'
+import { exportRoadmapPDF } from '@/components/roadmap/roadmap-pdf'
 import { SCALE_LABELS, diffDays } from '@/lib/roadmap-timeline'
 
 type Tab = 'roadmap' | 'items'
@@ -56,6 +57,11 @@ export default function RoadmapEditorPage() {
     if (confirm(`Supprimer « ${item.name} » ?`)) await deleteItem(item.id)
   }
 
+  async function exportPDF() {
+    if (!roadmap) return
+    await exportRoadmapPDF(roadmap, orderedItems)
+  }
+
   function exportJSON() {
     const data = {
       name: roadmap!.name, startDate: roadmap!.startDate, endDate: roadmap!.endDate, scale: roadmap!.scale,
@@ -96,6 +102,7 @@ export default function RoadmapEditorPage() {
           </div>
 
           {canEdit && <button onClick={() => setEditing(null)} className="flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold px-4 py-2.5 active:scale-95 transition-all shadow-sm"><Plus className="w-4 h-4" />Item</button>}
+          <button onClick={exportPDF} className="rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">↓ PDF</button>
           <button onClick={exportJSON} className="rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">↓ JSON</button>
           {isOwner && <button onClick={() => setShowShare(true)} className="rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Partager</button>}
         </div>
