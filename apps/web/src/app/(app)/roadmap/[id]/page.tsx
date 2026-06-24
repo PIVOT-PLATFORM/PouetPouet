@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Map } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useRoadmap, type RoadmapScale, type RoadmapItem, type ItemInput } from '@/hooks/useRoadmap'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
@@ -70,40 +70,40 @@ export default function RoadmapEditorPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] max-w-[1600px] mx-auto px-6 py-6">
+    <div className="flex flex-col gap-4">
+      <Link href="/roadmap" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>Roadmap</Link>
+
       {/* En-tête */}
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <Link href="/roadmap" className="rounded-lg p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800" title="Retour">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <Map className="w-5 h-5 text-primary-600 shrink-0" />
-        {canEdit ? (
-          <input
-            defaultValue={roadmap.name}
-            onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== roadmap.name) updateMeta({ name: v }) }}
-            className="text-lg font-bold text-gray-900 dark:text-white bg-transparent border border-transparent hover:border-gray-200 focus:border-primary-400 rounded-lg px-2 py-1 focus:outline-none min-w-[180px]"
-          />
-        ) : (
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white px-2">{roadmap.name}</h1>
-        )}
-        {!isOwner && <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500">{roadmap.role === 'EDITOR' ? 'Éditeur' : 'Lecteur'}</span>}
-
-        <div className="flex-1" />
-
-        {/* Onglets */}
-        <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
-          <button onClick={() => setTab('roadmap')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'roadmap' ? 'bg-white dark:bg-gray-700 text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>📅 Roadmap</button>
-          <button onClick={() => setTab('items')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'items' ? 'bg-white dark:bg-gray-700 text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>☰ Items</button>
+      <div className="flex items-end justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0">
+          {canEdit ? (
+            <input
+              defaultValue={roadmap.name}
+              onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== roadmap.name) updateMeta({ name: v }) }}
+              className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight bg-transparent border border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-primary-400 rounded-lg px-2 py-1 -ml-2 focus:outline-none min-w-[200px]"
+            />
+          ) : (
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{roadmap.name}</h1>
+          )}
+          {!isOwner && <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 shrink-0">{roadmap.role === 'EDITOR' ? 'Éditeur' : 'Lecteur'}</span>}
         </div>
 
-        {canEdit && <button onClick={() => setEditing(null)} className="rounded-xl bg-primary-600 text-white px-3 py-2 text-sm font-medium hover:bg-primary-700">+ Item</button>}
-        <button onClick={exportJSON} className="rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">↓ JSON</button>
-        {isOwner && <button onClick={() => setShowShare(true)} className="rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Partager</button>}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Onglets */}
+          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
+            <button onClick={() => setTab('roadmap')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'roadmap' ? 'bg-white dark:bg-gray-700 text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>📅 Roadmap</button>
+            <button onClick={() => setTab('items')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'items' ? 'bg-white dark:bg-gray-700 text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>☰ Items</button>
+          </div>
+
+          {canEdit && <button onClick={() => setEditing(null)} className="flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold px-4 py-2.5 active:scale-95 transition-all shadow-sm"><Plus className="w-4 h-4" />Item</button>}
+          <button onClick={exportJSON} className="rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">↓ JSON</button>
+          {isOwner && <button onClick={() => setShowShare(true)} className="rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Partager</button>}
+        </div>
       </div>
 
       {/* Contrôles roadmap (échelle + plage + dépendances) */}
       {tab === 'roadmap' && (
-        <div className="flex items-center gap-3 mb-4 flex-wrap text-sm">
+        <div className="flex items-center gap-3 flex-wrap text-sm">
           <div className="flex items-center gap-1.5">
             <span className="text-gray-400 text-xs font-medium">Du</span>
             <input type="date" value={roadmap.startDate} disabled={!canEdit} onChange={(e) => updateMeta({ startDate: e.target.value })}
@@ -130,7 +130,7 @@ export default function RoadmapEditorPage() {
       {/* Contenu */}
       {tab === 'roadmap' ? (
         orderedItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 flex-1 text-gray-400">
+          <div className="flex flex-col items-center justify-center gap-2 py-20 text-gray-400">
             <span className="text-3xl opacity-30">📅</span>
             <p className="text-sm font-medium">Aucun item sur la roadmap</p>
             {canEdit && <button onClick={() => setEditing(null)} className="text-sm font-medium text-primary-600 hover:text-primary-700">Ajouter un item</button>}
@@ -158,7 +158,7 @@ export default function RoadmapEditorPage() {
       )}
 
       {/* Légende */}
-      <div className="flex items-center gap-4 mt-3 text-[11px] text-gray-400 font-mono flex-wrap">
+      <div className="flex items-center gap-4 text-[11px] text-gray-400 font-mono flex-wrap">
         <span className="font-semibold text-gray-500">Domaine :</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#3b6fd4' }} />Infra</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#2a9d5c' }} />Dev</span>

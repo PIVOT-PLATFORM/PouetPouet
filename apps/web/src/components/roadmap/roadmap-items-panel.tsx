@@ -35,7 +35,7 @@ export function RoadmapItemsPanel({ items, totalDays, canEdit, onEdit, onDuplica
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 gap-4">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher un item…"
           className="w-64 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
@@ -48,7 +48,7 @@ export function RoadmapItemsPanel({ items, totalDays, canEdit, onEdit, onDuplica
           <p className="text-sm font-medium">Aucun item</p>
         </div>
       ) : (
-        <div className="grid gap-3 overflow-y-auto" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', alignContent: 'start' }}>
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', alignContent: 'start' }}>
           {filtered.map((item) => {
             const days = diffDays(item.startDate, item.endDate)
             const pct = Math.min(100, totalDays > 0 ? Math.round((days / totalDays) * 100) : 0)

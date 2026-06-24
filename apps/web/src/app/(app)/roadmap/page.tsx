@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Map } from 'lucide-react'
+import { Map, Plus } from 'lucide-react'
 import { useRoadmaps, type RoadmapScale } from '@/hooks/useRoadmap'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { SCALE_LABELS, frDate } from '@/lib/roadmap-timeline'
@@ -44,18 +44,16 @@ export default function RoadmapListPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-primary-100 dark:bg-primary-950 flex items-center justify-center">
-            <Map className="w-6 h-6 text-primary-600 dark:text-primary-300" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Roadmap</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Planification visuelle façon Gantt</p>
-          </div>
+    <div className="flex flex-col gap-6">
+      <div className="flex items-end justify-between mb-5">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Roadmap</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">{isLoading ? '…' : `${roadmaps.length} roadmap${roadmaps.length !== 1 ? 's' : ''}`}</p>
         </div>
-        <button onClick={() => { setCreating(true); setError(null) }} className="rounded-xl bg-primary-600 text-white px-4 py-2.5 text-sm font-medium hover:bg-primary-700">+ Nouvelle roadmap</button>
+        <button onClick={() => { setCreating(true); setError(null) }} className="flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold px-4 py-2.5 active:scale-95 transition-all shadow-sm">
+          <Plus className="w-4 h-4" />
+          Nouvelle roadmap
+        </button>
       </div>
 
       {isLoading ? (
