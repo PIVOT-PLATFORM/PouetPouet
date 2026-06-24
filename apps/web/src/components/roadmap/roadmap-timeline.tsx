@@ -76,7 +76,7 @@ export function RoadmapTimeline({ startDate, endDate, scale, items, showDeps, on
 
   return (
     <div className="flex flex-col">
-      <div ref={bodyRef} className="h-[62vh] overflow-auto border border-gray-200 dark:border-gray-700 rounded-2xl bg-white dark:bg-gray-900">
+      <div ref={bodyRef} className="h-[70vh] overflow-auto border border-gray-200 dark:border-gray-700 rounded-2xl bg-white dark:bg-gray-900">
         <div className="relative" style={{ width: tw, minWidth: '100%' }}>
           {/* En-tête colonnes (sticky) */}
           <div className="sticky top-0 z-20 flex bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ height: HEADER_H }}>
