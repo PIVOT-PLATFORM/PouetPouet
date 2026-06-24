@@ -51,6 +51,7 @@ model User {
   quizzes        Quiz[]
   quizSessions   QuizSession[]
   gameScores     GameScore[]
+  roadmaps       Roadmap[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1019,4 +1020,46 @@ model GameScore {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([game, score(sort: Desc)])
+}
+
+// ── Roadmap (planification visuelle façon Gantt) ────────────────────────────────
+// Dates stockées en chaînes ISO date (yyyy-mm-dd) : granularité jour, pas de
+// fuseau horaire, tri lexicographique = tri chronologique. Partage par rôle via
+// ModuleShare (module = 'roadmap'). Les dépendances entre items sont une liste
+// d'ids d'autres RoadmapItem du même roadmap (graphe simple, validé côté code).
+
+model Roadmap {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  startDate String // yyyy-mm-dd
+  endDate   String // yyyy-mm-dd
+  scale     String   @default("quarter") // week | month | quarter | semester | year
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  items RoadmapItem[]
+
+  @@index([ownerId])
+}
+
+model RoadmapItem {
+  id         String   @id @default(cuid())
+  roadmapId  String
+  name       String
+  startDate  String // yyyy-mm-dd
+  endDate    String // yyyy-mm-dd
+  biz        String? // valeur business
+  risk       String   @default("med") // low | med | high
+  prio       String   @default("should") // should | must
+  categories String[] @default([]) // ex. ['infra', 'dev', 'cyber']
+  deps       String[] @default([]) // ids d'autres RoadmapItem (cet item démarre après)
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  roadmap Roadmap @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+
+  @@index([roadmapId])
 }

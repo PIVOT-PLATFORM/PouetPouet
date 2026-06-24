@@ -1,0 +1,193 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
+import { ArrowLeft, Map } from 'lucide-react'
+import { useRoadmap, type RoadmapScale, type RoadmapItem, type ItemInput } from '@/hooks/useRoadmap'
+import { useFlagGuard } from '@/hooks/useFlagGuard'
+import { ModuleShareModal } from '@/components/share/module-share-modal'
+import { RoadmapTimeline } from '@/components/roadmap/roadmap-timeline'
+import { RoadmapItemsPanel } from '@/components/roadmap/roadmap-items-panel'
+import { RoadmapItemModal } from '@/components/roadmap/roadmap-item-modal'
+import { SCALE_LABELS, diffDays } from '@/lib/roadmap-timeline'
+
+type Tab = 'roadmap' | 'items'
+const SCALES: RoadmapScale[] = ['week', 'month', 'quarter', 'semester', 'year']
+
+export default function RoadmapEditorPage() {
+  useFlagGuard('module.roadmap')
+  const { id } = useParams<{ id: string }>()
+  const { roadmap, isLoading, accessDenied, updateMeta, createItem, updateItem, deleteItem, reorderItems } = useRoadmap(id)
+
+  const [tab, setTab] = useState<Tab>('roadmap')
+  const [showDeps, setShowDeps] = useState(false)
+  const [showShare, setShowShare] = useState(false)
+  const [editing, setEditing] = useState<RoadmapItem | null | undefined>(undefined) // undefined = fermé, null = création
+
+  if (isLoading) {
+    return <div className="flex justify-center py-20"><div className="w-7 h-7 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" /></div>
+  }
+  if (accessDenied || !roadmap) {
+    return (
+      <div className="max-w-2xl mx-auto px-6 py-20 text-center">
+        <p className="text-gray-500 dark:text-gray-400 mb-4">Roadmap introuvable ou accès refusé.</p>
+        <Link href="/roadmap" className="text-sm font-medium text-primary-600 hover:text-primary-700">← Retour aux roadmaps</Link>
+      </div>
+    )
+  }
+
+  const canEdit = roadmap.role === 'OWNER' || roadmap.role === 'EDITOR'
+  const isOwner = roadmap.role === 'OWNER'
+  const orderedItems = [...roadmap.items].sort((a, b) => a.order - b.order)
+  const totalDays = diffDays(roadmap.startDate, roadmap.endDate)
+
+  async function handleSaveItem(input: ItemInput) {
+    if (editing) await updateItem(editing.id, input)
+    else await createItem(input)
+  }
+  async function handleDuplicate(item: RoadmapItem) {
+    await createItem({
+      name: `${item.name} (copie)`, startDate: item.startDate, endDate: item.endDate,
+      biz: item.biz ?? undefined, risk: item.risk, prio: item.prio, categories: item.categories, deps: [],
+    })
+  }
+  async function handleDeleteItem(item: RoadmapItem) {
+    if (confirm(`Supprimer « ${item.name} » ?`)) await deleteItem(item.id)
+  }
+
+  function exportJSON() {
+    const data = {
+      name: roadmap!.name, startDate: roadmap!.startDate, endDate: roadmap!.endDate, scale: roadmap!.scale,
+      items: orderedItems.map(({ id: _id, roadmapId: _r, createdAt: _c, updatedAt: _u, order: _o, ...rest }) => rest),
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `${roadmap!.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-4rem)] max-w-[1600px] mx-auto px-6 py-6">
+      {/* En-tête */}
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <Link href="/roadmap" className="rounded-lg p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800" title="Retour">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <Map className="w-5 h-5 text-primary-600 shrink-0" />
+        {canEdit ? (
+          <input
+            defaultValue={roadmap.name}
+            onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== roadmap.name) updateMeta({ name: v }) }}
+            className="text-lg font-bold text-gray-900 dark:text-white bg-transparent border border-transparent hover:border-gray-200 focus:border-primary-400 rounded-lg px-2 py-1 focus:outline-none min-w-[180px]"
+          />
+        ) : (
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white px-2">{roadmap.name}</h1>
+        )}
+        {!isOwner && <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500">{roadmap.role === 'EDITOR' ? 'Éditeur' : 'Lecteur'}</span>}
+
+        <div className="flex-1" />
+
+        {/* Onglets */}
+        <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
+          <button onClick={() => setTab('roadmap')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'roadmap' ? 'bg-white dark:bg-gray-700 text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>📅 Roadmap</button>
+          <button onClick={() => setTab('items')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'items' ? 'bg-white dark:bg-gray-700 text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>☰ Items</button>
+        </div>
+
+        {canEdit && <button onClick={() => setEditing(null)} className="rounded-xl bg-primary-600 text-white px-3 py-2 text-sm font-medium hover:bg-primary-700">+ Item</button>}
+        <button onClick={exportJSON} className="rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">↓ JSON</button>
+        {isOwner && <button onClick={() => setShowShare(true)} className="rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Partager</button>}
+      </div>
+
+      {/* Contrôles roadmap (échelle + plage + dépendances) */}
+      {tab === 'roadmap' && (
+        <div className="flex items-center gap-3 mb-4 flex-wrap text-sm">
+          <div className="flex items-center gap-1.5">
+            <span className="text-gray-400 text-xs font-medium">Du</span>
+            <input type="date" value={roadmap.startDate} disabled={!canEdit} onChange={(e) => updateMeta({ startDate: e.target.value })}
+              className="font-mono text-xs border border-gray-200 dark:border-gray-700 dark:bg-gray-800 rounded-lg px-2 py-1 disabled:opacity-60" />
+            <span className="text-gray-400 text-xs font-medium">au</span>
+            <input type="date" value={roadmap.endDate} disabled={!canEdit} onChange={(e) => updateMeta({ endDate: e.target.value })}
+              className="font-mono text-xs border border-gray-200 dark:border-gray-700 dark:bg-gray-800 rounded-lg px-2 py-1 disabled:opacity-60" />
+          </div>
+          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 gap-0.5">
+            {SCALES.map((s) => (
+              <button key={s} onClick={() => canEdit && updateMeta({ scale: s })} disabled={!canEdit}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${roadmap.scale === s ? 'bg-white dark:bg-gray-700 text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 disabled:hover:text-gray-500'}`}>
+                {SCALE_LABELS[s]}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setShowDeps((v) => !v)}
+            className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${showDeps ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300' : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+            → Dépendances
+          </button>
+        </div>
+      )}
+
+      {/* Contenu */}
+      {tab === 'roadmap' ? (
+        orderedItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 flex-1 text-gray-400">
+            <span className="text-3xl opacity-30">📅</span>
+            <p className="text-sm font-medium">Aucun item sur la roadmap</p>
+            {canEdit && <button onClick={() => setEditing(null)} className="text-sm font-medium text-primary-600 hover:text-primary-700">Ajouter un item</button>}
+          </div>
+        ) : (
+          <RoadmapTimeline
+            startDate={roadmap.startDate}
+            endDate={roadmap.endDate}
+            scale={roadmap.scale}
+            items={orderedItems}
+            showDeps={showDeps}
+            onItemClick={(item) => canEdit ? setEditing(item) : undefined}
+          />
+        )
+      ) : (
+        <RoadmapItemsPanel
+          items={orderedItems}
+          totalDays={totalDays}
+          canEdit={canEdit}
+          onEdit={(item) => setEditing(item)}
+          onDuplicate={handleDuplicate}
+          onDelete={handleDeleteItem}
+          onReorder={reorderItems}
+        />
+      )}
+
+      {/* Légende */}
+      <div className="flex items-center gap-4 mt-3 text-[11px] text-gray-400 font-mono flex-wrap">
+        <span className="font-semibold text-gray-500">Domaine :</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#3b6fd4' }} />Infra</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#2a9d5c' }} />Dev</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#b04a2e' }} />Cyber</span>
+        <span className="w-px h-3 bg-gray-200" />
+        <span className="font-semibold text-gray-500">Risque :</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: '#22c78a' }} />Faible</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: '#f59e0b' }} />Moyen</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: '#ef4444' }} />Élevé</span>
+        <span className="w-px h-3 bg-gray-200" />
+        <span className="flex items-center gap-1 text-amber-500">★ Must</span>
+      </div>
+
+      {editing !== undefined && (
+        <RoadmapItemModal
+          item={editing}
+          allItems={orderedItems}
+          defaultStart={roadmap.startDate}
+          defaultEnd={roadmap.endDate}
+          onSave={handleSaveItem}
+          onDelete={editing ? async () => { await deleteItem(editing.id); setEditing(undefined) } : undefined}
+          onDuplicate={editing ? async () => { await handleDuplicate(editing); setEditing(undefined) } : undefined}
+          onClose={() => setEditing(undefined)}
+        />
+      )}
+
+      {showShare && (
+        <ModuleShareModal module="roadmap" resourceId={roadmap.id} resourceName={roadmap.name} onClose={() => setShowShare(false)} />
+      )}
+    </div>
+  )
+}

@@ -82,7 +82,6 @@ function timeAgo(iso: string): string {
 
 // Modules annoncés, affichage seul (pas encore cliquables)
 const UPCOMING_MODULES: { name: string }[] = [
-  { name: 'Roadmap' },
   { name: 'Mes PIP' },
   { name: 'Mes PDF' },
   { name: 'Mes poses (PV de pose & label)' },

@@ -33,6 +33,7 @@ export const MODULE_ICONS: Record<string, LucideIcon> = {
   teams:       Users,
   testbooks:   FlaskConical,
   quiz:        Zap,
+  roadmap:     Map,
 }
 
 // Icônes pour les activités de board (activity-launcher et boards).
