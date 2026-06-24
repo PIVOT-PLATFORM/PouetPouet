@@ -73,25 +73,41 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // L'utilisateur a-t-il été actif pendant la 1re moitié de vie du token ?
     const activeThisCycle = () => lastActivityRef.current >= times.iat
     let refreshed = false
+    let retries = 0
+    let retryTimer: ReturnType<typeof setTimeout> | null = null
+    const MAX_RETRIES = 5
+    const RETRY_MS = 30_000
 
-    const doRefresh = () => {
+    // Tente le renouvellement ; en cas d'échec transitoire (réseau, cold start),
+    // réessaie quelques fois plutôt que d'abandonner la session sur un seul échec.
+    const doRefresh = async () => {
       if (refreshed) return
       if (useAuthStore.getState().sessionExpired) return
       if (!activeThisCycle()) return // inactif → on laisse lapser
       refreshed = true
-      void refreshSession()
+      const ok = await refreshSession()
+      if (ok) return // succès → le token change, l'effet se ré-arme tout seul
+      // Échec : autoriser une nouvelle tentative tant que le token n'est pas périmé.
+      if (retries < MAX_RETRIES && Date.now() < times.exp) {
+        retries += 1
+        refreshed = false
+        retryTimer = setTimeout(doRefresh, RETRY_MS)
+      }
     }
 
     const refreshTimer = setTimeout(doRefresh, Math.max(0, halfLife - now))
-    const expireTimer = setTimeout(() => {
+    // Gardien final à l'échéance : un dernier refresh si l'utilisateur est actif
+    // (le serveur tranche : succès → on continue, ce qui neutralise un décalage
+    // d'horloge) ; on n'expire que si le token est réellement rejeté ou inactif.
+    const expireTimer = setTimeout(async () => {
       if (useAuthStore.getState().sessionExpired) return
-      if (activeThisCycle() && !refreshed) { refreshed = true; void refreshSession() }
-      else expireSession()
+      if (activeThisCycle() && (await refreshSession())) return
+      expireSession()
     }, Math.max(0, times.exp - now))
 
     const onWake = () => {
       if (document.visibilityState !== 'visible') return
-      if (Date.now() >= halfLife) doRefresh()
+      if (Date.now() >= halfLife) void doRefresh()
     }
     document.addEventListener('visibilitychange', onWake)
     window.addEventListener('focus', onWake)
@@ -99,6 +115,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => {
       clearTimeout(refreshTimer)
       clearTimeout(expireTimer)
+      if (retryTimer) clearTimeout(retryTimer)
       document.removeEventListener('visibilitychange', onWake)
       window.removeEventListener('focus', onWake)
     }

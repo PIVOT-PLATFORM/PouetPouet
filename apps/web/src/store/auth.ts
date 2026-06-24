@@ -45,7 +45,7 @@ interface AuthState {
   resetPassword: (token: string, password: string) => Promise<void>
   logout: () => void
   expireSession: () => void
-  refreshSession: () => Promise<void>
+  refreshSession: () => Promise<boolean>
   clearError: () => void
   updateProfile: (data: { name?: string; bio?: string | null; theme?: 'light' | 'dark'; palette?: Palette }) => Promise<void>
   updateAvatar: (avatar: string | null) => Promise<void>
@@ -128,13 +128,18 @@ export const useAuthStore = create<AuthState>()(
       expireSession: () => set({ sessionExpired: true }),
 
       // Slides the session forward: swaps the stored token for a fresh one.
+      // Returns true on success, false on failure so the caller can retry a
+      // transient error (réseau instable, cold start Cloud Run) au lieu
+      // d'abandonner le renouvellement sur un seul échec.
       refreshSession: async () => {
         try {
           const { token } = await api.post<{ token: string }>('/api/auth/refresh', {})
           localStorage.setItem('token', token)
           set({ token })
+          return true
         } catch {
           // A failed refresh (e.g. already expired) is handled by the 401 → expireSession path.
+          return false
         }
       },
 
