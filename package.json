@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "pouetpouet",
   "version": "0.22.0",
   "private": true,
@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --filter=./apps/*",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
@@ -20,7 +20,7 @@
     "@vitest/coverage-v8": "^4.1.9",
     "prettier": "^3.8.4",
     "prisma": "7.8.0",
-    "turbo": "^2.9.18",
+    "turbo": "^2.10.0",
     "typescript": "^5.8.3"
   },
   "packageManager": "npm@11.13.0",
@@ -35,4 +35,3 @@
     "pdf-lib": "^1.17.1"
   }
 }
-
