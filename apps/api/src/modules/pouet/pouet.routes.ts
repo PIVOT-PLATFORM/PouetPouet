@@ -56,6 +56,39 @@ async function checkRateLimit(userId: string): Promise<boolean> {
   }
 }
 
+// Mots-clés qui signalent une tentative de jailbreak ou d'extraction d'infos sensibles.
+// On rejette avant même d'appeler le LLM — économise des tokens et renforce la sécurité.
+const BLOCKED_PATTERNS = [
+  // Jailbreak / manipulation du prompt
+  /ignore (all |your )?(previous |prior )?instructions/i,
+  /jailbreak/i,
+  /you are now/i,
+  /pretend (you are|to be)/i,
+  /act as (if )?you (are|were)/i,
+  /roleplay as/i,
+  /disregard (all |your |previous )?instructions/i,
+  /forget (your |all |previous )?instructions/i,
+  /reveal (your |the )?(system )?prompt/i,
+  /repeat (your |the )?(system )?prompt/i,
+  /what (are|were) your instructions/i,
+  /show me your (system )?prompt/i,
+  /ignore (your |the )?rules/i,
+  // Extraction d'infos d'infrastructure
+  /\bDATABASE_URL\b/i,
+  /\bJWT_SECRET\b/i,
+  /\bSMTP_(USER|PASS|HOST)\b/i,
+  /\bOIDC_(CLIENT|ISSUER|SECRET)\b/i,
+  /\bOLLAMA_BASE_URL\b/i,
+  /\bREDIS_(HOST|PORT|PASS)\b/i,
+  /\b\.env\b/i,
+  /\bprisma\s+migrate\b/i,
+]
+
+function isBlocked(messages: { content: string }[]): boolean {
+  const text = messages.map((m) => m.content).join(' ')
+  return BLOCKED_PATTERNS.some((re) => re.test(text))
+}
+
 const provider = new OllamaProvider()
 
 export const pouetRoutes: FastifyPluginAsync = async (app) => {
@@ -72,6 +105,11 @@ export const pouetRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(429).send({ error: `Limite atteinte : ${RATE_LIMIT} messages par heure.` })
     }
 
+    if (isBlocked(messages)) {
+      audit(userId, 'pouet.blocked', request)
+      return reply.status(400).send({ error: 'Je suis Pouet, l\'assistant de Pivot. Je ne peux t\'aider qu\'avec les questions sur l\'utilisation de l\'application.' })
+    }
+
     audit(userId, 'pouet.chat', request)
 
     // Injecter le contexte de navigation dans le dernier message système si présent.
@@ -86,12 +124,15 @@ export const pouetRoutes: FastifyPluginAsync = async (app) => {
       ...messages,
     ]
 
-    // SSE headers
+    // SSE headers — CORS doit être ajouté manuellement car reply.raw bypasse @fastify/cors
+    const origin = request.headers.origin ?? process.env.FRONTEND_URL ?? 'http://localhost:3000'
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
       'X-Accel-Buffering': 'no',
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Credentials': 'true',
     })
 
     const abort = new AbortController()
