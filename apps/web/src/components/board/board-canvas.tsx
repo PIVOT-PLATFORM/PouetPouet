@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useMemo, useCallback, forwardRef, useImper
 import type { Card, Frame, BoardField, Connection, VoteSession, ClipboardCard } from '@/hooks/useBoard'
 import { groupColor } from '@/hooks/useBoard'
 import { BoardCard } from './board-card'
+import { CropModal } from './crop-modal'
 import { FrameItem } from './frame-item'
 import { CardDetailModal } from './card-detail-modal'
 import { ConnectionLine } from './connection-line'
@@ -184,6 +185,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   const [viewReady, setViewReady] = useState(false)
 
   const [detailCardId, setDetailCardId] = useState<string | null>(null)
+  const [cropCardId, setCropCardId] = useState<string | null>(null)
 
   // Hold Space to temporarily pan with left-drag, whatever the active tool.
   const [spaceHeld, setSpaceHeld] = useState(false)
@@ -436,11 +438,13 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
       const items = e.clipboardData?.items
       if (!items) return
 
-      // Image takes priority
+      // Image takes priority — also handles files copied from OS explorer (type may be empty)
       for (const item of Array.from(items)) {
-        if (!item.type.startsWith('image/')) continue
+        if (item.kind !== 'file') continue
         const file = item.getAsFile()
         if (!file) continue
+        const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp)$/i.test(file.name)
+        if (!isImage) continue
         e.preventDefault()
         const reader = new FileReader()
         reader.onload = (ev) => {
@@ -576,8 +580,8 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
       window.removeEventListener('mouseup', onUp)
       if (rb && (rb.w > 5 || rb.h > 5)) {
         onSelectCards(new Set(cards.filter((c) =>
-          c.posX + c.width > rb!.x && c.posX < rb!.x + rb!.w &&
-          c.posY + c.height > rb!.y && c.posY < rb!.y + rb!.h
+          c.posX >= rb!.x && c.posX + c.width <= rb!.x + rb!.w &&
+          c.posY >= rb!.y && c.posY + c.height <= rb!.y + rb!.h
         ).map((c) => c.id)))
       } else {
         onSelectCards(new Set())
@@ -619,6 +623,46 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     const p = toCanvas(e.clientX, e.clientY)
     const s = 1 / zoom // #114 — taille écran constante quel que soit le zoom
     onAddCard(p.x - 96 * s, p.y - 64 * s, 'TEXT', '', undefined, 192 * s, 128 * s)
+  }
+
+  // ── Drag & drop image files from OS explorer ────────────────────────────────
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    if (isReadonly) return
+    const hasImageFile = Array.from(e.dataTransfer.items).some(
+      (item) => item.kind === 'file' && (item.type.startsWith('image/') || item.type === '')
+    )
+    if (!hasImageFile) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    if (isReadonly) return
+    const files = Array.from(e.dataTransfer.files).filter(
+      (f) => f.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp)$/i.test(f.name)
+    )
+    if (files.length === 0) return
+    e.preventDefault()
+    const dropPos = toCanvas(e.clientX, e.clientY)
+    let offsetX = dropPos.x
+    for (const file of files) {
+      const reader = new FileReader()
+      const capturedX = offsetX
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string
+        const img = new Image()
+        img.onload = () => {
+          const MAX_W = 700, MAX_H = 600
+          const ratio = Math.min(MAX_W / img.naturalWidth, MAX_H / img.naturalHeight, 1)
+          const w = Math.round(img.naturalWidth * ratio)
+          const h = Math.round(img.naturalHeight * ratio)
+          onAddCard(capturedX - w / 2, dropPos.y - h / 2, 'IMAGE', dataUrl, 'transparent', w, h)
+        }
+        img.src = dataUrl
+      }
+      reader.readAsDataURL(file)
+      offsetX += 724
+    }
   }
 
   // ── Button zoom (toward canvas center) ──────────────────────────────────────
@@ -943,6 +987,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   const hStartDragCard  = useStableHandler(onStartDragCard)
   const hCommitDragCard = useStableHandler((id: string) => { clearGuides(); onCommitDragCard(id) })
   const hUpdateCard     = useStableHandler(onUpdateCard)
+  const hCropCard       = useStableHandler((id: string) => setCropCardId(id))
   const hRecolorCard    = useStableHandler(onRecolorCard)
   const hDeleteCard     = useStableHandler(onDeleteCard)
   const hResizeCard     = useStableHandler(onResizeCard)
@@ -1031,6 +1076,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
             onCommitDrag={hCommitDragCard}
             onUpdate={hUpdateCard}
             onRecolor={hRecolorCard}
+            onCrop={isReadonly ? undefined : hCropCard}
             onDelete={hDeleteCard}
             onResize={hResizeCard}
             onResizeBox={hResizeCardBox}
@@ -1095,6 +1141,8 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
         onMouseDown={handleCanvasMouseDown}
         onClick={handleCanvasClick}
         onDoubleClick={handleCanvasDoubleClick}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
       >
         {/* ── Transformed infinite canvas ── */}
         <div
@@ -1397,6 +1445,26 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
           onClose={() => setDetailCardId(null)}
         />
       )}
+
+      {cropCardId && (() => {
+        const cropCard = cards.find((c) => c.id === cropCardId)
+        if (!cropCard) return null
+        return (
+          <CropModal
+            src={cropCard.content}
+            onConfirm={(dataUrl, nw, nh) => {
+              const MAX_W = 700, MAX_H = 600
+              const ratio = Math.min(MAX_W / nw, MAX_H / nh, 1)
+              const w = Math.round(nw * ratio)
+              const h = Math.round(nh * ratio)
+              onUpdateCard(cropCardId, dataUrl)
+              onResizeCard(cropCardId, w, h)
+              setCropCardId(null)
+            }}
+            onClose={() => setCropCardId(null)}
+          />
+        )
+      })()}
     </>
   )
 })

@@ -24,10 +24,11 @@ interface ShareInfo {
 
 interface Props {
   boardId: string
+  isOwner: boolean
   onClose: () => void
 }
 
-export function ShareModal({ boardId, onClose }: Props) {
+export function ShareModal({ boardId, isOwner, onClose }: Props) {
   const [info, setInfo] = useState<ShareInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [inviteEmail, setInviteEmail] = useState('')
@@ -137,55 +138,59 @@ export function ShareModal({ boardId, onClose }: Props) {
           </div>
         ) : (
           <>
-            {/* Share link */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Lien de partage</span>
-                <div className="flex items-center gap-2">
-                  <select
-                    value={info?.shareLinkRole ?? 'VIEWER'}
-                    onChange={(e) => handleLinkRoleChange(e.target.value as 'VIEWER' | 'EDITOR')}
-                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"
-                  >
-                    <option value="VIEWER">Lecture</option>
-                    <option value="EDITOR">Édition</option>
-                  </select>
-                  {info?.shareToken ? (
-                    <button
-                      onClick={handleDisableLink}
-                      disabled={linkLoading}
-                      className="text-xs text-red-500 hover:text-red-600 font-medium disabled:opacity-50"
-                    >
-                      Désactiver
-                    </button>
+            {/* Share link (owner only) */}
+            {isOwner && (
+              <>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Lien de partage</span>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={info?.shareLinkRole ?? 'VIEWER'}
+                        onChange={(e) => handleLinkRoleChange(e.target.value as 'VIEWER' | 'EDITOR')}
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"
+                      >
+                        <option value="VIEWER">Lecture</option>
+                        <option value="EDITOR">Édition</option>
+                      </select>
+                      {info?.shareToken ? (
+                        <button
+                          onClick={handleDisableLink}
+                          disabled={linkLoading}
+                          className="text-xs text-red-500 hover:text-red-600 font-medium disabled:opacity-50"
+                        >
+                          Désactiver
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleGenerateLink}
+                          disabled={linkLoading}
+                          className="text-xs text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50"
+                        >
+                          Activer
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {shareUrl ? (
+                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                      <span className="flex-1 text-xs text-gray-500 truncate font-mono">{shareUrl}</span>
+                      <button
+                        onClick={handleCopy}
+                        className="shrink-0 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors"
+                      >
+                        {copied ? 'Copié !' : 'Copier'}
+                      </button>
+                    </div>
                   ) : (
-                    <button
-                      onClick={handleGenerateLink}
-                      disabled={linkLoading}
-                      className="text-xs text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50"
-                    >
-                      Activer
-                    </button>
+                    <p className="text-xs text-gray-400">Le lien est désactivé. Activez-le pour permettre à n'importe qui de rejoindre.</p>
                   )}
                 </div>
-              </div>
 
-              {shareUrl ? (
-                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                  <span className="flex-1 text-xs text-gray-500 truncate font-mono">{shareUrl}</span>
-                  <button
-                    onClick={handleCopy}
-                    className="shrink-0 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors"
-                  >
-                    {copied ? 'Copié !' : 'Copier'}
-                  </button>
-                </div>
-              ) : (
-                <p className="text-xs text-gray-400">Le lien est désactivé. Activez-le pour permettre à n'importe qui de rejoindre.</p>
-              )}
-            </div>
-
-            <hr className="border-gray-100" />
+                <hr className="border-gray-100" />
+              </>
+            )}
 
             {/* Invite by email */}
             <div className="flex flex-col gap-2">
@@ -205,7 +210,7 @@ export function ShareModal({ boardId, onClose }: Props) {
                 >
                   <option value="VIEWER">Lecture</option>
                   <option value="EDITOR">Édition</option>
-                  <option value="OWNER">Propriétaire</option>
+                  {isOwner && <option value="OWNER">Propriétaire</option>}
                 </select>
                 <button
                   type="submit"
@@ -241,23 +246,29 @@ export function ShareModal({ boardId, onClose }: Props) {
                         <p className="text-sm font-medium text-gray-800 truncate">{share.user.name}</p>
                         <p className="text-xs text-gray-400 truncate">{share.user.email}</p>
                       </div>
-                      <select
-                        value={share.role}
-                        onChange={(e) => handleChangeRole(share.id, e.target.value as 'VIEWER' | 'EDITOR' | 'OWNER')}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"
-                      >
-                        <option value="VIEWER">Lecture</option>
-                        <option value="EDITOR">Édition</option>
-                        <option value="OWNER">Propriétaire</option>
-                      </select>
-                      <button
-                        onClick={() => handleRevoke(share.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
+                      {(!isOwner && share.role === 'OWNER') ? (
+                        <span className="text-xs text-gray-400 px-2 py-1">Propriétaire</span>
+                      ) : (
+                        <>
+                          <select
+                            value={share.role}
+                            onChange={(e) => handleChangeRole(share.id, e.target.value as 'VIEWER' | 'EDITOR' | 'OWNER')}
+                            className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"
+                          >
+                            <option value="VIEWER">Lecture</option>
+                            <option value="EDITOR">Édition</option>
+                            {isOwner && <option value="OWNER">Propriétaire</option>}
+                          </select>
+                          <button
+                            onClick={() => handleRevoke(share.id)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>

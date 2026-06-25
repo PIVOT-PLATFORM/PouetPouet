@@ -106,6 +106,34 @@ export const TESTBOOKS_MODULE: ModuleManifest = {
   listensTo: [],
 }
 
+export const QUIZ_MODULE: ModuleManifest = {
+  id: 'quiz',
+  name: 'Quiz interactif',
+  description: 'Quiz interactif : questions en temps réel avec classement',
+  icon: '🎯',
+  color: '#e11d48',
+  nav: [{ label: 'Quiz interactif', href: '/quiz', match: '/quiz' }],
+  apiPrefix: '/api/quiz',
+  ownedEntities: ['Quiz', 'QuizQuestion', 'QuizSession', 'QuizParticipant', 'QuizAnswer'],
+  referencedPivots: ['User'],
+  emits: [],
+  listensTo: [],
+}
+
+export const ROADMAP_MODULE: ModuleManifest = {
+  id: 'roadmap',
+  name: 'Roadmap',
+  description: 'Planification visuelle façon Gantt : jalons, dépendances, risques et priorités',
+  icon: '🗺️',
+  color: '#4f6ef7',
+  nav: [{ label: 'Roadmap', href: '/roadmap', match: '/roadmap' }],
+  apiPrefix: '/api/roadmap',
+  ownedEntities: ['Roadmap', 'RoadmapItem'],
+  referencedPivots: ['User'],
+  emits: [],
+  listensTo: [],
+}
+
 /** Modules actifs, dans l'ordre d'affichage de la navigation. */
 export const PIVOT_MODULES: ModuleManifest[] = [
   POUETPOUET_MODULE,
@@ -115,4 +143,6 @@ export const PIVOT_MODULES: ModuleManifest[] = [
   CAPACITY_MODULE,
   MEETOPS_MODULE,
   TESTBOOKS_MODULE,
+  QUIZ_MODULE,
+  ROADMAP_MODULE,
 ]

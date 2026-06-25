@@ -11,7 +11,7 @@ export function SessionExpiredModal() {
         </div>
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1.5">Session expirée</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-          Votre session a expiré après 30 minutes. Rechargez la page pour vous reconnecter.
+          Votre session a expiré après une période d'inactivité. Rechargez la page pour vous reconnecter.
         </p>
         <button
           onClick={() => window.location.reload()}

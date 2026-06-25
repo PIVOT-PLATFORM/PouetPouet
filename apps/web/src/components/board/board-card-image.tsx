@@ -10,6 +10,7 @@ interface Props {
   isReadonly?: boolean
   outline: string
   onRecolor?: (id: string, color: string) => void
+  onCrop?: (id: string) => void
   onDelete: (id: string) => void
   onSelect?: (id: string, addToSelection: boolean) => void
   onSetLocked?: (id: string, locked: boolean) => void
@@ -26,7 +27,7 @@ const BORDER_DEFAULT = '#6366f1'
 
 export function ImageCard({
   card, isSelected, isMultiSelect, isReadonly, outline,
-  onRecolor, onDelete, onSelect, onSetLocked, onStartConnect,
+  onRecolor, onCrop, onDelete, onSelect, onSetLocked, onStartConnect,
   onLinkCardsClick, linkCardsMode, isLinkSource,
   handleMouseDown, handleResizeMouseDown, isDragging,
 }: Props) {
@@ -66,6 +67,20 @@ export function ImageCard({
       {/* Overlay controls — top-right */}
       {!isReadonly && (
         <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          {/* Crop */}
+          {!card.locked && onCrop && (
+            <button
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onCrop(card.id) }}
+              className="w-6 h-6 rounded-md flex items-center justify-center bg-black/35 text-white/80 hover:bg-black/55 transition-colors backdrop-blur-sm"
+              title="Rogner"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 2v14a2 2 0 002 2h14M2 6h14a2 2 0 012 2v14" />
+              </svg>
+            </button>
+          )}
+
           {/* Border toggle */}
           <button
             onMouseDown={(e) => e.stopPropagation()}

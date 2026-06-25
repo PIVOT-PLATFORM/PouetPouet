@@ -16,6 +16,7 @@ interface Props {
   toolOpacity: number
   minTop?: number
   onToolChange: (tool: ToolMode, color?: string, stroke?: StrokeSize, fill?: boolean, opacity?: number) => void
+  onPickImage?: () => void
   onAddFrame?: () => void
   frameLimitReached?: boolean
   // #109 — fonctionnalité « dessin » désactivable dans les paramètres du board.
@@ -46,7 +47,7 @@ function ShapeGlyph({ mode }: { mode: ShapeMode }) {
   }
 }
 
-export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, toolOpacity, minTop, onToolChange, onAddFrame, frameLimitReached, drawingEnabled = true, snapToGrid, alignGuides, onToggleGrid, onToggleAlign }: Props) {
+export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, toolOpacity, minTop, onToolChange, onPickImage, onAddFrame, frameLimitReached, drawingEnabled = true, snapToGrid, alignGuides, onToggleGrid, onToggleAlign }: Props) {
   const MIN_Y = minTop ?? 120
   const tablesEnabled = useFlag('board.tables')
   const [pos, setPos] = useState({ x: 16, y: MIN_Y })
@@ -182,6 +183,19 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 9h18M3 14h18M9 4v16M15 4v16" />
                 </svg>
               </Btn>
+            )}
+            {onPickImage && (
+              <button
+                title="Importer une image (fichier local)"
+                onClick={(e) => { onPickImage(); e.currentTarget.blur() }}
+                className="w-9 h-9 rounded-xl flex items-center justify-center transition-all focus:outline-none text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <rect x="3" y="3" width="18" height="18" rx="2" strokeLinecap="round" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 15l-5-5L5 21" />
+                </svg>
+              </button>
             )}
 
             <Sep />

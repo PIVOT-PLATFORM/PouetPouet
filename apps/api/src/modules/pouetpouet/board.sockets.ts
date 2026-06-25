@@ -13,6 +13,10 @@ function canWrite(socket: Socket, boardId: string): boolean {
 // Types de carte valides (enum CardType) — garde contre un type client invalide.
 const CARD_TYPES = new Set(['TEXT', 'IMAGE', 'LINK', 'SHAPE', 'DRAW', 'LABEL', 'TABLE'])
 
+function extractFirstUrl(text: string): string | null {
+  return text.match(/https?:\/\/[^\s<>"']+/)?.[0] ?? null
+}
+
 // Realtime mutations can race with a delete from another client (or the same one).
 // Swallow Prisma's "record not found" (P2025) and "foreign key violation" (P2003 â€”
 // e.g. upserting a field value on a just-deleted card) so a stale event never
@@ -258,6 +262,15 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
         await prisma.card.update({ where: { id: card.id }, data: { meta: meta as never } })
         io.to(`board:${data.boardId}`).emit('card:meta_updated', { id: card.id, meta })
       })
+    } else if (card.type === 'TEXT' && card.content) {
+      const url = extractFirstUrl(card.content)
+      if (url) {
+        void fetchOgMeta(url).then(async (meta) => {
+          if (!meta) return
+          await prisma.card.update({ where: { id: card.id }, data: { meta: meta as never } })
+          io.to(`board:${data.boardId}`).emit('card:meta_updated', { id: card.id, meta })
+        })
+      }
     }
   })
 
@@ -284,11 +297,24 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
       io.to(`board:${data.boardId}`).emit('card:updated', { id: data.id, content: data.content })
       void (async () => {
         const card = await prisma.card.findUnique({ where: { id: data.id }, select: { type: true } })
-        if (card?.type !== 'LINK' || !data.content) return
-        const meta = await fetchOgMeta(data.content)
-        if (!meta) return
-        await prisma.card.update({ where: { id: data.id }, data: { meta: meta as never } })
-        io.to(`board:${data.boardId}`).emit('card:meta_updated', { id: data.id, meta })
+        if (!card) return
+        if (card.type === 'LINK') {
+          if (!data.content) return
+          const meta = await fetchOgMeta(data.content)
+          if (!meta) return
+          await prisma.card.update({ where: { id: data.id }, data: { meta: meta as never } })
+          io.to(`board:${data.boardId}`).emit('card:meta_updated', { id: data.id, meta })
+        } else if (card.type === 'TEXT') {
+          const url = data.content ? extractFirstUrl(data.content) : null
+          if (!url) {
+            await prisma.card.update({ where: { id: data.id }, data: { meta: null as never } })
+            io.to(`board:${data.boardId}`).emit('card:meta_updated', { id: data.id, meta: null })
+            return
+          }
+          const meta = await fetchOgMeta(url)
+          await prisma.card.update({ where: { id: data.id }, data: { meta: (meta ?? null) as never } })
+          io.to(`board:${data.boardId}`).emit('card:meta_updated', { id: data.id, meta: meta ?? null })
+        }
       })()
     }
   })

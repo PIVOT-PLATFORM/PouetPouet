@@ -20,6 +20,110 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.22.0',
+    date: '2026-06-25',
+    title: 'Module Roadmap — planification visuelle façon Gantt',
+    summary: 'Nouveau module de planification d\'équipe : Gantt interactif, jalons, filtres, glisser-déposer sur les barres et export PDF vectoriel.',
+    sections: [
+      {
+        heading: '🗓️ Module Roadmap',
+        items: [
+          'Nouveau module **Roadmap** : planifiez vos projets avec une timeline Gantt interactive (5 échelles : semaine, mois, trimestre, semestre, an).',
+          'Items configurables : domaine (Infra / Dev / Cyber), risque (Faible / Moyen / Élevé), priorité (Should / Must), valeur business, dépendances.',
+          'Jalons (date unique) : affichés sous forme de diamant ⬦ au bon point de la timeline.',
+          '**Drag & drop sur le Gantt** : déplacez une barre ou étirez-la par ses poignées pour ajuster les dates directement depuis la vue.',
+          'Dépendances visuelles entre items (flèches bezier) avec toggle d\'affichage.',
+          '**Filtres** combinables par domaine, risque et priorité Must — compteur items filtrés/total.',
+          '**Export PDF vectoriel** : Gantt A4 paysage, paginé, dessiné depuis les données (indépendant du zoom/scroll).',
+          'Export JSON pour sauvegarder ou partager un plan.',
+          'Partage par rôle (Lecteur / Éditeur / Owner) sur le même patron que les autres modules.',
+          'Gating via feature flag `module.roadmap` (activé par défaut).',
+        ],
+      },
+    ],
+  },
+  {
+    version: '0.21.0',
+    date: '2026-06-25',
+    title: 'Sessions plus longues et fiables',
+    summary: 'Votre session dure désormais une demi-journée (4 h) et se renouvelle automatiquement tant que vous travaillez — fini les déconnexions inopinées et les pertes de page au rafraîchissement.',
+    sections: [
+      {
+        heading: '🔐 Session',
+        items: [
+          'Durée de session portée à 4 heures (une demi-journée) : plus besoin de se reconnecter en pleine journée de travail.',
+          'Renouvellement automatique et continu tant que vous êtes actif — y compris au retour de veille de l\'ordinateur ou en revenant sur l\'onglet.',
+          'Fini les déconnexions « fantômes » : certaines actions semblaient fonctionner alors que la session était perdue, et tout disparaissait au rafraîchissement. Corrigé.',
+          'Plus robuste face aux coupures réseau : une tentative de renouvellement qui échoue est désormais réessayée au lieu d\'abandonner la session.',
+        ],
+      },
+      {
+        heading: '⚡ Sous le capot',
+        items: [
+          'Tableau blanc : 2 requêtes base de données redondantes supprimées à l\'ouverture d\'un board et au partage par lien.',
+        ],
+      },
+    ],
+  },
+  {
+    version: '0.20.0',
+    date: '2026-06-23',
+    title: 'Quiz Kahoot, partage étendu, images & une surprise',
+    summary: 'Nouveau module Quiz interactif style Kahoot, partage par rôle étendu à La Roue, Capacité et MeetOps, import d\'images par glisser-déposer, aperçu de liens dans les tickets — et une feature cachée à découvrir.',
+    sections: [
+      {
+        heading: '🎯 Quiz interactif (style Kahoot)',
+        items: [
+          'Nouveau module Quiz : créez vos quiz (questions à choix multiples, timer, points), réordonnez les questions par glisser-déposer.',
+          'Sessions live en temps réel : code d\'accès 6 caractères, participants anonymes, révélation des réponses et classement instantanés.',
+          'Multiplicateur de série (streak) : les bonnes réponses consécutives multiplient les points — bonus de rapidité inclus.',
+          'Podium final animé à la fin de chaque session.',
+        ],
+      },
+      {
+        heading: '🔗 Partage étendu',
+        items: [
+          'La Roue, Capacité d\'équipe et MeetOps sont désormais partageables par rôle (Lecteur / Éditeur), sur le même modèle que les boards et les salles Scrum/Daily.',
+          'Les éditeurs d\'un board ont désormais accès à l\'import, l\'export, les paramètres et la gestion des partages (rôles Lecteur et Éditeur uniquement).',
+        ],
+      },
+      {
+        heading: '🖼️ Tableau blanc — Images',
+        items: [
+          'Importez une image locale via la barre d\'outils, collez-la (Ctrl+V) ou faites-la glisser directement depuis votre explorateur de fichiers.',
+          'Outil de rognage : 8 poignées de redimensionnement, grille des tiers, recadrage pixel-perfect en un clic.',
+          'Prise en charge des images jusqu\'à 50 Mo (PNG, JPG, GIF, WebP, BMP).',
+        ],
+      },
+      {
+        heading: '🔗 Tableau blanc — Aperçu de liens',
+        items: [
+          'Collez une URL dans un ticket texte : un aperçu enrichi (image, titre, domaine) apparaît automatiquement en bas de la carte.',
+          'L\'URL brute est masquée en mode affichage — elle reste visible et éditable en mode édition.',
+        ],
+      },
+      {
+        heading: '✅ Tableau blanc — Sélection & corrections',
+        items: [
+          'Sélection multiple au lasso : seuls les objets entièrement dans le rectangle sont capturés — les grandes formes de zone ne sont plus sélectionnées par erreur.',
+        ],
+      },
+      {
+        heading: '🎨 Interface',
+        items: [
+          'Nouveau logo hexagone Pivot sur l\'écran de connexion, le favicon et la barre de navigation.',
+          'Scrum Poker : le code de salle copie désormais directement le lien d\'invitation.',
+        ],
+      },
+      {
+        heading: '🎮 Feature mystère',
+        items: [
+          'Quelque chose de nouveau se cache dans Pivot… Un indice se trouve dans la section Aide. À vous de trouver.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.19.0',
     date: '2026-06-20',
     title: 'Correctifs board, sessions & Scrum',

@@ -6,11 +6,14 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useMeetEvents, useMeetSearch } from '@/hooks/useMeetops'
 import { useMeetGraph } from '@/hooks/useMeetGraph'
 import type { CreateEventInput } from '@/hooks/useMeetops'
+import type { MeetEvent } from '@/lib/meetops'
 import { labelColor } from '@/lib/meetops'
 import type { MeetEventType } from '@/lib/meetops'
 import {
   EVENT_TYPE_LABELS, EVENT_TYPE_EMOJI, EVENT_STATUS_LABELS,
 } from '@/lib/meetops'
+import { ModuleShareModal } from '@/components/share/module-share-modal'
+import { useFlagGuard } from '@/hooks/useFlagGuard'
 
 // ── Bannière de connexion Microsoft ─────────────────────────────────────────────
 
@@ -159,9 +162,11 @@ function EventModal({ onSave, onClose }: { onSave: (input: CreateEventInput) => 
 // ── Page liste ──────────────────────────────────────────────────────────────────
 
 export default function MeetopsPage() {
+  useFlagGuard('module.meetops')
   const router = useRouter()
   const { events, isLoading, createEvent, deleteEvent } = useMeetEvents()
   const [modalOpen, setModalOpen] = useState(false)
+  const [shareEvent, setShareEvent] = useState<MeetEvent | null>(null)
   const [search, setSearch] = useState('')
   const { results, isSearching } = useMeetSearch(search)
   const searching = search.trim().length >= 2
@@ -279,7 +284,9 @@ export default function MeetopsPage() {
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {events.map((ev) => (
+          {events.map((ev) => {
+            const isOwner = !ev.role || ev.role === 'OWNER'
+            return (
             <button key={ev.id} onClick={() => router.push(`/meetops/${ev.id}`)}
               className="text-left bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 hover:shadow-md transition-shadow group">
               <div className="flex items-start justify-between gap-3">
@@ -287,11 +294,32 @@ export default function MeetopsPage() {
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: ev.color }} />
                   <h2 className="font-semibold text-gray-900 dark:text-white truncate">{ev.name}</h2>
                 </div>
-                <span
-                  onClick={(e) => handleDelete(e, ev.id, ev.name)}
-                  className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-sm shrink-0 cursor-pointer"
-                  title="Supprimer"
-                >✕</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {ev.role && ev.role !== 'OWNER' && (
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-secondary-50 dark:bg-secondary-950 text-secondary-600 dark:text-secondary-400">
+                      {ev.role === 'EDITOR' ? 'Éditeur' : 'Lecteur'}
+                    </span>
+                  )}
+                  {isOwner && (
+                    <span
+                      onClick={(e) => { e.stopPropagation(); setShareEvent(ev) }}
+                      className="text-gray-300 hover:text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer p-1"
+                      title="Partager"
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                      </svg>
+                    </span>
+                  )}
+                  {isOwner && (
+                    <span
+                      onClick={(e) => handleDelete(e, ev.id, ev.name)}
+                      className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-sm cursor-pointer"
+                      title="Supprimer"
+                    >✕</span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2 mt-3 text-xs text-gray-500 dark:text-gray-400">
                 <span>{EVENT_TYPE_EMOJI[ev.type]} {EVENT_TYPE_LABELS[ev.type]}</span>
@@ -304,11 +332,20 @@ export default function MeetopsPage() {
                 })()}
               </div>
             </button>
-          ))}
+            )
+          })}
         </div>
       )}
 
       {modalOpen && <EventModal onSave={handleCreate} onClose={() => setModalOpen(false)} />}
+      {shareEvent && (
+        <ModuleShareModal
+          module="meetops"
+          resourceId={shareEvent.id}
+          resourceName={shareEvent.name}
+          onClose={() => setShareEvent(null)}
+        />
+      )}
     </div>
   )
 }

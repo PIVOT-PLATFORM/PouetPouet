@@ -47,6 +47,7 @@ export interface MeetEvent {
   tags: string[]
   meetings: Meeting[]
   _count?: { meetings: number }
+  role?: 'OWNER' | 'EDITOR' | 'VIEWER'
   createdAt: string
   updatedAt: string
 }

@@ -1,0 +1,47 @@
+name: Mutation Testing JS (Stryker)
+
+# Stryker — mesure la qualité des tests unitaires du frontend (Next.js/React).
+# Exclut les pages Next.js (couvertes par l'E2E) ; se concentre sur les hooks,
+# composants utilitaires et lib. Non bloquant — run hebdomadaire.
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # dimanche 03:00 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  stryker-web:
+    name: Stryker — Web
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Stryker
+        working-directory: apps/web
+        run: npx stryker run
+
+      - name: Upload mutation report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: stryker-web-report
+          path: apps/web/reports/mutation
+          retention-days: 14

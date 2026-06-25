@@ -22,6 +22,10 @@ backup.sql
 ideatank.txt
 /scripts/
 
+# Estimation de coût — local uniquement, ne JAMAIS pousser
+docs/cout-reconstruction.md
+docs/cout-reconstruction.pdf
+
 # Specs et roadmap versionnées — les fichiers .md à la racine et docs/ sont publics.
 # Exclure uniquement les notes personnelles si besoin (ex: NOTES.md).
 

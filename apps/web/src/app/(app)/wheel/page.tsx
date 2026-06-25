@@ -8,6 +8,7 @@ import type { WheelDraw, DrawMode } from '@/hooks/useWheel'
 import type { DailyTeam } from '@/hooks/useDaily'
 import { SlotCard, DrawResultPanel, CreateEventInline } from '@/components/wheel/wheel-panels'
 import { EventSection, StandaloneDrawsSection } from '@/components/wheel/wheel-history'
+import { useFlagGuard } from '@/hooks/useFlagGuard'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ const CARD_COLORS = [
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function WheelPage() {
+  useFlagGuard('module.wheel')
   const { teams, isLoading: teamsLoading } = useTeams()
   const { events, standaloneDraws, isLoading: wheelLoading, createEvent, updateEvent, deleteEvent, createDraw, commitDraw, updateDraw, deleteDraw } = useWheel()
 

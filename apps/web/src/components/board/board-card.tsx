@@ -26,6 +26,7 @@ interface Props {
   onCommitDrag?: (id: string) => void
   onUpdate: (id: string, content: string) => void
   onRecolor?: (id: string, color: string) => void
+  onCrop?: (id: string) => void
   onDelete: (id: string) => void
   onResize: (id: string, w: number, h: number) => void
   onResizeBox?: (id: string, box: { posX: number; posY: number; width: number; height: number }) => void
@@ -51,7 +52,7 @@ interface Props {
 // wraps them in useStableHandler) for the memo to be effective.
 export const BoardCard = memo(function BoardCard({
   card, fields, zoom = 1, isSelected, isMultiSelect, groupColor, drawMode, isReadonly,
-  onMove, onStartDrag, onCommitDrag, onUpdate, onRecolor, onDelete,
+  onMove, onStartDrag, onCommitDrag, onUpdate, onRecolor, onCrop, onDelete,
   onResize, onResizeBox, onStartResize, onCommitResize,
   onSelect, onOpenDetail, onStartConnect, onSetLocked,
   linkCardsMode, isLinkSource, onLinkCardsClick, consumeAutoEdit, remoteEditor, onEditingChange,
@@ -62,10 +63,16 @@ export const BoardCard = memo(function BoardCard({
   // Initial text, unwrapped from any formatting JSON (TEXT and LABEL store rich text as JSON).
   const initialText = isLabel ? parseLabelFmt(card.content).text : isText ? parseTextFmt(card.content).text : card.content
 
+
   const [isEditing, setIsEditing] = useState(
     () => initialText === '' && (isText || isLabel) && (consumeAutoEdit?.(card.id) ?? false),
   )
   const [content, setContent] = useState(initialText)
+  const firstUrl = isText ? (content.match(/https?:\/\/[^\s<>"']+/)?.[0] ?? null) : null
+  // En mode affichage, masquer l'URL brute si un preview est disponible
+  const displayContent = (isText && !isEditing && card.meta && firstUrl)
+    ? content.replace(firstUrl, '').trim()
+    : content
   const [labelFmt, setLabelFmt] = useState<Omit<LabelFmt, 'text'>>(() => {
     if (!isLabel) return { size: 16, bold: false, italic: false, underline: false, strike: false, color: '#374151' }
     const f = parseLabelFmt(card.content)
@@ -318,6 +325,7 @@ export const BoardCard = memo(function BoardCard({
         isReadonly={isReadonly}
         outline={outline}
         onRecolor={onRecolor}
+        onCrop={onCrop}
         onDelete={onDelete}
         onSelect={onSelect}
         onSetLocked={onSetLocked}
@@ -719,12 +727,54 @@ export const BoardCard = memo(function BoardCard({
             placeholder="Votre idée…"
             onMouseDown={(e) => e.stopPropagation()}
           />
-        ) : (
+        ) : displayContent ? (
           <p className="whitespace-pre-wrap break-words leading-relaxed" style={textStyle}>
-            {content || <span className="text-gray-400/70 text-xs italic">Double-cliquer pour écrire</span>}
+            {displayContent}
           </p>
-        )}
+        ) : !card.meta || !firstUrl ? (
+          <p className="whitespace-pre-wrap break-words leading-relaxed" style={textStyle}>
+            <span className="text-gray-400/70 text-xs italic">Double-cliquer pour écrire</span>
+          </p>
+        ) : null}
       </div>
+
+      {/* ── Link preview (TEXT card with URL in content) ── */}
+      {isText && !isEditing && card.meta && firstUrl && (
+        <a
+          href={firstUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 flex items-center gap-0 mx-2 mb-1.5 rounded-xl overflow-hidden border border-gray-200/80 bg-gray-50 hover:bg-gray-100 transition-colors"
+          style={{ minHeight: 44 }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {card.meta.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={card.meta.image}
+              alt=""
+              className="w-11 h-11 object-cover shrink-0"
+              draggable={false}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
+          ) : (
+            <div className="w-11 h-11 shrink-0 bg-blue-50 flex items-center justify-center">
+              <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </div>
+          )}
+          <div className="flex-1 min-w-0 px-2 py-1">
+            {card.meta.title && (
+              <p className="text-[11px] font-semibold text-gray-800 truncate leading-snug">{card.meta.title}</p>
+            )}
+            <p className="text-[10px] text-gray-400 truncate mt-0.5">
+              {card.meta.siteName ?? (() => { try { return new URL(firstUrl).hostname.replace(/^www\./, '') } catch { return firstUrl } })()}
+            </p>
+          </div>
+        </a>
+      )}
 
       {/* ── Chips ── */}
       {chips.length > 0 && maxVisible > 0 && (

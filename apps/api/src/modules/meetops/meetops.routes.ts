@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync, FastifyReply } from 'fastify'
 import { prisma } from '../../lib/prisma.js'
+import { resolveRole, sharedResourceIds, deleteResourceShares } from '../../lib/module-share.js'
 import { buildIcsCalendar, icsFilename, type IcsMeeting } from './ics.js'
 import {
   isGraphConfigured, buildAuthUrl, exchangeCodeForTokens, refreshTokens, fetchMe,
@@ -30,13 +31,15 @@ interface ParticipantInput {
 }
 
 export const meetopsRoutes: FastifyPluginAsync = async (app) => {
-  // Résout une réunion uniquement si son événement appartient à l'appelant.
-  async function ownedMeeting(meetingId: string, ownerId: string) {
+  // Résout une réunion si l'appelant est propriétaire ou éditeur de l'événement parent.
+  async function ownedMeeting(meetingId: string, userId: string) {
     const meeting = await prisma.meeting.findUnique({
       where: { id: meetingId },
-      include: { event: { select: { ownerId: true } } },
+      include: { event: { select: { id: true, ownerId: true } } },
     })
-    if (!meeting || meeting.event.ownerId !== ownerId) return null
+    if (!meeting) return null
+    const role = await resolveRole('meetops', meeting.event.id, userId, meeting.event.ownerId)
+    if (role !== 'OWNER' && role !== 'EDITOR') return null
     return meeting
   }
 
@@ -60,22 +63,26 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
   // ── Événements ────────────────────────────────────────────────────────────────
 
   app.get('/events', { preHandler: [app.authenticate] }, async (request) => {
-    const { id: ownerId } = request.user as { id: string }
-    return prisma.meetEvent.findMany({
-      where: { ownerId },
+    const { id: userId } = request.user as { id: string }
+    const shared = await sharedResourceIds('meetops', userId)
+    const sharedRole = new Map(shared.map((s) => [s.id, s.role]))
+    const events = await prisma.meetEvent.findMany({
+      where: { OR: [{ ownerId: userId }, { id: { in: shared.map((s) => s.id) } }] },
       include: { _count: { select: { meetings: true } } },
       orderBy: { updatedAt: 'desc' },
     })
+    return events.map((e) => ({ ...e, role: e.ownerId === userId ? 'OWNER' : (sharedRole.get(e.id) ?? 'VIEWER') }))
   })
 
   // Recherche transverse : événements correspondant par nom/description/tag, ou
   // contenant une réunion (titre/étiquette) ou un participant (email/nom) qui matche.
   // Renvoie pour chaque événement les réunions correspondantes (pour expliquer le match).
   app.get('/search', { preHandler: [app.authenticate] }, async (request) => {
-    const { id: ownerId } = request.user as { id: string }
+    const { id: userId } = request.user as { id: string }
     const { q } = request.query as { q?: string }
     const term = (q ?? '').trim()
     if (term.length < 2) return []
+    const shared = await sharedResourceIds('meetops', userId)
     const ci = { contains: term, mode: 'insensitive' as const }
     const meetingMatch = {
       OR: [
@@ -86,12 +93,14 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
     }
     const events = await prisma.meetEvent.findMany({
       where: {
-        ownerId,
-        OR: [
-          { name: ci },
-          { description: ci },
-          { tags: { has: term } },
-          { meetings: { some: meetingMatch } },
+        AND: [
+          { OR: [{ ownerId: userId }, { id: { in: shared.map((s) => s.id) } }] },
+          { OR: [
+            { name: ci },
+            { description: ci },
+            { tags: { has: term } },
+            { meetings: { some: meetingMatch } },
+          ] },
         ],
       },
       select: {
@@ -109,13 +118,15 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
 
   app.get('/events/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
-    const event = await prisma.meetEvent.findFirst({
-      where: { id, ownerId },
+    const { id: userId } = request.user as { id: string }
+    const event = await prisma.meetEvent.findUnique({
+      where: { id },
       include: EVENT_INCLUDE,
     })
     if (!event) return reply.status(404).send({ error: 'Événement introuvable' })
-    return event
+    const role = await resolveRole('meetops', id, userId, event.ownerId)
+    if (!role) return reply.status(404).send({ error: 'Événement introuvable' })
+    return { ...event, role }
   })
 
   app.post('/events', { preHandler: [app.authenticate] }, async (request, reply) => {
@@ -151,7 +162,7 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
 
   app.patch('/events/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
+    const { id: userId } = request.user as { id: string }
     const body = request.body as {
       name?: string
       description?: string | null
@@ -162,8 +173,10 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
       color?: string
       tags?: string[]
     }
-    const event = await prisma.meetEvent.findFirst({ where: { id, ownerId } })
+    const event = await prisma.meetEvent.findUnique({ where: { id } })
     if (!event) return reply.status(404).send({ error: 'Événement introuvable' })
+    const role = await resolveRole('meetops', id, userId, event.ownerId)
+    if (role !== 'OWNER' && role !== 'EDITOR') return reply.status(404).send({ error: 'Événement introuvable' })
     const updated = await prisma.meetEvent.update({
       where: { id },
       data: {
@@ -187,6 +200,7 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
     const event = await prisma.meetEvent.findFirst({ where: { id, ownerId } })
     if (!event) return reply.status(404).send({ error: 'Événement introuvable' })
     await prisma.meetEvent.delete({ where: { id } })
+    await deleteResourceShares('meetops', id)
     return reply.status(204).send()
   })
 
@@ -194,7 +208,7 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
 
   app.post('/events/:eventId/meetings', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { eventId } = request.params as { eventId: string }
-    const { id: ownerId } = request.user as { id: string }
+    const { id: userId } = request.user as { id: string }
     const body = request.body as {
       title?: string
       label?: string | null
@@ -205,8 +219,10 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
       participants?: ParticipantInput[]
     }
     if (!body.startAt) return reply.status(400).send({ error: 'Date de début requise' })
-    const event = await prisma.meetEvent.findFirst({ where: { id: eventId, ownerId } })
+    const event = await prisma.meetEvent.findUnique({ where: { id: eventId }, select: { id: true, ownerId: true } })
     if (!event) return reply.status(404).send({ error: 'Événement introuvable' })
+    const eventRole = await resolveRole('meetops', eventId, userId, event.ownerId)
+    if (eventRole !== 'OWNER' && eventRole !== 'EDITOR') return reply.status(404).send({ error: 'Événement introuvable' })
     // Nouvelle réunion ajoutée en fin de liste (ordre manuel).
     const last = await prisma.meeting.findFirst({ where: { eventId }, orderBy: { order: 'desc' }, select: { order: true } })
     const meeting = await prisma.meeting.create({
@@ -227,7 +243,7 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
       },
       include: { participants: true },
     })
-    await logHistory({ eventId, meetingId: meeting.id, meetingTitle: meeting.title, userId: ownerId, action: 'created' })
+    await logHistory({ eventId, meetingId: meeting.id, meetingTitle: meeting.title, userId, action: 'created' })
     return reply.status(201).send(meeting)
   })
 
@@ -235,17 +251,19 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
   // Seules les réunions appartenant à l'événement de l'appelant sont prises en compte.
   app.patch('/events/:eventId/meetings/reorder', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { eventId } = request.params as { eventId: string }
-    const { id: ownerId } = request.user as { id: string }
+    const { id: userId } = request.user as { id: string }
     const { ids } = request.body as { ids: string[] }
     if (!Array.isArray(ids)) return reply.status(400).send({ error: 'Liste d\'identifiants requise' })
-    const event = await prisma.meetEvent.findFirst({ where: { id: eventId, ownerId }, select: { id: true } })
+    const event = await prisma.meetEvent.findUnique({ where: { id: eventId }, select: { id: true, ownerId: true } })
     if (!event) return reply.status(404).send({ error: 'Événement introuvable' })
+    const eventRole = await resolveRole('meetops', eventId, userId, event.ownerId)
+    if (eventRole !== 'OWNER' && eventRole !== 'EDITOR') return reply.status(404).send({ error: 'Événement introuvable' })
     await prisma.$transaction(
       ids.map((mid, i) =>
         prisma.meeting.updateMany({ where: { id: mid, eventId }, data: { order: i } }),
       ),
     )
-    await logHistory({ eventId, userId: ownerId, action: 'reordered' })
+    await logHistory({ eventId, userId, action: 'reordered' })
     return reply.status(204).send()
   })
 
@@ -253,11 +271,13 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
   // actions : setLabel | setDuration | shiftDays | delete
   app.patch('/events/:eventId/meetings/bulk', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { eventId } = request.params as { eventId: string }
-    const { id: ownerId } = request.user as { id: string }
+    const { id: userId } = request.user as { id: string }
     const body = request.body as { ids: string[]; action: 'setLabel' | 'setDuration' | 'shiftDays' | 'delete'; value?: string | number }
     if (!Array.isArray(body.ids) || body.ids.length === 0) return reply.status(400).send({ error: 'Sélection vide' })
-    const event = await prisma.meetEvent.findFirst({ where: { id: eventId, ownerId }, select: { id: true } })
+    const event = await prisma.meetEvent.findUnique({ where: { id: eventId }, select: { id: true, ownerId: true } })
     if (!event) return reply.status(404).send({ error: 'Événement introuvable' })
+    const eventRole = await resolveRole('meetops', eventId, userId, event.ownerId)
+    if (eventRole !== 'OWNER' && eventRole !== 'EDITOR') return reply.status(404).send({ error: 'Événement introuvable' })
     // On restreint aux réunions de cet événement (sécurité).
     const owned = await prisma.meeting.findMany({ where: { id: { in: body.ids }, eventId }, select: { id: true, startAt: true } })
     const ids = owned.map((m) => m.id)
@@ -296,13 +316,13 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
       default:
         return reply.status(400).send({ error: 'Action inconnue' })
     }
-    await logHistory({ eventId, userId: ownerId, action: 'bulk', field: body.action, newValue: `${ids.length} réunion(s) — ${summary}` })
+    await logHistory({ eventId, userId, action: 'bulk', field: body.action, newValue: `${ids.length} réunion(s) — ${summary}` })
     return reply.status(200).send({ affected: ids.length })
   })
 
   app.patch('/meetings/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
+    const { id: userId } = request.user as { id: string }
     const body = request.body as {
       title?: string
       label?: string | null
@@ -312,7 +332,7 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
       agenda?: string | null
       status?: MeetingStatus
     }
-    const old = await ownedMeeting(id, ownerId)
+    const old = await ownedMeeting(id, userId)
     if (!old) return reply.status(404).send({ error: 'Réunion introuvable' })
     const updated = await prisma.meeting.update({
       where: { id },
@@ -330,7 +350,7 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
     // Journalise les champs réellement modifiés (titre, étiquette, date, durée).
     const diffs: HistoryEntry[] = []
     const push = (field: string, o: unknown, n: unknown) => {
-      if (String(o ?? '') !== String(n ?? '')) diffs.push({ eventId: old.eventId, meetingId: id, meetingTitle: updated.title, userId: ownerId, action: 'updated', field, oldValue: String(o ?? ''), newValue: String(n ?? '') })
+      if (String(o ?? '') !== String(n ?? '')) diffs.push({ eventId: old.eventId, meetingId: id, meetingTitle: updated.title, userId, action: 'updated', field, oldValue: String(o ?? ''), newValue: String(n ?? '') })
     }
     push('titre', old.title, updated.title)
     push('étiquette', old.label, updated.label)
@@ -342,11 +362,11 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
 
   app.delete('/meetings/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
-    const old = await ownedMeeting(id, ownerId)
+    const { id: userId } = request.user as { id: string }
+    const old = await ownedMeeting(id, userId)
     if (!old) return reply.status(404).send({ error: 'Réunion introuvable' })
     await prisma.meeting.delete({ where: { id } })
-    await logHistory({ eventId: old.eventId, meetingId: id, meetingTitle: old.title, userId: ownerId, action: 'deleted' })
+    await logHistory({ eventId: old.eventId, meetingId: id, meetingTitle: old.title, userId, action: 'deleted' })
     return reply.status(204).send()
   })
 
@@ -354,10 +374,10 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
 
   app.post('/meetings/:meetingId/participants', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { meetingId } = request.params as { meetingId: string }
-    const { id: ownerId } = request.user as { id: string }
+    const { id: userId } = request.user as { id: string }
     const body = request.body as ParticipantInput
     if (!body.email?.trim()) return reply.status(400).send({ error: 'Email requis' })
-    if (!(await ownedMeeting(meetingId, ownerId))) return reply.status(404).send({ error: 'Réunion introuvable' })
+    if (!(await ownedMeeting(meetingId, userId))) return reply.status(404).send({ error: 'Réunion introuvable' })
     const participant = await prisma.meetingParticipant.create({
       data: {
         meetingId,
@@ -371,12 +391,14 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
 
   app.delete('/participants/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
+    const { id: userId } = request.user as { id: string }
     const participant = await prisma.meetingParticipant.findUnique({
       where: { id },
-      include: { meeting: { include: { event: { select: { ownerId: true } } } } },
+      include: { meeting: { include: { event: { select: { id: true, ownerId: true } } } } },
     })
-    if (!participant || participant.meeting.event.ownerId !== ownerId) {
+    if (!participant) return reply.status(404).send({ error: 'Participant introuvable' })
+    const role = await resolveRole('meetops', participant.meeting.event.id, userId, participant.meeting.event.ownerId)
+    if (role !== 'OWNER' && role !== 'EDITOR') {
       return reply.status(404).send({ error: 'Participant introuvable' })
     }
     await prisma.meetingParticipant.delete({ where: { id } })
@@ -471,10 +493,10 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
   // (dédup par email, insensible à la casse).
   app.post('/meetings/:meetingId/apply-list/:listId', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { meetingId, listId } = request.params as { meetingId: string; listId: string }
-    const { id: ownerId } = request.user as { id: string }
-    if (!(await ownedMeeting(meetingId, ownerId))) return reply.status(404).send({ error: 'Réunion introuvable' })
+    const { id: userId } = request.user as { id: string }
+    if (!(await ownedMeeting(meetingId, userId))) return reply.status(404).send({ error: 'Réunion introuvable' })
     const list = await prisma.meetDistList.findFirst({
-      where: { id: listId, ownerId },
+      where: { id: listId, ownerId: userId },
       include: { members: true },
     })
     if (!list) return reply.status(404).send({ error: 'Liste introuvable' })
@@ -520,12 +542,14 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
 
   app.get('/meetings/:id/ics', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
+    const { id: userId } = request.user as { id: string }
     const meeting = await prisma.meeting.findUnique({
       where: { id },
-      select: { ...MEETING_SELECT, event: { select: { ownerId: true, owner: { select: { email: true, name: true } } } } },
+      select: { ...MEETING_SELECT, event: { select: { id: true, ownerId: true, owner: { select: { email: true, name: true } } } } },
     })
-    if (!meeting || meeting.event.ownerId !== ownerId) return reply.status(404).send({ error: 'Réunion introuvable' })
+    if (!meeting) return reply.status(404).send({ error: 'Réunion introuvable' })
+    const role = await resolveRole('meetops', meeting.event.id, userId, meeting.event.ownerId)
+    if (!role) return reply.status(404).send({ error: 'Réunion introuvable' })
     const owner = meeting.event.owner
     const ics = buildIcsCalendar([toIcs(meeting)], { calendarName: meeting.title, organizerEmail: owner.email, organizerName: owner.name })
     return sendIcs(reply, ics, icsFilename(meeting.title))
@@ -533,16 +557,19 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
 
   app.get('/events/:id/ics', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
-    const event = await prisma.meetEvent.findFirst({
-      where: { id, ownerId },
+    const { id: userId } = request.user as { id: string }
+    const event = await prisma.meetEvent.findUnique({
+      where: { id },
       select: {
+        ownerId: true,
         name: true,
         owner: { select: { email: true, name: true } },
         meetings: { orderBy: { startAt: 'asc' }, select: MEETING_SELECT },
       },
     })
     if (!event) return reply.status(404).send({ error: 'Événement introuvable' })
+    const role = await resolveRole('meetops', id, userId, event.ownerId)
+    if (!role) return reply.status(404).send({ error: 'Événement introuvable' })
     const ics = buildIcsCalendar(event.meetings.map(toIcs), { calendarName: event.name, organizerEmail: event.owner.email, organizerName: event.owner.name })
     return sendIcs(reply, ics, icsFilename(event.name))
   })
@@ -680,11 +707,13 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
     const { id } = request.params as { id: string }
     const { id: userId } = request.user as { id: string }
     if (!isGraphConfigured) return reply.status(400).send({ error: 'Connecteur Microsoft non configuré' })
-    const event = await prisma.meetEvent.findFirst({
-      where: { id, ownerId: userId },
-      select: { meetings: { select: { id: true } } },
+    const event = await prisma.meetEvent.findUnique({
+      where: { id },
+      select: { ownerId: true, meetings: { select: { id: true } } },
     })
     if (!event) return reply.status(404).send({ error: 'Événement introuvable' })
+    const role = await resolveRole('meetops', id, userId, event.ownerId)
+    if (role !== 'OWNER' && role !== 'EDITOR') return reply.status(404).send({ error: 'Événement introuvable' })
     const accessToken = await getValidAccessToken(userId)
     if (!accessToken) return reply.status(400).send({ error: 'Connecte d\'abord ton compte Microsoft' })
 
@@ -701,9 +730,11 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
 
   app.get('/events/:id/history', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { id: ownerId } = request.user as { id: string }
-    const event = await prisma.meetEvent.findFirst({ where: { id, ownerId }, select: { id: true } })
+    const { id: userId } = request.user as { id: string }
+    const event = await prisma.meetEvent.findUnique({ where: { id }, select: { id: true, ownerId: true } })
     if (!event) return reply.status(404).send({ error: 'Événement introuvable' })
+    const role = await resolveRole('meetops', id, userId, event.ownerId)
+    if (!role) return reply.status(404).send({ error: 'Événement introuvable' })
     return prisma.meetHistory.findMany({ where: { eventId: id }, orderBy: { createdAt: 'desc' }, take: 200 })
   })
 
@@ -711,9 +742,10 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
   // Renvoie tous les événements de l'utilisateur avec leurs réunions (vue allégée)
   // pour superposer les calendriers.
   app.get('/calendar', { preHandler: [app.authenticate] }, async (request) => {
-    const { id: ownerId } = request.user as { id: string }
+    const { id: userId } = request.user as { id: string }
+    const shared = await sharedResourceIds('meetops', userId)
     return prisma.meetEvent.findMany({
-      where: { ownerId },
+      where: { OR: [{ ownerId: userId }, { id: { in: shared.map((s) => s.id) } }] },
       select: {
         id: true, name: true, color: true, type: true, status: true,
         meetings: {

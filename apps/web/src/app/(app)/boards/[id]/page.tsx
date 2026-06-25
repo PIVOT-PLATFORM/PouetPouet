@@ -539,8 +539,8 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           </div>
         )}
 
-        {/* ── Group: share + settings (owner) ─────────────────────────────── */}
-        {userRole === 'OWNER' && (
+        {/* ── Group: share + settings (owner or editor) ───────────────────── */}
+        {(userRole === 'OWNER' || userRole === 'EDITOR') && (
           <>
             <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />
             <div className="flex items-center gap-0.5 shrink-0">
@@ -1044,6 +1044,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             toolOpacity={toolOpacity}
             minTop={templateDraftOf ? 170 : 120}
             onToolChange={handleToolChange}
+            onPickImage={() => imageImportRef.current?.click()}
             drawingEnabled={featureOn('drawing')}
             onAddFrame={featureOn('frames') ? () => addFrame(200, 200) : undefined}
             frameLimitReached={frames.length >= MAX_FRAMES_PER_BOARD}
@@ -1243,7 +1244,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
       )}
 
       {showShareModal && (
-        <ShareModal boardId={id} onClose={() => setShowShareModal(false)} />
+        <ShareModal boardId={id} isOwner={userRole === 'OWNER'} onClose={() => setShowShareModal(false)} />
       )}
 
       {showExportHub && (

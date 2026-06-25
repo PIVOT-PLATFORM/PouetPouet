@@ -1,0 +1,1 @@
+ALTER TABLE "QuizParticipant" ADD COLUMN "streak" INTEGER NOT NULL DEFAULT 0;

@@ -16,7 +16,7 @@ export async function buildTestApp(
     }
     throw err
   })
-  await app.register(jwt, { secret: 'integration-test-secret', sign: { expiresIn: '30m' } })
+  await app.register(jwt, { secret: 'integration-test-secret', sign: { expiresIn: '4h' } })
   app.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       await request.jwtVerify()

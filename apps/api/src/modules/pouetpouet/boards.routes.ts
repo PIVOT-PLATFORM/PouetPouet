@@ -52,6 +52,19 @@ async function isBoardOwner(board: { id: string; ownerId: string }, userId: stri
   return share?.role === 'OWNER'
 }
 
+// OWNER ou EDITOR peut gérer les partages (invitations, rôles, révocations)
+// Retourne le rôle effectif du demandeur, ou null si pas accès.
+async function canManageShares(board: { id: string; ownerId: string }, userId: string): Promise<'OWNER' | 'EDITOR' | null> {
+  if (board.ownerId === userId) return 'OWNER'
+  const share = await prisma.boardShare.findUnique({
+    where: { boardId_userId: { boardId: board.id, userId } },
+    select: { role: true },
+  })
+  if (share?.role === 'OWNER') return 'OWNER'
+  if (share?.role === 'EDITOR') return 'EDITOR'
+  return null
+}
+
 export const boardRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate)
 
@@ -235,15 +248,13 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const board = await prisma.board.findUnique({ where: { shareToken: token } })
     if (!board) return reply.status(404).send({ error: 'Lien invalide ou expiré' })
     if (board.ownerId === userId) return reply.send({ boardId: board.id, role: 'OWNER' })
-    await prisma.boardShare.upsert({
+    // upsert renvoie déjà la ligne (créée ou existante) : pas de re-lecture.
+    const share = await prisma.boardShare.upsert({
       where: { boardId_userId: { boardId: board.id, userId } },
       update: {},
       create: { boardId: board.id, userId, role: board.shareLinkRole },
     })
-    const share = await prisma.boardShare.findUnique({
-      where: { boardId_userId: { boardId: board.id, userId } },
-    })
-    return reply.send({ boardId: board.id, role: share?.role ?? board.shareLinkRole })
+    return reply.send({ boardId: board.id, role: share.role })
   })
 
   // Get single board
@@ -255,7 +266,18 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
       include: { cards: { include: { fieldValues: true } } },
     })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    const role = await getUserBoardRole(id, userId)
+    // Le board est déjà chargé (ownerId inclus) : on évite le re-fetch de
+    // getUserBoardRole et, pour le propriétaire, la requête de partage.
+    let role: 'OWNER' | 'EDITOR' | 'VIEWER' | null
+    if (board.ownerId === userId) {
+      role = 'OWNER'
+    } else {
+      const share = await prisma.boardShare.findUnique({
+        where: { boardId_userId: { boardId: id, userId } },
+        select: { role: true },
+      })
+      role = share ? (share.role as 'OWNER' | 'EDITOR' | 'VIEWER') : null
+    }
     if (!role) return reply.status(403).send({ error: 'Accès refusé' })
     return reply.send({ ...board, role })
   })
@@ -316,13 +338,13 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
 
   // â”€â”€ Share management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  // Get share info (owner only)
+  // Get share info (owner or editor)
   app.get('/:id/shares', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const board = await prisma.board.findUnique({ where: { id } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (!(await isBoardOwner(board, userId))) return reply.status(403).send({ error: 'Accès refusé' })
+    if (!(await canManageShares(board, userId))) return reply.status(403).send({ error: 'Accès refusé' })
     const shares = await prisma.boardShare.findMany({
       where: { boardId: id },
       include: { user: { select: { id: true, name: true, email: true, avatar: true } } },
@@ -370,14 +392,16 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(204).send()
   })
 
-  // Invite user by email (owner only)
+  // Invite user by email (owner or editor; editor cannot grant OWNER)
   app.post('/:id/shares/invite', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const { email, role } = z.object({ email: z.string().email(), role: roleSchema.default('VIEWER') }).parse(request.body)
     const board = await prisma.board.findUnique({ where: { id } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (!(await isBoardOwner(board, userId))) return reply.status(403).send({ error: 'Accès refusé' })
+    const managerRole = await canManageShares(board, userId)
+    if (!managerRole) return reply.status(403).send({ error: 'Accès refusé' })
+    if (managerRole === 'EDITOR' && role === 'OWNER') return reply.status(403).send({ error: 'Un éditeur ne peut pas attribuer le rôle propriétaire' })
     const invitedUser = await prisma.user.findUnique({ where: { email } })
     if (!invitedUser) return reply.status(404).send({ error: 'Aucun compte trouvé avec cet email' })
     if (invitedUser.id === userId) return reply.status(400).send({ error: 'Vous ne pouvez pas vous inviter vous-même' })
@@ -411,14 +435,20 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(201).send(share)
   })
 
-  // Update share role (owner only)
+  // Update share role (owner or editor; editor cannot touch OWNER shares or grant OWNER)
   app.patch('/:id/shares/:shareId', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id, shareId } = request.params as { id: string; shareId: string }
     const { role } = z.object({ role: roleSchema }).parse(request.body)
     const board = await prisma.board.findUnique({ where: { id } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (!(await isBoardOwner(board, userId))) return reply.status(403).send({ error: 'Accès refusé' })
+    const managerRole = await canManageShares(board, userId)
+    if (!managerRole) return reply.status(403).send({ error: 'Accès refusé' })
+    if (managerRole === 'EDITOR') {
+      if (role === 'OWNER') return reply.status(403).send({ error: 'Un éditeur ne peut pas attribuer le rôle propriétaire' })
+      const targetShare = await prisma.boardShare.findUnique({ where: { id: shareId }, select: { role: true } })
+      if (targetShare?.role === 'OWNER') return reply.status(403).send({ error: 'Un éditeur ne peut pas modifier le rôle d\'un propriétaire' })
+    }
     const share = await prisma.boardShare.update({
       where: { id: shareId },
       data: { role },
@@ -434,14 +464,16 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     return reply.send(share)
   })
 
-  // Revoke share (owner only)
+  // Revoke share (owner or editor; editor cannot revoke OWNER shares)
   app.delete('/:id/shares/:shareId', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id, shareId } = request.params as { id: string; shareId: string }
     const board = await prisma.board.findUnique({ where: { id } })
     if (!board) return reply.status(404).send({ error: 'Board introuvable' })
-    if (!(await isBoardOwner(board, userId))) return reply.status(403).send({ error: 'Accès refusé' })
-    const share = await prisma.boardShare.findUnique({ where: { id: shareId }, select: { userId: true } })
+    const managerRole = await canManageShares(board, userId)
+    if (!managerRole) return reply.status(403).send({ error: 'Accès refusé' })
+    const share = await prisma.boardShare.findUnique({ where: { id: shareId }, select: { userId: true, role: true } })
+    if (managerRole === 'EDITOR' && share?.role === 'OWNER') return reply.status(403).send({ error: 'Un éditeur ne peut pas révoquer l\'accès d\'un propriétaire' })
     await prisma.boardShare.delete({ where: { id: shareId } })
     if (share) {
       await notify({
