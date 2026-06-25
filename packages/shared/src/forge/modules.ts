@@ -120,6 +120,20 @@ export const QUIZ_MODULE: ModuleManifest = {
   listensTo: [],
 }
 
+export const ROADMAP_MODULE: ModuleManifest = {
+  id: 'roadmap',
+  name: 'Roadmap',
+  description: 'Planification visuelle façon Gantt : jalons, dépendances, risques et priorités',
+  icon: '🗺️',
+  color: '#4f6ef7',
+  nav: [{ label: 'Roadmap', href: '/roadmap', match: '/roadmap' }],
+  apiPrefix: '/api/roadmap',
+  ownedEntities: ['Roadmap', 'RoadmapItem'],
+  referencedPivots: ['User'],
+  emits: [],
+  listensTo: [],
+}
+
 /** Modules actifs, dans l'ordre d'affichage de la navigation. */
 export const PIVOT_MODULES: ModuleManifest[] = [
   POUETPOUET_MODULE,
@@ -130,4 +144,5 @@ export const PIVOT_MODULES: ModuleManifest[] = [
   MEETOPS_MODULE,
   TESTBOOKS_MODULE,
   QUIZ_MODULE,
+  ROADMAP_MODULE,
 ]

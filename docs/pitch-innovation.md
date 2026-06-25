@@ -115,7 +115,7 @@ Les équipes agiles jonglent entre **6 à 9 outils distincts** pour collaborer.
 
 **Pivot** est une suite collaborative **auto-hébergée** et **open-source** (AGPL-3.0), conçue autour d'un graphe de données partagé dont chaque module est une vue.
 
-### 7 modules disponibles aujourd'hui
+### 8 modules disponibles aujourd'hui
 
 <span class="tag">Whiteboard</span>
 <span class="tag">Scrum Poker</span>
@@ -124,6 +124,7 @@ Les équipes agiles jonglent entre **6 à 9 outils distincts** pour collaborer.
 <span class="tag">Sessions live</span>
 <span class="tag">Capacité d'équipe</span>
 <span class="tag">MeetOps</span>
+<span class="tag">Roadmap</span>
 
 <br>
 
@@ -178,10 +179,15 @@ Les équipes agiles jonglent entre **6 à 9 outils distincts** pour collaborer.
 - Timer intégré, roue des décisions
 - Export du compte-rendu
 
+### Roadmap Gantt
+- Timeline interactive (5 échelles)
+- Jalons, dépendances, drag & drop
+- Export PDF vectoriel · partage par rôle
+
 </div>
 </div>
 
-> **Ce n'est pas un prototype — v0.21.0 en production, 21 releases livrées.**
+> **Ce n'est pas un prototype — v0.22.0 en production, 22 releases livrées.**
 
 ---
 <!-- _class: roi -->
@@ -287,7 +293,7 @@ La stack TypeScript / Next.js / Fastify est **parfaitement lisible par les LLM d
 
 ### Ce que ça change concrètement
 - **Pivot lui-même** est développé en AI-assist
-- 21 releases livrées en ~18 mois · équipe réduite
+- 22 releases livrées en ~18 mois · équipe réduite
 - Nouvelle feature : **1–3 jours** au lieu de 1–2 semaines
 - Correction de bug complexe : **quelques heures**
 
@@ -365,7 +371,7 @@ Demain : **des objets pivots partagés** entre tous les modules.
 
 | Phase | Contenu | Statut |
 |-------|---------|--------|
-| v0.19 | Partage équipes · Export ateliers | En cours |
+| v0.22 | Roadmap Gantt · Jalons · Drag & PDF | ✅ Livré |
 | v1.0 | Hardening · SSO · auth fédérée | Planifié |
 | F2 | Objets pivots partagés entre modules | Roadmap |
 | F3 | Assistant IA **Pouet** (Ollama, auto-hébergé) | Roadmap |
@@ -436,8 +442,8 @@ Pour les équipes sans ops
 
 **La seule suite collaborative qui met les données de votre équipe là où elles doivent être : chez vous.**
 
-**Open-source · Auto-hébergée · Temps réel · 7 modules · ROI positif M+1**
+**Open-source · Auto-hébergée · Temps réel · 8 modules · ROI positif M+1**
 
-`github.com/0bno/PouetPouet` · `v0.21.0`
+`github.com/0bno/PouetPouet` · `v0.22.0`
 
 > *Prêt à faire le pivot ?*

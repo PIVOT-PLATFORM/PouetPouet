@@ -20,6 +20,29 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.22.0',
+    date: '2026-06-25',
+    title: 'Module Roadmap — planification visuelle façon Gantt',
+    summary: 'Nouveau module de planification d\'équipe : Gantt interactif, jalons, filtres, glisser-déposer sur les barres et export PDF vectoriel.',
+    sections: [
+      {
+        heading: '🗓️ Module Roadmap',
+        items: [
+          'Nouveau module **Roadmap** : planifiez vos projets avec une timeline Gantt interactive (5 échelles : semaine, mois, trimestre, semestre, an).',
+          'Items configurables : domaine (Infra / Dev / Cyber), risque (Faible / Moyen / Élevé), priorité (Should / Must), valeur business, dépendances.',
+          'Jalons (date unique) : affichés sous forme de diamant ⬦ au bon point de la timeline.',
+          '**Drag & drop sur le Gantt** : déplacez une barre ou étirez-la par ses poignées pour ajuster les dates directement depuis la vue.',
+          'Dépendances visuelles entre items (flèches bezier) avec toggle d\'affichage.',
+          '**Filtres** combinables par domaine, risque et priorité Must — compteur items filtrés/total.',
+          '**Export PDF vectoriel** : Gantt A4 paysage, paginé, dessiné depuis les données (indépendant du zoom/scroll).',
+          'Export JSON pour sauvegarder ou partager un plan.',
+          'Partage par rôle (Lecteur / Éditeur / Owner) sur le même patron que les autres modules.',
+          'Gating via feature flag `module.roadmap` (activé par défaut).',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.21.0',
     date: '2026-06-25',
     title: 'Sessions plus longues et fiables',

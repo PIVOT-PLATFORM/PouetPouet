@@ -1,6 +1,6 @@
 # Roadmap Pivot — état au 2026-06-25
 
-> Version courante : **0.21.0**
+> Version courante : **0.22.0**
 >
 > Source unique de suivi : ce fichier centralise la roadmap et les chantiers ouverts.
 
@@ -197,6 +197,18 @@
 ---
 
 ## P1 - Nouveaux modules
+
+### Module Roadmap (planification Gantt) — livré v0.22.0
+- [x] CRUD roadmaps (nom, plage de dates, échelle)
+- [x] Items : domaine, risque, priorité, valeur business, dépendances
+- [x] Timeline Gantt interactive — 5 échelles (semaine → an)
+- [x] Jalons (date unique, rendu diamant ⬦)
+- [x] Drag & drop : déplacer et redimensionner les barres directement sur le Gantt
+- [x] Filtres combinables par domaine / risque / priorité Must
+- [x] Flèches de dépendances (SVG bezier)
+- [x] Export PDF vectoriel (A4 paysage, paginé, data-driven)
+- [x] Export JSON
+- [x] Partage par rôle (Lecteur / Éditeur / Owner)
 
 ### Module Quiz interactif (style Kahoot) — #164
 - [x] CRUD quiz : titre, questions (texte + 2–4 options, bonne réponse, timer, points)

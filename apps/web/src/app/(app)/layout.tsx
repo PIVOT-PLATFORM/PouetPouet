@@ -152,6 +152,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!token || !user) return null
 
   const isBoardPage = pathname.startsWith('/boards/')
+  // L'éditeur de roadmap (Gantt) s'étale en pleine largeur comme le board, mais
+  // garde le shell normal (navbar, footer, scroll de page). La liste /roadmap
+  // reste, elle, à la largeur standard max-w-6xl.
+  const isRoadmapEditor = /^\/roadmap\/[^/]+$/.test(pathname)
+  const isWide = isBoardPage || isRoadmapEditor
 
   return (
     // overflow-clip (pas hidden) sur les pages board : un conteneur overflow-hidden reste
@@ -159,7 +164,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // viewport du board (getBoundingClientRect().left négatif). clip interdit tout scroll.
     <div className={`bg-gray-50 dark:bg-gray-950 grid grid-rows-[auto_1fr_auto] ${isBoardPage ? 'h-screen overflow-clip' : 'min-h-screen'}`}>
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
-        <div className={`flex items-center h-14 gap-4 ${isBoardPage ? 'px-4' : 'px-6 max-w-6xl mx-auto'}`}>
+        <div className={`flex items-center h-14 gap-4 ${isBoardPage ? 'px-4' : isWide ? 'px-6' : 'px-6 max-w-6xl mx-auto'}`}>
           {/* Logo with the app version as a small superscript, clickable to open the release notes. */}
           <div className="flex items-start gap-0.5">
             <Link href="/hub">
@@ -248,7 +253,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className={isBoardPage ? '' : 'w-full max-w-6xl mx-auto px-6 py-8'}>
+      <main className={isBoardPage ? '' : isWide ? 'w-full px-6 py-8' : 'w-full max-w-6xl mx-auto px-6 py-8'}>
         {children}
       </main>
 

@@ -6,6 +6,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 > Les notes de version **détaillées** (groupées par thème, orientées utilisateur) sont la source de vérité in-app : [`apps/api/src/lib/patch-notes.ts`](apps/api/src/lib/patch-notes.ts), affichées dans le panneau de notifications. Ce fichier en est l'index public condensé.
 
+## [0.22.0] — 2026-06-25
+Nouveau module **Roadmap** : planification visuelle façon Gantt (5 échelles, jalons, dépendances), drag & drop direct sur les barres pour ajuster les dates, filtres combinables par domaine/risque/priorité, export **PDF vectoriel** A4 paginé et export JSON. Partage par rôle (Lecteur / Éditeur / Owner).
+
 ## [0.21.0] — 2026-06-25
 **Sessions plus longues et fiables.** Durée de session portée à **4 h** (une demi-journée) ; **renouvellement automatique et continu** tant que l'utilisateur est actif (y compris au retour de veille / focus d'onglet), avec **retry** sur échec réseau et le serveur seul juge de l'expiration. Corrige les déconnexions inopinées et la perte de page au rafraîchissement. Côté board : 2 requêtes Prisma redondantes supprimées (ouverture d'un board, partage par lien).
 

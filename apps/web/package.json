@@ -1,6 +1,6 @@
-{
+﻿{
   "name": "@pouetpouet/web",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
@@ -47,3 +47,4 @@
     "vitest": "^4.1.7"
   }
 }
+

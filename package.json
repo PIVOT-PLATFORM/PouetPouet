@@ -1,6 +1,6 @@
-{
+﻿{
   "name": "pouetpouet",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "private": true,
   "workspaces": [
     "apps/*",
@@ -35,3 +35,4 @@
     "pdf-lib": "^1.17.1"
   }
 }
+
