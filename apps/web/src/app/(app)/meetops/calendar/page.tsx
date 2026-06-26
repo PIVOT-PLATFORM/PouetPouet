@@ -22,14 +22,29 @@ interface SavedView { id: string; name: string; viewMode: ViewMode; filter: CalF
 const EMPTY_FILTER: CalFilter = { eventIds: null, statuses: null, labels: null }
 const WEEKDAY_HEADERS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
-const HOUR_START = 0
-const HOUR_END = 24
 const WORK_START = 9
 const WORK_END = 18
-const TOTAL_MIN = (HOUR_END - HOUR_START) * 60
-const GRID_HEIGHT = 960
-const PX_PER_MIN = GRID_HEIGHT / TOTAL_MIN
-const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i)
+const PX_PER_MIN_BASE = 40 / 60 // 40px par heure, densité constante
+
+interface CalRange {
+  hourStart: number
+  hourEnd: number
+  totalMin: number
+  gridHeight: number
+  pxPerMin: number
+  hours: number[]
+}
+function makeRange(compact: boolean): CalRange {
+  const hourStart = compact ? 8 : 0
+  const hourEnd = compact ? 20 : 24
+  const totalMin = (hourEnd - hourStart) * 60
+  return {
+    hourStart, hourEnd, totalMin,
+    gridHeight: Math.round(totalMin * PX_PER_MIN_BASE),
+    pxPerMin: PX_PER_MIN_BASE,
+    hours: Array.from({ length: hourEnd - hourStart }, (_, i) => hourStart + i),
+  }
+}
 
 // ── Utilitaires ──────────────────────────────────────────────────────────────────
 
@@ -49,9 +64,9 @@ function getISOWeek(date: Date): number {
   return Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7)
 }
 
-function timeToTop(startAt: string): number {
+function timeToTop(startAt: string, hourStart: number, pxPerMin: number): number {
   const d = new Date(startAt)
-  return Math.max(0, ((d.getHours() - HOUR_START) * 60 + d.getMinutes()) * PX_PER_MIN)
+  return Math.max(0, ((d.getHours() - hourStart) * 60 + d.getMinutes()) * pxPerMin)
 }
 
 const LS_VIEWS = 'meetops_cal_views'
@@ -358,28 +373,30 @@ interface TimeGridHandlers {
   onResizeStart: (id: string, startY: number, origDuration: number) => void
 }
 
-function TimeGrid({ columnDays, byDay, todayKey, viewMode, handlers }: {
+function TimeGrid({ columnDays, byDay, todayKey, viewMode, calRange, handlers }: {
   columnDays: Date[]
   byDay: Map<string, Placed[]>
   todayKey: string
   viewMode: ViewMode
+  calRange: CalRange
   handlers: TimeGridHandlers
 }) {
+  const { hourStart, hourEnd, totalMin, gridHeight, pxPerMin, hours } = calRange
   const gridCols = viewMode === 'day' ? 'grid-cols-1' : viewMode === 'workweek' ? 'grid-cols-5' : 'grid-cols-7'
   const [dropInfo, setDropInfo] = useState<{ key: string; top: number } | null>(null)
 
   const { now, nowKey, selectedId, resizePreview, onMeetingEnter, onMeetingLeave, onMeetingClick,
     onMeetingDrop, onMeetingContextMenu, onSlotClick, onResizeStart } = handlers
 
-  const nowTop = timeToTop(now.toISOString())
+  const nowTop = timeToTop(now.toISOString(), hourStart, pxPerMin)
 
   function handleDragOver(e: React.DragEvent<HTMLDivElement>, d: Date) {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     const rect = e.currentTarget.getBoundingClientRect()
     const y = Math.max(0, e.clientY - rect.top)
-    const snapped = Math.min(Math.round((y / GRID_HEIGHT * TOTAL_MIN) / 15) * 15, TOTAL_MIN - 15)
-    setDropInfo({ key: dayKey(d), top: (snapped / TOTAL_MIN) * GRID_HEIGHT })
+    const snapped = Math.min(Math.round((y / gridHeight * totalMin) / 15) * 15, totalMin - 15)
+    setDropInfo({ key: dayKey(d), top: (snapped / totalMin) * gridHeight })
   }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>, d: Date) {
@@ -389,9 +406,9 @@ function TimeGrid({ columnDays, byDay, todayKey, viewMode, handlers }: {
       const data = JSON.parse(e.dataTransfer.getData('text/plain')) as { id: string; offsetY: number }
       const rect = e.currentTarget.getBoundingClientRect()
       const y = Math.max(0, e.clientY - rect.top - data.offsetY)
-      const snapped = Math.max(0, Math.min(TOTAL_MIN - 30, Math.round((y / GRID_HEIGHT * TOTAL_MIN) / 15) * 15))
-      const totalMin = HOUR_START * 60 + snapped
-      onMeetingDrop(data.id, new Date(d.getFullYear(), d.getMonth(), d.getDate(), Math.floor(totalMin / 60), totalMin % 60, 0, 0))
+      const snapped = Math.max(0, Math.min(totalMin - 30, Math.round((y / gridHeight * totalMin) / 15) * 15))
+      const minuteOfDay = hourStart * 60 + snapped
+      onMeetingDrop(data.id, new Date(d.getFullYear(), d.getMonth(), d.getDate(), Math.floor(minuteOfDay / 60), minuteOfDay % 60, 0, 0))
     } catch { /* drag data invalide */ }
   }
 
@@ -399,20 +416,20 @@ function TimeGrid({ columnDays, byDay, todayKey, viewMode, handlers }: {
     if ((e.target as HTMLElement).closest('[data-meeting]')) return
     const rect = e.currentTarget.getBoundingClientRect()
     const y = Math.max(0, e.clientY - rect.top)
-    const snapped = Math.max(0, Math.min(TOTAL_MIN - 30, Math.round((y / GRID_HEIGHT * TOTAL_MIN) / 15) * 15))
-    const totalMin = HOUR_START * 60 + snapped
-    onSlotClick(new Date(d.getFullYear(), d.getMonth(), d.getDate(), Math.floor(totalMin / 60), totalMin % 60, 0, 0), { x: e.clientX, y: e.clientY })
+    const snapped = Math.max(0, Math.min(totalMin - 30, Math.round((y / gridHeight * totalMin) / 15) * 15))
+    const minuteOfDay = hourStart * 60 + snapped
+    onSlotClick(new Date(d.getFullYear(), d.getMonth(), d.getDate(), Math.floor(minuteOfDay / 60), minuteOfDay % 60, 0, 0), { x: e.clientX, y: e.clientY })
   }
 
-  // Calcul all-day (hors plage 7h-21h)
+  // Bannière all-day : réunions hors de la plage visible
   const allDayByDay = useMemo(() => {
     const map = new Map<string, Placed[]>()
     for (const [key, items] of byDay.entries()) {
-      const ad = items.filter((it) => { const h = new Date(it.startAt).getHours(); return h < HOUR_START || h >= HOUR_END })
+      const ad = items.filter((it) => { const h = new Date(it.startAt).getHours(); return h < hourStart || h >= hourEnd })
       if (ad.length) map.set(key, ad)
     }
     return map
-  }, [byDay])
+  }, [byDay, hourStart, hourEnd])
 
   const hasAllDay = columnDays.some((d) => (allDayByDay.get(dayKey(d)) ?? []).length > 0)
 
@@ -432,7 +449,7 @@ function TimeGrid({ columnDays, byDay, todayKey, viewMode, handlers }: {
         })}
       </div>
 
-      {/* Bannière all-day */}
+      {/* Bannière all-day (réunions hors plage horaire) */}
       {hasAllDay && (
         <div className={`grid ${gridCols} border-b border-gray-100 dark:border-gray-800 ml-10`}>
           {columnDays.map((d, i) => {
@@ -459,10 +476,10 @@ function TimeGrid({ columnDays, byDay, todayKey, viewMode, handlers }: {
       {/* Corps */}
       <div className="flex">
         {/* Étiquettes heures */}
-        <div className="w-10 shrink-0 relative select-none" style={{ height: GRID_HEIGHT }}>
-          {HOURS.map((h) => (
+        <div className="w-10 shrink-0 relative select-none" style={{ height: gridHeight }}>
+          {hours.map((h) => (
             <div key={h} className="absolute w-full text-right pr-2 text-[10px] text-gray-400 -translate-y-2"
-              style={{ top: (h - HOUR_START) * 60 * PX_PER_MIN }}>{h}h</div>
+              style={{ top: (h - hourStart) * 60 * pxPerMin }}>{h}h</div>
           ))}
         </div>
 
@@ -471,14 +488,14 @@ function TimeGrid({ columnDays, byDay, todayKey, viewMode, handlers }: {
           {columnDays.map((d, i) => {
             const key = dayKey(d)
             const items = byDay.get(key) ?? []
-            const visible = items.filter((it) => { const h = new Date(it.startAt).getHours(); return h >= HOUR_START && h < HOUR_END })
+            const visible = items.filter((it) => { const h = new Date(it.startAt).getHours(); return h >= hourStart && h < hourEnd })
             const laid = layoutItems(visible)
             const isToday = key === todayKey
 
             return (
               <div key={i}
                 className="relative border-l border-gray-100 dark:border-gray-800 cursor-crosshair overflow-hidden"
-                style={{ height: GRID_HEIGHT }}
+                style={{ height: gridHeight }}
                 onClick={(e) => handleColumnClick(e, d)}
                 onDragOver={(e) => handleDragOver(e, d)}
                 onDragLeave={() => setDropInfo(null)}
@@ -486,22 +503,22 @@ function TimeGrid({ columnDays, byDay, todayKey, viewMode, handlers }: {
 
                 {/* Hors-horaires (avant 9h / après 18h) */}
                 <div className="absolute left-0 right-0 bg-gray-50/70 dark:bg-gray-800/30 pointer-events-none"
-                  style={{ top: 0, height: (WORK_START - HOUR_START) * 60 * PX_PER_MIN }} />
+                  style={{ top: 0, height: Math.max(0, WORK_START - hourStart) * 60 * pxPerMin }} />
                 <div className="absolute left-0 right-0 bg-gray-50/70 dark:bg-gray-800/30 pointer-events-none"
-                  style={{ top: (WORK_END - HOUR_START) * 60 * PX_PER_MIN, height: (HOUR_END - WORK_END) * 60 * PX_PER_MIN }} />
+                  style={{ top: (WORK_END - hourStart) * 60 * pxPerMin, height: Math.max(0, hourEnd - WORK_END) * 60 * pxPerMin }} />
 
                 {/* Lignes heures + demi-heures */}
-                {HOURS.map((h) => (
+                {hours.map((h) => (
                   <div key={h} className="absolute w-full border-t border-gray-100 dark:border-gray-800"
-                    style={{ top: (h - HOUR_START) * 60 * PX_PER_MIN }} />
+                    style={{ top: (h - hourStart) * 60 * pxPerMin }} />
                 ))}
-                {HOURS.slice(0, -1).map((h) => (
+                {hours.slice(0, -1).map((h) => (
                   <div key={`${h}.5`} className="absolute w-full border-t border-gray-50 dark:border-gray-800/50"
-                    style={{ top: (h - HOUR_START + 0.5) * 60 * PX_PER_MIN }} />
+                    style={{ top: (h - hourStart + 0.5) * 60 * pxPerMin }} />
                 ))}
 
                 {/* Heure courante */}
-                {isToday && nowTop >= 0 && nowTop <= GRID_HEIGHT && (
+                {isToday && nowTop >= 0 && nowTop <= gridHeight && (
                   <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
                     style={{ top: nowTop, transform: 'translateY(-50%)' }}>
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0 shadow-[0_0_0_2px_rgba(239,68,68,0.2)]" />
@@ -519,8 +536,8 @@ function TimeGrid({ columnDays, byDay, todayKey, viewMode, handlers }: {
                 {/* Meetings */}
                 {laid.map((it, j) => {
                   const effectiveDuration = resizePreview?.id === it.id ? resizePreview.duration : it.durationMin
-                  const top = timeToTop(it.startAt)
-                  const height = Math.max(18, effectiveDuration * PX_PER_MIN - 2)
+                  const top = timeToTop(it.startAt, hourStart, pxPerMin)
+                  const height = Math.max(18, effectiveDuration * pxPerMin - 2)
                   const time = new Date(it.startAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
                   const colW = 100 / it.totalCols
                   const GAP = 1.5
@@ -576,6 +593,8 @@ export default function MeetopsCalendarPage() {
 
   const [viewMode, setViewMode] = useState<ViewMode>('month')
   const [anchor, setAnchor] = useState<Date>(() => new Date())
+  const [compactHours, setCompactHours] = useState(false)
+  const calRange = useMemo(() => makeRange(compactHours), [compactHours])
   const [filter, setFilter] = useState<CalFilter>(EMPTY_FILTER)
   const [savedViews, setSavedViews] = useState<SavedView[]>([])
   const [defaultId, setDefaultId] = useState<string | null>(null)
@@ -618,7 +637,7 @@ export default function MeetopsCalendarPage() {
     function onMove(e: MouseEvent) {
       if (!resizeRef.current) return
       const dy = e.clientY - resizeRef.current.startY
-      const deltaMins = Math.round((dy / PX_PER_MIN) / 15) * 15
+      const deltaMins = Math.round((dy / calRange.pxPerMin) / 15) * 15
       setResizePreview({ id: resizeRef.current.id, duration: Math.max(15, resizeRef.current.origDuration + deltaMins) })
     }
     async function onUp(e: MouseEvent) {
@@ -626,7 +645,7 @@ export default function MeetopsCalendarPage() {
       document.removeEventListener('mouseup', onUp)
       if (!resizeRef.current) return
       const dy = e.clientY - resizeRef.current.startY
-      const deltaMins = Math.round((dy / PX_PER_MIN) / 15) * 15
+      const deltaMins = Math.round((dy / calRange.pxPerMin) / 15) * 15
       const newDuration = Math.max(15, resizeRef.current.origDuration + deltaMins)
       const { id, origDuration } = resizeRef.current
       resizeRef.current = null
@@ -850,9 +869,10 @@ export default function MeetopsCalendarPage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>MeetOps
         </Link>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight mt-2">📆 Calendrier global</h1>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-          Survol → détails · Clic → sélection · Clic droit → menu · Glisser → déplacer · Poignée bas → redimensionner · Clic vide → créer
-          <span className="ml-2 opacity-60">← → T 1-5 Échap</span>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Vue consolidée de toutes vos réunions MeetOps, tous événements confondus.
+          Survolez un créneau pour voir le détail, glissez-déposez pour déplacer, tirez le bas d&apos;un bloc pour le redimensionner.
+          Un clic sur un créneau vide ouvre la création rapide&nbsp;; le clic droit donne accès à plus d&apos;options.
         </p>
       </div>
 
@@ -876,6 +896,21 @@ export default function MeetopsCalendarPage() {
               <button onClick={() => shift(1)} className="w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30" disabled={viewMode === 'agenda'}>›</button>
             </div>
             <span className="text-sm font-semibold text-gray-900 dark:text-white capitalize">{rangeLabel}</span>
+            {['week', 'workweek', 'day'].includes(viewMode) && (
+              <button
+                onClick={() => setCompactHours((c) => !c)}
+                title={compactHours ? 'Afficher la journée complète (0h–24h)' : 'Afficher uniquement les horaires de travail (8h–20h)'}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                  compactHours
+                    ? 'border-primary-400 text-primary-600 bg-primary-50 dark:bg-primary-950/30 dark:text-primary-400'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1M4.22 4.22l.7.7m12.16 12.16.7.7M3 12h1m16 0h1M4.92 19.07l.7-.7M18.36 5.64l.7-.7" />
+                </svg>
+                {compactHours ? '8h – 20h' : '0h – 24h'}
+              </button>
+            )}
             <div className="ml-auto flex items-center gap-2">
               {searchOpen ? (
                 <div className="relative flex items-center gap-1">
@@ -963,7 +998,7 @@ export default function MeetopsCalendarPage() {
 
           {/* Vues Semaine / Jour */}
           {(viewMode === 'week' || viewMode === 'workweek' || viewMode === 'day') && (
-            <TimeGrid columnDays={columnDays} byDay={byDay} todayKey={todayKey} viewMode={viewMode} handlers={timeGridHandlers} />
+            <TimeGrid columnDays={columnDays} byDay={byDay} todayKey={todayKey} viewMode={viewMode} calRange={calRange} handlers={timeGridHandlers} />
           )}
 
           {/* Vue Agenda */}
