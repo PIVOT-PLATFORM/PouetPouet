@@ -871,8 +871,6 @@ export default function MeetopsCalendarPage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight mt-2">📆 Calendrier global</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           Vue consolidée de toutes vos réunions MeetOps, tous événements confondus.
-          Survolez un créneau pour voir le détail, glissez-déposez pour déplacer, tirez le bas d&apos;un bloc pour le redimensionner.
-          Un clic sur un créneau vide ouvre la création rapide&nbsp;; le clic droit donne accès à plus d&apos;options.
         </p>
       </div>
 
