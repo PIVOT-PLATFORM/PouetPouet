@@ -181,6 +181,11 @@ export function useMeetCalendar() {
     await reload()
   }, [reload])
 
+  const createEvent = useCallback(async (input: { name: string }): Promise<string> => {
+    const ev = await api.post<{ id: string }>('/api/meetops/events', input)
+    return ev.id
+  }, [])
+
   const createMeeting = useCallback(async (
     eventId: string,
     input: { title: string; startAt: string; durationMin?: number },
@@ -194,7 +199,7 @@ export function useMeetCalendar() {
     await reload()
   }, [reload])
 
-  return { events, isLoading, reload, updateMeeting, createMeeting, deleteMeeting }
+  return { events, isLoading, reload, createEvent, updateMeeting, createMeeting, deleteMeeting }
 }
 
 // ── Templates ──────────────────────────────────────────────────────────────────────

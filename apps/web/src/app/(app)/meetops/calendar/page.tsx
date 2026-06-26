@@ -168,26 +168,34 @@ function MeetingPopup({ popup, onClose, onNavigate, onMouseEnter, onMouseLeave }
 
 interface QuickCreateState { date: Date; x: number; y: number }
 
+const NEW_EVENT_ID = '__new__'
+
 function QuickCreatePopup({ state, events, onSave, onClose }: {
   state: QuickCreateState
   events: MeetCalendarEvent[]
-  onSave: (eventId: string, title: string, startAt: Date) => Promise<void>
+  onSave: (eventId: string | null, newEventName: string | null, title: string, startAt: Date) => Promise<void>
   onClose: () => void
 }) {
   const [title, setTitle] = useState('Nouvelle réunion')
-  const [eventId, setEventId] = useState(events[0]?.id ?? '')
+  const [eventId, setEventId] = useState(events[0]?.id ?? NEW_EVENT_ID)
+  const [newEventName, setNewEventName] = useState('')
   const [saving, setSaving] = useState(false)
+  const isNew = eventId === NEW_EVENT_ID
   const x = typeof window !== 'undefined' ? Math.min(state.x + 10, window.innerWidth - 280) : state.x
-  const y = typeof window !== 'undefined' ? Math.min(state.y - 20, window.innerHeight - 180) : state.y
+  const y = typeof window !== 'undefined' ? Math.min(state.y - 20, window.innerHeight - 200) : state.y
   const dateLabel = state.date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
   const timeLabel = state.date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 
+  const canSubmit = title.trim() && (isNew ? newEventName.trim() : eventId)
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!title.trim() || !eventId) return
+    if (!canSubmit) return
     setSaving(true)
-    try { await onSave(eventId, title.trim(), state.date); onClose() }
-    catch (err) { alert((err as Error).message); setSaving(false) }
+    try {
+      await onSave(isNew ? null : eventId, isNew ? newEventName.trim() : null, title.trim(), state.date)
+      onClose()
+    } catch (err) { alert((err as Error).message); setSaving(false) }
   }
 
   return (
@@ -202,16 +210,21 @@ function QuickCreatePopup({ state, events, onSave, onClose }: {
       </div>
       <form onSubmit={submit} className="flex flex-col gap-2">
         <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)}
+          placeholder="Titre de la réunion"
           className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
-        {events.length > 1 && (
-          <select value={eventId} onChange={(e) => setEventId(e.target.value)}
-            className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary-400">
-            {events.slice(0, 8).map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-          </select>
+        <select value={eventId} onChange={(e) => setEventId(e.target.value)}
+          className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary-400">
+          {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+          <option value={NEW_EVENT_ID}>+ Nouvel événement…</option>
+        </select>
+        {isNew && (
+          <input autoFocus value={newEventName} onChange={(e) => setNewEventName(e.target.value)}
+            placeholder="Nom du nouvel événement"
+            className="w-full border border-primary-300 dark:border-primary-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary-400" />
         )}
         <div className="flex justify-end gap-1.5 mt-1">
           <button type="button" onClick={onClose} className="px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">Annuler</button>
-          <button type="submit" disabled={saving || !title.trim() || !eventId}
+          <button type="submit" disabled={saving || !canSubmit}
             className="px-3 py-1 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 rounded-lg">
             {saving ? '…' : 'Créer'}
           </button>
@@ -589,7 +602,7 @@ function TimeGrid({ columnDays, byDay, todayKey, viewMode, calRange, handlers }:
 // ── Page ──────────────────────────────────────────────────────────────────────────
 
 export default function MeetopsCalendarPage() {
-  const { events, isLoading, updateMeeting, createMeeting, deleteMeeting } = useMeetCalendar()
+  const { events, isLoading, createEvent, updateMeeting, createMeeting, deleteMeeting } = useMeetCalendar()
   const router = useRouter()
 
   const [viewMode, setViewMode] = useState<ViewMode>('month')
@@ -793,8 +806,13 @@ export default function MeetopsCalendarPage() {
     catch (err) { alert((err as Error).message) }
   }
 
-  async function handleQuickSave(eventId: string, title: string, startAt: Date) {
-    await createMeeting(eventId, { title, startAt: startAt.toISOString(), durationMin: 60 })
+  async function handleQuickSave(eventId: string | null, newEventName: string | null, title: string, startAt: Date) {
+    let finalEventId = eventId
+    if (!finalEventId && newEventName) {
+      finalEventId = await createEvent({ name: newEventName })
+    }
+    if (!finalEventId) return
+    await createMeeting(finalEventId, { title, startAt: startAt.toISOString(), durationMin: 60 })
   }
 
   async function handleDuplicate(item: Placed) {
@@ -1059,7 +1077,7 @@ export default function MeetopsCalendarPage() {
           onMouseEnter={cancelHide} onMouseLeave={scheduleHide} />
       )}
 
-      {quickCreate && events.length > 0 && (
+      {quickCreate && (
         <QuickCreatePopup state={quickCreate} events={visibleEvents.length > 0 ? visibleEvents : events}
           onSave={handleQuickSave} onClose={() => setQuickCreate(null)} />
       )}
