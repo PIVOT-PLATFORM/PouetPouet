@@ -502,9 +502,10 @@ function TimeGrid({ columnDays, byDay, todayKey, viewMode, handlers }: {
 
                 {/* Heure courante */}
                 {isToday && nowTop >= 0 && nowTop <= GRID_HEIGHT && (
-                  <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: nowTop }}>
-                    <div className="absolute -left-0.5 -top-1 w-2 h-2 rounded-full bg-red-400" />
-                    <div className="h-0.5 bg-red-400" />
+                  <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
+                    style={{ top: nowTop, transform: 'translateY(-50%)' }}>
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0 shadow-[0_0_0_2px_rgba(239,68,68,0.2)]" />
+                    <div className="flex-1 h-[1.5px] bg-red-500" />
                   </div>
                 )}
 
