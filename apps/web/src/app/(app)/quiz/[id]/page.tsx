@@ -61,7 +61,7 @@ function QuestionForm({
   const [saving, setSaving] = useState(false)
 
   function addOption() {
-    if (options.length >= 4) return
+    if (options.length >= 8) return
     setOptions([...options, ''])
   }
 
