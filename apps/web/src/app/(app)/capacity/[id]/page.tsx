@@ -157,6 +157,7 @@ function MembersPanel({
 }) {
   const [newName, setNewName] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [confirmMember, setConfirmMember] = useState<string | null>(null)
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -224,7 +225,14 @@ function MembersPanel({
                   {mc.absentDays > 0 ? `−${mc.absentDays}j` : '+'}
                 </button>
                 <span className="w-20 text-right text-sm font-semibold text-gray-800 dark:text-gray-100 tabular-nums">{mc.netPersonDays}</span>
-                <button onClick={() => onDeleteMember(m.id)} className="w-6 text-gray-300 hover:text-red-500 transition-colors" title="Retirer">✕</button>
+                {confirmMember === m.id ? (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => { onDeleteMember(m.id); setConfirmMember(null) }} className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 hover:bg-red-200 font-medium">Oui</button>
+                    <button onClick={() => setConfirmMember(null)} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 hover:bg-gray-200 font-medium">Non</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmMember(m.id)} className="w-6 text-gray-300 hover:text-red-500 transition-colors" title="Retirer">✕</button>
+                )}
               </div>
 
               {isOpen && (
@@ -263,14 +271,22 @@ function AbsenceEditor({
   onDelete: (absenceId: string) => Promise<unknown>
 }) {
   const [start, setStart] = useState(toDateInput(event.startDate))
-  const [end, setEnd] = useState(toDateInput(event.startDate))
+  const [end, setEnd] = useState(toDateInput(event.endDate))
   const [fraction, setFraction] = useState(1)
   const [reason, setReason] = useState('')
+  const [addError, setAddError] = useState<string | null>(null)
+  const [confirmAbs, setConfirmAbs] = useState<string | null>(null)
 
   async function handleAdd() {
     if (!start || !end) return
-    await onAdd({ startDate: start, endDate: end, fraction, reason: reason.trim() || undefined })
-    setReason('')
+    if (end < start) { setAddError('La date de fin doit être après la date de début.'); return }
+    setAddError(null)
+    try {
+      await onAdd({ startDate: start, endDate: end, fraction, reason: reason.trim() || undefined })
+      setReason('')
+    } catch (e) {
+      setAddError((e as Error).message ?? 'Erreur lors de l\'ajout.')
+    }
   }
 
   return (
@@ -282,7 +298,14 @@ function AbsenceEditor({
               <span className="font-medium">{toDateInput(a.startDate)} → {toDateInput(a.endDate)}</span>
               {a.fraction !== 1 && <span className="text-amber-600">½</span>}
               {a.reason && <span className="text-gray-400">· {a.reason}</span>}
-              <button onClick={() => onDelete(a.id)} className="ml-auto text-gray-300 hover:text-red-500">✕</button>
+              {confirmAbs === a.id ? (
+                <div className="ml-auto flex items-center gap-1">
+                  <button onClick={() => { onDelete(a.id); setConfirmAbs(null) }} className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 hover:bg-red-200 font-medium">Oui</button>
+                  <button onClick={() => setConfirmAbs(null)} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 hover:bg-gray-200 font-medium">Non</button>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmAbs(a.id)} className="ml-auto text-gray-300 hover:text-red-500">✕</button>
+              )}
             </div>
           ))}
         </div>
@@ -310,6 +333,7 @@ function AbsenceEditor({
           className="flex-1 min-w-[120px] border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary-400" />
         <button onClick={handleAdd} className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700">+ Absence</button>
       </div>
+      {addError && <p className="mt-2 text-[11px] text-red-500">{addError}</p>}
     </div>
   )
 }
