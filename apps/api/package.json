@@ -38,6 +38,7 @@
     "nodemailer": "^8.0.11",
     "openid-client": "^6.8.4",
     "pdf-lib": "^1.17.1",
+    "pdf-parse": "^2.4.5",
     "socket.io": "^4.8.1",
     "zod": "^3.24.4"
   },
@@ -47,6 +48,7 @@
     "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.19.21",
+    "@types/pdf-parse": "^1.1.5",
     "prisma": "7.8.0",
     "tsx": "^4.22.4",
     "typescript": "^5.8.3",

@@ -53,6 +53,7 @@ model User {
   gameScores     GameScore[]
   roadmaps       Roadmap[]
   pdfDocuments   PdfDocument[]
+  pdfFolders     PdfFolder[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1069,13 +1070,34 @@ model RoadmapItem {
 model PdfDocument {
   id        String   @id @default(cuid())
   ownerId   String
+  folderId  String?
   name      String
+  tags      String[]
   pageCount Int
   size      Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner  User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  folder PdfFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
 
   @@index([ownerId, createdAt])
+  @@index([ownerId, folderId])
+}
+
+model PdfFolder {
+  id        String   @id @default(cuid())
+  ownerId   String
+  parentId  String?
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner     User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  parent    PdfFolder?  @relation("PdfFolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  PdfFolder[] @relation("PdfFolderTree")
+  documents PdfDocument[]
+
+  @@index([ownerId])
+  @@index([ownerId, parentId])
 }

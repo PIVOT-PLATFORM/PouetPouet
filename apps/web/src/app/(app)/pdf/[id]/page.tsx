@@ -5,15 +5,67 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, RotateCw, Scissors, Copy, Download, Trash2,
-  Loader2, Check, X, GripVertical, ChevronLeft, ChevronRight, Pencil
+  Loader2, Check, X, GripVertical, FileText, FileDown
 } from 'lucide-react'
-import { usePdfDoc } from '@/hooks/usePdf'
+import { usePdfDoc, usePdfCapabilities, getFileUrl, getExportUrl } from '@/hooks/usePdf'
 import { PdfPageCanvas } from '@/components/pdf/pdf-page-canvas'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
 
 function getToken() {
   return typeof window !== 'undefined' ? localStorage.getItem('token') : null
+}
+
+function ExportImagesButton({ docId, name, pageCount, version }: { docId: string; name: string; pageCount: number; version: number }) {
+  const [progress, setProgress] = useState<{ cur: number; total: number } | null>(null)
+
+  async function handleExport() {
+    if (pageCount === 0) return
+    setProgress({ cur: 0, total: pageCount })
+    try {
+      const token = getToken()
+      const url = `${API_URL}/api/pdf/${docId}/file?v=${version}`
+      const pdfjsLib = await import('pdfjs-dist')
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
+      const pdf = await pdfjsLib.getDocument({ url, httpHeaders: token ? { Authorization: `Bearer ${token}` } : {} }).promise
+
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        setProgress({ cur: i, total: pdf.numPages })
+        const page = await pdf.getPage(i)
+        const vp = page.getViewport({ scale: 2 })
+        const canvas = document.createElement('canvas')
+        canvas.width = vp.width
+        canvas.height = vp.height
+        await page.render({ canvas, viewport: vp }).promise
+        const blob = await new Promise<Blob>(res => canvas.toBlob(b => res(b!), 'image/png'))
+        const arr = await blob.arrayBuffer()
+        zip.file(`page-${String(i).padStart(3, '0')}.png`, arr)
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(content)
+      a.download = `${name}-images.zip`
+      a.click()
+      URL.revokeObjectURL(a.href)
+    } finally {
+      setProgress(null)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleExport}
+      disabled={!!progress}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
+      title="Exporter toutes les pages en PNG (ZIP)"
+    >
+      {progress ? <><Loader2 size={14} className="animate-spin" /> {progress.cur}/{progress.total}</> : <><Download size={14} /> Images ZIP</>}
+    </button>
+  )
 }
 
 function PageThumb({
@@ -72,6 +124,7 @@ export default function PdfEditorPage({ params }: { params: Promise<{ id: string
   const { id } = use(params)
   const router = useRouter()
   const { doc, loading, version, reorder, rotate, extract, split } = usePdfDoc(id)
+  const caps = usePdfCapabilities()
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [dragFrom, setDragFrom] = useState<number | null>(null)
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
@@ -177,19 +230,23 @@ export default function PdfEditorPage({ params }: { params: Promise<{ id: string
     setDragOverIdx(null)
   }
 
-  async function handleDownload() {
+  async function handleDownload(format: 'pdf' | 'text' | 'docx' | 'md' = 'pdf') {
     const token = getToken()
-    const res = await fetch(`${API_URL}/api/pdf/${id}/file`, {
+    const url = format === 'pdf'
+      ? getFileUrl(id)
+      : getExportUrl(id, format as 'text' | 'docx' | 'md')
+    const res = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
-    if (!res.ok) { flash('err', 'Téléchargement impossible.'); return }
+    if (!res.ok) { flash('err', 'Export impossible.'); return }
     const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
+    const ext = format === 'pdf' ? 'pdf' : format === 'text' ? 'txt' : format
+    const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url
-    a.download = `${doc?.name ?? 'document'}.pdf`
+    a.href = blobUrl
+    a.download = `${doc?.name ?? 'document'}.${ext}`
     a.click()
-    URL.revokeObjectURL(url)
+    URL.revokeObjectURL(blobUrl)
   }
 
   if (loading) {
@@ -222,12 +279,40 @@ export default function PdfEditorPage({ params }: { params: Promise<{ id: string
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 truncate">{doc.name}</h1>
           <p className="text-xs text-gray-400">{doc.pageCount} page{doc.pageCount > 1 ? 's' : ''} · {doc.sizeLabel}</p>
         </div>
-        <button
-          onClick={handleDownload}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-        >
-          <Download size={14} /> Télécharger
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => handleDownload('pdf')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            <Download size={14} /> PDF
+          </button>
+          <button
+            onClick={() => handleDownload('text')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+            title="Extraire le texte brut"
+          >
+            <FileText size={14} /> TXT
+          </button>
+          {caps.pandoc && (
+            <>
+              <button
+                onClick={() => handleDownload('docx')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                title="Convertir en Word (via pandoc)"
+              >
+                <FileDown size={14} /> DOCX
+              </button>
+              <button
+                onClick={() => handleDownload('md')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                title="Convertir en Markdown (via pandoc)"
+              >
+                <FileDown size={14} /> MD
+              </button>
+            </>
+          )}
+          <ExportImagesButton docId={id} name={doc?.name ?? 'document'} pageCount={doc?.pageCount ?? 0} version={version} />
+        </div>
       </div>
 
       {/* Feedback */}
