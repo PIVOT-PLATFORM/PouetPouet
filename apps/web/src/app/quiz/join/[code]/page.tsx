@@ -169,6 +169,7 @@ export default function QuizJoinPage({ params }: { params: Promise<{ code: strin
             <div key={p.name} className="flex items-center gap-3 py-2">
               <span className="text-lg font-bold text-amber-200 w-6">{idx + 1}</span>
               <span className={`flex-1 font-semibold text-white ${p.name === (myName || name) ? 'underline' : ''}`}>{p.name}</span>
+              {p.bestStreak >= 2 && <span className="text-orange-200 text-sm">🔥{p.bestStreak}</span>}
               <span className="font-bold text-amber-100">{p.score.toLocaleString()}</span>
             </div>
           ))}
