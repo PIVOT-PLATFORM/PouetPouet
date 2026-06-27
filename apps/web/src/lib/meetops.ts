@@ -142,6 +142,7 @@ export const HISTORY_ACTION_LABELS: Record<string, string> = {
   sent: 'Envoyée',
   reordered: 'Réorganisées',
   bulk: 'Action de masse',
+  cleared: 'Suppression en masse',
 }
 
 export const EVENT_TYPE_LABELS: Record<MeetEventType, string> = {

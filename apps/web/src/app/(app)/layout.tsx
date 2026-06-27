@@ -152,11 +152,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!token || !user) return null
 
   const isBoardPage = pathname.startsWith('/boards/')
-  // L'éditeur de roadmap (Gantt) s'étale en pleine largeur comme le board, mais
-  // garde le shell normal (navbar, footer, scroll de page). La liste /roadmap
-  // reste, elle, à la largeur standard max-w-6xl.
+  // Pages pleine largeur : éditeur Roadmap (Gantt), détail événement MeetOps, calendrier global MeetOps.
   const isRoadmapEditor = /^\/roadmap\/[^/]+$/.test(pathname)
-  const isWide = isBoardPage || isRoadmapEditor
+  const isMeetopsWide = /^\/meetops\/(?:calendar|[^/]+)$/.test(pathname)
+  const isWide = isBoardPage || isRoadmapEditor || isMeetopsWide
 
   return (
     // overflow-clip (pas hidden) sur les pages board : un conteneur overflow-hidden reste

@@ -20,6 +20,42 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.23.0',
+    date: '2026-06-27',
+    title: 'Quiz amélioré — séries, timer adaptatif, options libres',
+    summary: 'Module Quiz enrichi : meilleure série par participant, timer réel par question, jusqu\'à 8 options, mode sans limite de temps, et application en masse des réglages.',
+    sections: [
+      {
+        heading: '🧠 Module Quiz',
+        items: [
+          '**Meilleure série (🔥)** : la série consécutive maximale de chaque participant est mémorisée et affichée dans le classement final et l\'historique des sessions.',
+          'Série en cours visible dans le classement intermédiaire (entre chaque question).',
+          '**Timer adaptatif** : la barre de progression utilise maintenant la durée réelle de la question (fin du bug 30 s codé en dur).',
+          '**Mode sans limite de temps** (Illimité) : pas de compte à rebours, pas de révélation automatique — le host avance manuellement.',
+          '**Options dynamiques** : de 2 à 8 options par question (A → H), avec boutons d\'ajout et de suppression inline.',
+          '**Application en masse** : un panel dans l\'éditeur permet d\'appliquer la même durée ou le même nombre de points à toutes les questions d\'un coup.',
+        ],
+      },
+      {
+        heading: '📅 MeetOps — Calendrier',
+        items: [
+          'Vue détail d\'un événement : calendrier complet façon Outlook (semaine, semaine de travail, jour, agenda) en remplacement de la vue mois.',
+          'Glisser-déposer et redimensionnement des réunions directement sur le calendrier.',
+          'Création rapide par clic ou par tracé sur le calendrier (QuickCreate).',
+          'Menu contextuel sur chaque réunion (renommer, changer le statut, supprimer).',
+          'Réunions annulées affichées en rayé.',
+        ],
+      },
+      {
+        heading: '🏠 Hub & Aide',
+        items: [
+          'Correction des liens dans la section "Récents" : boards, daily et scrum pointer désormais vers la bonne page.',
+          'Page Aide : nouvelle section **Raccourcis clavier** listant tous les raccourcis des Boards et du calendrier MeetOps.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.22.0',
     date: '2026-06-25',
     title: 'Module Roadmap — planification visuelle façon Gantt',

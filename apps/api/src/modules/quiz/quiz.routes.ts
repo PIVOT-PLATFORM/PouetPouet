@@ -106,8 +106,8 @@ export const quizRoutes: FastifyPluginAsync = async (app) => {
       text: string; options: string[]; correct: number; timeLimit?: number; points?: number; order?: number
     }
     if (!text?.trim()) return reply.status(400).send({ error: 'Text required' })
-    if (!Array.isArray(options) || options.length < 2 || options.length > 4) {
-      return reply.status(400).send({ error: '2 to 4 options required' })
+    if (!Array.isArray(options) || options.length < 2 || options.length > 8) {
+      return reply.status(400).send({ error: '2 to 8 options required' })
     }
     if (correct < 0 || correct >= options.length) {
       return reply.status(400).send({ error: 'Invalid correct index' })
@@ -170,6 +170,21 @@ export const quizRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(204).send()
   })
 
+  // PATCH /api/quiz/:id/questions/bulk — modifier timeLimit ou points de toutes les questions
+  app.patch('/:id/questions/bulk', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: quizId } = request.params as { id: string }
+    const { id: ownerId } = request.user as { id: string }
+    const quiz = await prisma.quiz.findFirst({ where: { id: quizId, ownerId } })
+    if (!quiz) return reply.status(404).send({ error: 'Quiz introuvable' })
+    const { timeLimit, points } = request.body as { timeLimit?: number; points?: number }
+    const data: { timeLimit?: number; points?: number } = {}
+    if (timeLimit !== undefined) data.timeLimit = timeLimit
+    if (points !== undefined) data.points = points
+    if (Object.keys(data).length === 0) return reply.status(400).send({ error: 'Nothing to update' })
+    await prisma.quizQuestion.updateMany({ where: { quizId }, data })
+    return prisma.quizQuestion.findMany({ where: { quizId }, orderBy: { order: 'asc' } })
+  })
+
   // POST /api/quiz/:id/reorder — réordonner
   app.post('/:id/reorder', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id: quizId } = request.params as { id: string }
@@ -222,7 +237,7 @@ export const quizRoutes: FastifyPluginAsync = async (app) => {
       include: {
         participants: {
           orderBy: { score: 'desc' },
-          select: { name: true, score: true },
+          select: { name: true, score: true, bestStreak: true },
         },
       },
     })

@@ -9,8 +9,12 @@ const OPTION_COLORS = [
   'bg-blue-500 hover:bg-blue-400 active:bg-blue-600',
   'bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600',
   'bg-green-500 hover:bg-green-400 active:bg-green-600',
+  'bg-purple-500 hover:bg-purple-400 active:bg-purple-600',
+  'bg-orange-500 hover:bg-orange-400 active:bg-orange-600',
+  'bg-teal-500 hover:bg-teal-400 active:bg-teal-600',
+  'bg-pink-500 hover:bg-pink-400 active:bg-pink-600',
 ]
-const OPTION_LABELS = ['A', 'B', 'C', 'D']
+const OPTION_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
 function Timer({ endsAt }: { endsAt: string }) {
   const [seconds, setSeconds] = useState(0)
@@ -169,6 +173,7 @@ export default function QuizJoinPage({ params }: { params: Promise<{ code: strin
             <div key={p.name} className="flex items-center gap-3 py-2">
               <span className="text-lg font-bold text-amber-200 w-6">{idx + 1}</span>
               <span className={`flex-1 font-semibold text-white ${p.name === (myName || name) ? 'underline' : ''}`}>{p.name}</span>
+              {p.bestStreak >= 2 && <span className="text-orange-200 text-sm">🔥{p.bestStreak}</span>}
               <span className="font-bold text-amber-100">{p.score.toLocaleString()}</span>
             </div>
           ))}
@@ -213,6 +218,7 @@ export default function QuizJoinPage({ params }: { params: Promise<{ code: strin
             <div key={p.name} className={`flex items-center gap-3 py-2 ${p.name === (myName || name) ? 'font-bold' : ''}`}>
               <span className="text-lg text-indigo-200 w-6">{idx + 1}</span>
               <span className="flex-1 text-white text-sm">{p.name}</span>
+              {p.streak >= 2 && <span className="text-orange-300 text-sm">🔥{p.streak}</span>}
               <span className="text-indigo-200 text-sm">{p.score.toLocaleString()}</span>
             </div>
           ))}

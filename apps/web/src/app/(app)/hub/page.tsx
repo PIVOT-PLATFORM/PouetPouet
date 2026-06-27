@@ -117,18 +117,18 @@ export default function HubPage() {
   const recentItems = recent
     ? [
         ...recent.boards.map((b) => ({
-          key: `b-${b.id}`, href: `/dashboard/${b.id}`, moduleId: 'pouetpouet', title: b.name,
+          key: `b-${b.id}`, href: `/boards/${b.id}`, moduleId: 'pouetpouet', title: b.name,
           sub: timeAgo(b.updatedAt) as React.ReactNode, at: b.updatedAt,
         })),
         ...recent.dailySessions.map((d) => ({
-          key: `d-${d.id}`, href: '/daily', moduleId: 'daily', title: d.name,
+          key: `d-${d.id}`, href: `/daily/${d.id}`, moduleId: 'daily', title: d.name,
           sub: (d.status === 'RUNNING'
             ? <span className="text-green-500">En cours</span>
             : timeAgo(d.endedAt ?? d.updatedAt)) as React.ReactNode,
           at: d.endedAt ?? d.updatedAt,
         })),
         ...recent.scrumRooms.map((r) => ({
-          key: `s-${r.id}`, href: `/scrum/${r.code}`, moduleId: 'scrum', title: r.name,
+          key: `s-${r.id}`, href: `/scrum/${r.id}`, moduleId: 'scrum', title: r.name,
           sub: `${r._count.tickets} ticket${r._count.tickets !== 1 ? 's' : ''}${r.team ? ` · ${r.team.name}` : ''} · ${timeAgo(r.updatedAt)}` as React.ReactNode,
           at: r.updatedAt,
         })),

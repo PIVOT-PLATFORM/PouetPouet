@@ -114,7 +114,7 @@ function PatchNoteModal({
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-2xl max-h-[85vh] flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+      <div className="relative w-full max-w-2xl h-[85vh] flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
         {/* Header */}
         <div className="flex items-start gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-800">
           <div className="min-w-0 flex-1">
@@ -139,7 +139,7 @@ function PatchNoteModal({
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 overflow-y-auto space-y-5">
+        <div className="flex-1 px-6 py-5 overflow-y-auto space-y-5">
           <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{pn.summary}</p>
           {pn.sections.map((sec) => (
             <div key={sec.heading}>
@@ -148,7 +148,9 @@ function PatchNoteModal({
                 {sec.items.map((item, i) => (
                   <li key={i} className="flex gap-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                     <span className="text-primary-400 mt-1 shrink-0">•</span>
-                    <span>{item}</span>
+                    <span>{item.split(/\*\*(.+?)\*\*/).map((part, j) =>
+                      j % 2 === 1 ? <strong key={j} className="font-semibold text-gray-800 dark:text-gray-100">{part}</strong> : part
+                    )}</span>
                   </li>
                 ))}
               </ul>

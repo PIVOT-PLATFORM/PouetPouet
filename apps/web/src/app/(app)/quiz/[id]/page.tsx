@@ -28,11 +28,21 @@ interface SessionResult {
   title: string | null
   createdAt: string
   participantCount: number
-  podium: { name: string; score: number }[]
+  podium: { name: string; score: number; bestStreak: number }[]
 }
 
-const OPTION_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500']
-const OPTION_LABELS = ['A', 'B', 'C', 'D']
+const OPTION_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-teal-500', 'bg-pink-500']
+const OPTION_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+
+const TIME_OPTIONS = [
+  { value: 0, label: 'Illimité' },
+  { value: 10, label: '10s' },
+  { value: 20, label: '20s' },
+  { value: 30, label: '30s' },
+  { value: 60, label: '60s' },
+  { value: 90, label: '90s' },
+  { value: 120, label: '120s' },
+]
 
 function QuestionForm({
   initial,
@@ -44,11 +54,24 @@ function QuestionForm({
   onCancel: () => void
 }) {
   const [text, setText] = useState(initial?.text ?? '')
-  const [options, setOptions] = useState<string[]>(initial?.options ?? ['', '', '', ''])
+  const [options, setOptions] = useState<string[]>(initial?.options ?? ['', ''])
   const [correct, setCorrect] = useState(initial?.correct ?? 0)
   const [timeLimit, setTimeLimit] = useState(initial?.timeLimit ?? 30)
   const [points, setPoints] = useState(initial?.points ?? 1000)
   const [saving, setSaving] = useState(false)
+
+  function addOption() {
+    if (options.length >= 8) return
+    setOptions([...options, ''])
+  }
+
+  function removeOption(idx: number) {
+    if (options.length <= 2) return
+    const next = options.filter((_, i) => i !== idx)
+    setOptions(next)
+    if (correct === idx) setCorrect(0)
+    else if (correct > idx) setCorrect(correct - 1)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -77,7 +100,7 @@ function QuestionForm({
         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
           Options (cliquer sur la bonne réponse)
         </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="flex flex-col gap-2">
           {options.map((opt, idx) => (
             <div key={idx} className="flex items-center gap-2">
               <button
@@ -94,20 +117,39 @@ function QuestionForm({
                 onChange={(e) => setOptions(options.map((o, i) => (i === idx ? e.target.value : o)))}
                 className="flex-1 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-rose-400 dark:text-gray-100"
               />
+              {options.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => removeOption(idx)}
+                  className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors shrink-0"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
             </div>
           ))}
         </div>
+        {options.length < 8 && (
+          <button
+            type="button"
+            onClick={addOption}
+            className="mt-2 flex items-center gap-1.5 text-xs text-gray-400 hover:text-rose-500 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Ajouter une option
+          </button>
+        )}
       </div>
 
       <div className="flex gap-4">
         <div className="flex-1">
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Durée (s)</label>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Durée</label>
           <select
             value={timeLimit}
             onChange={(e) => setTimeLimit(Number(e.target.value))}
             className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-rose-400 dark:text-gray-100"
           >
-            {[10, 20, 30, 60, 90, 120].map((v) => <option key={v} value={v}>{v}s</option>)}
+            {TIME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         <div className="flex-1">
@@ -150,6 +192,9 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
   const [sessionSort, setSessionSort] = useState<'date' | 'name' | 'participants'>('date')
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
+  const [bulkTimeLimit, setBulkTimeLimit] = useState<string>('')
+  const [bulkPoints, setBulkPoints] = useState<string>('')
+  const [bulkApplying, setBulkApplying] = useState(false)
   const dragIdx = useRef<number | null>(null)
 
   useEffect(() => {
@@ -191,6 +236,22 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
     await api.delete(`/api/quiz/questions/${qId}`)
     setQuestions((prev) => prev.filter((q) => q.id !== qId))
     setDeletingId(null)
+  }
+
+  async function handleBulkApply() {
+    if (!bulkTimeLimit && !bulkPoints) return
+    setBulkApplying(true)
+    try {
+      const body: { timeLimit?: number; points?: number } = {}
+      if (bulkTimeLimit !== '') body.timeLimit = Number(bulkTimeLimit)
+      if (bulkPoints !== '') body.points = Number(bulkPoints)
+      const updated = await api.patch<Question[]>(`/api/quiz/${quizId}/questions/bulk`, body)
+      setQuestions(updated)
+      setBulkTimeLimit('')
+      setBulkPoints('')
+    } catch {} finally {
+      setBulkApplying(false)
+    }
   }
 
   async function handleLaunch() {
@@ -247,6 +308,35 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
         </button>
       </div>
 
+      {questions.length > 0 && (
+        <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">Appliquer à toutes :</span>
+          <select
+            value={bulkTimeLimit}
+            onChange={(e) => setBulkTimeLimit(e.target.value)}
+            className="border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 text-sm bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-400"
+          >
+            <option value="">Durée…</option>
+            {TIME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <select
+            value={bulkPoints}
+            onChange={(e) => setBulkPoints(e.target.value)}
+            className="border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 text-sm bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-rose-400"
+          >
+            <option value="">Points…</option>
+            {[500, 1000, 2000].map((v) => <option key={v} value={v}>{v} pts</option>)}
+          </select>
+          <button
+            onClick={handleBulkApply}
+            disabled={bulkApplying || (!bulkTimeLimit && !bulkPoints)}
+            className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-4 py-1.5 disabled:opacity-50 transition-colors"
+          >
+            {bulkApplying ? 'Application…' : 'Appliquer'}
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col gap-3">
         {questions.map((q, idx) =>
           editingId === q.id ? (
@@ -267,7 +357,7 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
             >
               <GripVertical className="w-4 h-4 text-gray-300 dark:text-gray-600 mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Q{idx + 1} · {q.timeLimit}s · {q.points} pts</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Q{idx + 1} · {q.timeLimit > 0 ? `${q.timeLimit}s` : 'Illimité'} · {q.points} pts</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">{q.text}</p>
                 <div className="grid grid-cols-2 gap-1.5">
                   {q.options.map((opt, oi) => (
@@ -440,6 +530,7 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
                             {idx < 3 ? ['🥇', '🥈', '🥉'][idx] : <span className="font-bold text-gray-300 dark:text-gray-600">{idx + 1}</span>}
                           </span>
                           <span className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">{p.name}</span>
+                          {p.bestStreak >= 2 && <span className="text-orange-500 text-sm">🔥{p.bestStreak}</span>}
                           <span className="text-sm font-bold text-rose-600">{p.score.toLocaleString()} pts</span>
                         </div>
                       ))}

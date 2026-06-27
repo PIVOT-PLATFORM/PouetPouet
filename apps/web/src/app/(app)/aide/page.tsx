@@ -25,12 +25,27 @@ const MODULES = [
     icon: '📡',
     title: 'Sessions live',
     href: '/dashboard',
-    desc: 'Animez des ateliers interactifs avec vos équipes en temps réel.',
+    desc: 'Animez des ateliers interactifs avec vos équipes en temps réel depuis un board.',
     features: [
       'Créer une session depuis n\'importe quel board, partager le code ou le lien',
-      'Activités : Quiz, Sondage, Nuage de mots, Brainstorming, Q&A',
+      'Activités : Sondage, Nuage de mots, Brainstorming, Q&A',
       'Les membres authentifiés du board participent directement, sans lien distinct',
       'Reconnexion automatique après une coupure réseau ou un rafraîchissement de page',
+    ],
+  },
+  {
+    icon: '🧠',
+    title: 'Quiz interactif',
+    href: '/quiz',
+    desc: 'Créez des quiz en direct avec classement, séries et timer par question.',
+    features: [
+      'Éditeur de questions : texte, 2 à 8 options (A → H), bonne réponse à désigner',
+      'Durée configurable par question (10 s à 2 min) ou mode sans limite de temps',
+      'Points configurables (500 / 1 000 / 2 000) et application en masse sur toutes les questions',
+      'Participants anonymes : rejoindre via code ou lien, sans compte',
+      'Classement en direct après chaque question avec série en cours (🔥)',
+      'Meilleure série mémorisée et affichée dans le classement final et l\'historique',
+      'Historique des sessions passées avec podium et meilleures séries',
     ],
   },
   {
@@ -70,6 +85,47 @@ const MODULES = [
     ],
   },
   {
+    icon: '📊',
+    title: 'Capacité',
+    href: '/capacity',
+    desc: 'Planifiez la charge de votre équipe sur plusieurs sprints ou périodes.',
+    features: [
+      'Gestion des membres d\'équipe avec taux d\'occupation (FTE)',
+      'Planification par sprint : capacité disponible vs charge estimée',
+      'Visualisation synthétique de la charge par membre et par sprint',
+      'Partage par rôle (Lecteur / Éditeur) sur le même patron que les boards',
+    ],
+  },
+  {
+    icon: '🗓️',
+    title: 'Roadmap',
+    href: '/roadmap',
+    desc: 'Planifiez vos projets avec un Gantt interactif et des jalons visuels.',
+    features: [
+      'Timeline Gantt interactive (5 échelles : semaine, mois, trimestre, semestre, an)',
+      'Items configurables : domaine, risque, priorité, valeur business, dépendances',
+      'Jalons affichés en diamant ⬦ sur la timeline',
+      'Drag & drop sur les barres pour déplacer ou redimensionner les items',
+      'Dépendances visuelles entre items (flèches bézier)',
+      'Export PDF vectoriel A4 paysage et export JSON',
+      'Partage par rôle (Lecteur / Éditeur / Owner)',
+    ],
+  },
+  {
+    icon: '📅',
+    title: 'MeetOps',
+    href: '/meetops',
+    desc: 'Gérez vos événements récurrents et animez vos réunions d\'équipe.',
+    features: [
+      'Événements récurrents avec liste de réunions planifiées',
+      'Calendrier complet façon Outlook : vues Mois, Semaine, Semaine de travail, Jour, Agenda',
+      'Glisser-déposer et redimensionnement des réunions sur le calendrier',
+      'Création rapide par clic ou tracé sur le calendrier',
+      'Menu contextuel : renommer, changer le statut (annulée…), supprimer',
+      'Partage par rôle (Lecteur / Éditeur / Owner)',
+    ],
+  },
+  {
     icon: '👤',
     title: 'Compte & Profil',
     href: '/profile',
@@ -81,6 +137,74 @@ const MODULES = [
       'Thème clair ou sombre, synchronisé sur toute l\'interface',
       'Notifications d\'activité (partage, changement de rôle) et notes de version',
       'Suppression définitive du compte depuis le profil',
+    ],
+  },
+]
+
+const SHORTCUTS: { module: string; icon: string; groups: { label: string; items: { keys: string[]; desc: string }[] }[] }[] = [
+  {
+    module: 'Boards', icon: '🗂️',
+    groups: [
+      {
+        label: 'Historique',
+        items: [
+          { keys: ['Ctrl', 'Z'],          desc: 'Annuler la dernière action' },
+          { keys: ['Ctrl', 'Y'],          desc: 'Rétablir' },
+          { keys: ['Ctrl', 'Shift', 'Z'], desc: 'Rétablir (variante Mac)' },
+        ],
+      },
+      {
+        label: 'Sélection & édition',
+        items: [
+          { keys: ['Ctrl', 'A'],         desc: 'Sélectionner tous les éléments' },
+          { keys: ['Ctrl', 'C'],         desc: 'Copier la sélection' },
+          { keys: ['Ctrl', 'V'],         desc: 'Coller (même entre boards)' },
+          { keys: ['Ctrl', 'D'],         desc: 'Dupliquer la sélection en place' },
+          { keys: ['Suppr', 'Backspace'], desc: 'Supprimer les éléments sélectionnés' },
+        ],
+      },
+      {
+        label: 'Déplacement',
+        items: [
+          { keys: ['←', '↑', '→', '↓'],          desc: 'Déplacer la sélection de 1 px' },
+          { keys: ['Shift', '←', '↑', '→', '↓'], desc: 'Déplacer la sélection de 20 px' },
+        ],
+      },
+      {
+        label: 'Navigation & outils',
+        items: [
+          { keys: ['Molette'],           desc: 'Zoomer / dézoomer (centré sur le curseur)' },
+          { keys: ['Ctrl', 'Molette'],   desc: 'Zoom précis (ou pincement trackpad)' },
+          { keys: ['Clic molette'],      desc: 'Déplacer le board (clic + glisser)' },
+          { keys: ['Espace'],            desc: 'Déplacer le board temporairement (maintenu)' },
+          { keys: ['V'],                 desc: 'Passer en mode Sélection' },
+          { keys: ['Échap'],            desc: 'Désélectionner / fermer les panneaux actifs' },
+        ],
+      },
+    ],
+  },
+  {
+    module: 'MeetOps — Calendrier', icon: '📅',
+    groups: [
+      {
+        label: 'Vues',
+        items: [
+          { keys: ['1'], desc: 'Vue Mois' },
+          { keys: ['2'], desc: 'Vue Semaine' },
+          { keys: ['3'], desc: 'Vue Semaine de travail' },
+          { keys: ['4'], desc: 'Vue Jour' },
+          { keys: ['5'], desc: 'Vue Agenda' },
+        ],
+      },
+      {
+        label: 'Navigation',
+        items: [
+          { keys: ['←'],     desc: 'Période précédente (semaine / mois / jour selon la vue)' },
+          { keys: ['→'],     desc: 'Période suivante' },
+          { keys: ['T'],     desc: "Revenir à aujourd'hui" },
+          { keys: ['Échap'], desc: 'Fermer le popup ou la création rapide' },
+        ],
+      },
     ],
   },
 ]
@@ -198,6 +322,50 @@ export default function AidePage() {
                   </li>
                 ))}
               </ul>
+            </div>
+          ))}
+        </div>
+      </CollapsibleSection>
+
+      {/* Raccourcis clavier */}
+      <CollapsibleSection title="Raccourcis clavier" subtitle="Disponibles sur les écrans concernés — hors champs de saisie.">
+        <div className="flex flex-col gap-6">
+          {SHORTCUTS.map((mod) => (
+            <div key={mod.module}>
+              <div className="flex items-center gap-2 mb-3">
+                <span>{mod.icon}</span>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{mod.module}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {mod.groups.map((group) => (
+                  <div key={group.label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+                    <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{group.label}</span>
+                    </div>
+                    <table className="w-full text-xs">
+                      <tbody>
+                        {group.items.map((item) => (
+                          <tr key={item.desc} className="border-t border-gray-50 dark:border-gray-800/60 first:border-0">
+                            <td className="px-4 py-2 w-44 shrink-0">
+                              <div className="flex flex-wrap gap-1">
+                                {item.keys.map((k, i) => (
+                                  <span key={i} className="inline-flex items-center gap-0.5">
+                                    <kbd className="inline-block px-1.5 py-0.5 text-[10px] font-mono font-semibold bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 shadow-[0_1px_0_0_rgba(0,0,0,0.15)]">
+                                      {k}
+                                    </kbd>
+                                    {i < item.keys.length - 1 && <span className="text-gray-400 text-[10px]">+</span>}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 text-gray-600 dark:text-gray-400">{item.desc}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>

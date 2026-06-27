@@ -1,11 +1,12 @@
 'use client'
 
-import { use, useEffect, useState } from 'react'
+import { use, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useMeetEvent, type BulkAction } from '@/hooks/useMeetops'
+import { useRouter } from 'next/navigation'
+import { useMeetEvent, useMeetEvents, type BulkAction } from '@/hooks/useMeetops'
 import { useMeetDistLists } from '@/hooks/useMeetDistLists'
 import { useMeetGraph } from '@/hooks/useMeetGraph'
-import { EventCalendar } from '@/components/meetops/event-calendar'
+import { EventFullCalendar } from '@/components/meetops/event-full-calendar'
 import { EventReport } from '@/components/meetops/event-report'
 import { EventHistory } from '@/components/meetops/event-history'
 import type { Meeting, MeetEvent, MeetDistList } from '@/lib/meetops'
@@ -547,12 +548,22 @@ export default function MeetopsEventPage({ params }: { params: Promise<{ id: str
   const {
     event, isLoading, error,
     updateEvent,
-    addMeeting, deleteMeeting, updateMeeting, reorderMeetings, bulkUpdate, saveAsTemplate, addParticipant, removeParticipant, applyList,
+    addMeeting, deleteMeeting, clearMeetings, updateMeeting, reorderMeetings, bulkUpdate, saveAsTemplate, addParticipant, removeParticipant, applyList,
     sendMeeting, sendEvent,
   } = useMeetEvent(id)
   const { lists } = useMeetDistLists(id)
   const { status: graph } = useMeetGraph()
+  const { events: allEvents } = useMeetEvents()
   const canSend = graph?.configured && graph?.connected
+  const router = useRouter()
+
+  const { prevId, nextId } = useMemo(() => {
+    const idx = allEvents.findIndex((e) => e.id === id)
+    return {
+      prevId: idx > 0 ? allEvents[idx - 1].id : null,
+      nextId: idx >= 0 && idx < allEvents.length - 1 ? allEvents[idx + 1].id : null,
+    }
+  }, [allEvents, id])
 
   const [view, setView] = useState<'list' | 'calendar' | 'report' | 'history'>('list')
   const [sending, setSending] = useState(false)
@@ -593,7 +604,29 @@ export default function MeetopsEventPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/meetops" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>MeetOps</Link>
+      <div className="flex items-center justify-between">
+        <Link href="/meetops" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          MeetOps
+        </Link>
+        {allEvents.length > 1 && (
+          <div className="flex items-center gap-1">
+            <button onClick={() => prevId && router.push(`/meetops/${prevId}`)} disabled={!prevId}
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg disabled:opacity-30 transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              Précédent
+            </button>
+            <span className="text-xs text-gray-300 dark:text-gray-600">
+              {allEvents.findIndex((e) => e.id === id) + 1}/{allEvents.length}
+            </span>
+            <button onClick={() => nextId && router.push(`/meetops/${nextId}`)} disabled={!nextId}
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg disabled:opacity-30 transition-colors">
+              Suivant
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* En-tête événement */}
       <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6">
@@ -626,6 +659,15 @@ export default function MeetopsEventPage({ params }: { params: Promise<{ id: str
                 className="text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-2 py-1.5"
                 title="Enregistrer cet événement comme modèle réutilisable">💾 Modèle</button>
             )}
+            {countMeetings(event) > 0 && (
+              <button
+                onClick={async () => {
+                  if (!confirm(`Supprimer les ${countMeetings(event)} réunion(s) de cet événement ? Cette action est irréversible.`)) return
+                  try { await clearMeetings() } catch (err) { alert((err as Error).message) }
+                }}
+                className="text-xs font-medium text-red-500 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg px-2 py-1.5"
+                title="Vider toutes les réunions de cet événement">🗑 Vider</button>
+            )}
             <select
               value={event.status} onChange={(e) => updateEvent({ status: e.target.value as typeof STATUSES[number] })}
               className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary-400"
@@ -648,7 +690,9 @@ export default function MeetopsEventPage({ params }: { params: Promise<{ id: str
         ))}
       </div>
 
-      {view === 'calendar' && <EventCalendar event={event} />}
+      {view === 'calendar' && (
+        <EventFullCalendar event={event} onAdd={addMeeting} onUpdate={updateMeeting} onDelete={deleteMeeting} />
+      )}
       {view === 'report' && <EventReport event={event} />}
       {view === 'history' && <EventHistory eventId={event.id} refreshKey={event} />}
       {view === 'list' && (

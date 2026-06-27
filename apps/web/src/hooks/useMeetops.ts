@@ -88,6 +88,11 @@ export function useMeetEvent(eventId: string) {
     await reload()
   }, [reload])
 
+  const clearMeetings = useCallback(async () => {
+    await api.delete(`/api/meetops/events/${eventId}/meetings`)
+    await reload()
+  }, [eventId, reload])
+
   const reorderMeetings = useCallback(async (ids: string[]) => {
     await api.patch(`/api/meetops/events/${eventId}/meetings/reorder`, { ids })
     await reload()
@@ -133,7 +138,7 @@ export function useMeetEvent(eventId: string) {
   return {
     event, isLoading, error, reload,
     updateEvent,
-    addMeeting, updateMeeting, deleteMeeting, reorderMeetings, bulkUpdate, saveAsTemplate,
+    addMeeting, updateMeeting, deleteMeeting, clearMeetings, reorderMeetings, bulkUpdate, saveAsTemplate,
     addParticipant, removeParticipant, applyList,
     sendMeeting, sendEvent,
   }
@@ -158,12 +163,43 @@ export function useMeetHistory(eventId: string, refreshKey?: unknown) {
 export function useMeetCalendar() {
   const [events, setEvents] = useState<MeetCalendarEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  useEffect(() => {
-    api.get<MeetCalendarEvent[]>('/api/meetops/calendar')
-      .then((e) => { setEvents(e); setIsLoading(false) })
-      .catch(() => setIsLoading(false))
+
+  const reload = useCallback(async () => {
+    const e = await api.get<MeetCalendarEvent[]>('/api/meetops/calendar')
+    setEvents(e)
   }, [])
-  return { events, isLoading }
+
+  useEffect(() => {
+    reload().finally(() => setIsLoading(false))
+  }, [reload])
+
+  const updateMeeting = useCallback(async (
+    meetingId: string,
+    patch: { startAt?: string; durationMin?: number },
+  ) => {
+    await api.patch(`/api/meetops/meetings/${meetingId}`, patch)
+    await reload()
+  }, [reload])
+
+  const createEvent = useCallback(async (input: { name: string }): Promise<string> => {
+    const ev = await api.post<{ id: string }>('/api/meetops/events', input)
+    return ev.id
+  }, [])
+
+  const createMeeting = useCallback(async (
+    eventId: string,
+    input: { title: string; startAt: string; durationMin?: number },
+  ) => {
+    await api.post(`/api/meetops/events/${eventId}/meetings`, input)
+    await reload()
+  }, [reload])
+
+  const deleteMeeting = useCallback(async (meetingId: string) => {
+    await api.delete(`/api/meetops/meetings/${meetingId}`)
+    await reload()
+  }, [reload])
+
+  return { events, isLoading, reload, createEvent, updateMeeting, createMeeting, deleteMeeting }
 }
 
 // ── Templates ──────────────────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@ import { useMeetHistory } from '@/hooks/useMeetops'
 import { HISTORY_ACTION_LABELS } from '@/lib/meetops'
 
 const ACTION_EMOJI: Record<string, string> = {
-  created: '➕', updated: '✏️', deleted: '🗑️', sent: '📤', reordered: '↕️', bulk: '⚙️',
+  created: '➕', updated: '✏️', deleted: '🗑️', sent: '📤', reordered: '↕️', bulk: '⚙️', cleared: '🧹',
 }
 
 function formatStamp(iso: string): string {
@@ -39,10 +39,16 @@ export function EventHistory({ eventId, refreshKey }: { eventId: string; refresh
               </p>
               {(h.field || h.newValue) && (
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                  {h.field ? `${h.field} : ` : ''}
-                  {h.oldValue ? <span className="line-through">{h.oldValue}</span> : null}
-                  {h.oldValue && h.newValue ? ' → ' : ''}
-                  {h.newValue}
+                  {h.action === 'bulk' ? (
+                    h.newValue
+                  ) : (
+                    <>
+                      {h.field ? `${h.field} : ` : ''}
+                      {h.oldValue ? <span className="line-through">{h.oldValue}</span> : null}
+                      {h.oldValue && h.newValue ? ' → ' : ''}
+                      {h.newValue}
+                    </>
+                  )}
                 </p>
               )}
             </div>

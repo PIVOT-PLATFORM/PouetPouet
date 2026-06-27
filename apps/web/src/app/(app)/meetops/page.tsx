@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useMeetEvents, useMeetSearch } from '@/hooks/useMeetops'
+import { useMeetEvents, useMeetSearch, useMeetTemplates } from '@/hooks/useMeetops'
 import { useMeetGraph } from '@/hooks/useMeetGraph'
 import type { CreateEventInput } from '@/hooks/useMeetops'
 import type { MeetEvent } from '@/lib/meetops'
@@ -58,6 +58,19 @@ function GraphBanner() {
 
 const EVENT_TYPES: MeetEventType[] = ['VERSION', 'SPRINT', 'COPIL', 'COMOP', 'RELEASE', 'ONBOARDING', 'CUSTOM']
 
+const COLOR_PALETTE = [
+  '#475569', // slate
+  '#ef4444', // red
+  '#f97316', // orange
+  '#f59e0b', // amber
+  '#22c55e', // green
+  '#14b8a6', // teal
+  '#3b82f6', // blue
+  '#6366f1', // indigo
+  '#a855f7', // purple
+  '#ec4899', // pink
+]
+
 // ── Modale de création d'événement ─────────────────────────────────────────────
 
 function EventModal({ onSave, onClose }: { onSave: (input: CreateEventInput) => Promise<void>; onClose: () => void }) {
@@ -68,25 +81,51 @@ function EventModal({ onSave, onClose }: { onSave: (input: CreateEventInput) => 
   const [endDate, setEndDate] = useState('')
   const [color, setColor] = useState('#475569')
   const [saving, setSaving] = useState(false)
+  const [templateId, setTemplateId] = useState('')
+
+  const { templates, instantiate } = useMeetTemplates()
+  const router = useRouter()
+
+  const fieldCls = 'w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400'
+  const labelCls = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5'
+
+  function handleTemplateChange(id: string) {
+    setTemplateId(id)
+    if (id) {
+      const t = templates.find((tmpl) => tmpl.id === id)
+      if (t) {
+        if (!name) setName(t.name)
+        setType(t.type)
+      }
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
-    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
-      alert('La date de fin doit suivre la date de début')
-      return
-    }
     setSaving(true)
     try {
-      await onSave({
-        name: name.trim(),
-        type,
-        description: description.trim() || null,
-        startDate: startDate || null,
-        endDate: endDate || null,
-        color,
-      })
-      onClose()
+      if (templateId) {
+        const today = new Date().toISOString().slice(0, 10)
+        const ev = await instantiate(templateId, { name: name.trim(), startDate: startDate || today })
+        router.push(`/meetops/${ev.id}`)
+        onClose()
+      } else {
+        if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+          alert('La date de fin doit suivre la date de début')
+          setSaving(false)
+          return
+        }
+        await onSave({
+          name: name.trim(),
+          type,
+          description: description.trim() || null,
+          startDate: startDate || null,
+          endDate: endDate || null,
+          color,
+        })
+        onClose()
+      }
     } catch (err) {
       alert((err as Error).message)
       setSaving(false)
@@ -100,58 +139,87 @@ function EventModal({ onSave, onClose }: { onSave: (input: CreateEventInput) => 
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">Nouvel événement</h2>
         </div>
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Nom</label>
-              <input
-                autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Release v2.0, COPIL mensuel…"
-                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
-              />
-            </div>
+
+          {/* Sélecteur de modèle */}
+          {templates.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Couleur</label>
-              <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="w-12 h-10 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer" />
+              <label className={labelCls}>Démarrer depuis un modèle <span className="font-normal text-gray-400">(optionnel)</span></label>
+              <select value={templateId} onChange={(e) => handleTemplateChange(e.target.value)} className={fieldCls}>
+                <option value="">— Créer depuis zéro —</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>{EVENT_TYPE_EMOJI[t.type]} {t.name}</option>
+                ))}
+              </select>
+              {templateId && (
+                <p className="text-xs text-primary-600 dark:text-primary-400 mt-1.5">
+                  Les réunions du modèle seront copiées dans le nouvel événement.
+                </p>
+              )}
             </div>
-          </div>
+          )}
 
+          {/* Nom */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Type</label>
-            <select
-              value={type} onChange={(e) => setType(e.target.value as MeetEventType)}
-              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
-            >
-              {EVENT_TYPES.map((t) => (
-                <option key={t} value={t}>{EVENT_TYPE_EMOJI[t]} {EVENT_TYPE_LABELS[t]}</option>
-              ))}
-            </select>
+            <label className={labelCls}>Nom</label>
+            <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Release v2.0, COPIL mensuel…" className={fieldCls} />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Description (optionnel)</label>
-            <input
-              value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Contexte de l'événement…"
-              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
-            />
-          </div>
+          {/* Couleur */}
+          {!templateId && (
+            <div>
+              <label className={labelCls}>Couleur</label>
+              <div className="flex gap-2 flex-wrap">
+                {COLOR_PALETTE.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setColor(c)}
+                    className="w-7 h-7 rounded-full transition-transform hover:scale-110 focus:outline-none"
+                    style={{ background: c, boxShadow: color === c ? `0 0 0 2px white, 0 0 0 4px ${c}` : undefined }}
+                    title={c}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
+          {/* Type + description — masqués si modèle sélectionné (hérités du modèle) */}
+          {!templateId && (
+            <>
+              <div>
+                <label className={labelCls}>Type</label>
+                <select value={type} onChange={(e) => setType(e.target.value as MeetEventType)} className={fieldCls}>
+                  {EVENT_TYPES.map((t) => (
+                    <option key={t} value={t}>{EVENT_TYPE_EMOJI[t]} {EVENT_TYPE_LABELS[t]}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Description (optionnel)</label>
+                <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Contexte de l'événement…" className={fieldCls} />
+              </div>
+            </>
+          )}
+
+          {/* Dates */}
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Début (optionnel)</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
+              <label className={labelCls}>{templateId ? 'Date de début' : 'Début (optionnel)'}</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={fieldCls} />
             </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Fin (optionnel)</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
-            </div>
+            {!templateId && (
+              <div className="flex-1">
+                <label className={labelCls}>Fin (optionnel)</label>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={fieldCls} />
+              </div>
+            )}
           </div>
         </form>
         <div className="p-6 border-t border-gray-100 dark:border-gray-800 shrink-0 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">Annuler</button>
           <button onClick={handleSubmit} disabled={saving || !name.trim()}
             className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 rounded-xl transition-colors">
-            {saving ? 'Création…' : 'Créer'}
+            {saving ? 'Création…' : templateId ? 'Créer depuis le modèle' : 'Créer'}
           </button>
         </div>
       </div>

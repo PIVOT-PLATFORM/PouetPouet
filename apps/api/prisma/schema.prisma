@@ -983,7 +983,8 @@ model QuizParticipant {
   session   QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   name      String
   score     Int         @default(0)
-  streak    Int         @default(0)
+  streak      Int         @default(0)
+  bestStreak  Int         @default(0)
   answers   QuizAnswer[]
   createdAt DateTime    @default(now())
 

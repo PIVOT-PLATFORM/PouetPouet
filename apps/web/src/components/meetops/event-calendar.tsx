@@ -23,7 +23,10 @@ function mondayOffset(d: Date): number {
   return (d.getDay() + 6) % 7
 }
 
-export function EventCalendar({ event }: { event: MeetEvent }) {
+export function EventCalendar({ event, onMeetingDblClick }: {
+  event: MeetEvent
+  onMeetingDblClick?: (meeting: Meeting) => void
+}) {
   // Index des réunions par jour + couleur dérivée de l'étiquette.
   const { byDay, firstMonth } = useMemo(() => {
     const map = new Map<string, Placed[]>()
@@ -96,7 +99,12 @@ export function EventCalendar({ event }: { event: MeetEvent }) {
                   return (
                     <div key={it.meeting.id}
                       title={`${it.label ? `${it.label} — ` : ''}${it.meeting.title} (${time})`}
-                      className={`text-[10px] leading-tight rounded px-1 py-0.5 truncate ${cancelled ? 'line-through opacity-60' : ''}`}
+                      onDoubleClick={() => onMeetingDblClick?.(it.meeting)}
+                      className={[
+                        'text-[10px] leading-tight rounded px-1 py-0.5 truncate',
+                        cancelled ? 'line-through opacity-60' : '',
+                        onMeetingDblClick ? 'cursor-pointer hover:brightness-90 transition-[filter]' : '',
+                      ].join(' ')}
                       style={{ background: it.color, color: '#1f2937' }}>
                       {time} {it.meeting.title}
                     </div>

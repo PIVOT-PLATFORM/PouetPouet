@@ -370,6 +370,17 @@ export const meetopsRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(204).send()
   })
 
+  // Vider toutes les réunions d'un événement (avec confirmation côté client)
+  app.delete('/events/:eventId/meetings', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { eventId } = request.params as { eventId: string }
+    const { id: ownerId } = request.user as { id: string }
+    const event = await prisma.meetEvent.findFirst({ where: { id: eventId, ownerId } })
+    if (!event) return reply.status(404).send({ error: 'Événement introuvable' })
+    const { count } = await prisma.meeting.deleteMany({ where: { eventId } })
+    await logHistory({ eventId, meetingId: '', meetingTitle: `${count} réunion(s) supprimées`, userId: ownerId, action: 'cleared' })
+    return reply.send({ deleted: count })
+  })
+
   // ── Participants ──────────────────────────────────────────────────────────────
 
   app.post('/meetings/:meetingId/participants', { preHandler: [app.authenticate] }, async (request, reply) => {
