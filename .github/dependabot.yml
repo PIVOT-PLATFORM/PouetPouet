@@ -1,5 +1,14 @@
 version: 2
 
+# Dependabot rencontre npm.pkg.github.com lors de la résolution transitive
+# de certains paquets (ex. @sentry/*) — on lui fournit le GITHUB_TOKEN pour
+# débloquer l'accès au registre privé GitHub Packages.
+registries:
+  github-npm:
+    type: npm-registry
+    url: https://npm.pkg.github.com
+    token: ${{secrets.GITHUB_TOKEN}}
+
 updates:
   - package-ecosystem: npm
     directory: /
@@ -23,6 +32,8 @@ updates:
       - dependency-name: prisma
       - dependency-name: '@prisma/client'
       - dependency-name: '@prisma/adapter-pg'
+    registries:
+      - github-npm
     groups:
       npm-production:
         dependency-type: production
