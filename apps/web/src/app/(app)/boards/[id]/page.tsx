@@ -32,6 +32,11 @@ import { useAuthStore } from '@/store/auth'
 import { ColorPopover } from '@/components/ui/color-picker'
 import { GroupsPanel } from '@/components/board/groups-panel'
 import { useBoardSession } from '@/hooks/useBoardSession'
+import { useFlag } from '@/store/flags'
+import { TutorialOverlay } from '@/components/tutorial/tutorial-overlay'
+import { useTutorial } from '@/components/tutorial/use-tutorial'
+import { createBoardTutorialSteps } from '@/components/tutorial/board-tutorial'
+import type { TutorialContext } from '@/components/tutorial/tutorials'
 
 export default function BoardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -256,6 +261,45 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   // #109 — gating des fonctionnalités du board (paramètres). enabledActivities
   // null = tout activé (défaut) ; sinon seule une clé présente est disponible.
   const featureOn = (key: string) => !board?.enabledActivities || board.enabledActivities.includes(key)
+
+  // ── Tutoriel guidé ──────────────────────────────────────────────────────────
+  const tablesFlag = useFlag('board.tables')
+  const tutorial = useTutorial('board', !isLoading && !accessDenied && !!board)
+
+  // Snapshot des IDs au démarrage du tuto → permet le "reset" final.
+  const tutorialSnapshot = useRef<{ cards: Set<string>; frames: Set<string>; connections: Set<string> } | null>(null)
+  useEffect(() => {
+    if (tutorial.active && !tutorialSnapshot.current) {
+      tutorialSnapshot.current = {
+        cards: new Set(cards.map((c) => c.id)),
+        frames: new Set(frames.map((f) => f.id)),
+        connections: new Set(connections.map((c) => c.id)),
+      }
+    }
+    if (!tutorial.active) tutorialSnapshot.current = null
+  }, [tutorial.active, cards, frames, connections])
+
+  const tutorialCtx: TutorialContext = {
+    isReadonly,
+    isOwner: userRole === 'OWNER',
+    canEdit: userRole === 'OWNER' || userRole === 'EDITOR',
+    drawing: featureOn('drawing'),
+    frames: featureOn('frames'),
+    voting: featureOn('voting'),
+    timer: featureOn('timer'),
+    fields: featureOn('fields'),
+    tables: tablesFlag,
+  }
+
+  function handleTutorialClose(reason: 'completed' | 'quit' | 'reset') {
+    if (reason === 'reset' && tutorialSnapshot.current) {
+      const snap = tutorialSnapshot.current
+      cards.filter((c) => !snap.cards.has(c.id)).forEach((c) => deleteCard(c.id))
+      frames.filter((f) => !snap.frames.has(f.id)).forEach((f) => deleteFrame(f.id))
+      connections.filter((c) => !snap.connections.has(c.id)).forEach((c) => deleteConnection(c.id))
+    }
+    tutorial.close()
+  }
 
   useEffect(() => {
     if (importCount > 0) canvasApiRef.current?.fitToContent()
@@ -511,6 +555,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           />
         ) : (
           <h1
+            data-tutorial="board-title"
             onClick={startEditingName}
             title={userRole === 'OWNER' ? 'Cliquer pour renommer' : undefined}
             className={`font-semibold text-gray-900 flex-1 max-w-md truncate min-w-0 px-2 py-1 -my-1 rounded-lg ${userRole === 'OWNER' ? 'cursor-text hover:bg-gray-100' : ''}`}
@@ -523,7 +568,9 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         <div className="flex-1" />
 
         {/* Presence indicator */}
-        <PresenceIndicator presence={presence} members={members} dropdownTop={templateDraftOf ? 170 : 120} />
+        <span data-tutorial="board-presence" className="shrink-0 flex items-center">
+          <PresenceIndicator presence={presence} members={members} dropdownTop={templateDraftOf ? 170 : 120} />
+        </span>
 
         {/* Role badge (non-owner) */}
         {userRole && userRole !== 'OWNER' && (
@@ -545,6 +592,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />
             <div className="flex items-center gap-0.5 shrink-0">
               <button
+                data-tutorial="board-import"
                 onClick={() => { closeAllOverlays(); setShowImportHub(true) }}
                 className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
                 title="Importer…"
@@ -554,6 +602,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                 </svg>
               </button>
               <button
+                data-tutorial="board-export"
                 onClick={() => { closeAllOverlays(); setShowExportHub(true) }}
                 disabled={exporting}
                 className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-wait"
@@ -571,6 +620,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                 )}
               </button>
               <button
+                data-tutorial="board-share"
                 onClick={() => { closeAllOverlays(); setShowShareModal(true) }}
                 className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
                 title="Partager le board"
@@ -580,6 +630,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                 </svg>
               </button>
               <button
+                data-tutorial="board-settings"
                 onClick={() => { closeAllOverlays(); setShowSettingsModal(true) }}
                 className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
                 title="Paramètres du board"
@@ -597,7 +648,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         {!isReadonly && (
           <>
             <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />
-            <div className="flex items-center gap-0.5 shrink-0">
+            <div data-tutorial="board-history" className="flex items-center gap-0.5 shrink-0">
               <button
                 onClick={undo}
                 disabled={!canUndo}
@@ -639,7 +690,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
         {/* ── Group: activities (vote / last vote / timer) ────────────────── */}
         {(featureOn('voting') || featureOn('timer')) && <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />}
-        <div className="flex items-center gap-0.5 shrink-0">
+        <div data-tutorial="board-activities" className="flex items-center gap-0.5 shrink-0">
 
         {/* Vote */}
         {activeVoteSession ? (
@@ -854,6 +905,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
         {!isReadonly && <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden />}
         {!isReadonly && (!session ? (
           <button
+            data-tutorial="board-session"
             onClick={startSession}
             disabled={sessionLoading}
             className="flex items-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700 transition-colors disabled:opacity-50 shrink-0"
@@ -1276,6 +1328,13 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           cards={cards}
           isHistory
           onClose={() => setShowLastVote(false)}
+        />
+      )}
+
+      {tutorial.active && (
+        <TutorialOverlay
+          steps={createBoardTutorialSteps(tutorialCtx)}
+          onClose={handleTutorialClose}
         />
       )}
     </div>

@@ -16,6 +16,7 @@ export interface User {
   palette: Palette
   emailVerified: boolean
   favoriteModules: string[]
+  tutorialsSeen: string[]
   isAdmin?: boolean
   createdAt: string
 }
@@ -52,6 +53,7 @@ interface AuthState {
   changePassword: (current: string, next: string) => Promise<void>
   deleteAccount: (password: string) => Promise<void>
   toggleModuleFavorite: (moduleId: string) => Promise<void>
+  markTutorialSeen: (tutorialId: string) => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -178,6 +180,22 @@ export const useAuthStore = create<AuthState>()(
           set((state) => ({ user: state.user ? { ...state.user, ...updated } : null }))
         } catch {
           // Revert on failure by refetching
+        }
+      },
+
+      // Marque un tutoriel comme vu (optimiste). Idempotent côté serveur.
+      markTutorialSeen: async (tutorialId) => {
+        set((state) => {
+          if (!state.user) return state
+          const seen = state.user.tutorialsSeen ?? []
+          if (seen.includes(tutorialId)) return state
+          return { user: { ...state.user, tutorialsSeen: [...seen, tutorialId] } }
+        })
+        try {
+          const updated = await api.post<User>('/api/auth/tutorials/seen', { tutorialId })
+          set((state) => ({ user: state.user ? { ...state.user, ...updated } : null }))
+        } catch {
+          // Échec silencieux : le tuto se relancera à la prochaine visite, sans bloquer l'UI.
         }
       },
     }),

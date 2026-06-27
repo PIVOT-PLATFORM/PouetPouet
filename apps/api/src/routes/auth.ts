@@ -8,7 +8,7 @@ import { audit } from '../lib/audit.js'
 import { isAdminEmail } from '../lib/feature-flags.js'
 
 const USER_SELECT = {
-  id: true, email: true, name: true, avatar: true, bio: true, theme: true, palette: true, emailVerified: true, favoriteModules: true, createdAt: true,
+  id: true, email: true, name: true, avatar: true, bio: true, theme: true, palette: true, emailVerified: true, favoriteModules: true, tutorialsSeen: true, createdAt: true,
 } as const
 
 // Enrichit l'objet user renvoyé au client avec `isAdmin` (allowlist ADMIN_EMAILS, non persisté).
@@ -333,6 +333,27 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       ? user.favoriteModules.filter((m) => m !== moduleId)
       : [...user.favoriteModules, moduleId]
     const updated = await prisma.user.update({ where: { id }, data: { favoriteModules: next }, select: USER_SELECT })
+    return reply.send(withAdmin(updated))
+  })
+
+  // ── Tutorials seen ───────────────────────────────────────────────────────────
+  // Marque un tutoriel comme vu (append idempotent). Pas de toggle : on ne « dévoit » pas.
+  const tutorialSchema = z.object({ tutorialId: z.string().min(1).max(64) })
+
+  app.post('/tutorials/seen', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.user as { id: string }
+    const { tutorialId } = tutorialSchema.parse(request.body)
+    const user = await prisma.user.findUnique({ where: { id }, select: { tutorialsSeen: true } })
+    if (!user) return reply.status(404).send({ error: 'Utilisateur introuvable.' })
+    if (user.tutorialsSeen.includes(tutorialId)) {
+      const current = await prisma.user.findUnique({ where: { id }, select: USER_SELECT })
+      return reply.send(withAdmin(current!))
+    }
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { tutorialsSeen: [...user.tutorialsSeen, tutorialId] },
+      select: USER_SELECT,
+    })
     return reply.send(withAdmin(updated))
   })
 }

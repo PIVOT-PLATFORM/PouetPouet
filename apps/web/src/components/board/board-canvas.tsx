@@ -1128,6 +1128,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     <>
       <div
         ref={containerRef}
+        data-tutorial="board-canvas"
         className="relative flex-1 overflow-hidden select-none"
         style={{
           // Grille active → quadrillage de lignes (repère d'aimantation) ; sinon points.

@@ -109,6 +109,7 @@ export function FloatingToolbar({ toolMode, toolColor, toolStroke, toolFill, too
     <>
       {/* ── Main vertical toolbar ── */}
       <div
+        data-tutorial="board-toolbar"
         style={{ position: 'fixed', left: pos.x, top: pos.y, zIndex: 45, userSelect: 'none' }}
         className="flex flex-col items-center gap-0.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-2xl shadow-black/15 p-1.5 w-12"
       >

@@ -1,8 +1,19 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { APP_VERSION } from '@/lib/version'
+import { api } from '@/lib/api'
+
+// Tutoriels guidés disponibles (relançables depuis ici). Cf. components/tutorial.
+const TUTORIALS = [
+  {
+    id: 'board',
+    icon: '🗂️',
+    title: 'Tour du tableau blanc',
+    desc: 'Découvrez toutes les fonctionnalités du board : outils, collaboration, import/export, animation d\'atelier et raccourcis clavier.',
+  },
+]
 
 const MODULES = [
   {
@@ -290,6 +301,18 @@ const TEST_BOOKS = [
 ]
 
 export default function AidePage() {
+  // Board cible pour relancer le tour guidé : le plus récemment modifié.
+  const [tutorialBoardId, setTutorialBoardId] = useState<string | null>(null)
+  useEffect(() => {
+    api.get<{ id: string; updatedAt: string }[]>('/api/boards')
+      .then((bs) => {
+        if (bs.length === 0) return
+        const latest = [...bs].sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt))[0]
+        setTutorialBoardId(latest.id)
+      })
+      .catch(() => {})
+  }, [])
+
   return (
     <div className="space-y-6">
 
@@ -322,6 +345,35 @@ export default function AidePage() {
                   </li>
                 ))}
               </ul>
+            </div>
+          ))}
+        </div>
+      </CollapsibleSection>
+
+      {/* Tutoriels guidés */}
+      <CollapsibleSection title="Tutoriels" subtitle="Visites guidées interactives. Relancez-les autant de fois que nécessaire.">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {TUTORIALS.map((t) => (
+            <div
+              key={t.id}
+              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 flex flex-col gap-3"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{t.icon}</span>
+                <span className="font-semibold text-gray-900 dark:text-white text-sm">{t.title}</span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed flex-1">{t.desc}</p>
+              {tutorialBoardId ? (
+                <Link
+                  href={`/boards/${tutorialBoardId}?tutorial=${t.id}`}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  Lancer le tour
+                </Link>
+              ) : (
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 italic">Créez un board pour lancer ce tour.</p>
+              )}
             </div>
           ))}
         </div>
