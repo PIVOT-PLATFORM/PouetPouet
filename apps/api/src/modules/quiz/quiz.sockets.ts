@@ -6,6 +6,7 @@ function roomKey(sessionId: string) {
 }
 
 function calcPoints(points: number, timeLimit: number, responseMs: number): number {
+  if (timeLimit === 0) return points
   const ratio = Math.min(1, responseMs / (timeLimit * 1000))
   return Math.round(points * (1 - ratio * 0.9))
 }
@@ -123,7 +124,9 @@ export function quizSocketHandlers(io: Server, socket: Socket) {
     })
     if (!firstQuestion) { socket.emit('quiz:error', 'Aucune question dans ce quiz'); return }
 
-    const questionEndAt = new Date(Date.now() + firstQuestion.timeLimit * 1000)
+    const questionEndAt = firstQuestion.timeLimit > 0
+      ? new Date(Date.now() + firstQuestion.timeLimit * 1000)
+      : null
     await prisma.quizSession.update({
       where: { id: sessionId },
       data: { status: 'QUESTION', currentQuestion: 0, questionEndAt },
@@ -141,11 +144,13 @@ export function quizSocketHandlers(io: Server, socket: Socket) {
       points: firstQuestion.points,
     })
 
-    setTimeout(async () => {
-      const current = await prisma.quizSession.findUnique({ where: { id: sessionId } })
-      if (!current || current.status !== 'QUESTION' || current.currentQuestion !== 0) return
-      await revealCurrentQuestion(io, sessionId, firstQuestion.id)
-    }, firstQuestion.timeLimit * 1000)
+    if (firstQuestion.timeLimit > 0) {
+      setTimeout(async () => {
+        const current = await prisma.quizSession.findUnique({ where: { id: sessionId } })
+        if (!current || current.status !== 'QUESTION' || current.currentQuestion !== 0) return
+        await revealCurrentQuestion(io, sessionId, firstQuestion.id)
+      }, firstQuestion.timeLimit * 1000)
+    }
   })
 
   // participant answers
@@ -172,11 +177,12 @@ export function quizSocketHandlers(io: Server, socket: Socket) {
 
     const participant = await prisma.quizParticipant.findUnique({
       where: { id: participantId },
-      select: { streak: true },
+      select: { streak: true, bestStreak: true },
     })
 
     const isCorrect = optionIndex === question.correct
     const newStreak = isCorrect ? (participant?.streak ?? 0) + 1 : 0
+    const newBestStreak = Math.max(participant?.bestStreak ?? 0, newStreak)
     const multiplier = calcStreakMultiplier(newStreak)
     const basePoints = isCorrect ? calcPoints(question.points, question.timeLimit, responseMs) : 0
     const pointsEarned = Math.round(basePoints * multiplier)
@@ -190,6 +196,7 @@ export function quizSocketHandlers(io: Server, socket: Socket) {
       data: {
         ...(pointsEarned > 0 ? { score: { increment: pointsEarned } } : {}),
         streak: newStreak,
+        bestStreak: newBestStreak,
       },
     })
 
@@ -220,7 +227,7 @@ export function quizSocketHandlers(io: Server, socket: Socket) {
         take: 10,
       })
       io.to(roomKey(sessionId)).emit('quiz:leaderboard', {
-        podium: participants.map((p) => ({ name: p.name, score: p.score })),
+        podium: participants.map((p) => ({ name: p.name, score: p.score, streak: p.streak, bestStreak: p.bestStreak })),
       })
       const state = await buildState(sessionId)
       if (state) io.to(roomKey(sessionId)).emit('quiz:state', state)
@@ -242,7 +249,9 @@ export function quizSocketHandlers(io: Server, socket: Socket) {
     })
     if (!nextQuestion) { await endSession(io, sessionId); return }
 
-    const questionEndAt = new Date(Date.now() + nextQuestion.timeLimit * 1000)
+    const questionEndAt = nextQuestion.timeLimit > 0
+      ? new Date(Date.now() + nextQuestion.timeLimit * 1000)
+      : null
     await prisma.quizSession.update({
       where: { id: sessionId },
       data: { status: 'QUESTION', currentQuestion: nextIndex, questionEndAt },
@@ -260,11 +269,13 @@ export function quizSocketHandlers(io: Server, socket: Socket) {
       points: nextQuestion.points,
     })
 
-    setTimeout(async () => {
-      const current = await prisma.quizSession.findUnique({ where: { id: sessionId } })
-      if (!current || current.status !== 'QUESTION' || current.currentQuestion !== nextIndex) return
-      await revealCurrentQuestion(io, sessionId, nextQuestion.id)
-    }, nextQuestion.timeLimit * 1000)
+    if (nextQuestion.timeLimit > 0) {
+      setTimeout(async () => {
+        const current = await prisma.quizSession.findUnique({ where: { id: sessionId } })
+        if (!current || current.status !== 'QUESTION' || current.currentQuestion !== nextIndex) return
+        await revealCurrentQuestion(io, sessionId, nextQuestion.id)
+      }, nextQuestion.timeLimit * 1000)
+    }
   })
 
   // host ends the session
@@ -328,7 +339,7 @@ async function endSession(io: Server, sessionId: string) {
     where: { sessionId },
     orderBy: { score: 'desc' },
   })
-  const podium = participants.map((p, idx) => ({ name: p.name, score: p.score, rank: idx + 1 }))
+  const podium = participants.map((p, idx) => ({ name: p.name, score: p.score, rank: idx + 1, bestStreak: p.bestStreak }))
   io.to(roomKey(sessionId)).emit('quiz:ended', { podium })
 
   const state = await buildState(sessionId)

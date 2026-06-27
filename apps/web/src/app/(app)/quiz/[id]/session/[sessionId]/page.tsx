@@ -5,10 +5,10 @@ import { useQuizHost } from '@/hooks/useQuizSocket'
 import { ChevronLeft, ChevronRight, Users, Play, Trophy, Clock, Copy, Check } from 'lucide-react'
 import Link from 'next/link'
 
-const OPTION_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500']
-const OPTION_LABELS = ['A', 'B', 'C', 'D']
+const OPTION_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-teal-500', 'bg-pink-500']
+const OPTION_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
-function Timer({ endsAt }: { endsAt: string }) {
+function Timer({ endsAt, timeLimit }: { endsAt: string; timeLimit: number }) {
   const [seconds, setSeconds] = useState(0)
 
   useEffect(() => {
@@ -21,7 +21,7 @@ function Timer({ endsAt }: { endsAt: string }) {
     return () => clearInterval(id)
   }, [endsAt])
 
-  const pct = seconds > 0 ? (seconds / 30) * 100 : 0
+  const pct = seconds > 0 ? (seconds / timeLimit) * 100 : 0
   return (
     <div className="flex items-center gap-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
       <Clock className="w-6 h-6 text-rose-500" />
@@ -75,11 +75,12 @@ export default function QuizSessionPage({ params }: { params: Promise<{ id: stri
           <Trophy className="w-6 h-6 text-amber-500" />
           Résultats finaux — {state.quizTitle}
         </h1>
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
           {ended.podium.map((p) => (
-            <div key={p.name} className="flex items-center gap-4 py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
-              <span className="text-lg font-bold text-gray-400 w-8">{p.rank}</span>
+            <div key={p.name} className="flex items-center gap-4 px-5 py-3">
+              <span className="text-lg font-bold text-gray-300 dark:text-gray-600 w-8">{p.rank}</span>
               <span className="flex-1 font-semibold text-gray-900 dark:text-gray-100">{p.name}</span>
+              {p.bestStreak >= 2 && <span className="text-orange-500">🔥{p.bestStreak}</span>}
               <span className="font-bold text-rose-600">{p.score.toLocaleString()} pts</span>
             </div>
           ))}
@@ -161,7 +162,7 @@ export default function QuizSessionPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        {state.questionEndAt && <Timer endsAt={state.questionEndAt} />}
+        {state.questionEndAt && q.timeLimit > 0 && <Timer endsAt={state.questionEndAt} timeLimit={q.timeLimit} />}
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 text-center">
           <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{q.text}</p>
@@ -248,6 +249,7 @@ export default function QuizSessionPage({ params }: { params: Promise<{ id: stri
             <div key={p.name} className="flex items-center gap-4 px-5 py-3">
               <span className="text-lg font-bold text-gray-300 dark:text-gray-600 w-7">{idx + 1}</span>
               <span className="flex-1 font-semibold text-gray-900 dark:text-gray-100">{p.name}</span>
+              {p.streak >= 2 && <span className="text-orange-500">🔥{p.streak}</span>}
               <span className="font-bold text-rose-600">{p.score.toLocaleString()}</span>
             </div>
           ))}

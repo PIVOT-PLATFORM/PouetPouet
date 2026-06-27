@@ -39,11 +39,11 @@ export interface QuizReveal {
 }
 
 export interface QuizLeaderboard {
-  podium: { name: string; score: number }[]
+  podium: { name: string; score: number; streak: number; bestStreak: number }[]
 }
 
 export interface QuizEnded {
-  podium: { name: string; score: number; rank: number }[]
+  podium: { name: string; score: number; rank: number; bestStreak: number }[]
 }
 
 // Hook for host view
