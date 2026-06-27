@@ -134,6 +134,20 @@ export const ROADMAP_MODULE: ModuleManifest = {
   listensTo: [],
 }
 
+export const PDF_MODULE: ModuleManifest = {
+  id: 'pdf',
+  name: 'PDF Manager',
+  description: 'Gestionnaire de PDF : fusion, découpage, extraction, rotation et conversion de pages',
+  icon: '📄',
+  color: '#dc2626',
+  nav: [{ label: 'PDF Manager', href: '/pdf', match: '/pdf' }],
+  apiPrefix: '/api/pdf',
+  ownedEntities: ['PdfDocument'],
+  referencedPivots: ['User'],
+  emits: [],
+  listensTo: [],
+}
+
 /** Modules actifs, dans l'ordre d'affichage de la navigation. */
 export const PIVOT_MODULES: ModuleManifest[] = [
   POUETPOUET_MODULE,
@@ -145,4 +159,5 @@ export const PIVOT_MODULES: ModuleManifest[] = [
   TESTBOOKS_MODULE,
   QUIZ_MODULE,
   ROADMAP_MODULE,
+  PDF_MODULE,
 ]

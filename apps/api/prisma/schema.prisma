@@ -52,6 +52,7 @@ model User {
   quizSessions   QuizSession[]
   gameScores     GameScore[]
   roadmaps       Roadmap[]
+  pdfDocuments   PdfDocument[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1063,4 +1064,18 @@ model RoadmapItem {
   roadmap Roadmap @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
 
   @@index([roadmapId])
+}
+
+model PdfDocument {
+  id        String   @id @default(cuid())
+  ownerId   String
+  name      String
+  pageCount Int
+  size      Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, createdAt])
 }
