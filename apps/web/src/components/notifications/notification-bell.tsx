@@ -139,7 +139,7 @@ function PatchNoteModal({
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 overflow-y-auto space-y-5">
+        <div className="flex-1 px-6 py-5 overflow-y-auto space-y-5">
           <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{pn.summary}</p>
           {pn.sections.map((sec) => (
             <div key={sec.heading}>
