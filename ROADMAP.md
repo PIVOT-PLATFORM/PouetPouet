@@ -1,6 +1,6 @@
 # Roadmap Pivot — état au 2026-06-25
 
-> Version courante : **0.22.0**
+> Version courante : **0.23.0** — PDF Manager en develop (→ 0.24.0 à la prochaine release)
 >
 > Source unique de suivi : ce fichier centralise la roadmap et les chantiers ouverts.
 
@@ -106,17 +106,17 @@
 - [x] Définir le cycle de vie d'un plugin (installation, activation, config, permissions, versioning) *(§4 du doc)*
 
 ### Feature flags
-- [ ] Système de feature flags
-- [ ] Flags par environnement
-- [ ] Interface d'administration ou fichier de configuration
+- [x] Système de feature flags *(lib `feature-flags.ts`, catalogue partagé `FLAG_DEFINITIONS`)*
+- [x] Flags par environnement *(env `NODE_ENV` + rollout % + whitelist userId)*
+- [x] Interface d'administration *(page `/admin/flags`, surcharges en DB + cache Redis)*
 
 ### Authentification et habilitations
 - [x] OpenID Connect / OIDC (PKCE S256, Keycloak local opt-in)
 - [x] Matrice d'habilitation Propriétaire / Éditeur / Lecteur + co-propriétaire
 - [x] Rôles enforced sur les boards (reset, sessions, votes, export)
 - [ ] SAML 2.0
-- [~] Permissions par module *(Scrum & Daily livrés via `ModuleShare` polymorphe — cf. ADR-0005, #36/#78 ; reste Roue / Capacité / MeetOps sur le même patron)*
-- [~] Tests d'autorisation systématiques *(matrice owner/éditeur/lecteur/étranger en intégration pour Scrum & Daily — #37/#78 ; à étendre aux autres modules)*
+- [x] Permissions par module *(tous les modules dans `ModuleShare` : scrum, daily, team, wheel, capacity, meetops, quiz, roadmap, pdf — cf. ADR-0005)*
+- [~] Tests d'autorisation systématiques *(matrice owner/éditeur/lecteur/étranger : Daily, Scrum, Boards, Roadmap, Wheel ✅ — reste Capacity, MeetOps, Quiz, Games, Testbooks, PDF — #37)*
 
 ---
 
@@ -218,10 +218,23 @@
 - [x] Bonus de rapidité (points proportionnels au temps de réponse)
 - [x] Podium final
 
-### Mini-jeux collaboratifs (module caché `/games`) — #165
-- [ ] Bingo des Réunions — grille 5×5, phrases cultes de réunion, coche en temps réel
-- [ ] Post-it Rush — cliquer sur les post-its avant qu'ils disparaissent, combo multiplier
-- [ ] Trivia Agile — 20 questions Scrum/agile, timer 15s, score final
+### Mini-jeux collaboratifs (module caché `/games`) — livré #165
+- [x] Bingo des Réunions — grille 5×5, phrases cultes de réunion, coche en temps réel
+- [x] Post-it Rush — cliquer sur les post-its avant qu'ils disparaissent, combo multiplier
+- [x] Trivia Agile — 20 questions Scrum/agile, timer 15s, score final
+
+### Cahiers de tests — livré #133
+- [x] CRUD cahiers (titre, catégories, sous-catégories, tâches)
+- [x] Prévisualisation et navigation par catégorie
+- [x] Partage par rôle (via ModuleShare)
+
+### PDF Manager — livré v0.24.0 (en develop)
+- [x] Upload, renommage, duplication, fusion de PDFs
+- [x] Éditeur de pages : réordonnage, rotation, extraction, split
+- [x] Dossiers (arborescence) + tags + drag-and-drop entre dossiers
+- [x] Exports : PDF, texte, images ZIP (client-side), DOCX/MD (si pandoc)
+- [x] Barre de recherche + tri (Nom / Date / Taille / Pages)
+- [x] Partage par rôle (via ModuleShare)
 
 ### Assistant IA Pouet — #163 (PR ouverte)
 - [x] F0 : Ollama docker + LLMProvider/OllamaProvider + route SSE `/api/pouet/chat`
