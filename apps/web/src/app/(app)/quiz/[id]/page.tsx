@@ -28,7 +28,7 @@ interface SessionResult {
   title: string | null
   createdAt: string
   participantCount: number
-  podium: { name: string; score: number }[]
+  podium: { name: string; score: number; bestStreak: number }[]
 }
 
 const OPTION_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500']
@@ -440,6 +440,7 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
                             {idx < 3 ? ['🥇', '🥈', '🥉'][idx] : <span className="font-bold text-gray-300 dark:text-gray-600">{idx + 1}</span>}
                           </span>
                           <span className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">{p.name}</span>
+                          {p.bestStreak >= 2 && <span className="text-orange-500 text-sm">🔥{p.bestStreak}</span>}
                           <span className="text-sm font-bold text-rose-600">{p.score.toLocaleString()} pts</span>
                         </div>
                       ))}

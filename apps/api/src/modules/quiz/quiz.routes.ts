@@ -222,7 +222,7 @@ export const quizRoutes: FastifyPluginAsync = async (app) => {
       include: {
         participants: {
           orderBy: { score: 'desc' },
-          select: { name: true, score: true },
+          select: { name: true, score: true, bestStreak: true },
         },
       },
     })
