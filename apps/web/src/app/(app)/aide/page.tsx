@@ -85,6 +85,59 @@ const MODULES = [
   },
 ]
 
+const SHORTCUTS: { module: string; icon: string; groups: { label: string; items: { keys: string[]; desc: string }[] }[] }[] = [
+  {
+    module: 'Boards', icon: '🗂️',
+    groups: [
+      {
+        label: 'Édition',
+        items: [
+          { keys: ['Ctrl', 'Z'],            desc: 'Annuler' },
+          { keys: ['Ctrl', 'Y'],            desc: 'Rétablir' },
+          { keys: ['Ctrl', 'Shift', 'Z'],   desc: 'Rétablir (variante)' },
+          { keys: ['Ctrl', 'C'],            desc: 'Copier les éléments sélectionnés' },
+          { keys: ['Ctrl', 'V'],            desc: 'Coller' },
+          { keys: ['Ctrl', 'A'],            desc: 'Tout sélectionner' },
+          { keys: ['Ctrl', 'D'],            desc: 'Dupliquer la sélection' },
+          { keys: ['Suppr'],                desc: 'Supprimer la sélection' },
+        ],
+      },
+      {
+        label: 'Navigation & outils',
+        items: [
+          { keys: ['←', '↑', '→', '↓'],    desc: 'Déplacer les éléments sélectionnés (1 px, ×10 avec Shift)' },
+          { keys: ['V'],                    desc: 'Passer en mode Sélection' },
+          { keys: ['Échap'],               desc: 'Désélectionner / fermer le panneau actif' },
+        ],
+      },
+    ],
+  },
+  {
+    module: 'MeetOps — Calendrier', icon: '📅',
+    groups: [
+      {
+        label: 'Vues',
+        items: [
+          { keys: ['1'], desc: 'Vue Mois' },
+          { keys: ['2'], desc: 'Vue Semaine' },
+          { keys: ['3'], desc: 'Vue Semaine de travail' },
+          { keys: ['4'], desc: 'Vue Jour' },
+          { keys: ['5'], desc: 'Vue Agenda' },
+        ],
+      },
+      {
+        label: 'Navigation',
+        items: [
+          { keys: ['←'],      desc: 'Période précédente (semaine / mois / jour)' },
+          { keys: ['→'],      desc: 'Période suivante' },
+          { keys: ['T'],      desc: "Revenir à aujourd'hui" },
+          { keys: ['Échap'], desc: 'Fermer le popup / la création rapide' },
+        ],
+      },
+    ],
+  },
+]
+
 // Matrice des rôles sur un board (source de vérité : MATRICE-ROLES.md / gardes serveur)
 type RoleAccess = 'yes' | 'no' | 'vote' // 'vote' = ✅ si désigné votant
 const ROLE_MATRIX: { group: string; rows: { action: string; owner: RoleAccess; editor: RoleAccess; viewer: RoleAccess }[] }[] = [
@@ -198,6 +251,50 @@ export default function AidePage() {
                   </li>
                 ))}
               </ul>
+            </div>
+          ))}
+        </div>
+      </CollapsibleSection>
+
+      {/* Raccourcis clavier */}
+      <CollapsibleSection title="Raccourcis clavier" subtitle="Disponibles sur les écrans concernés — hors champs de saisie.">
+        <div className="flex flex-col gap-6">
+          {SHORTCUTS.map((mod) => (
+            <div key={mod.module}>
+              <div className="flex items-center gap-2 mb-3">
+                <span>{mod.icon}</span>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{mod.module}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {mod.groups.map((group) => (
+                  <div key={group.label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+                    <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{group.label}</span>
+                    </div>
+                    <table className="w-full text-xs">
+                      <tbody>
+                        {group.items.map((item) => (
+                          <tr key={item.desc} className="border-t border-gray-50 dark:border-gray-800/60 first:border-0">
+                            <td className="px-4 py-2 w-44 shrink-0">
+                              <div className="flex flex-wrap gap-1">
+                                {item.keys.map((k, i) => (
+                                  <span key={i} className="inline-flex items-center gap-0.5">
+                                    <kbd className="inline-block px-1.5 py-0.5 text-[10px] font-mono font-semibold bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 shadow-[0_1px_0_0_rgba(0,0,0,0.15)]">
+                                      {k}
+                                    </kbd>
+                                    {i < item.keys.length - 1 && <span className="text-gray-400 text-[10px]">+</span>}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 text-gray-600 dark:text-gray-400">{item.desc}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
