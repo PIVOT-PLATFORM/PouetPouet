@@ -327,7 +327,7 @@ export default function PdfLibraryPage() {
   const [selectedFolder, setSelectedFolder] = useState<string | null | undefined>(undefined)
   const [selectedTag, setSelectedTag] = useState<string | undefined>(undefined)
 
-  const { docs, loading, error, upload, rename, updateTags, moveToFolder, remove, duplicate, merge } = usePdfList(
+  const { docs, loading, error, refresh, upload, rename, updateTags, moveToFolder, remove, duplicate, merge } = usePdfList(
     selectedTag ? undefined : selectedFolder,
     selectedTag,
   )
@@ -410,7 +410,7 @@ export default function PdfLibraryPage() {
           onCreate={parentId => { setNewFolderParent(parentId); setNewFolderName(''); setShowNewFolder(true) }}
           onRename={renameFolder}
           onDelete={deleteFolder}
-          onDropDoc={async (docId, folderId) => { await moveToFolder(docId, folderId) }}
+          onDropDoc={async (docId, folderId) => { await moveToFolder(docId, folderId); refresh() }}
         />
 
         {/* Contenu principal */}
