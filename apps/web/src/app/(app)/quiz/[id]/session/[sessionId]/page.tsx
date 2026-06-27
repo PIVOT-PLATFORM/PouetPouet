@@ -80,11 +80,7 @@ export default function QuizSessionPage({ params }: { params: Promise<{ id: stri
             <div key={p.name} className="flex items-center gap-4 px-5 py-3">
               <span className="text-lg font-bold text-gray-300 dark:text-gray-600 w-8">{p.rank}</span>
               <span className="flex-1 font-semibold text-gray-900 dark:text-gray-100">{p.name}</span>
-              {p.bestStreak >= 2 && (
-                <span className="text-xs font-medium text-orange-500 bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded-full">
-                  🔥 ×{p.bestStreak}
-                </span>
-              )}
+              {p.bestStreak >= 2 && <span className="text-orange-500">🔥{p.bestStreak}</span>}
               <span className="font-bold text-rose-600">{p.score.toLocaleString()} pts</span>
             </div>
           ))}
@@ -253,11 +249,7 @@ export default function QuizSessionPage({ params }: { params: Promise<{ id: stri
             <div key={p.name} className="flex items-center gap-4 px-5 py-3">
               <span className="text-lg font-bold text-gray-300 dark:text-gray-600 w-7">{idx + 1}</span>
               <span className="flex-1 font-semibold text-gray-900 dark:text-gray-100">{p.name}</span>
-              {p.streak >= 2 && (
-                <span className="text-xs font-medium text-orange-500 bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded-full">
-                  🔥 ×{p.streak}
-                </span>
-              )}
+              {p.streak >= 2 && <span className="text-orange-500">🔥{p.streak}</span>}
               <span className="font-bold text-rose-600">{p.score.toLocaleString()}</span>
             </div>
           ))}
