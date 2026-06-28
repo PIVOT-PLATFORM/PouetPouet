@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import { prisma } from '../../lib/prisma.js'
 import { notify } from '../../lib/notify.js'
 import { sendSignatureRequestEmail } from '../../lib/mailer.js'
+import { recordEvent } from './signdoc.events.js'
 import type { SignRecipient } from '@prisma/client'
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3000'
@@ -67,6 +68,23 @@ export async function dispatchToRecipient(
     })
   }
   await sendSignatureRequestEmail(recipient.email, recipient.name, envelope.name, link, expires.toISOString())
+}
+
+// Relance un destinataire : régénère un lien (nouveau jeton), renotifie
+// (in-app + email) et journalise un événement 'reminded'. Ne change pas le statut.
+export async function remindRecipient(
+  envelope: { id: string; name: string; globalDeadline: Date | null },
+  recipient: SignRecipient,
+): Promise<void> {
+  const { token, hash } = makeToken()
+  const expires = recipient.deadline ?? envelope.globalDeadline ?? new Date(Date.now() + TOKEN_TTL_DAYS * 86_400_000)
+  await prisma.signRecipient.update({ where: { id: recipient.id }, data: { accessTokenHash: hash, tokenExpires: expires } })
+  const link = signingLink(token)
+  if (recipient.userId) {
+    await notify({ userId: recipient.userId, type: 'SIGN_REQUESTED', title: 'Rappel : document à signer', body: `« ${envelope.name} » attend votre signature.`, link: `/sign/${token}` })
+  }
+  await sendSignatureRequestEmail(recipient.email, recipient.name, envelope.name, link, expires.toISOString())
+  await recordEvent(envelope.id, 'reminded', { actorLabel: 'system', recipientId: recipient.id })
 }
 
 // Notifie les destinataires de la (nouvelle) étape active qui n'ont pas encore

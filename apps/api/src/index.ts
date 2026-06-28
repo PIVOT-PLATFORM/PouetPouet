@@ -30,6 +30,7 @@ import { bus } from './lib/bus.js'
 import { prisma } from './lib/prisma.js'
 import { redis } from './lib/redis.js'
 import { scheduleRetention } from './lib/retention.js'
+import { scheduleSigndocMaintenance } from './modules/signdoc/signdoc.scheduler.js'
 
 const PORT = Number(process.env.PORT ?? 4000)
 
@@ -321,5 +322,8 @@ registerSocketHandlers(io)
 
 // Purge quotidienne des données inactives (sessions fermées, notifs lues, audit)
 scheduleRetention(app.log)
+
+// Maintenance SignDoc : expiration des enveloppes en retard + relances des signataires
+scheduleSigndocMaintenance(app.log)
 
 await app.listen({ port: PORT, host: '0.0.0.0' })
