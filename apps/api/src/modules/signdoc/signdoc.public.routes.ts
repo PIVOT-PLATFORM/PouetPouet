@@ -5,6 +5,7 @@ import { notify } from '../../lib/notify.js'
 import { sendSignatureCompletedEmail } from '../../lib/mailer.js'
 import { recordEvent } from './signdoc.events.js'
 import { activeOrder, canSignNow, dispatchActiveStep, hashToken, isActingRecipient } from './signdoc.workflow.js'
+import { finalizeEnvelope } from './signdoc.finalize.js'
 import { originalStream } from './signdoc.storage.js'
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3000'
@@ -108,6 +109,8 @@ export const signdocPublicRoutes: FastifyPluginAsync = async (app) => {
     if (remaining.length === 0) {
       await prisma.signEnvelope.update({ where: { id: r.envelopeId }, data: { status: 'COMPLETED', completedAt: new Date() } })
       await recordEvent(r.envelopeId, 'completed', { actorLabel: 'system' })
+      // Compose + scelle le PDF final (best-effort : n'échoue jamais la signature).
+      try { await finalizeEnvelope(r.envelopeId) } catch (err) { console.error('finalizeEnvelope failed', err) }
       const owner = await prisma.user.findUnique({ where: { id: r.envelope.ownerId }, select: { id: true, email: true, name: true } })
       if (owner) {
         await notify({ userId: owner.id, type: 'SIGN_COMPLETED', title: 'Document signé', body: `« ${r.envelope.name} » est entièrement signé.`, link: `/signdoc/${r.envelopeId}` })

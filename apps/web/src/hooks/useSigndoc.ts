@@ -199,3 +199,31 @@ export function useEnvelope(id: string) {
 }
 
 export const FILE_URL = (id: string) => `${API_URL}/api/signdoc/${id}/file`
+
+export interface VerifyResult {
+  status: SignStatus
+  originalHash: string
+  sealedHash: string | null
+  sealLevel: string | null
+  completedAt: string | null
+  chainValid: boolean
+  fileIntegrity: boolean | null
+}
+
+export function verifyEnvelope(id: string): Promise<VerifyResult> {
+  return api.get<VerifyResult>(`/api/signdoc/${id}/verify`)
+}
+
+// Télécharge le PDF scellé (binaire) avec authentification, puis déclenche la sauvegarde.
+export async function downloadSealed(id: string, name: string): Promise<void> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+  const res = await fetch(`${API_URL}/api/signdoc/${id}/sealed`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (!res.ok) throw new Error('Document scellé indisponible')
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${name}-signe.pdf`
+  a.click()
+  URL.revokeObjectURL(url)
+}

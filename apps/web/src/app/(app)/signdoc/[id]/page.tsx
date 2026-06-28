@@ -4,14 +4,15 @@ import { use, useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, Loader2, Plus, Trash2, Share2, Save, PenLine, Type, Calendar, Hash,
-  GripVertical, Clock, ChevronUp, ChevronDown, Send, Ban,
+  GripVertical, Clock, ChevronUp, ChevronDown, Send, Ban, Check,
 } from 'lucide-react'
 import { PdfPageCanvas } from '@/components/pdf/pdf-page-canvas'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
 import {
-  useEnvelope, FILE_URL,
-  type SignFieldType, type FieldInput, type SignRecipient, type SignEvent,
+  useEnvelope, FILE_URL, verifyEnvelope, downloadSealed,
+  type SignFieldType, type FieldInput, type SignRecipient, type SignEvent, type VerifyResult,
 } from '@/hooks/useSigndoc'
+import { Download, ShieldCheck, ShieldAlert } from 'lucide-react'
 
 // Couleurs attribuées aux signataires (code couleur du designer).
 const RECIPIENT_COLORS = ['#0d9488', '#6366f1', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#0ea5e9']
@@ -250,6 +251,46 @@ function RecipientsPanel({
   )
 }
 
+// ── Panneau de finalisation (enveloppe signée) ───────────────────────────────
+
+function CompletionPanel({ envelopeId, envelopeName }: { envelopeId: string; envelopeName: string }) {
+  const [verify, setVerify] = useState<VerifyResult | null>(null)
+  const [downloading, setDownloading] = useState(false)
+
+  useEffect(() => { verifyEnvelope(envelopeId).then(setVerify).catch(() => {}) }, [envelopeId])
+
+  const ok = verify && verify.chainValid && verify.fileIntegrity !== false
+  return (
+    <div className="flex flex-col gap-3 border border-green-200 dark:border-green-900 bg-green-50/50 dark:bg-green-950/20 rounded-xl p-4">
+      <h3 className="text-sm font-semibold text-green-700 dark:text-green-300 flex items-center gap-1.5">
+        {ok ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />} Document signé & scellé
+      </h3>
+      <button
+        onClick={async () => { setDownloading(true); try { await downloadSealed(envelopeId, envelopeName) } finally { setDownloading(false) } }}
+        disabled={downloading}
+        className="flex items-center justify-center gap-1.5 text-sm bg-teal-600 text-white rounded-lg px-3 py-2 hover:bg-teal-700 disabled:opacity-50"
+      >
+        {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Télécharger le document signé
+      </button>
+      {verify && (
+        <div className="text-[11px] text-gray-600 dark:text-gray-300 flex flex-col gap-1">
+          <Check2 label="Chaîne de preuve intègre" ok={verify.chainValid} />
+          <Check2 label="Fichier scellé non modifié" ok={verify.fileIntegrity !== false} />
+          <p className="text-gray-400">Sceau : {verify.sealLevel === 'B' ? 'PAdES-B (clé serveur)' : verify.sealLevel === 'T' ? 'PAdES-T (horodaté)' : 'aplati (non scellé)'}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Check2({ label, ok }: { label: string; ok: boolean }) {
+  return (
+    <span className={`flex items-center gap-1.5 ${ok ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+      {ok ? <Check size={12} /> : <Ban size={12} />} {label}
+    </span>
+  )
+}
+
 // ── Page principale ───────────────────────────────────────────────────────────
 
 export default function EnvelopeWorkshopPage({ params }: { params: Promise<{ id: string }> }) {
@@ -387,6 +428,7 @@ export default function EnvelopeWorkshopPage({ params }: { params: Promise<{ id:
 
         {/* Panneau latéral */}
         <aside className="w-72 shrink-0 flex flex-col gap-5">
+          {envelope.status === 'COMPLETED' && <CompletionPanel envelopeId={envelope.id} envelopeName={envelope.name} />}
           <RecipientsPanel
             recipients={envelope.recipients}
             ordered={envelope.ordered}

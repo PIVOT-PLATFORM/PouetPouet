@@ -13,6 +13,9 @@ export function envelopeDir(id: string): string {
 export function originalPath(id: string): string {
   return path.join(envelopeDir(id), 'original.pdf')
 }
+export function sealedPath(id: string): string {
+  return path.join(envelopeDir(id), 'sealed.pdf')
+}
 
 export function writeOriginal(id: string, bytes: Buffer): void {
   mkdirSync(envelopeDir(id), { recursive: true })
@@ -29,6 +32,20 @@ export function originalExists(id: string): boolean {
 
 export function originalStream(id: string) {
   return createReadStream(originalPath(id))
+}
+
+export function writeSealed(id: string, bytes: Buffer): void {
+  mkdirSync(envelopeDir(id), { recursive: true })
+  writeFileSync(sealedPath(id), bytes)
+}
+export function sealedExists(id: string): boolean {
+  return existsSync(sealedPath(id))
+}
+export function readSealed(id: string): Buffer {
+  return readFileSync(sealedPath(id))
+}
+export function sealedStream(id: string) {
+  return createReadStream(sealedPath(id))
 }
 
 export function deleteEnvelopeFiles(id: string): void {

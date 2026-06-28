@@ -6,10 +6,10 @@ import { PDFDocument } from 'pdf-lib'
 import { prisma } from '../../lib/prisma.js'
 import { audit } from '../../lib/audit.js'
 import { resolveRole, sharedResourceIds, deleteResourceShares, type ModuleRole } from '../../lib/module-share.js'
-import { recordEvent } from './signdoc.events.js'
+import { recordEvent, verifyChain } from './signdoc.events.js'
 import { dispatchActiveStep, isActingRecipient } from './signdoc.workflow.js'
 import { notify } from '../../lib/notify.js'
-import { deleteEnvelopeFiles, originalStream, sha256, writeOriginal } from './signdoc.storage.js'
+import { deleteEnvelopeFiles, originalStream, readSealed, sealedExists, sealedStream, sha256, writeOriginal } from './signdoc.storage.js'
 
 // SignDoc — gestion de documents signés (type DocuSign), auto-hébergé. PR1 couvre
 // l'« atelier d'enveloppe » : création depuis un PDF (upload ou import PDF Manager),
@@ -371,5 +371,52 @@ export const signdocRoutes: FastifyPluginAsync = async (app) => {
 
     const full = await prisma.signEnvelope.findUnique({ where: { id }, include: ENVELOPE_DETAIL })
     return { ...full, role: 'OWNER' as const }
+  })
+
+  // ── Téléchargements & preuve ──────────────────────────────────────────────────
+
+  // PDF scellé (signatures + certificat). 404 tant que l'enveloppe n'est pas finalisée.
+  app.get('/:id/sealed', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const env = await prisma.signEnvelope.findUnique({ where: { id }, select: { ownerId: true, name: true } })
+    if (!env) return reply.status(404).send({ error: 'Enveloppe introuvable.' })
+    if (!(await resolveRole('signdoc', id, userId, env.ownerId))) return reply.status(404).send({ error: 'Enveloppe introuvable.' })
+    if (!sealedExists(id)) return reply.status(404).send({ error: 'Document scellé indisponible.' })
+    reply.header('Content-Type', 'application/pdf')
+    reply.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(env.name)}-signe.pdf`)
+    return reply.send(sealedStream(id))
+  })
+
+  // Journal de preuve (chaîne d'événements).
+  app.get('/:id/audit', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const env = await prisma.signEnvelope.findUnique({ where: { id }, select: { ownerId: true } })
+    if (!env || !(await resolveRole('signdoc', id, userId, env.ownerId))) return reply.status(404).send({ error: 'Enveloppe introuvable.' })
+    return prisma.signEvent.findMany({
+      where: { envelopeId: id },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, type: true, actorLabel: true, ip: true, createdAt: true, hash: true, prevHash: true },
+    })
+  })
+
+  // Vérification d'intégrité : empreinte du fichier scellé + chaîne d'événements.
+  app.get('/:id/verify', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const env = await prisma.signEnvelope.findUnique({ where: { id }, select: { ownerId: true, status: true, originalHash: true, sealedHash: true, sealLevel: true, completedAt: true } })
+    if (!env || !(await resolveRole('signdoc', id, userId, env.ownerId))) return reply.status(404).send({ error: 'Enveloppe introuvable.' })
+    const chainValid = await verifyChain(id)
+    const fileIntegrity = env.sealedHash && sealedExists(id) ? sha256(readSealed(id)) === env.sealedHash : null
+    return {
+      status: env.status,
+      originalHash: env.originalHash,
+      sealedHash: env.sealedHash,
+      sealLevel: env.sealLevel,
+      completedAt: env.completedAt,
+      chainValid,
+      fileIntegrity, // null tant que non scellé ; true/false sinon
+    }
   })
 }
