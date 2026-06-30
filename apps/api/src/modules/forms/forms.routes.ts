@@ -124,8 +124,9 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
   // Récupérer un formulaire publié pour le remplir.
   app.get('/public/:token', async (request, reply) => {
     const { token } = request.params as { token: string }
-    const form = await prisma.form.findUnique({ where: { publicToken: token }, include: { _count: { select: { responses: true } } } })
-    if (!form || !form.isPublished) return reply.status(404).send({ error: 'Formulaire introuvable' })
+    const form = await prisma.form.findUnique({ where: { publicToken: token }, include: { _count: { select: { responses: true } }, owner: { select: { name: true, email: true } } } })
+    if (!form) return reply.status(404).send({ reason: 'not_found' })
+    if (!form.isPublished) return reply.status(404).send({ reason: 'not_published', ownerName: form.owner.name, ownerEmail: form.owner.email })
     const reason = closedReason(form, form._count.responses)
     return {
       id: form.id,
@@ -193,17 +194,20 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // ── Routes authentifiées ──────────────────────────────────────────────────────
-  app.addHook('preHandler', app.authenticate)
+  // Encapsulées dans un sous-plugin pour que le hook auth ne s'applique PAS
+  // aux routes publiques /public/* définies plus haut.
+  await app.register(async (auth) => {
+    auth.addHook('preHandler', auth.authenticate)
 
-  async function roleFor(formId: string, userId: string) {
-    const f = await prisma.form.findUnique({ where: { id: formId }, select: { ownerId: true } })
-    if (!f) return { role: null as null, ownerId: null as null }
-    const role = await resolveRole('form', formId, userId, f.ownerId)
-    return { role, ownerId: f.ownerId }
-  }
+    async function roleFor(formId: string, userId: string) {
+      const f = await prisma.form.findUnique({ where: { id: formId }, select: { ownerId: true } })
+      if (!f) return { role: null as null, ownerId: null as null }
+      const role = await resolveRole('form', formId, userId, f.ownerId)
+      return { role, ownerId: f.ownerId }
+    }
 
   // Liste de mes formulaires (possédés + partagés avec moi).
-  app.get('/', async (request) => {
+  auth.get('/', async (request) => {
     const { id: userId } = request.user as { id: string }
     const shared = await sharedResourceIds('form', userId)
     const sharedRoles = new Map(shared.map((s) => [s.id, s.role]))
@@ -236,7 +240,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // Créer un formulaire.
-  app.post('/', async (request, reply) => {
+  auth.post('/', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const body = formCreateSchema.parse(request.body)
     const form = await prisma.form.create({
@@ -252,7 +256,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // Dupliquer un formulaire (n'importe quel rôle ; la copie appartient à l'appelant).
-  app.post('/:id/duplicate', async (request, reply) => {
+  auth.post('/:id/duplicate', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const src = await prisma.form.findUnique({ where: { id } })
@@ -279,7 +283,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // Détail d'un formulaire.
-  app.get('/:id', async (request, reply) => {
+  auth.get('/:id', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const form = await prisma.form.findUnique({ where: { id }, include: { _count: { select: { responses: true } } } })
@@ -290,7 +294,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // Mettre à jour un formulaire.
-  app.patch('/:id', async (request, reply) => {
+  auth.patch('/:id', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const { role } = await roleFor(id, userId)
@@ -318,7 +322,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // Supprimer un formulaire.
-  app.delete('/:id', async (request, reply) => {
+  auth.delete('/:id', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const form = await prisma.form.findUnique({ where: { id }, select: { ownerId: true } })
@@ -330,7 +334,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // Liste des réponses.
-  app.get('/:id/responses', async (request, reply) => {
+  auth.get('/:id/responses', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const { role } = await roleFor(id, userId)
@@ -350,7 +354,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // Export CSV des réponses.
-  app.get('/:id/responses.csv', async (request, reply) => {
+  auth.get('/:id/responses.csv', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const form = await prisma.form.findUnique({ where: { id } })
@@ -386,7 +390,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // Supprimer une réponse (EDITOR+).
-  app.delete('/:id/responses/:responseId', async (request, reply) => {
+  auth.delete('/:id/responses/:responseId', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id, responseId } = request.params as { id: string; responseId: string }
     const { role } = await roleFor(id, userId)
@@ -407,7 +411,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // Télécharger un fichier joint (OWNER/EDITOR/VIEWER de ce formulaire).
-  app.get('/:id/files/*', async (request, reply) => {
+  auth.get('/:id/files/*', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
     const key = (request.params as { '*': string })['*']
@@ -422,4 +426,5 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
     reply.header('Content-Disposition', `attachment; filename="${filename}"`)
     return reply.send(buf)
   })
+  }) // fin du sous-plugin authentifié
 }
