@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Download, Inbox, Table, BarChart3, Eye, Trash2, X, FileText } from 'lucide-react'
+import { Download, Inbox, Table, BarChart3, Eye, Trash2, X, FileText, ChevronLeft, ChevronRight, User } from 'lucide-react'
 import { useForm, useFormResponses } from '@/hooks/useForms'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { FormSummaryView } from '@/components/forms/FormSummaryView'
@@ -54,7 +54,8 @@ export default function FormResponsesPage() {
   const { id } = useParams<{ id: string }>()
   const { form, isLoading: formLoading } = useForm(id)
   const { responses, isLoading, deleteResponse } = useFormResponses(id)
-  const [view, setView] = useState<'summary' | 'table'>('summary')
+  const [view, setView] = useState<'individual' | 'summary' | 'table'>('individual')
+  const [individualIdx, setIndividualIdx] = useState(0)
   const [detail, setDetail] = useState<FormResponseEntry | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -68,8 +69,11 @@ export default function FormResponsesPage() {
   async function handleDelete(responseId: string) {
     if (!confirm('Supprimer cette réponse ?')) return
     setDeleting(responseId)
-    try { await deleteResponse(responseId); if (detail?.id === responseId) setDetail(null) }
-    finally { setDeleting(null) }
+    try {
+      await deleteResponse(responseId)
+      if (detail?.id === responseId) setDetail(null)
+      if (individualIdx >= responses.length - 1) setIndividualIdx(Math.max(0, individualIdx - 1))
+    } finally { setDeleting(null) }
   }
 
   if (formLoading || isLoading) return (
@@ -92,6 +96,9 @@ export default function FormResponsesPage() {
         {responses.length > 0 && (
           <div className="flex items-center gap-2">
             <div className="flex rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <button onClick={() => setView('individual')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'individual' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                <User className="w-4 h-4" /> Individuel
+              </button>
               <button onClick={() => setView('summary')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'summary' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
                 <BarChart3 className="w-4 h-4" /> Résumé
               </button>
@@ -111,7 +118,57 @@ export default function FormResponsesPage() {
           <Inbox className="w-12 h-12 text-gray-300 dark:text-gray-600" />
           <p className="text-gray-500 dark:text-gray-400">Aucune réponse pour l'instant.</p>
         </div>
-      ) : view === 'summary' ? (
+      ) : view === 'individual' ? (() => {
+        const idx = Math.min(individualIdx, responses.length - 1)
+        const r = responses[idx]
+        const data = (r.data ?? {}) as Record<string, unknown>
+        return (
+          <div className="flex flex-col gap-4">
+            {/* Navigation */}
+            <div className="flex items-center justify-between bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-4 py-3">
+              <button
+                onClick={() => setIndividualIdx(Math.max(0, idx - 1))}
+                disabled={idx === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" /> Précédent
+              </button>
+              <div className="text-center">
+                <p className="text-sm font-semibold dark:text-white">Réponse {idx + 1} / {responses.length}</p>
+                <p className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}</p>
+              </div>
+              <button
+                onClick={() => setIndividualIdx(Math.min(responses.length - 1, idx + 1))}
+                disabled={idx === responses.length - 1}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Suivant <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+            {/* Réponses */}
+            <div className="flex flex-col gap-3">
+              {form.fields.filter((f) => f.type !== 'section').map((f) => (
+                <div key={f.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-5 py-4">
+                  <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-1.5">{f.label || 'Sans titre'}{f.required && <span className="text-red-400 ml-0.5">*</span>}</p>
+                  <div className="text-sm dark:text-gray-100">
+                    <CellValue field={f} value={data[f.id]} formId={id} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Actions */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => handleDelete(r.id)}
+                disabled={deleting === r.id}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Supprimer cette réponse
+              </button>
+            </div>
+          </div>
+        )
+      })() : view === 'summary' ? (
         <FormSummaryView fields={form.fields} responses={responses} />
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-gray-800">
