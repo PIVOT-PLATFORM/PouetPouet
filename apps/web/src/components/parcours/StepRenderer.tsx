@@ -31,6 +31,7 @@ function fieldError(f: FormFieldDef, v: unknown): string | null {
 }
 
 interface LinkedFormRendererProps {
+  formId: string
   publicToken: string
   comment: string
   submitting: boolean
@@ -38,16 +39,20 @@ interface LinkedFormRendererProps {
   onComplete: (data: Record<string, unknown>, comment: string) => Promise<void>
 }
 
-function LinkedFormRenderer({ publicToken, comment, submitting, setSubmitting, onComplete }: LinkedFormRendererProps) {
+function LinkedFormRenderer({ formId, publicToken, comment, submitting, setSubmitting, onComplete }: LinkedFormRendererProps) {
   const [form, setForm] = useState<PublicForm | null>(null)
   const [loading, setLoading] = useState(true)
+  const [notPublished, setNotPublished] = useState(false)
   const [data, setData] = useState<Record<string, unknown>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`${API_URL}/api/forms/public/${publicToken}`)
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => {
+        if (r.status === 404) { setNotPublished(true); return null }
+        return r.ok ? r.json() : null
+      })
       .then((f: PublicForm | null) => setForm(f))
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -86,7 +91,16 @@ function LinkedFormRenderer({ publicToken, comment, submitting, setSubmitting, o
   }
 
   if (loading) return <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
-  if (!form) return <p className="text-sm text-red-500">Formulaire introuvable ou inaccessible.</p>
+  if (notPublished) return (
+    <div className="flex flex-col gap-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+      <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">Ce formulaire n&apos;est pas encore publié.</p>
+      <p className="text-xs text-amber-600 dark:text-amber-500">Un responsable doit le publier dans le module Formulaires avant que cette étape soit accessible.</p>
+      <a href={`/forms/${formId}/edit`} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-600 dark:text-cyan-400 underline flex items-center gap-1">
+        <ExternalLink className="w-3 h-3" /> Aller au formulaire
+      </a>
+    </div>
+  )
+  if (!form) return <p className="text-sm text-red-500">Impossible de charger le formulaire. Vérifiez votre connexion.</p>
   if (!form.acceptingResponses) return <p className="text-sm text-gray-500 dark:text-gray-400">Ce formulaire n&apos;accepte plus de réponses.</p>
 
   const dataFields = form.fields.filter((f) => f.type !== 'section')
@@ -248,6 +262,7 @@ export function StepRenderer({ step, stepIndex, stepData, existingDocCount = 0, 
       {/* Form step — formulaire lié (module Forms) */}
       {step.type === 'form' && step.formId && step.formPublicToken && (
         <LinkedFormRenderer
+          formId={step.formId}
           publicToken={step.formPublicToken}
           comment={comment}
           submitting={submitting}

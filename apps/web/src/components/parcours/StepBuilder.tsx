@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, GripVertical, Trash2, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
+import { Plus, GripVertical, Trash2, ChevronDown, ChevronUp, ExternalLink, AlertTriangle } from 'lucide-react'
 import { PIVOT_MODULES } from '@pouetpouet/shared'
 import type { StepDef, FormField, FormSummary } from '@pouetpouet/shared'
 
@@ -36,7 +36,7 @@ function StepItem({ step, index, total, onChange, onDelete, onMove, onDragStart,
   isDragOver: boolean
 }) {
   const [expanded, setExpanded] = useState(true)
-  const [availableForms, setAvailableForms] = useState<Pick<FormSummary, 'id' | 'title' | 'publicToken'>[]>([])
+  const [availableForms, setAvailableForms] = useState<Pick<FormSummary, 'id' | 'title' | 'publicToken' | 'isPublished'>[]>([])
 
   useEffect(() => {
     if (step.type !== 'form' || !expanded) return
@@ -44,7 +44,7 @@ function StepItem({ step, index, total, onChange, onDelete, onMove, onDragStart,
     if (!token) return
     fetch(`${API_URL}/api/forms`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.ok ? r.json() : [])
-      .then((list: Pick<FormSummary, 'id' | 'title' | 'publicToken'>[]) => setAvailableForms(list))
+      .then((list: Pick<FormSummary, 'id' | 'title' | 'publicToken' | 'isPublished'>[]) => setAvailableForms(list))
       .catch(() => {})
   }, [step.type, expanded])
 
@@ -175,30 +175,38 @@ function StepItem({ step, index, total, onChange, onDelete, onMove, onDragStart,
 
               {/* Mode lié */}
               {step.formId !== undefined && (
-                <div className="flex items-center gap-2">
-                  <select
-                    value={step.formId ?? ''}
-                    onChange={(e) => {
-                      const selected = availableForms.find((f) => f.id === e.target.value)
-                      onChange({ ...step, formId: selected?.id ?? '', formPublicToken: selected?.publicToken ?? '' })
-                    }}
-                    className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-                  >
-                    <option value="">Choisir un formulaire…</option>
-                    {availableForms.map((f) => (
-                      <option key={f.id} value={f.id}>{f.title}</option>
-                    ))}
-                  </select>
-                  {step.formId && (
-                    <a
-                      href={`/forms/${step.formId}/edit`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 rounded-lg text-gray-400 hover:text-cyan-500 transition-colors"
-                      title="Ouvrir le formulaire"
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={step.formId ?? ''}
+                      onChange={(e) => {
+                        const selected = availableForms.find((f) => f.id === e.target.value)
+                        onChange({ ...step, formId: selected?.id ?? '', formPublicToken: selected?.publicToken ?? '' })
+                      }}
+                      className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                     >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
+                      <option value="">Choisir un formulaire…</option>
+                      {availableForms.map((f) => (
+                        <option key={f.id} value={f.id}>{f.title}</option>
+                      ))}
+                    </select>
+                    {step.formId && (
+                      <a
+                        href={`/forms/${step.formId}/edit`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 rounded-lg text-gray-400 hover:text-cyan-500 transition-colors"
+                        title="Ouvrir le formulaire"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    )}
+                  </div>
+                  {step.formId && availableForms.find((f) => f.id === step.formId)?.isPublished === false && (
+                    <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                      Ce formulaire est un brouillon — publiez-le pour qu&apos;il soit accessible dans ce workflow.
+                    </p>
                   )}
                 </div>
               )}
