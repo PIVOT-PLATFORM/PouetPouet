@@ -25,10 +25,15 @@ function makeDefaultStep(type: StepDef['type']): StepDef {
   return { type, title: '' }
 }
 
-function StepItem({ step, index, total, onChange, onDelete, onMove }: {
+function StepItem({ step, index, total, onChange, onDelete, onMove, onDragStart, onDragOver, onDrop, onDragEnd, isDragOver }: {
   step: StepDef; index: number; total: number
   onChange: (s: StepDef) => void; onDelete: () => void
   onMove: (dir: -1 | 1) => void
+  onDragStart: () => void
+  onDragOver: () => void
+  onDrop: () => void
+  onDragEnd: () => void
+  isDragOver: boolean
 }) {
   const [expanded, setExpanded] = useState(true)
   const [availableForms, setAvailableForms] = useState<Pick<FormSummary, 'id' | 'title' | 'publicToken'>[]>([])
@@ -45,6 +50,10 @@ function StepItem({ step, index, total, onChange, onDelete, onMove }: {
 
   function updateField(key: keyof StepDef, value: unknown) {
     onChange({ ...step, [key]: value } as StepDef)
+  }
+
+  function changeType(type: StepDef['type']) {
+    onChange({ type, title: step.title })
   }
 
   function addFormField() {
@@ -67,9 +76,18 @@ function StepItem({ step, index, total, onChange, onDelete, onMove }: {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+    <div
+      draggable
+      onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; onDragStart() }}
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver() }}
+      onDrop={(e) => { e.preventDefault(); onDrop() }}
+      onDragEnd={onDragEnd}
+      className={`rounded-2xl border bg-white dark:bg-gray-900 overflow-hidden transition-all ${
+        isDragOver ? 'border-cyan-400 dark:border-cyan-600 shadow-md' : 'border-gray-100 dark:border-gray-800'
+      }`}
+    >
       <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-800/50">
-        <GripVertical className="w-4 h-4 text-gray-300 cursor-grab flex-shrink-0" />
+        <GripVertical className="w-4 h-4 text-gray-300 cursor-grab active:cursor-grabbing flex-shrink-0" />
         <span className="text-xs font-medium text-gray-400 w-5 flex-shrink-0">{index + 1}</span>
         <input
           value={step.title}
@@ -77,9 +95,15 @@ function StepItem({ step, index, total, onChange, onDelete, onMove }: {
           placeholder="Titre de l'étape"
           className="flex-1 text-sm font-medium bg-transparent focus:outline-none dark:text-white placeholder:text-gray-400"
         />
-        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex-shrink-0">
-          {STEP_TYPES.find((t) => t.value === step.type)?.label}
-        </span>
+        <select
+          value={step.type}
+          onChange={(e) => changeType(e.target.value as StepDef['type'])}
+          className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-none focus:outline-none focus:ring-2 focus:ring-cyan-500/50 cursor-pointer flex-shrink-0"
+        >
+          {STEP_TYPES.map((t) => (
+            <option key={t.value} value={t.value}>{t.label}</option>
+          ))}
+        </select>
         <div className="flex gap-1 flex-shrink-0">
           <button disabled={index === 0} onClick={() => onMove(-1)} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 transition-colors">
             <ChevronUp className="w-3.5 h-3.5 text-gray-500" />
@@ -332,6 +356,8 @@ function StepItem({ step, index, total, onChange, onDelete, onMove }: {
 
 export function StepBuilder({ steps, onChange }: Props) {
   const [showTypeMenu, setShowTypeMenu] = useState(false)
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
 
   function addStep(type: StepDef['type']) {
     onChange([...steps, makeDefaultStep(type)])
@@ -355,6 +381,22 @@ export function StepBuilder({ steps, onChange }: Props) {
     onChange(next)
   }
 
+  function handleDrop() {
+    if (draggedIdx !== null && dragOverIdx !== null && draggedIdx !== dragOverIdx) {
+      const next = [...steps]
+      const [removed] = next.splice(draggedIdx, 1)
+      next.splice(dragOverIdx, 0, removed)
+      onChange(next)
+    }
+    setDraggedIdx(null)
+    setDragOverIdx(null)
+  }
+
+  function handleDragEnd() {
+    setDraggedIdx(null)
+    setDragOverIdx(null)
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {steps.length === 0 && (
@@ -372,6 +414,11 @@ export function StepBuilder({ steps, onChange }: Props) {
           onChange={(s) => updateStep(idx, s)}
           onDelete={() => deleteStep(idx)}
           onMove={(dir) => moveStep(idx, dir)}
+          onDragStart={() => setDraggedIdx(idx)}
+          onDragOver={() => setDragOverIdx(idx)}
+          onDrop={handleDrop}
+          onDragEnd={handleDragEnd}
+          isDragOver={dragOverIdx === idx && draggedIdx !== idx}
         />
       ))}
 
