@@ -24,7 +24,7 @@ export default function InstanceCockpitPage() {
     instance, isLoading, accessDenied,
     completeStep, restartInstance, skipStep, cancelInstance,
     forceCompleteStep, resetStep, updateStepData,
-    addComment, updateInstance, getDocumentUrl, deleteDocument,
+    addComment, addStepComment, updateInstance, getDocumentUrl, deleteDocument,
     getUploadUrl, registerDocument,
   } = useParcourInstance(id)
 
@@ -200,6 +200,7 @@ export default function InstanceCockpitPage() {
           steps={instance.steps}
           stepInstances={instance.stepInstances}
           documents={instance.documents}
+          history={instance.history}
           selectedStep={displayStep}
           currentStep={instance.currentStep}
           instanceStatus={instance.status}
@@ -209,6 +210,7 @@ export default function InstanceCockpitPage() {
           onSkip={skipStep}
           onReset={resetStep}
           onUpdateData={updateStepData}
+          onAddStepComment={addStepComment}
           onNavigate={setSelectedStep}
           getUploadUrl={getUploadUrl}
           registerDocument={registerDocument}

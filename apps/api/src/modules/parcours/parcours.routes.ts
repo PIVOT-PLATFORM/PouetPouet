@@ -707,6 +707,22 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(201).send(entry)
   })
 
+  // Ajouter un commentaire sur une étape spécifique.
+  app.post('/instances/:id/steps/:idx/comment', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id, idx } = request.params as { id: string; idx: string }
+    const stepIndex = parseInt(idx, 10)
+    const { role } = await instanceRoleFor(id, userId)
+    if (!role) return reply.status(404).send({ error: 'Instance introuvable' })
+
+    const { comment } = z.object({ comment: z.string().min(1).max(2000) }).parse(request.body)
+    const entry = await prisma.parcourHistory.create({
+      data: { instanceId: id, stepIndex, userId, action: 'comment', comment },
+    })
+    await prisma.parcourInstance.update({ where: { id }, data: { updatedAt: new Date() } })
+    return reply.status(201).send(entry)
+  })
+
   // ── Stars ──────────────────────────────────────────────────────────────────────
 
   // Toggle star sur un template (crée ou supprime).

@@ -207,6 +207,11 @@ export function useParcourInstance(id: string) {
     reload()
   }, [id, reload])
 
+  const addStepComment = useCallback(async (stepIdx: number, comment: string) => {
+    await api.post(`/api/parcours/instances/${id}/steps/${stepIdx}/comment`, { comment })
+    reload()
+  }, [id, reload])
+
   const updateInstance = useCallback(async (patch: {
     title?: string
     priority?: string
@@ -242,5 +247,5 @@ export function useParcourInstance(id: string) {
     reload()
   }, [id, reload])
 
-  return { instance, isLoading, accessDenied, completeStep, restartInstance, skipStep, cancelInstance, reopenStep, forceCompleteStep, resetStep, updateStepData, addComment, updateInstance, getDocumentUrl, deleteDocument, getUploadUrl, registerDocument }
+  return { instance, isLoading, accessDenied, completeStep, restartInstance, skipStep, cancelInstance, reopenStep, forceCompleteStep, resetStep, updateStepData, addComment, addStepComment, updateInstance, getDocumentUrl, deleteDocument, getUploadUrl, registerDocument }
 }

@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, User, FileText, AlertCircle, ExternalLink,
   SkipForward, Lock, AlertTriangle, MessageSquare,
 } from 'lucide-react'
-import type { StepDef, ParcourStepInstanceDetail, StepStatus, ParcourDocClass, ParcourDocumentSummary } from '@pouetpouet/shared'
+import type { StepDef, ParcourStepInstanceDetail, StepStatus, ParcourDocClass, ParcourDocumentSummary, ParcourHistoryEntry } from '@pouetpouet/shared'
 import { StepRenderer } from './StepRenderer'
 
 const STEP_TYPE_LABEL: Record<string, string> = {
@@ -88,6 +88,7 @@ interface Props {
   steps: StepDef[]
   stepInstances: ParcourStepInstanceDetail[]
   documents: ParcourDocumentSummary[]
+  history: ParcourHistoryEntry[]
   selectedStep: number
   currentStep: number
   instanceStatus: string
@@ -97,6 +98,7 @@ interface Props {
   onSkip: (idx: number, comment?: string) => void
   onReset: (idx: number) => void
   onUpdateData: (idx: number, data: Record<string, unknown>) => void
+  onAddStepComment: (stepIdx: number, comment: string) => Promise<void>
   onNavigate: (idx: number) => void
   getUploadUrl: (filename: string, mimeType: string) => Promise<{ uploadUrl: string; key: string }>
   registerDocument: (doc: {
@@ -106,8 +108,8 @@ interface Props {
 }
 
 export function StepDetailPanel({
-  steps, stepInstances, documents, selectedStep, currentStep, instanceStatus, canEdit,
-  onComplete, onForceComplete, onSkip, onReset, onUpdateData, onNavigate,
+  steps, stepInstances, documents, history, selectedStep, currentStep, instanceStatus, canEdit,
+  onComplete, onForceComplete, onSkip, onReset, onUpdateData, onAddStepComment, onNavigate,
   getUploadUrl, registerDocument,
 }: Props) {
   const [editMode, setEditMode] = useState(false)
@@ -118,10 +120,13 @@ export function StepDetailPanel({
   const [forceComment, setForceComment] = useState('')
   const [isFormDirty, setIsFormDirty] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [stepComment, setStepComment] = useState('')
+  const [sendingStepComment, setSendingStepComment] = useState(false)
 
   const step = steps[selectedStep]
   const si = stepInstances.find((s) => s.stepIndex === selectedStep)
   const status: StepStatus = si?.status ?? 'PENDING'
+  const stepComments = history.filter((h) => h.stepIndex === selectedStep && h.action === 'comment')
   const isActive = instanceStatus === 'IN_PROGRESS'
   const isCurrent = selectedStep === currentStep && status === 'PENDING' && isActive
   const isFuturePending = status === 'PENDING' && !isCurrent
@@ -486,6 +491,56 @@ export function StepDetailPanel({
             )}
           </div>
         )}
+
+        {/* ── Commentaires de l'étape ── */}
+        <div className="border-t border-gray-100 dark:border-gray-800 pt-4 flex flex-col gap-3">
+          <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+            <MessageSquare className="w-3.5 h-3.5" />
+            Commentaires{stepComments.length > 0 && <span className="ml-1">({stepComments.length})</span>}
+          </h4>
+          {stepComments.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {stepComments.map((c) => (
+                <div key={c.id} className="px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 flex flex-col gap-0.5">
+                  <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap break-words">{c.comment}</p>
+                  <span className="text-[11px] text-gray-400">
+                    {new Date(c.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          {canEdit && (
+            <div className="flex gap-2">
+              <textarea
+                value={stepComment}
+                onChange={(e) => setStepComment(e.target.value)}
+                rows={2}
+                placeholder="Ajouter un commentaire sur cette étape…"
+                className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && stepComment.trim()) {
+                    setSendingStepComment(true)
+                    try { await onAddStepComment(selectedStep, stepComment.trim()); setStepComment('') }
+                    finally { setSendingStepComment(false) }
+                  }
+                }}
+              />
+              <button
+                disabled={!stepComment.trim() || sendingStepComment}
+                onClick={async () => {
+                  if (!stepComment.trim()) return
+                  setSendingStepComment(true)
+                  try { await onAddStepComment(selectedStep, stepComment.trim()); setStepComment('') }
+                  finally { setSendingStepComment(false) }
+                }}
+                className="self-end p-2 rounded-xl bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
