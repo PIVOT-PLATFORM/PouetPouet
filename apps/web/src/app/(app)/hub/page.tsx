@@ -7,9 +7,7 @@ import { useAuthStore } from '@/store/auth'
 import { useFlags } from '@/store/flags'
 import { api } from '@/lib/api'
 import { MODULE_ICONS, UPCOMING_ICONS } from '@/lib/module-icons'
-import { ChevronRight, Clock, AlertCircle, FileText, MessageSquare } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import type { ParcourInstanceSummary, FormSummary } from '@pouetpouet/shared'
 
 interface HubStats {
   boards: number
@@ -91,19 +89,10 @@ const UPCOMING_MODULES: { name: string }[] = [
   { name: 'SignDoc' },
 ]
 
-const PRIORITY_DOT: Record<string, string> = {
-  urgent: 'bg-red-500',
-  high:   'bg-orange-400',
-  normal: 'bg-cyan-400',
-  low:    'bg-gray-300 dark:bg-gray-600',
-}
-
 export default function HubPage() {
   const { user, toggleModuleFavorite } = useAuthStore()
   const [stats, setStats] = useState<HubStats | null>(null)
   const [recent, setRecent] = useState<RecentActivity | null>(null)
-  const [activeParcours, setActiveParcours] = useState<ParcourInstanceSummary[] | null>(null)
-  const [recentForms, setRecentForms] = useState<FormSummary[] | null>(null)
   const [showAllRecents, setShowAllRecents] = useState(false)
 
   useEffect(() => {
@@ -113,17 +102,6 @@ export default function HubPage() {
 
   const favorites = new Set(user?.favoriteModules ?? [])
   const flags = useFlags()
-
-  useEffect(() => {
-    if (flags['module.parcours'] !== false) {
-      api.get<ParcourInstanceSummary[]>('/api/parcours/instances?status=IN_PROGRESS')
-        .then(setActiveParcours).catch(() => {})
-    }
-    if (flags['module.forms'] !== false) {
-      api.get<FormSummary[]>('/api/forms').then(setRecentForms).catch(() => {})
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const sortedModules = [...PIVOT_MODULES]
     // Gating : un module masqué via le flag `module.<id>` n'apparaît pas dans le Hub.
@@ -236,88 +214,6 @@ export default function HubPage() {
                 </Link>
               )
             })}
-          </div>
-        </div>
-      )}
-
-      {/* Parcours actifs */}
-      {activeParcours && activeParcours.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-              Parcours actifs
-            </h2>
-            <Link href="/parcours" className="flex items-center gap-1 text-xs font-medium text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 transition-colors">
-              Tous les parcours <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="flex flex-col gap-2">
-            {activeParcours.slice(0, 5).map((inst) => {
-              const progress = inst.stepCount > 0 ? Math.round((inst.currentStep / inst.stepCount) * 100) : 0
-              const isOverdue = !!inst.dueAt && new Date(inst.dueAt) < new Date()
-              return (
-                <Link
-                  key={inst.id}
-                  href={`/parcours/run/${inst.id}`}
-                  className="group flex items-center gap-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-cyan-200 dark:hover:border-cyan-800 hover:shadow-sm transition-all"
-                >
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_DOT[inst.priority] ?? PRIORITY_DOT.normal}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
-                      {inst.title}
-                    </p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <div className="flex-1 h-1 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden max-w-[80px]">
-                        <div className="h-full rounded-full bg-cyan-400 transition-all" style={{ width: `${progress}%` }} />
-                      </div>
-                      <span className="text-[11px] text-gray-400">{inst.currentStep}/{inst.stepCount}</span>
-                    </div>
-                  </div>
-                  {inst.dueAt && (
-                    <span className={`flex items-center gap-1 text-[11px] flex-shrink-0 ${isOverdue ? 'text-orange-500' : 'text-gray-400'}`}>
-                      {isOverdue ? <AlertCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                      {new Date(inst.dueAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                    </span>
-                  )}
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Formulaires récents */}
-      {recentForms && recentForms.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-              Mes formulaires
-            </h2>
-            <Link href="/forms" className="flex items-center gap-1 text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700 transition-colors">
-              Tous les formulaires <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="flex flex-col gap-2">
-            {recentForms.slice(0, 5).map((f) => (
-              <Link
-                key={f.id}
-                href={`/forms/${f.id}/responses`}
-                className="group flex items-center gap-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-4 py-3 hover:border-violet-200 dark:hover:border-violet-800 hover:shadow-sm transition-all"
-              >
-                <FileText className="w-4 h-4 text-violet-500 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
-                    {f.title}
-                  </p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">
-                    {f.isPublished ? 'Publié' : 'Brouillon'} · {f.fieldCount} champ{f.fieldCount > 1 ? 's' : ''}
-                  </p>
-                </div>
-                <span className="flex items-center gap-1 text-[11px] text-gray-400 flex-shrink-0">
-                  <MessageSquare className="w-3 h-3" /> {f.responseCount}
-                </span>
-              </Link>
-            ))}
           </div>
         </div>
       )}
