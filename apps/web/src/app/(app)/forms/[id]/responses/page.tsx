@@ -122,41 +122,63 @@ export default function FormResponsesPage() {
         const idx = Math.min(individualIdx, responses.length - 1)
         const r = responses[idx]
         const data = (r.data ?? {}) as Record<string, unknown>
+        const isEmpty = (v: unknown) => v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
         return (
-          <div className="flex flex-col gap-4">
-            {/* Navigation */}
-            <div className="flex items-center justify-between bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-4 py-3">
+          <div className="flex flex-col gap-4 max-w-2xl mx-auto w-full">
+            {/* Barre de navigation */}
+            <div className="flex items-center justify-between gap-4">
               <button
                 onClick={() => setIndividualIdx(Math.max(0, idx - 1))}
                 disabled={idx === 0}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronLeft className="w-4 h-4" /> Précédent
+                <ChevronLeft className="w-5 h-5" />
               </button>
-              <div className="text-center">
-                <p className="text-sm font-semibold dark:text-white">Réponse {idx + 1} / {responses.length}</p>
-                <p className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}</p>
+              <div className="flex-1 text-center">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Réponse <span className="text-gray-900 dark:text-white font-semibold">{idx + 1}</span> sur {responses.length}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">{new Date(r.createdAt).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}</p>
               </div>
               <button
                 onClick={() => setIndividualIdx(Math.min(responses.length - 1, idx + 1))}
                 disabled={idx === responses.length - 1}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
-                Suivant <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5" />
               </button>
             </div>
-            {/* Réponses */}
-            <div className="flex flex-col gap-3">
-              {form.fields.filter((f) => f.type !== 'section').map((f) => (
-                <div key={f.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-5 py-4">
-                  <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-1.5">{f.label || 'Sans titre'}{f.required && <span className="text-red-400 ml-0.5">*</span>}</p>
-                  <div className="text-sm dark:text-gray-100">
-                    <CellValue field={f} value={data[f.id]} formId={id} />
+
+            {/* Corps — formulaire rempli */}
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+              {form.fields.map((f) => {
+                if (f.type === 'section') return (
+                  <div key={f.id} className="px-6 py-4 bg-violet-50/60 dark:bg-violet-950/20">
+                    <p className="text-sm font-semibold text-violet-700 dark:text-violet-300">{f.label}</p>
+                    {f.description && <p className="text-xs text-violet-500 dark:text-violet-400 mt-0.5">{f.description}</p>}
                   </div>
-                </div>
-              ))}
+                )
+                const val = data[f.id]
+                const unanswered = isEmpty(val)
+                return (
+                  <div key={f.id} className="px-6 py-4">
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                      {f.label || 'Sans titre'}
+                      {f.required && <span className="text-red-400 ml-0.5">*</span>}
+                    </p>
+                    {unanswered ? (
+                      <p className="text-sm text-gray-300 dark:text-gray-600 italic">Sans réponse</p>
+                    ) : (
+                      <div className="text-sm text-violet-700 dark:text-violet-300 font-medium border-b border-violet-200 dark:border-violet-800 pb-1">
+                        <CellValue field={f} value={val} formId={id} />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
-            {/* Actions */}
+
+            {/* Supprimer */}
             <div className="flex justify-end">
               <button
                 onClick={() => handleDelete(r.id)}
