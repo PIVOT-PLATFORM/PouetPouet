@@ -65,6 +65,16 @@ model User {
   parcourStars      ParcourStar[]
   forms             Form[]
   formResponses     FormResponse[]
+  demandeAchatWorkflows DemandeAchatWorkflow[]
+  activites             Activite[]
+  activitesPilotees     Activite[]             @relation("ActivitePilote")
+  produits              Produit[]
+  orgUnitConfigs        OrgUnitConfig[]
+  profilsAchat          ProfilAchat[]
+  approbationsDecidees  CommandeApprobation[]
+  delegationsDonnees    DelegationValidation[] @relation("DelegationDelegant")
+  delegationsRecues     DelegationValidation[] @relation("DelegationDelegue")
+  governanceConfigs     GovernanceConfig[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1465,4 +1475,321 @@ enum ParcourDocClass {
   C1
   C2
   C3
+}
+
+// ── Module Commande publique (procurement) ──────────────────────────────────
+
+model Activite {
+  id          String         @id @default(cuid())
+  ownerId     String
+  nom         String
+  type        TypeActivite   @default(AUTRE)
+  statut      ActiviteStatut @default(ACTIF)
+  meteo       Meteo          @default(GRIS)
+  description String?
+  enjeux      Boolean        @default(false)
+
+  // Structurel
+  pmt                String?
+  planProduction     Boolean @default(false)
+  schemaDirecteur    Boolean @default(false)
+  hopexLien          String?
+  piloteId           String?
+  produitId          String?
+  departementId      String?
+  pole               String?
+  domaineMetier      String?
+  sousDomaineMetier  String?
+  capaciteMetier     String?
+  sousCapaciteMetier String?
+  prioriteMetier     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner                 User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  pilote                User?                  @relation("ActivitePilote", fields: [piloteId], references: [id], onDelete: SetNull)
+  produit               Produit?               @relation(fields: [produitId], references: [id], onDelete: SetNull)
+  departement           OrgUnitConfig?         @relation(fields: [departementId], references: [id], onDelete: SetNull)
+  demandeAchatWorkflows DemandeAchatWorkflow[]
+  gains                 ActiviteGain[]
+  faitsMarquants        ActiviteFaitMarquant[]
+  budgetLignes          ActiviteBudgetLigne[]
+  jalons                ActiviteJalon[]
+  risques               ActiviteRisque[]
+}
+
+model Produit {
+  id        String   @id @default(cuid())
+  ownerId   String
+  nom       String
+  createdAt DateTime @default(now())
+
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  activites Activite[]
+}
+
+model ActiviteGain {
+  id          String  @id @default(cuid())
+  activiteId  String
+  montant     Float
+  typologie   String
+  commentaire String?
+  order       Int     @default(0)
+
+  activite Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+}
+
+model ActiviteFaitMarquant {
+  id         String   @id @default(cuid())
+  activiteId String
+  date       DateTime
+  texte      String
+  createdAt  DateTime @default(now())
+
+  activite Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+}
+
+model ActiviteBudgetLigne {
+  id                String          @id @default(cuid())
+  activiteId        String
+  annee             Int
+  type              TypeLigneBudget
+  montantMo         Float?
+  montantHmo        Float?
+  utilisateurMetier String?
+  priorite          String?
+  objetGestion      String?
+  jalonPhase        JalonType?
+  contratId         String? // id externe opaque (pod pgi-mock) — validé via pgiClient, pas de FK
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  activite Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+}
+
+model ActiviteJalon {
+  id          String    @id @default(cuid())
+  activiteId  String
+  type        JalonType
+  libelle     String?
+  datePrevue  DateTime?
+  dateReelle  DateTime?
+  decision    String?
+  commentaire String?
+  order       Int       @default(0)
+  // Figé à la création selon la résolution GovernanceConfig en vigueur à ce moment
+  // (cf. governance-config.ts) — un jalon "obligatoire" ne peut pas être supprimé.
+  // Un changement de configuration ultérieur n'affecte pas les jalons déjà créés.
+  obligatoire Boolean   @default(false)
+
+  activite Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+}
+
+model ActiviteRisque {
+  id                 String       @id @default(cuid())
+  activiteId         String
+  titre              String
+  description        String?
+  categorie          String?
+  probabilite        Int
+  impact             Int
+  planMitigation     String?
+  responsable        String?
+  jiraLien           String?
+  statut             RisqueStatut @default(OUVERT)
+  dateIdentification DateTime     @default(now())
+  dateRevue          DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  activite Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+}
+
+model DemandeAchatWorkflow {
+  id                     String           @id @default(cuid())
+  demandeAchatExternalId String           @unique
+  ownerId                String
+  orgUnitId              String
+  activiteId             String?
+  validationStatut       ValidationStatut @default(EN_VALIDATION)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  owner        User                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  orgUnit      OrgUnitConfig         @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+  activite     Activite?             @relation(fields: [activiteId], references: [id], onDelete: SetNull)
+  approbations CommandeApprobation[]
+}
+
+model OrgUnitConfig {
+  id               String   @id
+  ownerId          String
+  seuilApprobation Float?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  owner                 User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  profils               ProfilAchat[]
+  demandeAchatWorkflows DemandeAchatWorkflow[]
+  approbations          CommandeApprobation[]
+  delegations           DelegationValidation[]
+  activites             Activite[]
+  governanceConfigs     GovernanceConfig[]
+}
+
+model GovernanceConfig {
+  id          String            @id @default(cuid())
+  ownerId     String
+  orgUnitId   String
+  champ       ChampConfigurable
+  valeur      String
+  obligatoire Boolean           @default(false)
+  actif       Boolean           @default(true)
+  ordre       Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  owner   User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  orgUnit OrgUnitConfig @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+
+  @@unique([orgUnitId, champ, valeur])
+}
+
+enum ChampConfigurable {
+  TYPE_LIGNE_BUDGET
+  JALON_TYPE
+  TYPE_ACTIVITE
+}
+
+model ProfilAchat {
+  id        String    @id @default(cuid())
+  userId    String
+  role      RoleAchat
+  orgUnitId String?
+  createdAt DateTime  @default(now())
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orgUnit OrgUnitConfig? @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role, orgUnitId])
+}
+
+model DelegationValidation {
+  id          String            @id @default(cuid())
+  delegantId  String
+  delegueId   String
+  orgUnitId   String
+  pouvoir     PouvoirDelegation
+  pourcentage Float?
+  seuilEuro   Float?
+  dateDebut   DateTime?
+  dateFin     DateTime?
+  statut      StatutDelegation  @default(ACTIVE)
+  createdAt   DateTime          @default(now())
+
+  delegant User          @relation("DelegationDelegant", fields: [delegantId], references: [id], onDelete: Cascade)
+  delegue  User          @relation("DelegationDelegue", fields: [delegueId], references: [id], onDelete: Cascade)
+  orgUnit  OrgUnitConfig @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+}
+
+model CommandeApprobation {
+  id                     String            @id @default(cuid())
+  demandeAchatWorkflowId String
+  order                  Int
+  type                   ApprobationType
+  orgUnitId              String?
+  statut                 StatutApprobation @default(EN_ATTENTE)
+  validateurId           String?
+  decidedAt              DateTime?
+  commentaire            String?
+  createdAt              DateTime          @default(now())
+
+  demandeAchatWorkflow DemandeAchatWorkflow @relation(fields: [demandeAchatWorkflowId], references: [id], onDelete: Cascade)
+  orgUnit              OrgUnitConfig?       @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+  validateur           User?                @relation(fields: [validateurId], references: [id], onDelete: SetNull)
+}
+
+enum TypeActivite {
+  REFONTE
+  RUN
+  NOUVEAU
+  EVOLUTION
+  MAINTENANCE
+  DECOMMISSIONNEMENT
+  AUTRE
+}
+
+enum ActiviteStatut {
+  ACTIF
+  CLOTURE
+  SUSPENDU
+}
+
+enum Meteo {
+  VERT
+  ORANGE
+  ROUGE
+  GRIS
+}
+
+enum TypeLigneBudget {
+  OPEX
+  CAPEX
+  APCO
+}
+
+enum JalonType {
+  A_ARRIVEE
+  B_ETUDE
+  C_REALISATION
+  D_DECLARATION_GAINS
+  E_DECOMMISSIONNEMENT
+  REVUE_PROJET
+  J7_MEP
+  J3_RECETTE
+  COMITE_TECHNIQUE
+  COMITE_ARCHITECTURE
+  COMITE_CADRAGE
+  AUTRE
+}
+
+enum RisqueStatut {
+  OUVERT
+  EN_COURS
+  CLOS
+}
+
+enum ValidationStatut {
+  EN_VALIDATION
+  VALIDEE
+  REJETEE
+}
+
+enum RoleAchat {
+  CHEF_DE_PROJET
+  VALIDEUR
+  FINANCE
+  CONTRACT_MANAGER
+}
+
+enum PouvoirDelegation {
+  COMPLET
+  PARTIEL
+}
+
+enum StatutDelegation {
+  ACTIVE
+  REVOQUEE
+}
+
+enum ApprobationType {
+  HIERARCHIE
+  FINANCE
+}
+
+enum StatutApprobation {
+  EN_ATTENTE
+  APPROUVEE
+  REJETEE
 }

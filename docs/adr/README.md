@@ -60,3 +60,5 @@ Pas besoin d'ADR pour un choix local, réversible ou évident.
 | [0007](./0007-epinglage-prisma.md) | Épinglage exact de Prisma à 6.19.0 | Remplacé par [0009](./0009-migration-prisma-7.md) |
 | [0008](./0008-versioning-0x.md) | Versioning 0.x.y sans saut de majeur | Accepté |
 | [0009](./0009-migration-prisma-7.md) | Migration vers Prisma 7 (driver adapter + `prisma.config.ts`) | Accepté |
+| [0010](./0010-stockage-fichiers-gcs.md) | Stockage de fichiers sur GCS (cron parcours différé) | Accepté |
+| [0011](./0011-commande-publique-pods-externes.md) | Commande publique : workflow interne, données via pods mock externes (PGI/LDAP) | Accepté |

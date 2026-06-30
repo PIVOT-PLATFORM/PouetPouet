@@ -24,6 +24,7 @@ export const FLAG_DEFINITIONS: FlagDefinition[] = [
   { key: 'module.forms', label: 'Module Formulaires', description: 'Active le module Formulaires — formulaires type Google Forms (Hub + accès direct /forms).', defaultEnabled: true },
   { key: 'module.feedback', label: 'Module Feedback', description: 'Active le module Feedback Kanban (Hub + accès direct /feedback).', defaultEnabled: true },
   { key: 'module.signdoc', label: 'Module SignDoc', description: 'Active le module SignDoc (Hub + accès direct /signdoc).', defaultEnabled: false },
+  { key: 'module.procurement', label: 'Module Commande publique', description: 'Active le module Commande publique (Hub + accès direct /procurement).', defaultEnabled: true },
 ]
 
 export const FLAG_KEYS: string[] = FLAG_DEFINITIONS.map((f) => f.key)
