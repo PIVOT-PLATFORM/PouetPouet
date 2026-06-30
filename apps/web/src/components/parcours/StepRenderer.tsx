@@ -39,22 +39,41 @@ interface LinkedFormRendererProps {
   onComplete: (data: Record<string, unknown>, comment: string) => Promise<void>
 }
 
+type LoadError =
+  | { kind: 'not_published'; ownerName: string | null; ownerEmail: string | null }
+  | { kind: 'not_found' }
+  | { kind: 'network' }
+  | { kind: 'server'; status: number }
+
 function LinkedFormRenderer({ formId, publicToken, comment, submitting, setSubmitting, onComplete }: LinkedFormRendererProps) {
   const [form, setForm] = useState<PublicForm | null>(null)
   const [loading, setLoading] = useState(true)
-  const [notPublished, setNotPublished] = useState(false)
+  const [loadError, setLoadError] = useState<LoadError | null>(null)
   const [data, setData] = useState<Record<string, unknown>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`${API_URL}/api/forms/public/${publicToken}`)
-      .then((r) => {
-        if (r.status === 404) { setNotPublished(true); return null }
-        return r.ok ? r.json() : null
+      .then(async (r) => {
+        if (r.status === 404) {
+          try {
+            const body = await r.json() as { reason?: string; ownerName?: string | null; ownerEmail?: string | null }
+            if (body.reason === 'not_published') {
+              setLoadError({ kind: 'not_published', ownerName: body.ownerName ?? null, ownerEmail: body.ownerEmail ?? null })
+            } else {
+              setLoadError({ kind: 'not_found' })
+            }
+          } catch {
+            setLoadError({ kind: 'not_found' })
+          }
+          return null
+        }
+        if (!r.ok) { setLoadError({ kind: 'server', status: r.status }); return null }
+        return r.json() as Promise<PublicForm>
       })
-      .then((f: PublicForm | null) => setForm(f))
-      .catch(() => {})
+      .then((f) => { if (f) setForm(f) })
+      .catch(() => setLoadError({ kind: 'network' }))
       .finally(() => setLoading(false))
   }, [publicToken])
 
@@ -83,7 +102,10 @@ function LinkedFormRenderer({ formId, publicToken, comment, submitting, setSubmi
       })
       if (!res.ok) throw new Error('Erreur lors de la soumission du formulaire')
       const { id: formResponseId } = await res.json() as { id: string }
-      await onComplete({ formResponseId }, comment)
+      const fieldMeta = form.fields
+        .filter((f) => f.type !== 'section')
+        .map((f) => ({ id: f.id, label: f.label }))
+      await onComplete({ formResponseId, answers: data, fields: fieldMeta }, comment)
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Une erreur est survenue. Réessayez.')
       setSubmitting(false)
@@ -91,16 +113,22 @@ function LinkedFormRenderer({ formId, publicToken, comment, submitting, setSubmi
   }
 
   if (loading) return <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
-  if (notPublished) return (
+  if (loadError?.kind === 'not_published') return (
     <div className="flex flex-col gap-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
       <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">Ce formulaire n&apos;est pas encore publié.</p>
-      <p className="text-xs text-amber-600 dark:text-amber-500">Un responsable doit le publier dans le module Formulaires avant que cette étape soit accessible.</p>
+      <p className="text-xs text-amber-600 dark:text-amber-500">
+        Un responsable doit le publier dans le module Formulaires avant que cette étape soit accessible.
+        {loadError.ownerName && <> Contact : {loadError.ownerName}{loadError.ownerEmail ? ` (${loadError.ownerEmail})` : ''}.</>}
+      </p>
       <a href={`/forms/${formId}/edit`} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-600 dark:text-cyan-400 underline flex items-center gap-1">
         <ExternalLink className="w-3 h-3" /> Aller au formulaire
       </a>
     </div>
   )
-  if (!form) return <p className="text-sm text-red-500">Impossible de charger le formulaire. Vérifiez votre connexion.</p>
+  if (loadError?.kind === 'not_found') return <p className="text-sm text-red-500">Formulaire introuvable.</p>
+  if (loadError?.kind === 'network') return <p className="text-sm text-red-500">Impossible de charger le formulaire. Vérifiez votre connexion.</p>
+  if (loadError?.kind === 'server') return <p className="text-sm text-red-500">Erreur serveur ({loadError.status}). Réessayez plus tard.</p>
+  if (!form) return <p className="text-sm text-red-500">Impossible de charger le formulaire.</p>
   if (!form.acceptingResponses) return <p className="text-sm text-gray-500 dark:text-gray-400">Ce formulaire n&apos;accepte plus de réponses.</p>
 
   const dataFields = form.fields.filter((f) => f.type !== 'section')

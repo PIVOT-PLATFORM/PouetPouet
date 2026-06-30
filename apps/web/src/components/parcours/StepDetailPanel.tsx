@@ -32,6 +32,34 @@ function CompletedDataSummary({ step, data }: { step: StepDef; data: Record<stri
       {(data.title as string) ?? 'Voir la ressource créée'}
     </a>
   )
+  if (step.type === 'form' && step.formId && data?.formResponseId) {
+    const fields = (data.fields as { id: string; label: string }[] | undefined) ?? []
+    const answers = (data.answers as Record<string, unknown> | undefined) ?? {}
+    const pairs = fields
+      .map((f) => ({ label: f.label, value: answers[f.id] }))
+      .filter((p) => p.value !== undefined && p.value !== null && p.value !== '')
+    return (
+      <div className="flex flex-col gap-2">
+        {pairs.length === 0
+          ? <p className="text-sm text-gray-400 italic">Formulaire soumis.</p>
+          : pairs.map((p) => (
+            <div key={p.label} className="grid grid-cols-[auto_1fr] gap-x-4 text-sm">
+              <span className="text-gray-400 dark:text-gray-500 whitespace-nowrap">{p.label}</span>
+              <span className="dark:text-gray-200 text-gray-700">{Array.isArray(p.value) ? p.value.join(', ') : String(p.value)}</span>
+            </div>
+          ))
+        }
+        <a
+          href={`/forms/${step.formId}/responses`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400 hover:underline mt-1"
+        >
+          <ExternalLink className="w-3 h-3" /> Voir toutes les réponses
+        </a>
+      </div>
+    )
+  }
   if (step.type === 'form' && step.fields) {
     const pairs = step.fields.map((f) => ({ label: f.label, value: data?.[f.id] }))
       .filter((p) => p.value !== undefined && p.value !== null && p.value !== '')
