@@ -181,7 +181,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
       if (err) return reply.status(400).send({ error: err })
     }
 
-    await prisma.formResponse.create({
+    const response = await prisma.formResponse.create({
       data: { formId: form.id, respondentId: null, data: data as Prisma.InputJsonValue },
     })
 
@@ -190,7 +190,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
       sendFormResponseEmail(form.owner.email, form.title, `${FRONTEND_URL}/forms/${form.id}/responses`).catch(() => {})
     }
 
-    return reply.status(201).send({ ok: true })
+    return reply.status(201).send({ id: response.id })
   })
 
   // ── Routes authentifiées ──────────────────────────────────────────────────────
