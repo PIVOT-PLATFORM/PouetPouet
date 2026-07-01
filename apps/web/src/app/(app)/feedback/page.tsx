@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { MessageSquare, Plus, RefreshCw, ThumbsUp, ChevronDown, ChevronUp, ArrowRight, ArrowLeft, Pencil, Trash2 } from 'lucide-react'
+import { MessageSquare, Plus, RefreshCw, ThumbsUp, ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react'
 import { useFeedback, type FeedbackTicket, type FeedbackColumn, type FeedbackType } from '@/hooks/useFeedback'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useAuthStore } from '@/store/auth'
@@ -105,38 +105,27 @@ function TicketModal({ initial, defaultName, onClose, onSave }: {
 
 // ── Carte ticket ──────────────────────────────────────────────────────────────
 
-function TicketCard({ ticket, userId, isAdmin, isDragging, onDragStart, onDragEnd, onMove, onVote, onEdit, onDelete }: {
+function TicketCard({ ticket, userId, isAdmin, isDragging, onDragStart, onDragEnd, onVote, onEdit, onDelete }: {
   ticket: FeedbackTicket
   userId: string | undefined
   isAdmin: boolean
   isDragging: boolean
   onDragStart: (id: string) => void
   onDragEnd: () => void
-  onMove: (id: string, col: FeedbackColumn) => void
   onVote: (id: string) => void
   onEdit: (t: FeedbackTicket) => void
   onDelete: (id: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
-  const [moving, setMoving] = useState(false)
   const [voting, setVoting] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
   const isLong = ticket.body.length > 140
-  const colIndex = COLUMN_ORDER.indexOf(ticket.column)
-  const prevCol = colIndex > 0 ? COLUMN_ORDER[colIndex - 1] as FeedbackColumn : undefined
-  const nextCol = colIndex < COLUMN_ORDER.length - 1 ? COLUMN_ORDER[colIndex + 1] as FeedbackColumn : undefined
-
   const canEdit = isAdmin || ticket.authorId === userId
 
   async function handleVote() {
     setVoting(true)
     try { await onVote(ticket.id) } finally { setVoting(false) }
-  }
-
-  async function handleMove(col: FeedbackColumn) {
-    setMoving(true)
-    try { await onMove(ticket.id, col) } finally { setMoving(false) }
   }
 
   async function handleDelete() {
@@ -196,26 +185,6 @@ function TicketCard({ ticket, userId, isAdmin, isDragging, onDragStart, onDragEn
         </button>
       </div>
 
-      {isAdmin && (prevCol || nextCol) && (
-        <div className="flex gap-2">
-          {prevCol && (
-            <button
-              onClick={() => handleMove(prevCol)}
-              disabled={moving}
-              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-dashed border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
-              <ArrowLeft size={11} /> {COLUMNS.find((c) => c.key === prevCol)?.label}
-            </button>
-          )}
-          {nextCol && (
-            <button
-              onClick={() => handleMove(nextCol)}
-              disabled={moving}
-              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-dashed border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
-              {COLUMNS.find((c) => c.key === nextCol)?.label} <ArrowRight size={11} />
-            </button>
-          )}
-        </div>
-      )}
     </div>
   )
 }
@@ -325,7 +294,6 @@ function KanbanColumn({ col, tickets, userId, isAdmin, draggedId, onDragStart, o
             isDragging={t.id === draggedId}
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
-            onMove={onMove}
             onVote={onVote}
             onEdit={onEdit}
             onDelete={onDelete}
