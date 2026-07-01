@@ -155,6 +155,78 @@ const MODULES = [
   },
 ]
 
+type PlatformItemType = 'platform' | 'module' | 'api'
+type PlatformItem = {
+  name: string
+  desc: string
+  type: PlatformItemType
+  status: 'live' | 'partial' | 'incoming'
+  links?: string[]
+}
+type PlatformCategory = {
+  id: string
+  label: string
+  subtitle: string
+  color: string
+  items: PlatformItem[]
+}
+
+const TYPE_LABELS: Record<PlatformItemType, { label: string; className: string }> = {
+  platform: { label: 'Plateforme',    className: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' },
+  module:   { label: 'Module',        className: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300' },
+  api:      { label: 'API intégrée',  className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
+}
+
+const PLATFORM_CATEGORIES: PlatformCategory[] = [
+  {
+    id: 'hubs', label: 'HUBS', subtitle: 'socle technique — Spring Boot 4 + Angular 22',
+    color: 'border-violet-200 dark:border-violet-800',
+    items: [
+      { name: 'pivot-core',      type: 'platform', status: 'incoming', desc: 'Kernel : auth · tenants · registry modules · gateway · bus événements (Kafka/STOMP) · RBAC · audit' },
+      { name: 'pivot-ui',        type: 'platform', status: 'incoming', desc: 'Shell Angular : accueil hub (favoris/stats/activité) + host Module Federation (charge les *-ui en lazy)' },
+      { name: 'pivot-contracts', type: 'platform', status: 'incoming', desc: 'Contrats indépendants du langage : OpenAPI (REST) + AsyncAPI (events) + manifest → artefact Maven + package npm' },
+      { name: 'pivot-connect',   type: 'api',      status: 'incoming', desc: 'Intégration SI : Camel/Temporal + adaptateurs CDM pour connecter les systèmes externes' },
+      { name: 'pivot-search',    type: 'api',      status: 'incoming', desc: 'Recherche fédérée transverse (back-only, UI intégrée au shell)' },
+      { name: 'pivot-ai',        type: 'api',      status: 'incoming', desc: 'Assistant IA et synthèse transverses → Mistral' },
+    ],
+  },
+  {
+    id: 'modules', label: 'MODULES', subtitle: '1 macromodule = 1 repo core + 1 repo ui',
+    color: 'border-cyan-200 dark:border-cyan-800',
+    items: [
+      { name: 'collaboration',  type: 'module', status: 'live',    links: ['/dashboard'],              desc: 'Boards collaboratifs temps réel · Sessions live · Quiz interactif — PoC PouetPouet' },
+      { name: 'agile',          type: 'module', status: 'live',    links: ['/scrum','/daily','/wheel','/capacity','/meetops'], desc: 'Scrum Poker · Daily Standup · La Roue · Capacité · MeetOps' },
+      { name: 'pilotage',       type: 'module', status: 'partial', links: ['/roadmap','/parcours'],    desc: 'Roadmap Gantt ✅ · Parcours/Workflows ✅ · Formulaires ✅ — OKR · PPM · dashboards · risques à venir' },
+      { name: 'architecture',   type: 'module', status: 'incoming', desc: 'Cartographie SI · Plan de reprise · ADR (Architecture Decision Records)' },
+      { name: 'rh',             type: 'module', status: 'incoming', desc: 'Compétences · Expertise · Formation · Organigramme' },
+      { name: 'template macromodule', type: 'module', status: 'incoming', desc: 'Template GitHub pour démarrer un nouveau macromodule conforme aux contrats Pivot' },
+    ],
+  },
+  {
+    id: 'devops', label: 'DEVOPS', subtitle: 'déploiement & infrastructure',
+    color: 'border-emerald-200 dark:border-emerald-800',
+    items: [
+      { name: 'pivot-deploy', type: 'platform', status: 'partial', desc: 'Compose self-host ✅ · Helm ombrelle · configs par env · realm Keycloak · stack observabilité' },
+      { name: 'pivot-infra',  type: 'platform', status: 'incoming', desc: 'IaC : OpenTofu + Ansible (S3NS / SecNumCloud / on-prem)' },
+      { name: 'pivot-config', type: 'platform', status: 'incoming', desc: 'Config partagée + templates de secrets (SOPS)' },
+    ],
+  },
+  {
+    id: 'docs', label: 'DOCS', subtitle: 'documentation & organisation',
+    color: 'border-gray-200 dark:border-gray-700',
+    items: [
+      { name: 'pivot-docs', type: 'platform', status: 'incoming', desc: 'Doc-as-code : MkDocs Material · pages .md versionnées · publiées en GitHub Pages · ADR agrégées' },
+      { name: '.github',    type: 'platform', status: 'incoming', desc: 'Profil org · workflows CI/sécurité/release réutilisables · templates issues-PR · CODEOWNERS' },
+    ],
+  },
+]
+
+const STATUS_DOT: Record<PlatformItem['status'], string> = {
+  live:     'bg-emerald-400',
+  partial:  'bg-amber-400',
+  incoming: 'bg-gray-300 dark:bg-gray-600',
+}
+
 const SHORTCUTS: { module: string; icon: string; groups: { label: string; items: { keys: string[]; desc: string }[] }[] }[] = [
   {
     module: 'Boards', icon: '🗂️',
@@ -315,8 +387,53 @@ export default function AidePage() {
         </p>
       </div>
 
+      {/* Vision plateforme */}
+      <CollapsibleSection title="Architecture Pivot" subtitle="Vision cible de la suite — PoC actuel = pilotage + collaboration">
+        <div className="space-y-1 mb-4 flex flex-wrap gap-3">
+          {(Object.entries(TYPE_LABELS) as [PlatformItemType, { label: string; className: string }][]).map(([, v]) => (
+            <span key={v.label} className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ${v.className}`}>{v.label}</span>
+          ))}
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 ml-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" /> Disponible
+            <span className="inline-block w-2 h-2 rounded-full bg-amber-400 ml-2" /> Partiel
+            <span className="inline-block w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 ml-2" /> Incoming
+          </span>
+        </div>
+        <div className="space-y-4">
+          {PLATFORM_CATEGORIES.map((cat) => (
+            <div key={cat.id} className={`rounded-xl border-2 ${cat.color} overflow-hidden`}>
+              <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 flex items-baseline gap-3">
+                <span className="text-[11px] font-bold tracking-widest text-gray-500 dark:text-gray-400 uppercase">{cat.label}</span>
+                <span className="text-[11px] text-gray-400 dark:text-gray-500">{cat.subtitle}</span>
+              </div>
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                {cat.items.map((item) => {
+                  const typeStyle = TYPE_LABELS[item.type]
+                  const isIncoming = item.status === 'incoming'
+                  return (
+                    <div key={item.name} className={`flex items-start gap-3 px-4 py-2.5 ${isIncoming ? 'opacity-40' : ''}`}>
+                      <span className={`mt-1.5 shrink-0 w-2 h-2 rounded-full ${STATUS_DOT[item.status]}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <code className="text-xs font-semibold text-gray-800 dark:text-gray-200">{item.name}</code>
+                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${typeStyle.className}`}>{typeStyle.label}</span>
+                          {item.links?.map((href) => (
+                            <Link key={href} href={href} className="text-[10px] text-cyan-600 dark:text-cyan-400 hover:underline">{href}</Link>
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">{item.desc}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CollapsibleSection>
+
       {/* Modules overview */}
-      <CollapsibleSection title="Fonctionnalités">
+      <CollapsibleSection title="Fonctionnalités" defaultOpen>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {MODULES.map((m) => (
             <div
