@@ -20,7 +20,7 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
-    version: '0.26.0',
+    version: '0.25.0',
     date: '2026-07-01',
     title: 'Module Feedback — kanban retours & idées',
     summary: 'Nouveau module Feedback : kanban 5 colonnes pour remonter bugs et idées, avec votes, édition, suppression et navigation temps réel.',
