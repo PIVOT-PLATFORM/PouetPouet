@@ -153,6 +153,19 @@ const MODULES = [
     ],
   },
   {
+    icon: '📋',
+    title: 'Formulaires',
+    href: '/forms',
+    desc: 'Formulaires type Google Forms : construction, partage par lien public et collecte des réponses.',
+    features: [
+      'Constructeur visuel : 11 types de champs (texte, nombre, date, email, choix, échelle, fichier, grille) + sections',
+      'Lien public de réponse : aucun compte requis pour répondre',
+      'Options de collecte : réponse unique, fermeture automatique à date, plafond de réponses',
+      'Notification à chaque réponse et email de confirmation au répondant',
+      'Vue résumé agrégée par question + détail des réponses individuelles',
+    ],
+  },
+  {
     icon: '👤',
     title: 'Compte & Profil',
     href: '/profile',

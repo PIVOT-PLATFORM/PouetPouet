@@ -6,6 +6,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 > Les notes de version **détaillées** (groupées par thème, orientées utilisateur) sont la source de vérité in-app : [`apps/api/src/lib/patch-notes.ts`](apps/api/src/lib/patch-notes.ts), affichées dans le panneau de notifications. Ce fichier en est l'index public condensé.
 
+## [0.27.0] — 2026-07-02
+Nouveau module **Formulaires** type Google Forms : constructeur visuel (11 types de champs + sections), lien public sans compte, options de collecte (réponse unique, fermeture automatique, plafond), notifications et email de confirmation, vue résumé + réponses détaillées, partage par rôle. Corrections : relances/expirations SignDoc actives sans Redis (verrou Postgres), export RGPD réparé. Feedback accessible depuis la navbar.
+
 ## [0.26.0] — 2026-07-02
 Nouveau module **SignDoc** : signature de documents auto-hébergée façon DocuSign. Atelier avec placement des champs par glisser-déposer, signataires internes et externes (lien email sécurisé sans compte), routage séquentiel ou parallèle, échéances avec relances automatiques, destinataires en copie. Preuve forte : document figé (SHA-256), journal d'événements à chaîne de hachage inviolable, **sceau numérique PAdES** + certificat de réalisation, endpoint de vérification. Divers : icônes de modules devant les titres de pages, outil Tableau toujours actif (flag retiré), panneau des flags limité aux modules.
 

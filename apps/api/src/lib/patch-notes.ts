@@ -20,6 +20,38 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.27.0',
+    date: '2026-07-02',
+    title: 'Module Formulaires — création et collecte de réponses',
+    summary: 'Nouveau module Formulaires type Google Forms : construisez vos formulaires, partagez un lien public et collectez les réponses. Plus : relances SignDoc fiabilisées, Feedback dans la navbar, export RGPD réparé.',
+    sections: [
+      {
+        heading: '📋 Module Formulaires (nouveau)',
+        items: [
+          'Constructeur visuel : 11 types de champs (texte court/long, nombre, date, email, liste, choix unique/multiple, échelle, fichier, grille) + sauts de section',
+          'Partage par lien public : les répondants n\'ont pas besoin de compte',
+          'Options de collecte : limite d\'une réponse par personne, date de fermeture automatique, nombre maximum de réponses',
+          'Notification à chaque réponse (optionnelle) et email de confirmation au répondant',
+          'Vue des réponses : résumé agrégé par question + détail réponse par réponse',
+          'Partage du formulaire par rôle (Lecteur / Éditeur / Propriétaire)',
+        ],
+      },
+      {
+        heading: '🔧 Corrections',
+        items: [
+          'SignDoc : relances et expirations automatiques fonctionnent désormais sans Redis (verrou Postgres) — elles étaient inactives en production',
+          'Export RGPD « Mes données » réparé : le téléchargement échouait car la requête n\'était pas authentifiée',
+        ],
+      },
+      {
+        heading: '🎨 Divers',
+        items: [
+          'Accès direct au Feedback depuis la barre de navigation (icône bulle, à côté de l\'aide)',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.26.0',
     date: '2026-07-02',
     title: 'Module SignDoc — signature de documents',
