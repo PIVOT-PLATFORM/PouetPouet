@@ -53,6 +53,8 @@ export function useParcourTemplates() {
     triggerType?: import('@pouetpouet/shared').TriggerType
     triggerConfig?: { formId?: string }
     defaultObservers?: string[]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [k: string]: any
   }) => {
     const t = await api.post<ParcourTemplateDetail>('/api/parcours/templates', input)
     setTemplates((prev) => [{ ...t }, ...prev])

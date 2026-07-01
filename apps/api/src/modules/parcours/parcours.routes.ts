@@ -39,7 +39,7 @@ const templateCreateSchema = z.object({
   description: z.string().max(2000).optional(),
   category: z.string().max(50).optional(),
   tags: z.array(z.string().max(30)).max(10).optional(),
-  steps: z.array(z.record(z.unknown())).min(1).max(50),
+  steps: z.array(z.record(z.unknown())).min(0).max(50),
   flowEdges: z.array(flowEdgeSchema).max(200).optional(),
   triggerType: z.enum(['manual', 'form_response']).optional(),
   triggerConfig: triggerConfigSchema,
