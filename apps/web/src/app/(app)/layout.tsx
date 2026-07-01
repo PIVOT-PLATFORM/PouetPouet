@@ -155,7 +155,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Pages pleine largeur : éditeur Roadmap (Gantt), détail événement MeetOps, calendrier global MeetOps.
   const isRoadmapEditor = /^\/roadmap\/[^/]+$/.test(pathname)
   const isMeetopsWide = /^\/meetops\/(?:calendar|[^/]+)$/.test(pathname)
-  const isWide = isBoardPage || isRoadmapEditor || isMeetopsWide
+  const isWide = isBoardPage || isRoadmapEditor || isMeetopsWide || pathname === '/feedback'
 
   return (
     // overflow-clip (pas hidden) sur les pages board : un conteneur overflow-hidden reste
