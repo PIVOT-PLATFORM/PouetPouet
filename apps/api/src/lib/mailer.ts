@@ -147,6 +147,22 @@ export async function sendSignatureRequestEmail(to: string, name: string, envelo
   return true
 }
 
+// Informe un destinataire en copie (CC) qu'un parcours de signature démarre (lien de consultation).
+export async function sendSignatureCopyEmail(to: string, name: string, envelopeName: string, link: string): Promise<boolean> {
+  const tx = getTransporter()
+  if (!tx) {
+    console.log(`\n📧 [mailer] SMTP non configuré — copie « ${envelopeName} » pour ${to} :\n   ${link}\n`)
+    return false
+  }
+  await tx.sendMail({
+    from: MAIL_FROM,
+    to,
+    subject: `Document en copie : ${envelopeName}`,
+    html: actionHtml('Document partagé en copie', name, `Vous recevez « ${envelopeName} » en copie pour information : un parcours de signature est en cours. Aucune action n'est attendue de votre part.`, 'Consulter le document', link, 'Vous recevrez le document finalisé une fois toutes les signatures recueillies.'),
+  })
+  return true
+}
+
 // Notifie un destinataire que l'enveloppe est entièrement signée (lien d'accès owner).
 export async function sendSignatureCompletedEmail(to: string, name: string, envelopeName: string, link: string): Promise<boolean> {
   const tx = getTransporter()

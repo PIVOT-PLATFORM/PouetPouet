@@ -122,4 +122,46 @@ describe('signdoc — envoi + signature publique (integration)', () => {
     expect(res.statusCode).toBe(200)
     expect((await prisma.signEnvelope.findUnique({ where: { id: env.id } }))?.status).toBe('DECLINED')
   })
+
+  it('CC : reçoit un lien de consultation à l’envoi, ne peut ni signer ni refuser, ne bloque pas la complétion', async () => {
+    const env = await prisma.signEnvelope.create({ data: { ownerId: owner.user.id, name: 'Avec copie', originalHash: 'seed', pageCount: 1, status: 'DRAFT' } })
+    const add = await app.inject({ method: 'POST', url: `/api/signdoc/${env.id}/recipients`, headers: { authorization: `Bearer ${owner.token}` }, payload: { email: `signer-cc${SUFFIX}`, name: 'Signer' } })
+    const rid = add.json().id
+    const addCc = await app.inject({ method: 'POST', url: `/api/signdoc/${env.id}/recipients`, headers: { authorization: `Bearer ${owner.token}` }, payload: { email: `copy${SUFFIX}`, name: 'Copy', role: 'CC' } })
+    const ccId = addCc.json().id
+    await app.inject({ method: 'PUT', url: `/api/signdoc/${env.id}/fields`, headers: { authorization: `Bearer ${owner.token}` }, payload: { fields: [{ recipientId: rid, page: 0, x: 0.1, y: 0.1, w: 0.2, h: 0.05, type: 'SIGNATURE' }] } })
+
+    const sent = await app.inject({ method: 'POST', url: `/api/signdoc/${env.id}/send`, headers: { authorization: `Bearer ${owner.token}` } })
+    expect(sent.statusCode).toBe(200)
+
+    // Le CC a reçu un jeton de consultation à l'envoi.
+    const cc = await prisma.signRecipient.findUnique({ where: { id: ccId } })
+    expect(cc?.accessTokenHash).toBeTruthy()
+    expect(cc?.status).toBe('SENT')
+
+    // On fixe un jeton connu pour appeler les routes publiques en tant que CC.
+    await prisma.signRecipient.update({ where: { id: ccId }, data: { accessTokenHash: hashToken('tokenCCCOPY01') } })
+    const view = await app.inject({ method: 'GET', url: '/api/sign/tokenCCCOPY01' })
+    expect(view.statusCode).toBe(200)
+    expect(view.json().recipient.role).toBe('CC')
+    expect(view.json().yourTurn).toBe(false)
+
+    // Un CC ne peut ni signer ni refuser.
+    const sign = await app.inject({ method: 'POST', url: '/api/sign/tokenCCCOPY01/sign', payload: { fields: [] } })
+    expect(sign.statusCode).toBe(409)
+    const decline = await app.inject({ method: 'POST', url: '/api/sign/tokenCCCOPY01/decline', payload: {} })
+    expect(decline.statusCode).toBe(403)
+
+    // Le signataire signe seul → complétion malgré le CC non « signé ».
+    await prisma.signRecipient.update({ where: { id: rid }, data: { accessTokenHash: hashToken('tokenSIGNER01') } })
+    const viewS = await app.inject({ method: 'GET', url: '/api/sign/tokenSIGNER01' })
+    const fieldId = viewS.json().fields[0].id
+    const signS = await app.inject({ method: 'POST', url: '/api/sign/tokenSIGNER01/sign', payload: { fields: [{ id: fieldId, value: 'data:image/png;base64,SSSS' }] } })
+    expect(signS.json().completed).toBe(true)
+
+    // À la complétion le CC a reçu un nouveau jeton pour télécharger le document.
+    const ccAfter = await prisma.signRecipient.findUnique({ where: { id: ccId } })
+    expect(ccAfter?.accessTokenHash).toBeTruthy()
+    expect(ccAfter?.accessTokenHash).not.toBe(hashToken('tokenCCCOPY01'))
+  })
 })

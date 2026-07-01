@@ -4,9 +4,9 @@ import { prisma } from '../../lib/prisma.js'
 import { notify } from '../../lib/notify.js'
 import { sendSignatureCompletedEmail } from '../../lib/mailer.js'
 import { recordEvent } from './signdoc.events.js'
-import { activeOrder, canSignNow, dispatchActiveStep, hashToken, isActingRecipient } from './signdoc.workflow.js'
+import { activeOrder, canSignNow, dispatchActiveStep, hashToken, isActingRecipient, notifyCcCompleted } from './signdoc.workflow.js'
 import { finalizeEnvelope } from './signdoc.finalize.js'
-import { originalStream } from './signdoc.storage.js'
+import { originalStream, sealedExists, sealedStream } from './signdoc.storage.js'
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3000'
 
@@ -51,7 +51,7 @@ export const signdocPublicRoutes: FastifyPluginAsync = async (app) => {
 
     return {
       envelope: { id: r.envelope.id, name: r.envelope.name, message: r.envelope.message, pageCount: r.envelope.pageCount, status: r.envelope.status, ordered: r.envelope.ordered },
-      recipient: { id: r.id, name: r.name, email: r.email, status: r.status },
+      recipient: { id: r.id, name: r.name, email: r.email, status: r.status, role: r.role },
       fields,
       yourTurn: ENVELOPE_ACTIVE.has(r.envelope.status) && canSignNow(r.envelope, r, all),
     }
@@ -65,6 +65,19 @@ export const signdocPublicRoutes: FastifyPluginAsync = async (app) => {
     reply.header('Content-Type', 'application/pdf')
     reply.header('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(r.envelope.name)}.pdf`)
     return reply.send(originalStream(r.envelopeId))
+  })
+
+  // Flux du PDF scellé (jeton requis, enveloppe finalisée uniquement).
+  app.get('/:token/sealed', RL, async (request, reply) => {
+    const { token } = request.params as { token: string }
+    const r = await resolveByToken(token)
+    if (!r) return reply.status(404).send({ error: 'Lien invalide ou expiré.' })
+    if (r.envelope.status !== 'COMPLETED' || !sealedExists(r.envelopeId)) {
+      return reply.status(404).send({ error: 'Document finalisé indisponible.' })
+    }
+    reply.header('Content-Type', 'application/pdf')
+    reply.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(r.envelope.name)}-signe.pdf`)
+    return reply.send(sealedStream(r.envelopeId))
   })
 
   // Signature : enregistre les valeurs des champs, marque SIGNED, fait avancer le workflow.
@@ -130,6 +143,7 @@ export const signdocPublicRoutes: FastifyPluginAsync = async (app) => {
         await notify({ userId: owner.id, type: 'SIGN_COMPLETED', title: 'Document signé', body: `« ${r.envelope.name} » est entièrement signé.`, link: `/signdoc/${r.envelopeId}` })
         await sendSignatureCompletedEmail(owner.email, owner.name, r.envelope.name, `${FRONTEND_URL}/signdoc/${r.envelopeId}`)
       }
+      await notifyCcCompleted({ id: r.envelopeId, name: r.envelope.name }) // les CC reçoivent le document finalisé
     } else if (remaining.length > 0) {
       if (r.envelope.status === 'SENT') await prisma.signEnvelope.updateMany({ where: { id: r.envelopeId, status: 'SENT' }, data: { status: 'IN_PROGRESS' } })
       if (activeOrder(after) !== null) await dispatchActiveStep(r.envelopeId) // notifie l'étape suivante (séquentiel)
@@ -144,6 +158,7 @@ export const signdocPublicRoutes: FastifyPluginAsync = async (app) => {
     const r = await resolveByToken(token)
     if (!r) return reply.status(404).send({ error: 'Lien invalide ou expiré.' })
     if (!ENVELOPE_ACTIVE.has(r.envelope.status)) return reply.status(409).send({ error: 'Cette demande n’est plus active.' })
+    if (!isActingRecipient(r)) return reply.status(403).send({ error: 'Vous êtes en copie : aucune action n’est attendue.' })
     const { reason } = z.object({ reason: z.string().max(500).optional() }).parse(request.body ?? {})
 
     // Même consommation atomique du jeton que /sign : une signature concurrente

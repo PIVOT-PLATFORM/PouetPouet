@@ -7,7 +7,7 @@ import { prisma } from '../../lib/prisma.js'
 import { audit } from '../../lib/audit.js'
 import { resolveRole, sharedResourceIds, deleteResourceShares, type ModuleRole } from '../../lib/module-share.js'
 import { recordEvent, verifyChain } from './signdoc.events.js'
-import { dispatchActiveStep, isActingRecipient } from './signdoc.workflow.js'
+import { dispatchActiveStep, dispatchCcRecipients, isActingRecipient } from './signdoc.workflow.js'
 import { notify } from '../../lib/notify.js'
 import { deleteEnvelopeFiles, originalStream, readSealed, sealedExists, sealedStream, sha256, writeOriginal } from './signdoc.storage.js'
 
@@ -347,6 +347,7 @@ export const signdocRoutes: FastifyPluginAsync = async (app) => {
     await prisma.signEnvelope.update({ where: { id }, data: { status: 'SENT' } })
     await recordEvent(id, 'sent', { actorLabel: ownerName, request, payload: { recipients: actors.length } })
     await dispatchActiveStep(id)
+    await dispatchCcRecipients(id) // les CC reçoivent un lien de consultation
 
     const full = await prisma.signEnvelope.findUnique({ where: { id }, include: ENVELOPE_DETAIL })
     return { ...full, role }

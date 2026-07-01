@@ -18,11 +18,13 @@ const TICK_MS = 6 * HOUR_MS
 export interface MaintenanceResult {
   expired: number
   reminded: number
+  deadlineAlerts: number
 }
 
 export async function runSigndocMaintenance(now = new Date()): Promise<MaintenanceResult> {
   let expired = 0
   let reminded = 0
+  let deadlineAlerts = 0
 
   // ── Expiration ────────────────────────────────────────────────────────────
   const overdue = await prisma.signEnvelope.findMany({
@@ -46,9 +48,24 @@ export async function runSigndocMaintenance(now = new Date()): Promise<Maintenan
     for (const r of env.recipients) {
       if (!isActingRecipient(r) || (r.status !== 'SENT' && r.status !== 'VIEWED')) continue
       const deadline = r.deadline ?? env.globalDeadline
-      if (!deadline || deadline.getTime() <= now.getTime()) continue // pas d'échéance ou déjà dépassée
-      if (deadline.getTime() - now.getTime() > REMIND_WINDOW_MS) continue // trop tôt
+      if (!deadline) continue // pas d'échéance
       if (!canSignNow(env, r, env.recipients)) continue // séquentiel : seulement l'étape active
+
+      // Échéance dépassée : alerte le propriétaire (une seule fois) pour qu'il
+      // relance ou annule. Le lien du signataire reste valide (TTL découplé).
+      if (deadline.getTime() <= now.getTime()) {
+        const alerted = await prisma.signEvent.findFirst({
+          where: { envelopeId: env.id, recipientId: r.id, type: 'deadline_missed' },
+          select: { id: true },
+        })
+        if (alerted) continue
+        await recordEvent(env.id, 'deadline_missed', { actorLabel: 'system', recipientId: r.id })
+        await notify({ userId: env.ownerId, type: 'SIGN_EXPIRED', title: 'Échéance de signature dépassée', body: `${r.name} n'a pas signé « ${env.name} » dans les temps.`, link: `/signdoc/${env.id}` })
+        deadlineAlerts++
+        continue
+      }
+
+      if (deadline.getTime() - now.getTime() > REMIND_WINDOW_MS) continue // trop tôt
       const last = await prisma.signEvent.findFirst({
         where: { envelopeId: env.id, recipientId: r.id, type: 'reminded' },
         orderBy: { createdAt: 'desc' },
@@ -60,7 +77,7 @@ export async function runSigndocMaintenance(now = new Date()): Promise<Maintenan
     }
   }
 
-  return { expired, reminded }
+  return { expired, reminded, deadlineAlerts }
 }
 
 // Planifie la maintenance : au démarrage (différé) puis toutes les 6 h.
@@ -76,7 +93,7 @@ export function scheduleSigndocMaintenance(log: { info: (obj: object, msg: strin
       const acquired = await redis.set('signdoc:maintenance:lock', '1', 'EX', 3600, 'NX')
       if (!acquired) return
       const result = await runSigndocMaintenance()
-      if (result.expired || result.reminded) log.info({ signdoc: result }, 'signdoc maintenance done')
+      if (result.expired || result.reminded || result.deadlineAlerts) log.info({ signdoc: result }, 'signdoc maintenance done')
     } catch (err) {
       log.warn({ err: (err as Error).message }, 'signdoc maintenance failed')
     }

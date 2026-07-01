@@ -61,4 +61,26 @@ describe('signdoc — maintenance planifiée (integration)', () => {
     await runSigndocMaintenance()
     expect(await prisma.signEvent.count({ where: { envelopeId: env.id, type: 'reminded' } })).toBe(0)
   })
+
+  it('alerte le propriétaire (une seule fois) quand une échéance individuelle est dépassée, sans expirer l’enveloppe', async () => {
+    const owner = await makeOwner()
+    const env = await prisma.signEnvelope.create({
+      data: { ownerId: owner.id, name: 'Étape en retard', originalHash: 'h', pageCount: 1, status: 'SENT', ordered: false },
+    })
+    await prisma.signRecipient.create({
+      data: { envelopeId: env.id, email: `u${SUFFIX}`, name: 'U', status: 'SENT', accessTokenHash: 'still-alive', deadline: new Date(Date.now() - HOUR) },
+    })
+
+    const res = await runSigndocMaintenance()
+    expect(res.deadlineAlerts).toBeGreaterThanOrEqual(1)
+    expect(await prisma.signEvent.count({ where: { envelopeId: env.id, type: 'deadline_missed' } })).toBe(1)
+    // Pas d'expiration : l'enveloppe reste active et le jeton vivant.
+    const after = await prisma.signEnvelope.findUnique({ where: { id: env.id } })
+    expect(after?.status).toBe('SENT')
+    const recip = await prisma.signRecipient.findFirst({ where: { envelopeId: env.id } })
+    expect(recip?.accessTokenHash).toBe('still-alive')
+    // Deuxième passage : pas de double alerte.
+    await runSigndocMaintenance()
+    expect(await prisma.signEvent.count({ where: { envelopeId: env.id, type: 'deadline_missed' } })).toBe(1)
+  })
 })

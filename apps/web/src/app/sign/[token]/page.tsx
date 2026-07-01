@@ -12,7 +12,7 @@ type FieldType = 'SIGNATURE' | 'INITIALS' | 'DATE' | 'TEXT'
 interface PubField { id: string; page: number; x: number; y: number; w: number; h: number; type: FieldType; required: boolean }
 interface SignView {
   envelope: { id: string; name: string; message: string | null; pageCount: number; status: string; ordered: boolean }
-  recipient: { id: string; name: string; email: string; status: string }
+  recipient: { id: string; name: string; email: string; status: string; role: string }
   fields: PubField[]
   yourTurn: boolean
 }
@@ -91,11 +91,29 @@ export default function SignPage({ params }: { params: Promise<{ token: string }
   if (done === 'signed') return <Message icon="✅" title="Document signé" text="Merci ! Votre signature a bien été enregistrée. Vous pouvez fermer cette page." />
   if (done === 'declined') return <Message icon="🚫" title="Signature refusée" text="Vous avez refusé de signer ce document. L’expéditeur en a été informé." />
 
+  const isCc = view.recipient.role === 'CC'
+
   if (view.recipient.status === 'SIGNED') return <Message icon="✅" title="Déjà signé" text="Vous avez déjà signé ce document." />
-  if (view.envelope.status === 'COMPLETED') return <Message icon="✅" title="Document finalisé" text="Ce document est entièrement signé." />
+  if (view.envelope.status === 'COMPLETED') {
+    if (isCc) {
+      return (
+        <Centered>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 max-w-sm text-center mx-4">
+            <div className="text-4xl mb-3">✅</div>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Document finalisé</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">« {view.envelope.name} » est entièrement signé. Vous le recevez en copie.</p>
+            <a href={`${API_URL}/api/sign/${token}/sealed`} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 text-white text-sm font-medium hover:bg-teal-700">
+              <ShieldCheck size={15} /> Télécharger le document signé
+            </a>
+          </div>
+        </Centered>
+      )
+    }
+    return <Message icon="✅" title="Document finalisé" text="Ce document est entièrement signé." />
+  }
   if (view.envelope.status === 'VOIDED' || view.envelope.status === 'DECLINED' || view.envelope.status === 'EXPIRED')
     return <Message icon="⌛" title="Demande clôturée" text="Cette demande de signature n’est plus active." />
-  if (!view.yourTurn) return <Message icon="⏳" title="En attente" text="Ce n’est pas encore votre tour de signer. Vous serez notifié·e le moment venu." />
+  if (!view.yourTurn && !isCc) return <Message icon="⏳" title="En attente" text="Ce n’est pas encore votre tour de signer. Vous serez notifié·e le moment venu." />
 
   const fileUrl = `${API_URL}/api/sign/${token}/file`
 
@@ -108,17 +126,27 @@ export default function SignPage({ params }: { params: Promise<{ token: string }
             <PenLine className="text-teal-600 shrink-0" size={20} />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{view.envelope.name}</p>
-              <p className="text-[11px] text-gray-400">Signataire : {view.recipient.name}</p>
+              <p className="text-[11px] text-gray-400">{isCc ? 'En copie' : 'Signataire'} : {view.recipient.name}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button onClick={() => setDeclining(true)} className="px-3 py-2 rounded-xl text-sm border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Refuser</button>
-            <button onClick={submit} disabled={!requiredFilled || submitting} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm bg-teal-600 text-white font-medium hover:bg-teal-700 disabled:opacity-50">
-              {submitting ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />} Terminer
-            </button>
-          </div>
+          {!isCc && (
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={() => setDeclining(true)} className="px-3 py-2 rounded-xl text-sm border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Refuser</button>
+              <button onClick={submit} disabled={!requiredFilled || submitting} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm bg-teal-600 text-white font-medium hover:bg-teal-700 disabled:opacity-50">
+                {submitting ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />} Terminer
+              </button>
+            </div>
+          )}
         </div>
       </header>
+
+      {isCc && (
+        <div className="max-w-5xl mx-auto px-4 pt-4">
+          <div className="text-sm bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-xl px-4 py-3">
+            Vous recevez ce document en copie pour information : un parcours de signature est en cours. Aucune action n’est attendue de votre part.
+          </div>
+        </div>
+      )}
 
       {view.envelope.message && (
         <div className="max-w-5xl mx-auto px-4 pt-4">
