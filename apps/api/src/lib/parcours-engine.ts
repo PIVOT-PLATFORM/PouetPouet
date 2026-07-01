@@ -1,4 +1,5 @@
-export type SkipIfDef = { field: string; operator: 'eq' | 'neq' | 'contains'; value: string }
+export type ConditionOperator = 'eq' | 'neq' | 'contains' | 'gt' | 'lt' | 'gte' | 'lte'
+export type SkipIfDef = { field: string; operator: ConditionOperator; value: string }
 export type FlowEdgeDef = { id: string; source: string; target: string; condition?: SkipIfDef; label?: string }
 
 export type GroupMember = { id: string; label?: string }
@@ -39,11 +40,18 @@ export type ModuleStepDef = {
 }
 
 export function evalCondition(cond: SkipIfDef, data: Record<string, unknown>): boolean {
-  const val = String(data[cond.field] ?? '')
+  const raw = data[cond.field]
+  const val = String(raw ?? '')
+  const num = Number(raw)
+  const threshold = Number(cond.value)
   switch (cond.operator) {
     case 'eq': return val === cond.value
     case 'neq': return val !== cond.value
     case 'contains': return val.includes(cond.value)
+    case 'gt': return !isNaN(num) && !isNaN(threshold) && num > threshold
+    case 'lt': return !isNaN(num) && !isNaN(threshold) && num < threshold
+    case 'gte': return !isNaN(num) && !isNaN(threshold) && num >= threshold
+    case 'lte': return !isNaN(num) && !isNaN(threshold) && num <= threshold
   }
 }
 

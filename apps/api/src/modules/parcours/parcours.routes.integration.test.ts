@@ -477,3 +477,188 @@ describe('bus trigger form_response → auto-instance', () => {
     expect(instances.length).toBeGreaterThanOrEqual(1)
   })
 })
+
+// ── Arbre de décision — routage montant achat ─────────────────────────────────
+//
+// Cas d'usage : un formulaire contient un champ `montant` (en €).
+//   - Si montant < 40 000 → équipe C valide (step 1 : validation group WF-Equipe-C)
+//   - Si montant ≥ 40 000 → département valide (step 2 : validation group WF-Dept)
+//   - Step 3 : étape finale info (toujours atteinte après la validation)
+//
+// FlowEdges :
+//   e-low  : 0→1, condition: { field:'montant', operator:'lt',  value:'40000' }
+//   e-high : 0→2, condition: { field:'montant', operator:'gte', value:'40000' }
+//   e-team : 1→3  (sans condition, après validation équipe)
+//   e-dept : 2→3  (sans condition, après validation département)
+
+describe('arbre de décision — routage conditionnel sur montant', () => {
+  let app: FastifyInstance
+  let owner: { user: { id: string }; token: string }
+  let validatorEquipe: { user: { id: string }; token: string }
+  let validatorDept: { user: { id: string }; token: string }
+  let templateId: string
+
+  beforeAll(async () => {
+    await cleanupUsers(SUFFIX)
+    app = await buildTestApp([{ plugin: parcoursRoutes, prefix: '/api/parcours' }])
+    owner = await createTestUser(app, `owner-dt${SUFFIX}`)
+    validatorEquipe = await createTestUser(app, `val-equipe${SUFFIX}`)
+    validatorDept = await createTestUser(app, `val-dept${SUFFIX}`)
+
+    const tmpl = await app.inject({
+      method: 'POST',
+      url: '/api/parcours/templates',
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: {
+        name: 'Commande publique — arbre de décision',
+        steps: [
+          // 0 : formulaire de demande (info simplifié pour le test)
+          { type: 'info', title: 'Saisie demande' },
+          // 1 : validation équipe C (< 40 000 €)
+          {
+            type: 'validation',
+            title: 'Validation Équipe C',
+            assignmentMode: 'group',
+            groupLabel: 'WF-Equipe-C',
+            groupMembers: [{ id: validatorEquipe.user.id, label: 'Validateur Équipe C' }],
+          },
+          // 2 : validation département (≥ 40 000 €)
+          {
+            type: 'validation',
+            title: 'Validation Département',
+            assignmentMode: 'group',
+            groupLabel: 'WF-Dept',
+            groupMembers: [{ id: validatorDept.user.id, label: 'Validateur Département' }],
+          },
+          // 3 : fin
+          { type: 'info', title: 'Demande traitée' },
+        ],
+        flowEdges: [
+          { id: 'e-low',  source: '0', target: '1', condition: { field: 'montant', operator: 'lt',  value: '40000' } },
+          { id: 'e-high', source: '0', target: '2', condition: { field: 'montant', operator: 'gte', value: '40000' } },
+          { id: 'e-team', source: '1', target: '3' },
+          { id: 'e-dept', source: '2', target: '3' },
+        ],
+      },
+    })
+    expect(tmpl.statusCode).toBe(201)
+    templateId = tmpl.json().id
+  })
+
+  afterAll(async () => {
+    await cleanupUsers(SUFFIX)
+    await app.close()
+  })
+
+  it('montant = 15000 → branche équipe C (step 1), validateur complète → step 3', async () => {
+    const inst = await app.inject({
+      method: 'POST',
+      url: '/api/parcours/instances',
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { templateId, title: 'Achat petit — 15k' },
+    })
+    expect(inst.statusCode).toBe(201)
+    const instanceId = inst.json().id
+
+    // Donner accès aux validateurs
+    await prisma.moduleShare.createMany({
+      data: [
+        { module: 'parcourInstance', resourceId: instanceId, userId: validatorEquipe.user.id, role: 'EDITOR' },
+        { module: 'parcourInstance', resourceId: instanceId, userId: validatorDept.user.id, role: 'EDITOR' },
+      ],
+    })
+
+    // Step 0 complété avec montant < 40 000 → doit passer à step 1
+    const complete0 = await app.inject({
+      method: 'POST',
+      url: `/api/parcours/instances/${instanceId}/steps/0`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { action: 'complete', data: { montant: 15000 } },
+    })
+    expect(complete0.statusCode).toBe(200)
+    expect(complete0.json().nextStep).toBe(1)
+
+    const afterStep0 = await prisma.parcourInstance.findUnique({ where: { id: instanceId } })
+    expect(afterStep0!.currentStep).toBe(1)
+
+    // Validateur équipe C complète step 1 → doit passer à step 3 (via e-team)
+    const complete1 = await app.inject({
+      method: 'POST',
+      url: `/api/parcours/instances/${instanceId}/steps/1`,
+      headers: { authorization: `Bearer ${validatorEquipe.token}` },
+      payload: { action: 'complete' },
+    })
+    expect(complete1.statusCode).toBe(200)
+    expect(complete1.json().nextStep).toBe(3)
+
+    const afterStep1 = await prisma.parcourInstance.findUnique({ where: { id: instanceId } })
+    expect(afterStep1!.currentStep).toBe(3)
+  })
+
+  it('montant = 75000 → branche département (step 2), validateur complète → step 3', async () => {
+    const inst = await app.inject({
+      method: 'POST',
+      url: '/api/parcours/instances',
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { templateId, title: 'Achat grand — 75k' },
+    })
+    expect(inst.statusCode).toBe(201)
+    const instanceId = inst.json().id
+
+    await prisma.moduleShare.createMany({
+      data: [
+        { module: 'parcourInstance', resourceId: instanceId, userId: validatorEquipe.user.id, role: 'EDITOR' },
+        { module: 'parcourInstance', resourceId: instanceId, userId: validatorDept.user.id, role: 'EDITOR' },
+      ],
+    })
+
+    // Step 0 complété avec montant ≥ 40 000 → doit passer à step 2
+    const complete0 = await app.inject({
+      method: 'POST',
+      url: `/api/parcours/instances/${instanceId}/steps/0`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { action: 'complete', data: { montant: 75000 } },
+    })
+    expect(complete0.statusCode).toBe(200)
+    expect(complete0.json().nextStep).toBe(2)
+
+    const afterStep0 = await prisma.parcourInstance.findUnique({ where: { id: instanceId } })
+    expect(afterStep0!.currentStep).toBe(2)
+
+    // Validateur département complète step 2 → doit passer à step 3 (via e-dept)
+    const complete2 = await app.inject({
+      method: 'POST',
+      url: `/api/parcours/instances/${instanceId}/steps/2`,
+      headers: { authorization: `Bearer ${validatorDept.token}` },
+      payload: { action: 'complete' },
+    })
+    expect(complete2.statusCode).toBe(200)
+    expect(complete2.json().nextStep).toBe(3)
+
+    const afterStep2 = await prisma.parcourInstance.findUnique({ where: { id: instanceId } })
+    expect(afterStep2!.currentStep).toBe(3)
+  })
+
+  it('montant = 40000 (seuil exact) → branche département (condition gte)', async () => {
+    const inst = await app.inject({
+      method: 'POST',
+      url: '/api/parcours/instances',
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { templateId, title: 'Achat seuil — 40k' },
+    })
+    const instanceId = inst.json().id
+
+    const complete0 = await app.inject({
+      method: 'POST',
+      url: `/api/parcours/instances/${instanceId}/steps/0`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { action: 'complete', data: { montant: 40000 } },
+    })
+    expect(complete0.statusCode).toBe(200)
+    // 40000 satisfait gte:40000, pas lt:40000 → branche département (step 2)
+    expect(complete0.json().nextStep).toBe(2)
+
+    const instance = await prisma.parcourInstance.findUnique({ where: { id: instanceId } })
+    expect(instance!.currentStep).toBe(2)
+  })
+})

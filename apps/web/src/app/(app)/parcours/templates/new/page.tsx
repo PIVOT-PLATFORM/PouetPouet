@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useParcourTemplates } from '@/hooks/useParcours'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { FlowBuilder, type FlowBuilderState } from '@/components/parcours/FlowBuilder'
-import { AlertCircle, CheckCircle2, Save, Rocket } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Save, Rocket, Upload } from 'lucide-react'
 import { validateForPublish, type ValidationIssue } from '@/lib/parcours-validate'
 
 const CATEGORIES = ['cyber', 'archi', 'onboarding', 'qualite', 'rh', 'it', 'autre']
@@ -34,6 +34,9 @@ export default function NewTemplatePage() {
   const [validating, setValidating] = useState(false)
   const [error, setError] = useState('')
   const [issues, setIssues] = useState<ValidationIssue[] | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importJson, setImportJson] = useState('')
+  const [importError, setImportError] = useState('')
 
   function buildPayload() {
     return {
@@ -94,15 +97,45 @@ export default function NewTemplatePage() {
     }
   }
 
+  function handleImportApply() {
+    setImportError('')
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(importJson)
+    } catch {
+      setImportError('JSON invalide — vérifiez la syntaxe.')
+      return
+    }
+    if (parsed.name && typeof parsed.name === 'string') setName(parsed.name)
+    if (parsed.description && typeof parsed.description === 'string') setDescription(parsed.description)
+    if (parsed.category && typeof parsed.category === 'string') setCategory(parsed.category)
+    if (Array.isArray(parsed.tags)) setTags((parsed.tags as string[]).join(', '))
+    setFlowState({
+      steps: Array.isArray(parsed.steps) ? parsed.steps : [],
+      flowEdges: Array.isArray(parsed.flowEdges) ? parsed.flowEdges : [],
+      triggerType: (parsed.triggerType as 'manual' | 'form_response') ?? 'manual',
+      triggerConfig: (parsed.triggerConfig as Record<string, unknown>) ?? {},
+    })
+    setImportOpen(false)
+    setImportJson('')
+  }
+
   const hasBlockingIssues = issues?.some((i) => i.blocking) ?? false
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Link href="/parcours/templates" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-1 inline-block">
-          ← Templates
-        </Link>
-        <h1 className="text-3xl font-bold dark:text-white">Nouveau template</h1>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <Link href="/parcours/templates" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-1 inline-block">
+            ← Templates
+          </Link>
+          <h1 className="text-3xl font-bold dark:text-white">Nouveau template</h1>
+        </div>
+        <button onClick={() => setImportOpen(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:border-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors mt-2">
+          <Upload size={14} />
+          Importer JSON
+        </button>
       </div>
 
       {/* Métadonnées */}
@@ -198,6 +231,42 @@ export default function NewTemplatePage() {
           {validating ? 'Validation…' : saving ? 'Création…' : 'Valider et créer'}
         </button>
       </div>
+
+      {importOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 w-full max-w-2xl flex flex-col gap-4 shadow-2xl">
+            <div>
+              <h2 className="font-semibold text-base dark:text-white">Importer un workflow JSON</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Collez le JSON généré par une IA ou exporté depuis un autre workflow. Les champs nom, étapes et arêtes seront chargés dans l'éditeur.
+              </p>
+            </div>
+            <textarea
+              value={importJson}
+              onChange={(e) => { setImportJson(e.target.value); setImportError('') }}
+              rows={12}
+              placeholder={'{\n  "name": "Mon workflow",\n  "steps": [...],\n  "flowEdges": [...]\n}'}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs font-mono dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
+            />
+            {importError && (
+              <p className="text-sm text-red-500 flex items-center gap-1.5">
+                <AlertCircle size={14} /> {importError}
+              </p>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => { setImportOpen(false); setImportJson(''); setImportError('') }}
+                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                Annuler
+              </button>
+              <button onClick={handleImportApply} disabled={!importJson.trim()}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors">
+                <Upload size={14} />
+                Charger dans l'éditeur
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

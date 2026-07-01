@@ -1,10 +1,14 @@
 export type ParcourDocClass = 'C0' | 'C1' | 'C2' | 'C3'
 
+export type ConditionOperator = 'eq' | 'neq' | 'contains' | 'gt' | 'lt' | 'gte' | 'lte'
+
+export type FlowCondition = { field: string; operator: ConditionOperator; value: string }
+
 export type FlowEdge = {
   id: string
   source: string // stepIndex as string
   target: string // stepIndex as string
-  condition?: { field: string; operator: 'eq' | 'neq' | 'contains'; value: string }
+  condition?: FlowCondition
   label?: string
 }
 
@@ -44,7 +48,7 @@ export type StepDef = {
   assignedLabel?: string
   slaDays?: number
   reminderDays?: number
-  skipIf?: { field: string; operator: 'eq' | 'neq' | 'contains'; value: string }
+  skipIf?: FlowCondition
   // info
   body?: string
   // form — inline fields OR linked Forms module form (formId + formPublicToken)

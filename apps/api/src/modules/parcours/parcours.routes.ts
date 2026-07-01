@@ -27,7 +27,7 @@ const flowEdgeSchema = z.object({
   target: z.string(),
   condition: z.object({
     field: z.string(),
-    operator: z.enum(['eq', 'neq', 'contains']),
+    operator: z.enum(['eq', 'neq', 'contains', 'gt', 'lt', 'gte', 'lte']),
     value: z.string(),
   }).optional(),
   label: z.string().optional(),

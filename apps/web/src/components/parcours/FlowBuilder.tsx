@@ -21,7 +21,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2, Zap, Globe, CheckSquare, Mail, FileText, Info, Users, Link2, Sparkles, ShieldCheck, Bell } from 'lucide-react'
 import type { GroupMember, ValidationNotifyConfig } from '@pouetpouet/shared'
 import { api } from '@/lib/api'
-import type { StepDef, FlowEdge, TriggerType } from '@pouetpouet/shared'
+import type { StepDef, FlowEdge, TriggerType, ConditionOperator, FlowCondition } from '@pouetpouet/shared'
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
@@ -199,11 +199,56 @@ function flowEdgesToRfEdges(flowEdges: FlowEdge[]): Edge[] {
   }))
 }
 
-function rfEdgesToFlowEdges(rfEdges: Edge[]): FlowEdge[] {
-  // On ne garde que les arêtes non-default (custom ou conditionnelles)
+function rfEdgesToFlowEdges(rfEdges: Edge[], existingFlowEdges: FlowEdge[]): FlowEdge[] {
+  const existingById = new Map(existingFlowEdges.map((e) => [e.id, e]))
   return rfEdges
     .filter((e) => !['trigger-end', 'trigger-0'].includes(e.id) && !/^\d+-\d+$/.test(e.id) && !e.id.endsWith('-end'))
-    .map((e) => ({ id: e.id, source: e.source, target: e.target, label: typeof e.label === 'string' ? e.label : undefined }))
+    .map((e) => {
+      const prev = existingById.get(e.id)
+      return { id: e.id, source: e.source, target: e.target, label: typeof e.label === 'string' ? e.label : undefined, condition: prev?.condition }
+    })
+}
+
+// ─── Éditeur de condition (shared entre skipIf et arêtes) ────────────────────
+
+const CONDITION_OPERATORS: { value: ConditionOperator; label: string }[] = [
+  { value: 'eq',       label: '= égal à' },
+  { value: 'neq',      label: '≠ différent de' },
+  { value: 'contains', label: '∋ contient' },
+  { value: 'gt',       label: '> supérieur à' },
+  { value: 'lt',       label: '< inférieur à' },
+  { value: 'gte',      label: '≥ supérieur ou égal' },
+  { value: 'lte',      label: '≤ inférieur ou égal' },
+]
+
+function ConditionEditor({
+  condition, onChange, onClear, fieldPlaceholder = 'Champ (ex: montant)',
+}: {
+  condition?: FlowCondition
+  onChange: (c: FlowCondition) => void
+  onClear?: () => void
+  fieldPlaceholder?: string
+}) {
+  const cond = condition ?? { field: '', operator: 'eq' as ConditionOperator, value: '' }
+  return (
+    <div className="flex flex-col gap-1.5">
+      <input value={cond.field} placeholder={fieldPlaceholder}
+        onChange={(e) => onChange({ ...cond, field: e.target.value })}
+        className="w-full px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white" />
+      <select value={cond.operator} onChange={(e) => onChange({ ...cond, operator: e.target.value as ConditionOperator })}
+        className="w-full px-2 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white">
+        {CONDITION_OPERATORS.map((op) => <option key={op.value} value={op.value}>{op.label}</option>)}
+      </select>
+      <input value={cond.value} placeholder="Valeur (ex: 40000)"
+        onChange={(e) => onChange({ ...cond, value: e.target.value })}
+        className="w-full px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white" />
+      {onClear && (
+        <button onClick={onClear} className="text-[10px] text-red-400 hover:text-red-600 text-left">
+          Supprimer la condition
+        </button>
+      )}
+    </div>
+  )
 }
 
 // ─── Éditeur de step ─────────────────────────────────────────────────────────
@@ -591,22 +636,15 @@ function StepEditor({ step, onSave, onDelete }: { step: StepDef; onSave: (s: Ste
       {/* skipIf */}
       <details className="group">
         <summary className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide cursor-pointer select-none">
-          Condition de saut (skipIf)
+          Condition de saut automatique (skipIf)
         </summary>
-        <div className="mt-2 flex flex-col gap-2 pl-2 border-l-2 border-gray-100 dark:border-gray-700">
-          <input value={draft.skipIf?.field ?? ''} placeholder="Champ (ex: statut)"
-            onChange={(e) => up({ skipIf: e.target.value ? { field: e.target.value, operator: draft.skipIf?.operator ?? 'eq', value: draft.skipIf?.value ?? '' } : undefined })}
-            className="w-full px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white" />
-          <select value={draft.skipIf?.operator ?? 'eq'} disabled={!draft.skipIf}
-            onChange={(e) => up({ skipIf: draft.skipIf ? { ...draft.skipIf, operator: e.target.value as 'eq' | 'neq' | 'contains' } : undefined })}
-            className="w-full px-2 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white disabled:opacity-50">
-            <option value="eq">égal à</option>
-            <option value="neq">différent de</option>
-            <option value="contains">contient</option>
-          </select>
-          <input value={draft.skipIf?.value ?? ''} placeholder="Valeur" disabled={!draft.skipIf}
-            onChange={(e) => up({ skipIf: draft.skipIf ? { ...draft.skipIf, value: e.target.value } : undefined })}
-            className="w-full px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white disabled:opacity-50" />
+        <div className="mt-2 pl-2 border-l-2 border-gray-100 dark:border-gray-700">
+          <ConditionEditor
+            condition={draft.skipIf}
+            onChange={(c) => up({ skipIf: c })}
+            onClear={() => up({ skipIf: undefined })}
+            fieldPlaceholder="Champ (ex: statut)"
+          />
         </div>
       </details>
 
@@ -644,6 +682,7 @@ export function FlowBuilder({ steps: initSteps, flowEdges: initEdges, triggerTyp
   const [triggerType, setTriggerType] = useState<TriggerType>(initTT)
   const [triggerConfig, setTriggerConfig] = useState<{ formId?: string }>(initTC)
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
 
   // ── Sync vers parent à chaque changement ──
   useEffect(() => {
@@ -680,19 +719,50 @@ export function FlowBuilder({ steps: initSteps, flowEdges: initEdges, triggerTyp
   const onConnect = useCallback((params: Connection) => {
     setRfEdges((es) => {
       const next = addEdge({ ...params, style: { stroke: '#6b7280' } }, es)
-      setFlowEdges(rfEdgesToFlowEdges(next))
+      setFlowEdges((prev) => rfEdgesToFlowEdges(next, prev))
       return next
     })
   }, [])
 
   // ── Clic sur un nœud → sélection dans éditeur ──
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+    setSelectedEdgeId(null)
     if (node.type === 'trigger' || node.type === 'end') { setSelectedIdx(null); return }
     const idx = parseInt(node.id, 10)
     if (!isNaN(idx)) setSelectedIdx(idx)
   }, [])
 
-  const onPaneClick = useCallback(() => setSelectedIdx(null), [])
+  // ── Clic sur une arête → éditeur de condition ──
+  const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
+    // Ne pas ouvrir l'éditeur pour les arêtes auto-générées (trigger-0, 0-1, etc.)
+    const isDefault = ['trigger-end', 'trigger-0'].includes(edge.id) || /^\d+-\d+$/.test(edge.id) || edge.id.endsWith('-end')
+    if (isDefault) return
+    setSelectedIdx(null)
+    setSelectedEdgeId(edge.id)
+  }, [])
+
+  // ── Mise à jour condition d'une arête ──
+  function updateEdgeCondition(edgeId: string, condition: FlowCondition | undefined) {
+    setFlowEdges((prev) => prev.map((e) => e.id === edgeId ? { ...e, condition } : e))
+    setRfEdges((prev) => prev.map((e) => {
+      if (e.id !== edgeId) return e
+      return {
+        ...e,
+        label: condition ? `${condition.field} ${condition.operator} ${condition.value}` : undefined,
+        animated: !!condition,
+        style: { stroke: condition ? '#f59e0b' : '#6b7280' },
+      }
+    }))
+  }
+
+  // ── Suppression d'une arête custom ──
+  function deleteEdge(edgeId: string) {
+    setFlowEdges((prev) => prev.filter((e) => e.id !== edgeId))
+    setRfEdges((prev) => prev.filter((e) => e.id !== edgeId))
+    setSelectedEdgeId(null)
+  }
+
+  const onPaneClick = useCallback(() => { setSelectedIdx(null); setSelectedEdgeId(null) }, [])
 
   // ── Opérations sur steps ──
   function addStep(type: StepType) {
@@ -727,6 +797,7 @@ export function FlowBuilder({ steps: initSteps, flowEdges: initEdges, triggerTyp
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
           onPaneClick={onPaneClick}
           nodeTypes={CUSTOM_NODE_TYPES}
           fitView
@@ -793,9 +864,31 @@ export function FlowBuilder({ steps: initSteps, flowEdges: initEdges, triggerTyp
           </div>
         )}
 
-        {selectedIdx === null && (
+        {/* Éditeur de condition d'arête */}
+        {selectedEdgeId !== null && selectedIdx === null && (() => {
+          const edge = flowEdges.find((e) => e.id === selectedEdgeId)
+          if (!edge) return null
+          return (
+            <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-white dark:bg-gray-900 p-3">
+              <h3 className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-3">
+                Arête : étape {edge.source} → étape {edge.target}
+              </h3>
+              <ConditionEditor
+                condition={edge.condition}
+                onChange={(c) => updateEdgeCondition(selectedEdgeId, c)}
+                onClear={() => updateEdgeCondition(selectedEdgeId, undefined)}
+              />
+              <button onClick={() => deleteEdge(selectedEdgeId)}
+                className="mt-3 flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors">
+                <Trash2 size={11} /> Supprimer cette arête
+              </button>
+            </div>
+          )
+        })()}
+
+        {selectedIdx === null && selectedEdgeId === null && (
           <p className="text-xs text-gray-400 dark:text-gray-500 text-center px-2">
-            Cliquez sur une étape pour la configurer
+            Cliquez sur une étape ou une arête pour la configurer
           </p>
         )}
       </div>

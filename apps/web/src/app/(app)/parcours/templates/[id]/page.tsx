@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Play, Save, Rocket, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Play, Save, Rocket, AlertCircle, CheckCircle2, Download } from 'lucide-react'
 import { useParcourTemplate } from '@/hooks/useParcours'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { FlowBuilder, type FlowBuilderState } from '@/components/parcours/FlowBuilder'
@@ -78,6 +78,26 @@ export default function TemplateDetailPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  function handleExportJson() {
+    const payload = {
+      name,
+      description: description || undefined,
+      category: category || undefined,
+      tags: tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+      triggerType: flowState.triggerType,
+      triggerConfig: flowState.triggerConfig,
+      steps: flowState.steps,
+      flowEdges: flowState.flowEdges,
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `wf-${name.trim().toLowerCase().replace(/\s+/g, '-') || 'template'}.json`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   async function handleValidateAndSave() {
@@ -211,7 +231,7 @@ export default function TemplateDetailPage() {
 
       {/* Actions */}
       {!isViewer && (
-        <div className="flex gap-3 max-w-2xl">
+        <div className="flex gap-3 max-w-2xl flex-wrap">
           <button onClick={() => setStarting(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium transition-colors">
             <Play size={14} />
@@ -228,6 +248,13 @@ export default function TemplateDetailPage() {
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors">
             <Rocket size={14} />
             {validating ? 'Validation…' : saving ? 'Sauvegarde…' : 'Valider et sauvegarder'}
+          </button>
+
+          <button onClick={handleExportJson}
+            title="Télécharger ce workflow en JSON (pour le partager ou le faire modifier par une IA)"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            <Download size={14} />
+            Exporter JSON
           </button>
         </div>
       )}
