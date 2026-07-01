@@ -42,3 +42,6 @@ playwright-report/
 # Sentry Config File
 .env.sentry-build-plugin
 bugs.txt
+
+# Fichiers uploadés en local (PDF Manager, SignDoc — dont la clé P12 de dev)
+apps/api/uploads/
