@@ -8,7 +8,7 @@ export const hubRoutes: FastifyPluginAsync = async (app) => {
   app.get('/stats', { preHandler: [app.authenticate] }, async (request) => {
     const { id: userId } = request.user as { id: string }
 
-    const [boards, teams, scrumRooms, dailySessions, capacityEvents, wheelEvents, testBooks] = await Promise.all([
+    const [boards, teams, scrumRooms, dailySessions, capacityEvents, wheelEvents, testBooks, parcourTemplates, forms] = await Promise.all([
       prisma.board.count({ where: { ownerId: userId } }),
       prisma.team.count({ where: { ownerId: userId } }),
       prisma.scrumRoom.count({ where: { ownerId: userId } }),
@@ -16,16 +16,18 @@ export const hubRoutes: FastifyPluginAsync = async (app) => {
       prisma.capacityEvent.count({ where: { ownerId: userId } }),
       prisma.wheelEvent.count({ where: { ownerId: userId } }),
       prisma.testBook.count({ where: { ownerId: userId } }),
+      prisma.parcourTemplate.count({ where: { ownerId: userId } }),
+      prisma.form.count({ where: { ownerId: userId } }),
     ])
 
-    return { boards, teams, scrumRooms, dailySessions, capacityEvents, wheelEvents, testBooks }
+    return { boards, teams, scrumRooms, dailySessions, capacityEvents, wheelEvents, testBooks, parcourTemplates, forms }
   })
 
   // Recent activity — dernières actions cross-modules pour la section "Récent" du hub.
   app.get('/recent', { preHandler: [app.authenticate] }, async (request) => {
     const { id: userId } = request.user as { id: string }
 
-    const [boards, dailySessions, scrumRooms, wheelDraws] = await Promise.all([
+    const [boards, dailySessions, scrumRooms, wheelDraws, parcourInstances] = await Promise.all([
       prisma.board.findMany({
         where: { ownerId: userId },
         orderBy: { updatedAt: 'desc' },
@@ -57,8 +59,14 @@ export const hubRoutes: FastifyPluginAsync = async (app) => {
         take: 2,
         select: { id: true, teamName: true, results: true, count: true, createdAt: true },
       }),
+      prisma.parcourInstance.findMany({
+        where: { ownerId: userId },
+        orderBy: { updatedAt: 'desc' },
+        take: 3,
+        select: { id: true, title: true, refNumber: true, status: true, updatedAt: true },
+      }),
     ])
 
-    return { boards, dailySessions, scrumRooms, wheelDraws }
+    return { boards, dailySessions, scrumRooms, wheelDraws, parcourInstances }
   })
 }
