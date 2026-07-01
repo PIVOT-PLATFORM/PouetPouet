@@ -29,13 +29,15 @@ export default function TemplateDetailPage() {
     triggerConfig: {},
   })
 
+  const [flowReady, setFlowReady] = useState(false)
   const [saving, setSaving] = useState(false)
   const [validating, setValidating] = useState(false)
   const [error, setError] = useState('')
   const [issues, setIssues] = useState<ValidationIssue[] | null>(null)
   const [starting, setStarting] = useState(false)
 
-  // Initialise les champs quand le template est chargé
+  // Initialise les champs quand le template est chargé — flowReady retarde le montage
+  // du FlowBuilder jusqu'à ce que flowState soit correct (évite useState(initSteps=[]))
   useEffect(() => {
     if (!template) return
     setName(template.name)
@@ -48,6 +50,7 @@ export default function TemplateDetailPage() {
       triggerType: template.triggerType,
       triggerConfig: template.triggerConfig,
     })
+    setFlowReady(true)
   }, [template])
 
   function buildPayload() {
@@ -172,13 +175,15 @@ export default function TemplateDetailPage() {
             Flux d'étapes <span className="text-gray-400 font-normal normal-case ml-1">({flowState.steps.length} étape{flowState.steps.length > 1 ? 's' : ''})</span>
           </h2>
         </div>
-        <FlowBuilder
-          steps={flowState.steps}
-          flowEdges={flowState.flowEdges}
-          triggerType={flowState.triggerType}
-          triggerConfig={flowState.triggerConfig}
-          onChange={isViewer ? () => {} : setFlowState}
-        />
+        {flowReady && (
+          <FlowBuilder
+            steps={flowState.steps}
+            flowEdges={flowState.flowEdges}
+            triggerType={flowState.triggerType}
+            triggerConfig={flowState.triggerConfig}
+            onChange={isViewer ? () => {} : setFlowState}
+          />
+        )}
       </div>
 
       {/* Résultats de validation */}
