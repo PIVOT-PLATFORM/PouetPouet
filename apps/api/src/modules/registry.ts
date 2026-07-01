@@ -20,6 +20,7 @@ import { quizSocketHandlers } from './quiz/quiz.sockets.js'
 import { roadmapRoutes } from './roadmap/roadmap.routes.js'
 import { pdfRoutes } from './pdf/pdf.routes.js'
 import { feedbackRoutes } from './feedback/feedback.routes.js'
+import { feedbackSocketHandlers } from './feedback/feedback.sockets.js'
 
 // FORGE F0 — registre des modules côté API.
 // Le socle (index.ts) monte routes et handlers socket en itérant ce registre :
@@ -92,7 +93,7 @@ export const API_MODULES: ApiModule[] = [
   {
     manifest: FEEDBACK_MODULE,
     routes: [{ plugin: feedbackRoutes, prefix: '/api/feedback' }],
-    socketHandlers: [],
+    socketHandlers: [feedbackSocketHandlers],
   },
 ]
 

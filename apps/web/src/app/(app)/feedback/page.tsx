@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageSquare, Plus, RefreshCw, ThumbsUp, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react'
+import { MessageSquare, Plus, RefreshCw, ThumbsUp, ChevronDown, ChevronUp, ArrowRight, ArrowLeft, Pencil, Trash2 } from 'lucide-react'
 import { useFeedback, type FeedbackTicket, type FeedbackColumn, type FeedbackType } from '@/hooks/useFeedback'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useAuthStore } from '@/store/auth'
@@ -18,25 +18,27 @@ const COLUMNS: { key: FeedbackColumn; label: string; color: string }[] = [
 
 const COLUMN_ORDER = COLUMNS.map((c) => c.key)
 
+const inputCls = 'w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400'
+
 function frDate(iso: string): string {
   return new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-// ── Formulaire de création ────────────────────────────────────────────────────
+// ── Modal création / édition ──────────────────────────────────────────────────
 
-function CreateModal({ defaultName, onClose, onCreate }: {
+function TicketModal({ initial, defaultName, onClose, onSave }: {
+  initial?: FeedbackTicket
   defaultName: string
   onClose: () => void
-  onCreate: (title: string, body: string, type: FeedbackType, authorName: string) => Promise<unknown>
+  onSave: (title: string, body: string, type: FeedbackType, authorName: string) => Promise<unknown>
 }) {
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
-  const [type, setType] = useState<FeedbackType>('BUG')
-  const [authorName, setAuthorName] = useState(defaultName)
+  const isEdit = !!initial
+  const [title, setTitle] = useState(initial?.title ?? '')
+  const [body, setBody] = useState(initial?.body ?? '')
+  const [type, setType] = useState<FeedbackType>(initial?.type ?? 'BUG')
+  const [authorName, setAuthorName] = useState(initial?.authorName ?? defaultName)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const inputCls = 'w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400'
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -44,10 +46,10 @@ function CreateModal({ defaultName, onClose, onCreate }: {
     setSaving(true)
     setError(null)
     try {
-      await onCreate(title.trim(), body.trim(), type, authorName.trim())
+      await onSave(title.trim(), body.trim(), type, authorName.trim())
       onClose()
     } catch {
-      setError('Erreur lors de la création du ticket.')
+      setError('Erreur lors de l\'enregistrement.')
     } finally {
       setSaving(false)
     }
@@ -57,7 +59,7 @@ function CreateModal({ defaultName, onClose, onCreate }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-gray-800">
         <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Nouveau ticket</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{isEdit ? 'Modifier le ticket' : 'Nouveau ticket'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none">&times;</button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
@@ -82,15 +84,17 @@ function CreateModal({ defaultName, onClose, onCreate }: {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Description</label>
             <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Décrivez le bug ou le besoin en détail…" rows={4} className={`${inputCls} resize-none`} maxLength={2000} />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Votre nom</label>
-            <input value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Prénom Nom" className={inputCls} maxLength={80} />
-          </div>
+          {!isEdit && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Votre nom</label>
+              <input value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Prénom Nom" className={inputCls} maxLength={80} />
+            </div>
+          )}
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Annuler</button>
             <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-60">
-              {saving ? 'Envoi…' : 'Envoyer le ticket'}
+              {saving ? 'Enregistrement…' : isEdit ? 'Enregistrer' : 'Envoyer le ticket'}
             </button>
           </div>
         </form>
@@ -101,20 +105,26 @@ function CreateModal({ defaultName, onClose, onCreate }: {
 
 // ── Carte ticket ──────────────────────────────────────────────────────────────
 
-function TicketCard({ ticket, isAdmin, onMove, onVote }: {
+function TicketCard({ ticket, userId, isAdmin, onMove, onVote, onEdit, onDelete }: {
   ticket: FeedbackTicket
+  userId: string | undefined
   isAdmin: boolean
   onMove: (id: string, col: FeedbackColumn) => void
   onVote: (id: string) => void
+  onEdit: (t: FeedbackTicket) => void
+  onDelete: (id: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [moving, setMoving] = useState(false)
   const [voting, setVoting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const isLong = ticket.body.length > 140
   const colIndex = COLUMN_ORDER.indexOf(ticket.column)
-  const nextCol = COLUMN_ORDER[colIndex + 1] as FeedbackColumn | undefined
-  const nextColMeta = nextCol ? COLUMNS.find((c) => c.key === nextCol) : null
+  const prevCol = colIndex > 0 ? COLUMN_ORDER[colIndex - 1] as FeedbackColumn : undefined
+  const nextCol = colIndex < COLUMN_ORDER.length - 1 ? COLUMN_ORDER[colIndex + 1] as FeedbackColumn : undefined
+
+  const canEdit = isAdmin || ticket.authorId === userId
 
   async function handleVote() {
     setVoting(true)
@@ -126,12 +136,30 @@ function TicketCard({ ticket, isAdmin, onMove, onVote }: {
     try { await onMove(ticket.id, col) } finally { setMoving(false) }
   }
 
+  async function handleDelete() {
+    if (!confirm(`Supprimer le ticket "${ticket.title}" ?`)) return
+    setDeleting(true)
+    try { await onDelete(ticket.id) } finally { setDeleting(false) }
+  }
+
   return (
     <div className="rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex flex-col gap-3 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <span className={`inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-xs font-semibold ${ticket.type === 'BUG' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
           {ticket.type === 'BUG' ? '🐛 Bug' : '✨ Feature'}
         </span>
+        {canEdit && (
+          <div className="flex items-center gap-1 shrink-0">
+            <button onClick={() => onEdit(ticket)} className="p-1 rounded-lg text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+              <Pencil size={12} />
+            </button>
+            {isAdmin && (
+              <button onClick={handleDelete} disabled={deleting} className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800">
+                <Trash2 size={12} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <p className="text-sm font-semibold text-gray-900 dark:text-white leading-snug">{ticket.title}</p>
@@ -160,13 +188,25 @@ function TicketCard({ ticket, isAdmin, onMove, onVote }: {
         </button>
       </div>
 
-      {isAdmin && nextColMeta && (
-        <button
-          onClick={() => handleMove(nextCol!)}
-          disabled={moving}
-          className="flex items-center justify-center gap-1.5 w-full py-1.5 rounded-lg border border-dashed border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
-          {moving ? 'Déplacement…' : <><ArrowRight size={11} /> {nextColMeta.label}</>}
-        </button>
+      {isAdmin && (prevCol || nextCol) && (
+        <div className="flex gap-2">
+          {prevCol && (
+            <button
+              onClick={() => handleMove(prevCol)}
+              disabled={moving}
+              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-dashed border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+              <ArrowLeft size={11} /> {COLUMNS.find((c) => c.key === prevCol)?.label}
+            </button>
+          )}
+          {nextCol && (
+            <button
+              onClick={() => handleMove(nextCol)}
+              disabled={moving}
+              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-dashed border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+              {COLUMNS.find((c) => c.key === nextCol)?.label} <ArrowRight size={11} />
+            </button>
+          )}
+        </div>
       )}
     </div>
   )
@@ -174,13 +214,16 @@ function TicketCard({ ticket, isAdmin, onMove, onVote }: {
 
 // ── Colonne kanban ────────────────────────────────────────────────────────────
 
-function KanbanColumn({ col, tickets, isAdmin, onRefresh, onMove, onVote, onNew }: {
+function KanbanColumn({ col, tickets, userId, isAdmin, onRefresh, onMove, onVote, onEdit, onDelete, onNew }: {
   col: typeof COLUMNS[number]
   tickets: FeedbackTicket[]
+  userId: string | undefined
   isAdmin: boolean
   onRefresh: () => void
   onMove: (id: string, c: FeedbackColumn) => void
   onVote: (id: string) => void
+  onEdit: (t: FeedbackTicket) => void
+  onDelete: (id: string) => void
   onNew: () => void
 }) {
   const [refreshing, setRefreshing] = useState(false)
@@ -218,7 +261,7 @@ function KanbanColumn({ col, tickets, isAdmin, onRefresh, onMove, onVote, onNew 
           </div>
         )}
         {tickets.map((t) => (
-          <TicketCard key={t.id} ticket={t} isAdmin={isAdmin} onMove={onMove} onVote={onVote} />
+          <TicketCard key={t.id} ticket={t} userId={userId} isAdmin={isAdmin} onMove={onMove} onVote={onVote} onEdit={onEdit} onDelete={onDelete} />
         ))}
       </div>
     </div>
@@ -229,10 +272,11 @@ function KanbanColumn({ col, tickets, isAdmin, onRefresh, onMove, onVote, onNew 
 
 export default function FeedbackPage() {
   useFlagGuard('module.feedback')
-  const { tickets, isLoading, load, createTicket, moveTicket, toggleVote } = useFeedback()
+  const { tickets, isLoading, load, createTicket, updateTicket, moveTicket, deleteTicket, toggleVote } = useFeedback()
   const user = useAuthStore((s) => s.user)
   const isAdmin = user?.isAdmin ?? false
   const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<FeedbackTicket | null>(null)
 
   const byColumn = (col: FeedbackColumn) => tickets.filter((t) => t.column === col)
 
@@ -263,10 +307,13 @@ export default function FeedbackPage() {
               key={col.key}
               col={col}
               tickets={byColumn(col.key)}
+              userId={user?.id}
               isAdmin={isAdmin}
               onRefresh={load}
               onMove={moveTicket}
               onVote={toggleVote}
+              onEdit={setEditing}
+              onDelete={deleteTicket}
               onNew={() => setCreating(true)}
             />
           ))}
@@ -274,10 +321,19 @@ export default function FeedbackPage() {
       )}
 
       {creating && (
-        <CreateModal
+        <TicketModal
           defaultName={user?.name ?? ''}
           onClose={() => setCreating(false)}
-          onCreate={createTicket}
+          onSave={createTicket}
+        />
+      )}
+
+      {editing && (
+        <TicketModal
+          initial={editing}
+          defaultName={editing.authorName}
+          onClose={() => setEditing(null)}
+          onSave={(title, body, type) => updateTicket(editing.id, { title, body, type })}
         />
       )}
     </div>
