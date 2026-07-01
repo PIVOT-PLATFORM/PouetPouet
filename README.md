@@ -9,7 +9,7 @@
 
 Suite collaborative temps réel pour animer des ateliers, organiser les rituels d'équipe et centraliser les outils de facilitation dans un hub unique.
 
-Le projet est actuellement en version **0.16.0**. Le produit historique **PouetPouet** devient le premier module d'un socle plus large nommé **PIVOT**.
+Le projet est actuellement en version **0.26.0**. Le produit historique **PouetPouet** devient le premier module d'un socle plus large nommé **PIVOT**.
 
 ## Modules disponibles
 
@@ -18,6 +18,12 @@ Le projet est actuellement en version **0.16.0**. Le produit historique **PouetP
 - **Scrum Poker** : estimation d'équipe en temps réel avec tickets, votes, salles partageables et partage par rôles (Lecteur / Éditeur).
 - **La Roue** : tirage au sort animé, lié aux équipes.
 - **Capacité** : planification de capacité d'équipe pour sprint, PI ou release.
+- **MeetOps** : gestion de réunions, comptes-rendus, listes de distribution et historique.
+- **Cahiers de tests** : cahiers et cas de tests collaboratifs avec suivi de recette.
+- **Quiz** : sessions de quiz interactif avec classement, séries et timer adaptatif.
+- **Roadmap** : timeline Gantt d'initiatives et jalons, vues trimestrielle / mensuelle / hebdomadaire.
+- **PDF Manager** : bibliothèque de PDF, dossiers, tags, éditeur de pages et exports.
+- **Feedback** : kanban de retours utilisateurs (bugs & idées) avec votes, temps réel et gestion admin.
 
 Le hub agrège les modules, les favoris, les statistiques et l'activité récente.
 

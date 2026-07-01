@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify'
 import type { Server, Socket } from 'socket.io'
 import type { ModuleManifest } from '@pouetpouet/shared'
-import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE, MEETOPS_MODULE, TESTBOOKS_MODULE, QUIZ_MODULE, ROADMAP_MODULE, PDF_MODULE } from '@pouetpouet/shared'
+import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE, MEETOPS_MODULE, TESTBOOKS_MODULE, QUIZ_MODULE, ROADMAP_MODULE, PDF_MODULE, FEEDBACK_MODULE } from '@pouetpouet/shared'
 
 import { boardRoutes } from './pouetpouet/boards.routes.js'
 import { templateRoutes } from './pouetpouet/templates.routes.js'
@@ -19,6 +19,8 @@ import { quizRoutes } from './quiz/quiz.routes.js'
 import { quizSocketHandlers } from './quiz/quiz.sockets.js'
 import { roadmapRoutes } from './roadmap/roadmap.routes.js'
 import { pdfRoutes } from './pdf/pdf.routes.js'
+import { feedbackRoutes } from './feedback/feedback.routes.js'
+import { feedbackSocketHandlers } from './feedback/feedback.sockets.js'
 
 // FORGE F0 — registre des modules côté API.
 // Le socle (index.ts) monte routes et handlers socket en itérant ce registre :
@@ -87,6 +89,11 @@ export const API_MODULES: ApiModule[] = [
     manifest: PDF_MODULE,
     routes: [{ plugin: pdfRoutes, prefix: '/api/pdf' }],
     socketHandlers: [],
+  },
+  {
+    manifest: FEEDBACK_MODULE,
+    routes: [{ plugin: feedbackRoutes, prefix: '/api/feedback' }],
+    socketHandlers: [feedbackSocketHandlers],
   },
 ]
 

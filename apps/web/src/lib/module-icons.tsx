@@ -19,6 +19,7 @@ import {
   CircleCheckBig,
   Timer,
   Zap,
+  MessageSquare,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -35,6 +36,7 @@ export const MODULE_ICONS: Record<string, LucideIcon> = {
   quiz:        Zap,
   roadmap:     Map,
   pdf:         FileText,
+  feedback:    MessageSquare,
 }
 
 // Icônes pour les activités de board (activity-launcher et boards).

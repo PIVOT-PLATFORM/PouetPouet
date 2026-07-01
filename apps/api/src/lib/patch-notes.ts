@@ -20,6 +20,27 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.26.0',
+    date: '2026-07-01',
+    title: 'Module Feedback — kanban retours & idées',
+    summary: 'Nouveau module Feedback : kanban 5 colonnes pour remonter bugs et idées, avec votes, édition, suppression et navigation temps réel.',
+    sections: [
+      {
+        heading: '💬 Module Feedback (nouveau)',
+        items: [
+          'Kanban 5 colonnes : Analyse → Backlog → Implémentation → Parking → Fait',
+          'Création de tickets publique (sans compte) avec type Bug / Fonctionnalité',
+          'Vote par ticket (toggle, compte mis à jour en temps réel pour tous)',
+          'Édition inline : auteur ou admin peuvent modifier titre, description et type',
+          'Suppression et déplacement inter-colonnes réservés aux admins',
+          'Navigation bidirectionnelle (flèches ←→) sur chaque carte pour les admins',
+          'Temps réel via Socket.io : création, mise à jour, déplacement, suppression et vote diffusés instantanément',
+          'Mise en page plein écran (largeur et hauteur maximales)',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.24.0',
     date: '2026-06-28',
     title: 'PDF Manager — bibliothèque, dossiers, tags, exports',
