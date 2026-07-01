@@ -10,6 +10,8 @@ export const WEBHOOK_EVENTS = [
   'daily.session.ended',
   'scrum.ticket.estimated',
   'wheel.draw.completed',
+  'parcours.instance.completed',
+  'parcours.step.completed',
 ] as const
 
 export type WebhookEvent = typeof WEBHOOK_EVENTS[number]

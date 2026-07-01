@@ -19,6 +19,8 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@types/node-cron": "^3.0.11",
+    "node-cron": "^4.5.0",
     "@google-cloud/storage": "^7.15.2",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^10.0.2",
