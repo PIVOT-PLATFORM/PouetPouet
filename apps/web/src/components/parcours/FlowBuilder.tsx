@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import {
   ReactFlow,
   Background,
@@ -482,19 +483,31 @@ function useFieldInsert(value: string, onChange: (v: string) => void) {
 
 function VarPickerButton({ vars, onInsert }: { vars: WorkflowVariable[]; onInsert: (key: string) => void }) {
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
   const pickable = vars.filter((v) => !v.key.startsWith('('))
   if (pickable.length === 0) return null
+
+  function handleOpen() {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + 4, right: window.innerWidth - r.right })
+    }
+    setOpen((v) => !v)
+  }
+
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOpen((v) => !v)}
+      <button ref={btnRef} type="button" onClick={handleOpen}
         title="Insérer une variable"
         className="text-[10px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-600 text-gray-400 hover:text-cyan-500 hover:border-cyan-400 font-mono transition-colors">
         {'{x}'}
       </button>
-      {open && (
+      {open && pos && createPortal(
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl p-1.5 w-80 max-h-64 overflow-y-auto">
+          <div className="fixed inset-0 z-[200]" onClick={() => setOpen(false)} />
+          <div className="fixed z-[201] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl p-1.5 w-80 max-h-64 overflow-y-auto"
+            style={{ top: pos.top, right: pos.right }}>
             <p className="text-[10px] text-gray-400 px-2 py-1 border-b border-gray-100 dark:border-gray-700 mb-1">Insérer au curseur</p>
             {pickable.map((v) => (
               <button key={`${v.sourceStepIndex}:${v.key}`} type="button"
@@ -508,7 +521,8 @@ function VarPickerButton({ vars, onInsert }: { vars: WorkflowVariable[]; onInser
               </button>
             ))}
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </div>
   )
