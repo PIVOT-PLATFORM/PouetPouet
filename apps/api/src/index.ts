@@ -22,6 +22,7 @@ import { teamRoutes } from './routes/teams.js'
 import { webhookRoutes, deliverWebhooks } from './routes/webhooks.js'
 import { flagRoutes } from './routes/flags.js'
 import { shareRoutes } from './routes/shares.js'
+import { pouetRoutes } from './modules/pouet/pouet.routes.js'
 import { gamesRoutes } from './modules/games/games.routes.js'
 import { registerModuleRoutes } from './modules/registry.js'
 import { registerSocketHandlers } from './sockets/index.js'
@@ -155,6 +156,7 @@ app.register(teamRoutes, { prefix: '/api/teams' })
 app.register(webhookRoutes, { prefix: '/api/webhooks' })
 app.register(flagRoutes, { prefix: '/api' })
 app.register(shareRoutes, { prefix: '/api/shares' })
+app.register(pouetRoutes, { prefix: '/api/pouet' })
 app.register(gamesRoutes, { prefix: '/api/games' })
 
 // Modules FORGE : montés depuis le registre (cf. modules/registry.ts)
