@@ -1,0 +1,285 @@
+'use client'
+
+import { useState } from 'react'
+import { MessageSquare, Plus, RefreshCw, ThumbsUp, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react'
+import { useFeedback, type FeedbackTicket, type FeedbackColumn, type FeedbackType } from '@/hooks/useFeedback'
+import { useFlagGuard } from '@/hooks/useFlagGuard'
+import { useAuthStore } from '@/store/auth'
+
+// ── Constantes ────────────────────────────────────────────────────────────────
+
+const COLUMNS: { key: FeedbackColumn; label: string; color: string }[] = [
+  { key: 'ANALYSE', label: 'Analyse', color: '#7c3aed' },
+  { key: 'BACKLOG', label: 'Backlog', color: '#2563eb' },
+  { key: 'IMPLEMENTING', label: 'Implémentation', color: '#d97706' },
+  { key: 'PARKING', label: 'Parking', color: '#6b7280' },
+  { key: 'DONE', label: 'Fait', color: '#16a34a' },
+]
+
+const COLUMN_ORDER = COLUMNS.map((c) => c.key)
+
+function frDate(iso: string): string {
+  return new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+// ── Formulaire de création ────────────────────────────────────────────────────
+
+function CreateModal({ defaultName, onClose, onCreate }: {
+  defaultName: string
+  onClose: () => void
+  onCreate: (title: string, body: string, type: FeedbackType, authorName: string) => Promise<unknown>
+}) {
+  const [title, setTitle] = useState('')
+  const [body, setBody] = useState('')
+  const [type, setType] = useState<FeedbackType>('BUG')
+  const [authorName, setAuthorName] = useState(defaultName)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const inputCls = 'w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400'
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!title.trim() || !body.trim() || !authorName.trim()) { setError('Tous les champs sont obligatoires.'); return }
+    setSaving(true)
+    setError(null)
+    try {
+      await onCreate(title.trim(), body.trim(), type, authorName.trim())
+      onClose()
+    } catch {
+      setError('Erreur lors de la création du ticket.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Nouveau ticket</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none">&times;</button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Type</label>
+            <div className="flex gap-2">
+              {(['BUG', 'FEATURE'] as FeedbackType[]).map((t) => (
+                <button key={t} type="button" onClick={() => setType(t)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${type === t
+                    ? t === 'BUG' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 ring-2 ring-red-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 ring-2 ring-blue-400'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
+                  {t === 'BUG' ? '🐛 Bug' : '✨ Fonctionnalité'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Titre</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Résumé en une ligne" className={inputCls} maxLength={120} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Description</label>
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Décrivez le bug ou le besoin en détail…" rows={4} className={`${inputCls} resize-none`} maxLength={2000} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Votre nom</label>
+            <input value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Prénom Nom" className={inputCls} maxLength={80} />
+          </div>
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Annuler</button>
+            <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-60">
+              {saving ? 'Envoi…' : 'Envoyer le ticket'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ── Carte ticket ──────────────────────────────────────────────────────────────
+
+function TicketCard({ ticket, isAdmin, onMove, onVote }: {
+  ticket: FeedbackTicket
+  isAdmin: boolean
+  onMove: (id: string, col: FeedbackColumn) => void
+  onVote: (id: string) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const [moving, setMoving] = useState(false)
+  const [voting, setVoting] = useState(false)
+
+  const isLong = ticket.body.length > 140
+  const colIndex = COLUMN_ORDER.indexOf(ticket.column)
+  const nextCol = COLUMN_ORDER[colIndex + 1] as FeedbackColumn | undefined
+  const nextColMeta = nextCol ? COLUMNS.find((c) => c.key === nextCol) : null
+
+  async function handleVote() {
+    setVoting(true)
+    try { await onVote(ticket.id) } finally { setVoting(false) }
+  }
+
+  async function handleMove(col: FeedbackColumn) {
+    setMoving(true)
+    try { await onMove(ticket.id, col) } finally { setMoving(false) }
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex flex-col gap-3 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <span className={`inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-xs font-semibold ${ticket.type === 'BUG' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+          {ticket.type === 'BUG' ? '🐛 Bug' : '✨ Feature'}
+        </span>
+      </div>
+
+      <p className="text-sm font-semibold text-gray-900 dark:text-white leading-snug">{ticket.title}</p>
+
+      <div>
+        <p className={`text-xs text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line ${!expanded && isLong ? 'line-clamp-3' : ''}`}>
+          {ticket.body}
+        </p>
+        {isLong && (
+          <button onClick={() => setExpanded((v) => !v)} className="mt-1 flex items-center gap-0.5 text-xs text-violet-600 dark:text-violet-400 font-medium">
+            {expanded ? <><ChevronUp size={12} /> Réduire</> : <><ChevronDown size={12} /> Voir plus</>}
+          </button>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-50 dark:border-gray-800">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{ticket.authorName}</p>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500">{frDate(ticket.createdAt)}</p>
+        </div>
+        <button
+          onClick={handleVote}
+          disabled={voting}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${ticket.hasVoted ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}>
+          <ThumbsUp size={11} /> {ticket.votes}
+        </button>
+      </div>
+
+      {isAdmin && nextColMeta && (
+        <button
+          onClick={() => handleMove(nextCol!)}
+          disabled={moving}
+          className="flex items-center justify-center gap-1.5 w-full py-1.5 rounded-lg border border-dashed border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+          {moving ? 'Déplacement…' : <><ArrowRight size={11} /> {nextColMeta.label}</>}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ── Colonne kanban ────────────────────────────────────────────────────────────
+
+function KanbanColumn({ col, tickets, isAdmin, onRefresh, onMove, onVote, onNew }: {
+  col: typeof COLUMNS[number]
+  tickets: FeedbackTicket[]
+  isAdmin: boolean
+  onRefresh: () => void
+  onMove: (id: string, c: FeedbackColumn) => void
+  onVote: (id: string) => void
+  onNew: () => void
+}) {
+  const [refreshing, setRefreshing] = useState(false)
+
+  async function handleRefresh() {
+    setRefreshing(true)
+    await onRefresh()
+    setRefreshing(false)
+  }
+
+  return (
+    <div className="flex flex-col gap-3 min-w-[280px] max-w-[320px] w-[300px]">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: col.color }} />
+          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{col.label}</span>
+          <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">{tickets.length}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {col.key === 'ANALYSE' && (
+            <button onClick={onNew} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-violet-600">
+              <Plus size={14} />
+            </button>
+          )}
+          <button onClick={handleRefresh} disabled={refreshing} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 overflow-y-auto max-h-[calc(100vh-220px)] pr-0.5">
+        {tickets.length === 0 && (
+          <div className="rounded-xl border-2 border-dashed border-gray-100 dark:border-gray-800 py-8 text-center">
+            <p className="text-xs text-gray-400 dark:text-gray-600">Vide</p>
+          </div>
+        )}
+        {tickets.map((t) => (
+          <TicketCard key={t.id} ticket={t} isAdmin={isAdmin} onMove={onMove} onVote={onVote} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Page principale ───────────────────────────────────────────────────────────
+
+export default function FeedbackPage() {
+  useFlagGuard('module.feedback')
+  const { tickets, isLoading, load, createTicket, moveTicket, toggleVote } = useFeedback()
+  const user = useAuthStore((s) => s.user)
+  const isAdmin = user?.isAdmin ?? false
+  const [creating, setCreating] = useState(false)
+
+  const byColumn = (col: FeedbackColumn) => tickets.filter((t) => t.column === col)
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-end justify-between mb-2">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2">
+            <MessageSquare size={28} style={{ color: '#7c3aed' }} /> Feedback
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">
+            {tickets.length} ticket{tickets.length !== 1 ? 's' : ''} · partagez vos retours et idées
+          </p>
+        </div>
+        <button onClick={() => setCreating(true)} className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 active:scale-95 transition-all shadow-sm">
+          <Plus size={16} /> Nouveau ticket
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-24">
+          <div className="h-8 w-8 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" />
+        </div>
+      ) : (
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {COLUMNS.map((col) => (
+            <KanbanColumn
+              key={col.key}
+              col={col}
+              tickets={byColumn(col.key)}
+              isAdmin={isAdmin}
+              onRefresh={load}
+              onMove={moveTicket}
+              onVote={toggleVote}
+              onNew={() => setCreating(true)}
+            />
+          ))}
+        </div>
+      )}
+
+      {creating && (
+        <CreateModal
+          defaultName={user?.name ?? ''}
+          onClose={() => setCreating(false)}
+          onCreate={createTicket}
+        />
+      )}
+    </div>
+  )
+}

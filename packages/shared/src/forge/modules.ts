@@ -148,6 +148,20 @@ export const PDF_MODULE: ModuleManifest = {
   listensTo: [],
 }
 
+export const FEEDBACK_MODULE: ModuleManifest = {
+  id: 'feedback',
+  name: 'Feedback',
+  description: 'Retours utilisateurs : bugs et demandes en kanban collaboratif (Analyse → Backlog → Implémentation → Parking → Fait)',
+  icon: '💬',
+  color: '#7c3aed',
+  nav: [{ label: 'Feedback', href: '/feedback', match: '/feedback' }],
+  apiPrefix: '/api/feedback',
+  ownedEntities: ['FeedbackTicket', 'FeedbackVote'],
+  referencedPivots: ['User'],
+  emits: [],
+  listensTo: [],
+}
+
 /** Modules actifs, dans l'ordre d'affichage de la navigation. */
 export const PIVOT_MODULES: ModuleManifest[] = [
   POUETPOUET_MODULE,
@@ -160,4 +174,5 @@ export const PIVOT_MODULES: ModuleManifest[] = [
   QUIZ_MODULE,
   ROADMAP_MODULE,
   PDF_MODULE,
+  FEEDBACK_MODULE,
 ]

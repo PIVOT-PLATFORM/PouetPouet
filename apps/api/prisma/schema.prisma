@@ -52,8 +52,10 @@ model User {
   quizSessions   QuizSession[]
   gameScores     GameScore[]
   roadmaps       Roadmap[]
-  pdfDocuments   PdfDocument[]
-  pdfFolders     PdfFolder[]
+  pdfDocuments    PdfDocument[]
+  pdfFolders      PdfFolder[]
+  feedbackTickets FeedbackTicket[]
+  feedbackVotes   FeedbackVote[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1100,4 +1102,48 @@ model PdfFolder {
 
   @@index([ownerId])
   @@index([ownerId, parentId])
+}
+
+// ── Module Feedback ──────────────────────────────────────────────────────────
+
+enum FeedbackColumn {
+  ANALYSE
+  BACKLOG
+  IMPLEMENTING
+  PARKING
+  DONE
+}
+
+enum FeedbackType {
+  BUG
+  FEATURE
+}
+
+model FeedbackTicket {
+  id         String         @id @default(cuid())
+  title      String
+  body       String
+  type       FeedbackType   @default(BUG)
+  column     FeedbackColumn @default(ANALYSE)
+  authorId   String?
+  authorName String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  author User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  votes  FeedbackVote[]
+
+  @@index([column])
+}
+
+model FeedbackVote {
+  id       String @id @default(cuid())
+  ticketId String
+  userId   String
+
+  ticket FeedbackTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketId, userId])
+  @@index([userId])
 }
