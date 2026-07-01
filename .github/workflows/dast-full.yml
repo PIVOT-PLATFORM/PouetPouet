@@ -58,7 +58,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -98,7 +98,7 @@ jobs:
           echo "Web prêt."
 
       - name: ZAP Full Scan
-        uses: zaproxy/action-full-scan@v0.12.0
+        uses: zaproxy/action-full-scan@v0.13.0
         with:
           target: 'http://localhost:3000'
           rules_file_name: '.zap/rules.tsv'
