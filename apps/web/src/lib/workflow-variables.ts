@@ -10,6 +10,8 @@ export type WorkflowVariable = {
   hint: string
 }
 
+export type FormFieldInfo = { id: string; label: string; type: string }
+
 // Une étape est "maybe" si elle peut être sautée ou n'est atteignable que conditionnellement.
 function computeStepCertainty(stepIdx: number, step: StepDef, flowEdges: FlowEdge[]): VariableCertainty {
   if (step.skipIf) return 'maybe'
@@ -23,6 +25,7 @@ export function getVariablesProducedBy(
   stepIdx: number,
   step: StepDef,
   flowEdges: FlowEdge[],
+  formFieldsCache?: Map<string, FormFieldInfo[]>,
 ): WorkflowVariable[] {
   const label = `Étape ${stepIdx + 1} — ${step.title || '(sans titre)'}`
   const certainty = computeStepCertainty(stepIdx, step, flowEdges)
@@ -34,13 +37,25 @@ export function getVariablesProducedBy(
   if (step.type === 'ai-prompt' && step.aiOutputKey) {
     vars.push({ key: step.aiOutputKey, sourceStepIndex: stepIdx, sourceStepTitle: label, certainty, hint: 'sortie IA (texte)' })
   }
-  if (step.type === 'form' && step.fields?.length) {
-    for (const f of step.fields) {
-      vars.push({ key: f.id, sourceStepIndex: stepIdx, sourceStepTitle: label, certainty, hint: `champ formulaire : ${f.label}` })
+  if (step.type === 'form') {
+    // Inline fields (définis dans le step)
+    if (step.fields?.length) {
+      for (const f of step.fields) {
+        vars.push({ key: f.id, sourceStepIndex: stepIdx, sourceStepTitle: label, certainty, hint: `champ : ${f.label}` })
+      }
     }
-  }
-  if (step.type === 'form' && !step.fields?.length && step.formId) {
-    vars.push({ key: '(champs du formulaire lié)', sourceStepIndex: stepIdx, sourceStepTitle: label, certainty, hint: `formulaire id: ${step.formId} — clés connues à l'exécution` })
+    // Formulaire lié — champs récupérés depuis le cache API
+    if (!step.fields?.length && step.formId) {
+      const fetched = formFieldsCache?.get(step.formId)
+      if (fetched?.length) {
+        for (const f of fetched) {
+          if (f.type === 'section') continue
+          vars.push({ key: f.id, sourceStepIndex: stepIdx, sourceStepTitle: label, certainty, hint: `champ formulaire : ${f.label}` })
+        }
+      } else {
+        vars.push({ key: '(champs du formulaire lié)', sourceStepIndex: stepIdx, sourceStepTitle: label, certainty, hint: `formulaire id: ${step.formId} — clés connues à l'exécution` })
+      }
+    }
   }
   if (step.type === 'validation' && step.assignmentMode === 'nominated') {
     vars.push({ key: 'nomineeId', sourceStepIndex: stepIdx, sourceStepTitle: label, certainty, hint: 'validateur nommé par cet étape' })
@@ -55,6 +70,7 @@ export function getVariablesAvailableAt(
   flowEdges: FlowEdge[],
   triggerType: TriggerType,
   triggerConfig: { formId?: string; webhookTitle?: string; cronExpression?: string },
+  formFieldsCache?: Map<string, FormFieldInfo[]>,
 ): WorkflowVariable[] {
   const vars: WorkflowVariable[] = []
 
@@ -68,20 +84,34 @@ export function getVariablesAvailableAt(
       hint: 'variables envoyées dans data: { … } au POST webhook',
     })
   } else if (triggerType === 'form_response') {
-    vars.push({
-      key: `(champs formulaire${triggerConfig.formId ? ` id:${triggerConfig.formId}` : ''})`,
-      sourceStepIndex: -1,
-      sourceStepTitle: 'Déclencheur — Formulaire',
-      certainty: 'certain',
-      hint: 'champs du formulaire déclencheur (clés = id des champs)',
-    })
+    const triggerFields = triggerConfig.formId ? formFieldsCache?.get(triggerConfig.formId) : undefined
+    if (triggerFields?.length) {
+      for (const f of triggerFields) {
+        if (f.type === 'section') continue
+        vars.push({
+          key: f.id,
+          sourceStepIndex: -1,
+          sourceStepTitle: 'Déclencheur — Formulaire',
+          certainty: 'certain',
+          hint: `champ formulaire déclencheur : ${f.label}`,
+        })
+      }
+    } else {
+      vars.push({
+        key: `(champs formulaire${triggerConfig.formId ? ` id:${triggerConfig.formId}` : ''})`,
+        sourceStepIndex: -1,
+        sourceStepTitle: 'Déclencheur — Formulaire',
+        certainty: 'certain',
+        hint: 'champs du formulaire déclencheur (clés = id des champs)',
+      })
+    }
   }
 
   // Variables des étapes précédentes
   for (let i = 0; i < stepIndex; i++) {
     const step = steps[i]
     if (!step) continue
-    vars.push(...getVariablesProducedBy(i, step, flowEdges))
+    vars.push(...getVariablesProducedBy(i, step, flowEdges, formFieldsCache))
   }
 
   return vars

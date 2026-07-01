@@ -736,6 +736,29 @@ export function FlowBuilder({ steps: initSteps, flowEdges: initEdges, triggerTyp
   const [triggerConfig, setTriggerConfig] = useState<{ formId?: string; cronExpression?: string; cronTitle?: string; webhookTitle?: string }>(initTC)
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
+  const [formFieldsCache, setFormFieldsCache] = useState<Map<string, import('@/lib/workflow-variables').FormFieldInfo[]>>(new Map())
+
+  // ── Charge les champs des formulaires référencés dans le workflow ──
+  useEffect(() => {
+    const ids = new Set<string>()
+    if (triggerType === 'form_response' && triggerConfig.formId) ids.add(triggerConfig.formId)
+    for (const s of steps) {
+      if (s.type === 'form' && s.formId && !s.fields?.length) ids.add(s.formId)
+    }
+    for (const id of ids) {
+      if (formFieldsCache.has(id)) continue
+      api.get<{ fields: import('@/lib/workflow-variables').FormFieldInfo[] }>(`/api/forms/${id}`)
+        .then((f) => {
+          setFormFieldsCache((prev) => {
+            const next = new Map(prev)
+            next.set(id, f.fields ?? [])
+            return next
+          })
+        })
+        .catch(() => {})
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [steps, triggerType, triggerConfig.formId])
 
   // ── Sync vers parent à chaque changement ──
   useEffect(() => {
@@ -939,15 +962,15 @@ export function FlowBuilder({ steps: initSteps, flowEdges: initEdges, triggerTyp
               step={selectedStep}
               onSave={(s) => updateStep(selectedIdx, s)}
               onDelete={() => deleteStep(selectedIdx)}
-              availableVars={getVariablesAvailableAt(selectedIdx, steps, flowEdges, triggerType, triggerConfig)}
+              availableVars={getVariablesAvailableAt(selectedIdx, steps, flowEdges, triggerType, triggerConfig, formFieldsCache)}
             />
           </div>
         )}
 
         {/* Variables disponibles à cette étape */}
         {selectedIdx !== null && (() => {
-          const availVars = getVariablesAvailableAt(selectedIdx, steps, flowEdges, triggerType, triggerConfig)
-          const producedVars = getVariablesProducedBy(selectedIdx, steps[selectedIdx]!, flowEdges)
+          const availVars = getVariablesAvailableAt(selectedIdx, steps, flowEdges, triggerType, triggerConfig, formFieldsCache)
+          const producedVars = getVariablesProducedBy(selectedIdx, steps[selectedIdx]!, flowEdges, formFieldsCache)
           const groups = groupVariables(availVars)
           return (
             <details className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 group" open={availVars.length > 0 && availVars.length <= 8}>
