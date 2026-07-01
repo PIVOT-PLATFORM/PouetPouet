@@ -56,6 +56,8 @@ model User {
   pdfFolders      PdfFolder[]
   feedbackTickets FeedbackTicket[]
   feedbackVotes   FeedbackVote[]
+  signEnvelopes   SignEnvelope[]
+  signRecipients  SignRecipient[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1146,4 +1148,135 @@ model FeedbackVote {
 
   @@unique([ticketId, userId])
   @@index([userId])
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// SignDoc — gestion de documents signés (type DocuSign), auto-hébergé.
+// L'enveloppe fige une copie du PDF (originalHash) et porte un workflow de
+// signataires ordonné ou parallèle. La chaîne d'événements (SignEvent) est
+// append-only et inviolable : hash = SHA-256(prevHash + canonicalJSON(event)).
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SignEnvelope {
+  id             String     @id @default(cuid())
+  ownerId        String
+  name           String
+  message        String?
+  status         SignStatus @default(DRAFT)
+  ordered        Boolean    @default(false) // true = signature séquentielle (routingOrder)
+  originalHash   String // SHA-256 du PDF figé à la création
+  pageCount      Int
+  globalDeadline DateTime?
+  sealLevel      String? // 'B' | 'T' (PR3 — niveau PAdES atteint)
+  sealedHash     String? // SHA-256 du PDF scellé (PR3)
+  completedAt    DateTime?
+  voidedAt       DateTime?
+  voidReason     String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  owner      User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  recipients SignRecipient[]
+  fields     SignField[]
+  events     SignEvent[]
+
+  @@index([ownerId, createdAt])
+  @@index([status])
+}
+
+model SignRecipient {
+  id              String              @id @default(cuid())
+  envelopeId      String
+  userId          String? // null = signataire externe (sans compte)
+  email           String
+  name            String
+  routingOrder    Int                 @default(1) // même valeur ⇒ étape parallèle
+  role            SignRole            @default(SIGNER)
+  status          SignRecipientStatus @default(PENDING)
+  deadline        DateTime? // butoir d'étape
+  accessTokenHash String?             @unique // externe : token à usage unique haché (PR2)
+  tokenExpires    DateTime?
+  authMethod      String? // 'account' | 'email-link' | 'email-otp' (PR2)
+  signedAt        DateTime?
+  declinedAt      DateTime?
+  declineReason   String?
+  ip              String?
+  userAgent       String?
+  createdAt       DateTime            @default(now())
+
+  envelope SignEnvelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  user     User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  fields   SignField[]
+
+  @@index([envelopeId, routingOrder])
+  @@index([userId])
+}
+
+model SignField {
+  id          String        @id @default(cuid())
+  envelopeId  String
+  recipientId String
+  page        Int
+  x           Float // fractions 0..1 de la taille de page (résolution-indépendant)
+  y           Float
+  w           Float
+  h           Float
+  type        SignFieldType @default(SIGNATURE)
+  required    Boolean       @default(true)
+  value       String? // rendu de la signature apposée (PR2)
+  createdAt   DateTime      @default(now())
+
+  envelope  SignEnvelope  @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  recipient SignRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([envelopeId])
+  @@index([recipientId])
+}
+
+model SignEvent {
+  id          String   @id @default(cuid())
+  envelopeId  String
+  recipientId String?
+  type        String // 'created' | 'sent' | 'viewed' | 'signed' | 'declined' | 'completed' | 'voided' | 'reminded' | 'expired' | 'field.updated' | 'recipient.updated'
+  actorLabel  String // email/nom de l'acteur ou 'system'
+  ip          String?
+  userAgent   String?
+  payload     Json?
+  prevHash    String?
+  hash        String
+  createdAt   DateTime @default(now())
+
+  envelope SignEnvelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+
+  @@index([envelopeId, createdAt])
+}
+
+enum SignStatus {
+  DRAFT
+  SENT
+  IN_PROGRESS
+  COMPLETED
+  DECLINED
+  EXPIRED
+  VOIDED
+}
+
+enum SignRecipientStatus {
+  PENDING
+  SENT
+  VIEWED
+  SIGNED
+  DECLINED
+}
+
+enum SignRole {
+  SIGNER
+  APPROVER
+  CC
+}
+
+enum SignFieldType {
+  SIGNATURE
+  INITIALS
+  DATE
+  TEXT
 }

@@ -140,6 +140,19 @@ const MODULES = [
     ],
   },
   {
+    icon: '✍️',
+    title: 'SignDoc',
+    href: '/signdoc',
+    desc: 'Espace de signature de documents : workflow de signataires, échéances et preuve inviolable.',
+    features: [
+      'Création d’une demande depuis un PDF importé ou la bibliothèque PDF Manager',
+      'Signataires multiples, ordre séquentiel ou parallèle, échéance globale et par étape',
+      'Designer de champs glisser-déposer (Signature / Paraphe / Date / Texte) par signataire',
+      'Document figé à la création + chaîne d’événements inviolable (anti-altération)',
+      'Partage du pilotage par rôle (Lecteur / Éditeur / Owner)',
+    ],
+  },
+  {
     icon: '👤',
     title: 'Compte & Profil',
     href: '/profile',

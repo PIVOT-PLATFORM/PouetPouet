@@ -14,6 +14,7 @@ import {
 } from '@/lib/meetops'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
+import { Calendar } from 'lucide-react'
 
 // ── Bannière de connexion Microsoft ─────────────────────────────────────────────
 
@@ -254,7 +255,7 @@ export default function MeetopsPage() {
     <div>
       <div className="flex items-end justify-between mb-5">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">MeetOps</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><Calendar size={28} style={{ color: '#475569' }} />MeetOps</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
             {isLoading ? '…' : `${events.length} événement${events.length !== 1 ? 's' : ''}`}
           </p>

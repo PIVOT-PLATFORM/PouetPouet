@@ -86,7 +86,6 @@ const UPCOMING_MODULES: { name: string }[] = [
   { name: 'Mes poses (PV de pose & label)' },
   { name: "Demande d'accès serveur" },
   { name: 'Mes FDR' },
-  { name: 'SignDoc' },
 ]
 
 export default function HubPage() {

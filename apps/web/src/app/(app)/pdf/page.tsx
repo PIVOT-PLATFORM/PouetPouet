@@ -429,7 +429,7 @@ export default function PdfLibraryPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">PDF Manager</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><FileText size={28} style={{ color: '#dc2626' }} />PDF Manager</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {search ? `${filteredDocs.length} / ${docs.length}` : docs.length} document{docs.length !== 1 ? 's' : ''}
           </p>

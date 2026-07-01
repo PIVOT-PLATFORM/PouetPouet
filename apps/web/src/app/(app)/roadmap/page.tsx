@@ -47,7 +47,7 @@ export default function RoadmapListPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between mb-5">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Roadmap</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><Map size={28} style={{ color: '#4f6ef7' }} />Roadmap</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">{isLoading ? '…' : `${roadmaps.length} roadmap${roadmaps.length !== 1 ? 's' : ''}`}</p>
         </div>
         <button onClick={() => { setCreating(true); setError(null) }} className="flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold px-4 py-2.5 active:scale-95 transition-all shadow-sm">

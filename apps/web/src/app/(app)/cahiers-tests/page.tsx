@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTestBooks } from '@/hooks/useTestBooks'
 import type { TestBook, TestBookStatus } from '@/hooks/useTestBooks'
+import { FlaskConical } from 'lucide-react'
 
 const STATUS_LABELS: Record<TestBookStatus, string> = {
   DRAFT: 'Brouillon',
@@ -118,10 +119,10 @@ export default function TestBooksPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-end justify-between gap-3">
+      <div className="flex items-end justify-between mb-5">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">🧪 Cahiers de tests</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><FlaskConical size={28} style={{ color: '#8b5cf6' }} />Cahiers de tests</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">
             Créez et gérez vos cahiers de tests : sections, cas, statuts et résultats.
           </p>
         </div>
