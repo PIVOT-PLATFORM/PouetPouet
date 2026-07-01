@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify'
 import type { Server, Socket } from 'socket.io'
 import type { ModuleManifest } from '@pouetpouet/shared'
-import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE, MEETOPS_MODULE, TESTBOOKS_MODULE, QUIZ_MODULE, ROADMAP_MODULE, PDF_MODULE, FEEDBACK_MODULE, SIGNDOC_MODULE } from '@pouetpouet/shared'
+import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE, MEETOPS_MODULE, TESTBOOKS_MODULE, QUIZ_MODULE, ROADMAP_MODULE, FORMS_MODULE, PDF_MODULE, FEEDBACK_MODULE, SIGNDOC_MODULE } from '@pouetpouet/shared'
 
 import { boardRoutes } from './pouetpouet/boards.routes.js'
 import { templateRoutes } from './pouetpouet/templates.routes.js'
@@ -18,6 +18,7 @@ import { testbooksRoutes } from './testbooks/testbooks.routes.js'
 import { quizRoutes } from './quiz/quiz.routes.js'
 import { quizSocketHandlers } from './quiz/quiz.sockets.js'
 import { roadmapRoutes } from './roadmap/roadmap.routes.js'
+import { formsRoutes } from './forms/forms.routes.js'
 import { pdfRoutes } from './pdf/pdf.routes.js'
 import { feedbackRoutes } from './feedback/feedback.routes.js'
 import { feedbackSocketHandlers } from './feedback/feedback.sockets.js'
@@ -85,6 +86,11 @@ export const API_MODULES: ApiModule[] = [
   {
     manifest: ROADMAP_MODULE,
     routes: [{ plugin: roadmapRoutes, prefix: '/api/roadmap' }],
+    socketHandlers: [],
+  },
+  {
+    manifest: FORMS_MODULE,
+    routes: [{ plugin: formsRoutes, prefix: '/api/forms' }],
     socketHandlers: [],
   },
   {

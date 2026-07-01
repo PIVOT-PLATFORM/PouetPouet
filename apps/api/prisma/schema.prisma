@@ -58,6 +58,8 @@ model User {
   feedbackVotes   FeedbackVote[]
   signEnvelopes   SignEnvelope[]
   signRecipients  SignRecipient[]
+  forms             Form[]
+  formResponses     FormResponse[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1279,4 +1281,42 @@ enum SignFieldType {
   INITIALS
   DATE
   TEXT
+}
+
+// ── Module Formulaires ───────────────────────────────────────────────────────
+
+model Form {
+  id                 String   @id @default(cuid())
+  ownerId            String
+  title              String
+  description        String?
+  fields             Json     @default("[]") // FormFieldDef[]
+  isPublished         Boolean @default(false)
+  acceptingResponses  Boolean @default(true)
+  limitOneResponse    Boolean @default(false)
+  notifyOnResponse    Boolean   @default(false)
+  confirmationMessage String?
+  redirectUrl         String?
+  closesAt            DateTime?
+  maxResponses        Int?
+  publicToken         String    @unique
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  owner     User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  responses FormResponse[]
+
+  @@index([ownerId])
+}
+model FormResponse {
+  id           String   @id @default(cuid())
+  formId       String
+  respondentId String? // null = réponse anonyme
+  data         Json     @default("{}") // { fieldId: value }
+  createdAt    DateTime @default(now())
+
+  form       Form  @relation(fields: [formId], references: [id], onDelete: Cascade)
+  respondent User? @relation(fields: [respondentId], references: [id], onDelete: SetNull)
+
+  @@index([formId, createdAt])
 }

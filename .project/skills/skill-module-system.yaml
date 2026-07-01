@@ -1,0 +1,97 @@
+skill:
+  id: pivot-module-system
+  version: "1.0"
+  name: "Système de modules PIVOT"
+  description: >
+    Contrat PivotModule, registre, feature flags, isolation inter-modules.
+    Chargé pour tout fichier dans modules/ ou registry/ ou lors d'une nouvelle feature module.
+  loaded_by:
+    - Architecte_Modules
+    - Dev_Agent
+
+---
+
+contract:
+
+  interface: |
+    public interface PivotModule {
+        String getId();        // "whiteboard", "survey", "quiz"…
+        String getName();      // nom affiché en UI
+        String getVersion();
+        boolean isEnabled(TenantContext ctx);  // activable par admin tenant
+    }
+
+  rules:
+    - "Chaque module implémente PivotModule et est enregistré dans ModuleRegistry"
+    - "Module désactivé = 403 côté API + module Angular non chargé (route guard)"
+    - "Aucune logique inter-module directe — bus d'événements typés uniquement"
+    - "Changement du contrat PivotModule = hard block Gate 4 + Breaking Point 2"
+
+---
+
+registry:
+
+  location: "backend/src/main/java/.../pivot/modules/registry/"
+
+  pattern: |
+    @Component
+    public class WhiteboardModule implements PivotModule {
+
+        @Override
+        public String getId() { return "whiteboard"; }
+
+        @Override
+        public String getName() { return "Tableau blanc collaboratif"; }
+
+        @Override
+        public String getVersion() { return "1.0.0"; }
+
+        @Override
+        public boolean isEnabled(TenantContext ctx) {
+            return ctx.hasModule("whiteboard");
+        }
+    }
+
+---
+
+inter_module_communication:
+
+  rule: "Jamais d'appel direct entre modules — ApplicationEventPublisher uniquement"
+  pattern: |
+    // Émetteur (module session)
+    eventPublisher.publishEvent(new SessionStartedEvent(sessionId, tenantId));
+
+    // Récepteur (module quiz)
+    @EventListener
+    public void onSessionStarted(SessionStartedEvent event) { ... }
+
+  forbidden:
+    - "Injection directe d'un service d'un autre module"
+    - "Partage de repository entre modules"
+    - "Accès direct à la table d'un autre module en SQL"
+
+---
+
+angular_routes:
+
+  rule: "Routes lazy-loaded par module — jamais eager sauf core"
+  guard: "ModuleGuard vérifie isEnabled() avant chargement"
+  pattern: |
+    {
+      path: 'whiteboard',
+      canActivate: [moduleGuard],
+      data: { moduleId: 'whiteboard' },
+      loadChildren: () =>
+        import('./modules/whiteboard/whiteboard.routes')
+          .then(m => m.WHITEBOARD_ROUTES)
+    }
+
+---
+
+gate_checklist:
+  gate_2:
+    - "Module implémente PivotModule et est enregistré"
+    - "Route Angular protégée par moduleGuard"
+    - "Pas de communication directe inter-modules (ApplicationEventPublisher)"
+    - "Module désactivé = 403 API + route Angular non chargée"
+    - "Contrat PivotModule non modifié (sinon hard block Gate 4)"

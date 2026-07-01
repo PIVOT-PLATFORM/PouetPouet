@@ -1,0 +1,75 @@
+skill:
+  id: pivot-rgpd
+  version: "1.0"
+  name: "RGPD & Conformité CNIL"
+  description: >
+    Conformité RGPD/CNIL pour PIVOT : bases légales, droits des personnes,
+    rétention, registre Art. 30. Chargé pour toute US touchant des données personnelles.
+  loaded_by:
+    - Expert_RGPD
+    - Dev_Agent
+
+---
+
+personal_data:
+
+  identification:
+    rule: "Identifier si l'US traite des données à caractère personnel (DCP)"
+    dcp_in_pivot:
+      - "Email, nom, prénom des utilisateurs"
+      - "Contenu des sessions live (réponses quiz, votes, messages QA)"
+      - "Logs d'activité tracés à l'utilisateur"
+      - "Profils tenant + rôles"
+
+  minimisation:
+    rules:
+      - "Ne collecter que les données strictement nécessaires"
+      - "Pas de log de contenu utilisateur sauf consentement explicite"
+      - "Pseudonymisation sur les exports et rapports analytiques"
+
+---
+
+legal_bases:
+
+  pivot_cases:
+    contrat: "Gestion du compte utilisateur, accès aux modules"
+    interet_legitime: "Logs de sécurité, audit trail"
+    consentement: "Fonctionnalités optionnelles (analytics, partage externe)"
+
+  rules:
+    - "Base légale documentée dans le registre Art. 30 avant implémentation"
+    - "Consentement = case à cocher explicite, pas pré-cochée"
+    - "Retrait du consentement aussi simple que son obtention"
+
+---
+
+data_retention:
+
+  rules:
+    - "Durée de rétention configurée par admin (pas hardcodée)"
+    - "Suppression automatique à expiration (job planifié)"
+    - "Logs d'activité : 12 mois max par défaut"
+    - "Sessions live : contenu supprimé à la clôture de session sauf archivage explicite"
+
+---
+
+rights:
+
+  rule: "API pour l'exercice des droits — implémentée avant toute mise en production"
+  rights_list:
+    acces: "GET /api/v1/me/data — export JSON des données personnelles"
+    rectification: "PUT /api/v1/me/profile"
+    effacement: "DELETE /api/v1/me — suppression compte + données associées"
+    portabilite: "GET /api/v1/me/export — format JSON/CSV"
+
+---
+
+gate_checklist:
+  gate_1:
+    - "US identifiée comme traitant ou non des DCP"
+    - "Base légale documentée si DCP traitées"
+    - "Durée de rétention définie"
+  gate_2:
+    - "Pas de DCP dans les logs applicatifs (email, nom)"
+    - "Rétention configurable — pas hardcodée"
+    - "Droit à l'effacement respecté (cascade DELETE sur les entités liées)"

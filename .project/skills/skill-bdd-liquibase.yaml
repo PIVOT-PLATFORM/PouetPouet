@@ -1,0 +1,104 @@
+skill:
+  id: pivot-bdd-flyway
+  version: "1.0"
+  name: "PostgreSQL & Flyway"
+  description: >
+    Patterns BDD PIVOT : schéma PostgreSQL 16, migrations Flyway, index,
+    intégrité référentielle. Chargé pour tout fichier de migration ou entité JPA.
+  loaded_by:
+    - Architecte_BDD_PostgreSQL
+    - Dev_Agent
+
+---
+
+migrations:
+
+  naming:
+    rule: "V{version}__{description}.sql — double underscore, snake_case"
+    examples:
+      - "V1__create_tenant_table.sql"
+      - "V2__create_module_registry.sql"
+      - "V3__add_user_roles.sql"
+
+  rules:
+    - "Jamais modifier une migration existante — créer une nouvelle"
+    - "Toujours tester la migration sur une base vierge avant commit"
+    - "Chaque migration dans sa propre transaction (Flyway défaut)"
+    - "Pas de données de production dans les migrations — seeds séparés"
+    - "Index créés dans la migration de la table (pas dans une migration tardive)"
+
+  idempotence:
+    rule: "Utiliser IF NOT EXISTS / IF EXISTS pour les opérations sur schema"
+    pattern: |
+      CREATE TABLE IF NOT EXISTS tenants (
+          id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          slug        VARCHAR(100) NOT NULL UNIQUE,
+          name        VARCHAR(255) NOT NULL,
+          created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_tenants_slug ON tenants (slug);
+
+---
+
+schema:
+
+  primary_keys:
+    rule: "UUID v4 via gen_random_uuid() — pas de serial/bigserial"
+
+  timestamps:
+    rule: "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() sur toutes les tables"
+    also: "updated_at TIMESTAMPTZ si la table est mutable"
+
+  soft_delete:
+    rule: "deleted_at TIMESTAMPTZ NULL — pas de DELETE physique sur les entités métier"
+
+  multi_tenant:
+    rule: "tenant_id UUID NOT NULL FK sur toutes les tables tenant-scoped"
+    index: "Index composite (tenant_id, ...) sur les colonnes filtrées par tenant"
+
+  constraints:
+    rules:
+      - "NOT NULL par défaut — nullable uniquement si justifié"
+      - "CHECK constraints pour les valeurs énumérées simples"
+      - "FK avec ON DELETE RESTRICT par défaut, CASCADE uniquement si justifié"
+
+---
+
+jpa:
+
+  entities:
+    rules:
+      - "@Entity + @Table(name = 'nom_exact_table')"
+      - "Pas de CascadeType.ALL sans justification — préférer PERSIST + MERGE"
+      - "FetchType.LAZY par défaut sur les relations — EAGER uniquement si toujours utilisé"
+      - "@Column(nullable = false) aligné avec le schéma SQL"
+
+  pattern: |
+    @Entity
+    @Table(name = "modules")
+    public class Module {
+        @Id
+        @GeneratedValue(strategy = GenerationType.UUID)
+        private UUID id;
+
+        @Column(nullable = false)
+        private String moduleId;
+
+        @Column(nullable = false)
+        private UUID tenantId;
+
+        @Column(nullable = false)
+        private boolean enabled = false;
+    }
+
+---
+
+gate_checklist:
+  gate_2:
+    - "Migration nommée correctement (V{n}__{desc}.sql)"
+    - "Pas de modification de migration existante"
+    - "UUID pour les PKs, TIMESTAMPTZ pour les timestamps"
+    - "tenant_id présent sur les tables tenant-scoped"
+    - "Index créés pour toutes les colonnes filtrées (tenant_id, slug, etc.)"
+    - "FetchType.LAZY par défaut sur les relations JPA"
