@@ -1,0 +1,112 @@
+skill:
+  id: pivot-spring-architecture
+  version: "1.0"
+  name: "Spring Boot Architecture"
+  description: >
+    Patterns Spring Boot 3.x pour PIVOT : couches Controller/Service/Repository,
+    DTOs, transactions, JavaDoc. Chargé pour tout fichier Java créé ou modifié.
+  loaded_by:
+    - Architecte_Java_Spring
+    - Dev_Agent
+
+---
+
+layers:
+
+  controller:
+    rules:
+      - "Aucune logique métier — déléguer au Service uniquement"
+      - "Retourner ResponseEntity<DTO> — jamais entité JPA directement"
+      - "Validation @Valid sur les @RequestBody"
+      - "Pas de @Transactional sur les contrôleurs"
+    pattern: |
+      @RestController
+      @RequestMapping("/api/v1/modules")
+      @RequiredArgsConstructor
+      public class ModuleController {
+          private final ModuleService moduleService;
+
+          @GetMapping
+          public ResponseEntity<List<ModuleDto>> findAll() {
+              return ResponseEntity.ok(moduleService.findAll());
+          }
+      }
+
+  service:
+    rules:
+      - "@Service + @Transactional sur les méthodes state-changing"
+      - "Retourner des DTOs, jamais des entités JPA"
+      - "Lever des exceptions métier typées (ex: ModuleNotFoundException)"
+      - "Log structuré JSON sur toute action state-changing"
+    pattern: |
+      @Service
+      @RequiredArgsConstructor
+      public class ModuleService {
+          private final ModuleRepository moduleRepository;
+
+          @Transactional
+          public ModuleDto activate(String moduleId, TenantContext ctx) {
+              Module module = moduleRepository.findById(moduleId)
+                  .orElseThrow(() -> new ModuleNotFoundException(moduleId));
+              module.activate(ctx);
+              return ModuleDto.from(moduleRepository.save(module));
+          }
+      }
+
+  repository:
+    rules:
+      - "Étendre JpaRepository ou CrudRepository"
+      - "Requêtes complexes via @Query JPQL — pas de native SQL sans justification"
+      - "Pas de logique métier dans les repositories"
+
+  dto:
+    rules:
+      - "Un DTO request + un DTO response par endpoint si contenu différent"
+      - "Utiliser record Java 21 pour les DTOs immuables"
+      - "Méthode statique from(Entity) pour la conversion"
+    pattern: |
+      public record ModuleDto(String id, String name, boolean enabled) {
+          public static ModuleDto from(Module m) {
+              return new ModuleDto(m.getId(), m.getName(), m.isEnabled());
+          }
+      }
+
+---
+
+conventions:
+
+  javadoc:
+    rule: "JavaDoc obligatoire sur toutes les classes et méthodes publiques"
+    pattern: |
+      /**
+       * Active le module pour le tenant courant.
+       *
+       * @param moduleId identifiant du module à activer
+       * @param ctx      contexte du tenant courant
+       * @return DTO du module activé
+       * @throws ModuleNotFoundException si le module n'existe pas
+       */
+
+  exceptions:
+    rule: "Exceptions métier étendent RuntimeException avec message structuré"
+    pattern: |
+      public class ModuleNotFoundException extends RuntimeException {
+          public ModuleNotFoundException(String moduleId) {
+              super("Module not found: " + moduleId);
+          }
+      }
+
+  logging:
+    rule: "SLF4J, niveau INFO pour les actions métier, WARN pour les cas limites"
+    pattern: |
+      log.info("Module activated module_id={} tenant_id={}", moduleId, ctx.getTenantId());
+
+---
+
+gate_checklist:
+  gate_2:
+    - "Aucune entité JPA exposée directement en API"
+    - "Logique uniquement dans les Services, pas dans les Controllers"
+    - "@Transactional uniquement sur les Services"
+    - "JavaDoc présente sur toutes les classes et méthodes publiques nouvelles"
+    - "DTOs utilisés pour toutes les entrées/sorties"

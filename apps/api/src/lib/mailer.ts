@@ -197,3 +197,38 @@ export async function sendVerificationEmail(to: string, name: string, link: stri
   })
   return true
 }
+
+function formResponseHtml(formTitle: string, link: string) {
+  return `<!doctype html>
+<html lang="fr">
+  <body style="margin:0;background:#f9fafb;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;color:#111827;">
+    <div style="max-width:480px;margin:0 auto;padding:40px 24px;">
+      <div style="background:#ffffff;border:1px solid #f3f4f6;border-radius:16px;padding:32px;">
+        <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;">Nouvelle réponse</h1>
+        <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#4b5563;">
+          Votre formulaire <strong>${formTitle}</strong> a reçu une nouvelle réponse.
+        </p>
+        <div style="text-align:center;margin:28px 0;">
+          <a href="${link}" style="display:inline-block;background:#7c3aed;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 28px;border-radius:12px;">
+            Voir les réponses
+          </a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>`
+}
+export async function sendFormResponseEmail(to: string, formTitle: string, link: string): Promise<boolean> {
+  const tx = getTransporter()
+  if (!tx) {
+    console.log(`\n📧 [mailer] Nouvelle réponse formulaire pour ${to} : ${formTitle}\n   ${link}\n`)
+    return false
+  }
+  await tx.sendMail({
+    from: MAIL_FROM,
+    to,
+    subject: `Nouvelle réponse : "${formTitle}"`,
+    html: formResponseHtml(formTitle, link),
+  })
+  return true
+}

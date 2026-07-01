@@ -1,0 +1,71 @@
+skill:
+  id: pivot-observability
+  version: "1.0"
+  name: "Observabilité PIVOT"
+  description: >
+    Spring Actuator, Micrometer, Prometheus, logs structurés JSON.
+    Chargé lors d'ajout de log, métrique, ou endpoint health.
+  loaded_by:
+    - Expert_DevSecOps
+    - Dev_Agent
+
+---
+
+logging:
+
+  rules:
+    - "SLF4J uniquement — pas de System.out.println"
+    - "Format JSON structuré en production (Logback JSON encoder)"
+    - "Toute action state-changing → log INFO avec contexte"
+    - "Jamais logger de données sensibles (password, token, PII)"
+    - "Clés de contexte standardisées : tenant_id, user_id, module_id, request_id"
+
+  pattern: |
+    log.info("Module activated module_id={} tenant_id={} activated_by={}",
+        moduleId, ctx.getTenantId(), ctx.getUserId());
+
+    log.warn("Module activation denied module_id={} tenant_id={} reason={}",
+        moduleId, ctx.getTenantId(), "module_not_found");
+
+---
+
+metrics:
+
+  rules:
+    - "Micrometer pour toutes les métriques custom"
+    - "Nommage snake_case avec préfixe pivot_ (ex: pivot_module_activations_total)"
+    - "Tags standardisés : tenant_id, module_id, status"
+    - "Exposer via /actuator/prometheus"
+
+  pattern: |
+    private final Counter moduleActivations = Counter.builder("pivot.module.activations")
+        .description("Nombre d'activations de modules")
+        .tag("module_id", moduleId)
+        .register(meterRegistry);
+
+    moduleActivations.increment();
+
+---
+
+actuator:
+
+  endpoints_enabled:
+    - "/actuator/health — public (used by Docker healthcheck + CI)"
+    - "/actuator/prometheus — interne (scraping Prometheus)"
+    - "/actuator/info — public (version, build info)"
+
+  endpoints_disabled:
+    - "Tous les autres — désactivés par défaut en production"
+
+  config: |
+    management.endpoints.web.exposure.include=health,info,prometheus
+    management.endpoint.health.show-details=when_authorized
+
+---
+
+gate_checklist:
+  gate_2:
+    - "Toute action state-changing logguée en INFO avec tenant_id + module_id"
+    - "Pas de données sensibles dans les logs"
+    - "Métriques Micrometer si l'action est mesurable (activations, erreurs)"
+    - "Pas de System.out.println"

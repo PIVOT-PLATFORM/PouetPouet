@@ -1,0 +1,168 @@
+skill:
+  id: pivot-skills-index
+  version: "1.0"
+  name: "Skills Index"
+  description: >
+    Index de toutes les skills PIVOT et leurs règles de chargement.
+    Claude lit cet index pour déterminer quelles skills injecter dans son contexte
+    avant d'implémenter une US.
+    Lives at .project/skills/_index.yaml
+
+---
+
+skills:
+
+  # ── BACKEND JAVA ─────────────────────────────────────────────────────────────
+
+  - id: pivot-spring-architecture
+    file: .project/skills/skill-spring-architecture.yaml
+    priority: 1
+    load_when:
+      agents: [Architecte_Java_Spring, Dev_Agent]
+      triggers:
+        - "tout fichier Java créé ou modifié"
+        - "nouveau Controller, Service ou Repository"
+        - "nouveau DTO ou entité JPA"
+        - "nouvelle exception métier"
+
+  - id: pivot-bdd-liquibase
+    file: .project/skills/skill-bdd-liquibase.yaml
+    priority: 1
+    load_when:
+      agents: [Architecte_BDD_PostgreSQL, Dev_Agent]
+      triggers:
+        - "tout fichier de migration Liquibase (db/migration/)"
+        - "toute entité JPA créée ou modifiée"
+        - "toute requête @Query créée ou modifiée"
+        - "nouveau Repository"
+
+  - id: pivot-oidc-security
+    file: .project/skills/skill-oidc-security.yaml
+    priority: 1
+    load_when:
+      agents: [Expert_OIDC_IAM, Expert_Blue_Team, Dev_Agent]
+      triggers:
+        - "tout fichier dans auth/ ou security/"
+        - "SecurityConfig modifié"
+        - "nouveau @PreAuthorize"
+        - "modification du mapping claims → rôles"
+        - "AC sécurité présent dans l'US"
+
+  # ── MODULES ──────────────────────────────────────────────────────────────────
+
+  - id: pivot-module-system
+    file: .project/skills/skill-module-system.yaml
+    priority: 1
+    load_when:
+      agents: [Architecte_Modules, Dev_Agent]
+      triggers:
+        - "tout fichier dans modules/ ou registry/"
+        - "PivotModule interface modifiée"
+        - "nouvelle route module"
+        - "nouveau guard Angular"
+        - "US concernant un module activable"
+
+  # ── QUALITÉ & TRAÇABILITÉ ────────────────────────────────────────────────────
+
+  - id: pivot-ac-traceability
+    file: .project/skills/skill-ac-traceability.yaml
+    priority: 1
+    load_when:
+      agents: [Dev_Agent, QA_Agent, PR_Review_Agent]
+      triggers:
+        - "toujours — chargé pour toute implémentation d'US"
+        - "calcul Gate 2"
+        - "vérification traçabilité Gate 4"
+
+  - id: pivot-testing-strategy
+    file: .project/skills/skill-testing-strategy.yaml
+    priority: 1
+    load_when:
+      agents: [Expert_QA, Dev_Agent]
+      triggers:
+        - "tout nouveau fichier de test"
+        - "question sur la stratégie de test"
+        - "coverage < 80 %"
+        - "nouveau Testcontainer"
+        - "nouvelle spec Playwright"
+
+  # ── DEVOPS & SÉCURITÉ ────────────────────────────────────────────────────────
+
+  - id: pivot-devops-cicd
+    file: .project/skills/skill-devops-cicd.yaml
+    priority: 2
+    load_when:
+      agents: [Expert_DevSecOps, Dev_Agent]
+      triggers:
+        - "tout fichier .github/workflows/ créé ou modifié"
+        - "Dockerfile modifié"
+        - "sonar-project.properties modifié"
+        - ".plumber.yaml modifié"
+        - ".gitleaks.toml modifié"
+
+  - id: pivot-observability
+    file: .project/skills/skill-observability.yaml
+    priority: 2
+    load_when:
+      agents: [Expert_DevSecOps, Dev_Agent]
+      triggers:
+        - "nouveau log statement"
+        - "nouvelle métrique Micrometer"
+        - "modification endpoint health"
+        - "log structuré JSON modifié"
+
+  # ── RGPD & CONFORMITÉ ────────────────────────────────────────────────────────
+
+  - id: pivot-rgpd
+    file: .project/skills/skill-rgpd.yaml
+    priority: 2
+    load_when:
+      agents: [Expert_RGPD, Dev_Agent]
+      triggers:
+        - "US touchant email, nom, prénom ou contenu utilisateur"
+        - "AC mentionnant rétention, suppression ou export de données"
+        - "nouveau champ DCP dans une entité"
+        - "endpoint d'export ou de suppression de compte"
+
+---
+
+loading_protocol:
+
+  description: >
+    Claude injecte les skills dans son contexte avant d'implémenter une US.
+    Les skills priority 1 sont toujours chargées sur trigger.
+    Les skills priority 2 sont chargées quand les triggers correspondent.
+
+  example: |
+    US 42 — Activation de module par l'admin
+    Target: src/main/java/.../modules/whiteboard/
+    Skills chargées:
+      - pivot-spring-architecture   # priority 1 — fichiers Java
+      - pivot-bdd-liquibase         # priority 1 — migration table modules
+      - pivot-oidc-security         # priority 1 — AC sécurité présent
+      - pivot-module-system         # priority 1 — US module activable
+      - pivot-ac-traceability       # priority 1 — toujours
+      - pivot-testing-strategy      # priority 1 — tests requis
+      - pivot-observability         # priority 2 — log activation
+
+  skill_conflict_rule: >
+    En cas de conflit entre deux skills, la plus spécifique gagne.
+    pivot-module-system prime sur pivot-spring-architecture pour les fichiers registry/.
+    pivot-oidc-security prime sur pivot-spring-architecture pour les fichiers auth/.
+
+  priority_levels:
+    1: "Toujours chargée sur trigger — standards fondamentaux"
+    2: "Chargée si trigger correspond — standards contextuels"
+
+---
+
+skill_update_protocol:
+
+  rule: >
+    Les skills sont des documents vivants. Quand un gate artifact documente
+    un faux positif récurrent ou une règle manquante, la skill concernée
+    est mise à jour dans le même PR que le fix.
+
+  ownership: >
+    Chaque skill est maintenue par l'expert le plus qualifié (voir tableau experts CLAUDE.md).
+    Modifications de skills → même processus OneFlow + ACDD que tout autre code.

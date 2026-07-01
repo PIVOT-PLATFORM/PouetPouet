@@ -1,0 +1,127 @@
+skill:
+  id: pivot-testing-strategy
+  version: "1.0"
+  name: "Stratégie de tests PIVOT"
+  description: >
+    JUnit 5 + Testcontainers (TI), Jest Angular, Playwright E2E.
+    Coverage ≥ 80 % code nouveau. Chargé à chaque création/modification de test.
+  loaded_by:
+    - Expert_QA
+    - Dev_Agent
+
+---
+
+backend:
+
+  unit_tests:
+    framework: "JUnit 5 + Mockito"
+    rules:
+      - "Nommage : ac{id}_{n}_{description}() — aligné sur l'AC couvert"
+      - "Un test = un comportement observable — pas de test multi-assertion sans lien"
+      - "Mocker les dépendances externes (repository, event bus)"
+      - "Pas de logique dans les tests — Given/When/Then explicite"
+    pattern: |
+      @ExtendWith(MockitoExtension.class)
+      class ModuleServiceTest {
+
+          @Mock ModuleRepository moduleRepository;
+          @InjectMocks ModuleService moduleService;
+
+          @Test
+          void ac42_01_activatesModuleForValidTenant() {
+              // Given
+              var module = new Module("whiteboard", tenantCtx);
+              when(moduleRepository.findById("whiteboard")).thenReturn(Optional.of(module));
+              when(moduleRepository.save(any())).thenReturn(module);
+
+              // When
+              var result = moduleService.activate("whiteboard", tenantCtx);
+
+              // Then
+              assertThat(result.enabled()).isTrue();
+          }
+
+          @Test
+          void ac42_02_throwsWhenModuleNotFound() {
+              when(moduleRepository.findById("unknown")).thenReturn(Optional.empty());
+              assertThatThrownBy(() -> moduleService.activate("unknown", tenantCtx))
+                  .isInstanceOf(ModuleNotFoundException.class);
+          }
+      }
+
+  integration_tests:
+    framework: "Testcontainers (PostgreSQL 16 + Redis)"
+    rules:
+      - "@SpringBootTest + @Testcontainers"
+      - "Base de données réelle — jamais H2 en TI"
+      - "Flyway migrations appliquées automatiquement"
+      - "Nettoyage entre tests via @Transactional ou truncate"
+    pattern: |
+      @SpringBootTest
+      @Testcontainers
+      class ModuleRepositoryIT {
+
+          @Container
+          static PostgreSQLContainer<?> postgres =
+              new PostgreSQLContainer<>("postgres:16");
+
+          @DynamicPropertySource
+          static void configureProperties(DynamicPropertyRegistry registry) {
+              registry.add("spring.datasource.url", postgres::getJdbcUrl);
+          }
+      }
+
+  coverage:
+    tool: "JaCoCo"
+    threshold: "≥ 80 % sur le code nouveau (SonarCloud enforced)"
+    exclusions: "DTOs, entités JPA, configuration classes"
+
+---
+
+frontend:
+
+  unit_tests:
+    framework: "Jest + Angular Testing Library"
+    rules:
+      - "Nommage : AC-{id}-{n}: {description}"
+      - "Tester le comportement observable, pas l'implémentation interne"
+      - "Mocker les services via TestBed"
+    pattern: |
+      it('AC-42-01: displays module as active after activation', () => {
+        // Given
+        const fixture = TestBed.createComponent(ModuleCardComponent);
+        fixture.componentRef.setInput('module', { id: 'whiteboard', enabled: true });
+
+        // When
+        fixture.detectChanges();
+
+        // Then
+        const badge = fixture.nativeElement.querySelector('[data-testid="status-badge"]');
+        expect(badge.textContent).toContain('Actif');
+      });
+
+---
+
+e2e:
+
+  framework: "Playwright (Chromium)"
+  rules:
+    - "Happy path + 1 cas d'erreur critique par US"
+    - "Sélecteurs data-testid — pas de sélecteurs CSS fragiles"
+    - "Réinitialiser l'état entre les tests (API ou fixtures)"
+  pattern: |
+    test('AC-42-01: admin can activate whiteboard module', async ({ page }) => {
+      await page.goto('/admin/modules');
+      await page.getByTestId('module-whiteboard').getByRole('button', { name: 'Activer' }).click();
+      await expect(page.getByTestId('module-whiteboard-status')).toHaveText('Actif');
+    });
+
+---
+
+gate_checklist:
+  gate_2:
+    - "Chaque AC couvert par au moins un test (TU ou TI)"
+    - "Tests écrits dans le même commit que le code"
+    - "Nommage des tests aligné sur les AC (ac{id}_{n}_... ou AC-{id}-{n}:...)"
+    - "TI utilisent Testcontainers — pas H2"
+    - "E2E : happy path + 1 erreur critique"
