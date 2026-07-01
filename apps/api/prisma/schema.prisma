@@ -58,6 +58,11 @@ model User {
   feedbackVotes   FeedbackVote[]
   signEnvelopes   SignEnvelope[]
   signRecipients  SignRecipient[]
+  parcourTemplates  ParcourTemplate[]
+  parcourInstances  ParcourInstance[]
+  parcourDocuments  ParcourDocument[]
+  parcourHistory    ParcourHistory[]
+  parcourStars      ParcourStar[]
   forms             Form[]
   formResponses     FormResponse[]
 }
@@ -1319,4 +1324,145 @@ model FormResponse {
   respondent User? @relation(fields: [respondentId], references: [id], onDelete: SetNull)
 
   @@index([formId, createdAt])
+}
+
+// ── Module Parcours ──────────────────────────────────────────────────────────
+
+model ParcourTemplate {
+  id               String   @id @default(cuid())
+  ownerId          String
+  name             String
+  description      String?
+  category         String?
+  tags             String[] @default([])
+  isPublic         Boolean  @default(false)
+  starCount        Int      @default(0)
+  steps            Json     // StepDef[]
+  flowEdges        Json     @default("[]") // FlowEdge[]
+  triggerType      String   @default("manual") // manual | form_response | webhook | schedule
+  triggerConfig    Json     @default("{}") // { formId?, cronExpression?, cronTitle?, webhookTitle? }
+  webhookToken     String?  @unique // token pour le déclencheur webhook
+  defaultObservers String[] @default([])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  owner     User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  instances ParcourInstance[]
+  stars     ParcourStar[]
+
+  @@index([ownerId])
+}
+
+model ParcourStar {
+  userId     String
+  templateId String
+  createdAt  DateTime @default(now())
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template ParcourTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, templateId])
+}
+
+model ParcourInstance {
+  id          String        @id @default(cuid())
+  templateId  String
+  ownerId     String
+  title       String
+  refNumber   String?       @unique
+  status         ParcourStatus @default(IN_PROGRESS)
+  priority       String        @default("normal")
+  currentStep    Int           @default(0)
+  dueAt          DateTime?
+  remindByEmail  Boolean       @default(false)
+  data           Json          @default("{}")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  template  ParcourTemplate       @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  owner     User                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  steps     ParcourStepInstance[]
+  documents ParcourDocument[]
+  history   ParcourHistory[]
+
+  @@index([ownerId])
+}
+
+model ParcourStepInstance {
+  id          String     @id @default(cuid())
+  instanceId  String
+  stepIndex   Int
+  status      StepStatus @default(PENDING)
+  assignedTo  String?
+  completedBy String?
+  completedAt DateTime?
+  dueAt       DateTime?
+  remindedAt  DateTime?
+  notifiedAt  DateTime?
+  data        Json?
+
+  instance ParcourInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@unique([instanceId, stepIndex])
+}
+
+model ParcourDocument {
+  id             String          @id @default(cuid())
+  instanceId     String
+  stepIndex      Int?
+  filename       String
+  mimeType       String
+  storageKey     String
+  sizeBytes      Int
+  classification ParcourDocClass @default(C1)
+  encryptedKey   String?
+  uploadedBy     String
+
+  instance ParcourInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  uploader User            @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([instanceId])
+}
+
+model ParcourHistory {
+  id         String   @id @default(cuid())
+  instanceId String
+  stepIndex  Int?
+  userId     String?
+  action     String
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  instance ParcourInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  user     User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([instanceId, createdAt])
+}
+
+model ParcourSeq {
+  category String @id
+  lastSeq  Int    @default(0)
+}
+
+enum ParcourStatus {
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum StepStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+  SKIPPED
+}
+
+enum ParcourDocClass {
+  C0
+  C1
+  C2
+  C3
 }

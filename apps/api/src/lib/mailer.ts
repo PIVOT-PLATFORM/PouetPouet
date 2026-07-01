@@ -183,17 +183,79 @@ export async function sendSignatureCompletedEmail(to: string, name: string, enve
  * Sends the account-verification email. Returns true when actually dispatched via SMTP,
  * false when it was only logged to the console (no SMTP configured).
  */
-export async function sendVerificationEmail(to: string, name: string, link: string): Promise<boolean> {
+function parcoursReminderHtml(title: string, stepTitle: string, refNumber: string | null, link: string) {
+  const ref = refNumber ? ` — Réf. ${refNumber}` : ''
+  return `<!doctype html>
+<html lang="fr">
+  <body style="margin:0;background:#f9fafb;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;color:#111827;">
+    <div style="max-width:480px;margin:0 auto;padding:40px 24px;">
+      <div style="background:#ffffff;border:1px solid #f3f4f6;border-radius:16px;padding:32px;">
+        <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;">Rappel de parcours</h1>
+        <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#4b5563;">
+          L'étape <strong>${stepTitle}</strong> du parcours <strong>${title}</strong>${ref} est en attente.
+        </p>
+        <div style="text-align:center;margin:28px 0;">
+          <a href="${link}" style="display:inline-block;background:#06b6d4;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 28px;border-radius:12px;">
+            Voir le parcours
+          </a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>`
+}
+
+function parcoursStepAssignedHtml(title: string, stepTitle: string, stepNumber: number, refNumber: string | null, link: string) {
+  const ref = refNumber ? ` — Réf. ${refNumber}` : ''
+  return `<!doctype html>
+<html lang="fr">
+  <body style="margin:0;background:#f9fafb;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;color:#111827;">
+    <div style="max-width:480px;margin:0 auto;padding:40px 24px;">
+      <div style="background:#ffffff;border:1px solid #f3f4f6;border-radius:16px;padding:32px;">
+        <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;">Action requise</h1>
+        <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#4b5563;">
+          Une étape vous a été assignée dans le parcours <strong>${title}</strong>${ref}.
+        </p>
+        <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#4b5563;">
+          Complétez l'étape <strong>${stepTitle}</strong> (étape ${stepNumber}).
+        </p>
+        <div style="text-align:center;margin:28px 0;">
+          <a href="${link}" style="display:inline-block;background:#06b6d4;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 28px;border-radius:12px;">
+            Compléter l'étape
+          </a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>`
+}
+
+export async function sendParcoursStepAssignedEmail(to: string, title: string, stepTitle: string, stepNumber: number, refNumber: string | null, link: string): Promise<boolean> {
   const tx = getTransporter()
   if (!tx) {
-    console.log(`\n📧 [mailer] SMTP non configuré — lien de vérification pour ${to} :\n   ${link}\n`)
+    console.log(`\n📧 [mailer] Assignation parcours pour ${to} : ${title} — ${stepTitle} (étape ${stepNumber})\n   ${link}\n`)
     return false
   }
   await tx.sendMail({
     from: MAIL_FROM,
     to,
-    subject: 'Vérifiez votre adresse email — PouetPouet',
-    html: verificationHtml(name, link),
+    subject: `[Action requise] "${stepTitle}" — ${title}`,
+    html: parcoursStepAssignedHtml(title, stepTitle, stepNumber, refNumber, link),
+  })
+  return true
+}
+
+export async function sendParcoursReminderEmail(to: string, title: string, stepTitle: string, refNumber: string | null, link: string): Promise<boolean> {
+  const tx = getTransporter()
+  if (!tx) {
+    console.log(`\n📧 [mailer] Rappel parcours pour ${to} : ${title} — ${stepTitle}\n   ${link}\n`)
+    return false
+  }
+  await tx.sendMail({
+    from: MAIL_FROM,
+    to,
+    subject: `Rappel : "${stepTitle}" en attente — ${title}`,
+    html: parcoursReminderHtml(title, stepTitle, refNumber, link),
   })
   return true
 }
@@ -218,6 +280,7 @@ function formResponseHtml(formTitle: string, link: string) {
   </body>
 </html>`
 }
+
 export async function sendFormResponseEmail(to: string, formTitle: string, link: string): Promise<boolean> {
   const tx = getTransporter()
   if (!tx) {
@@ -229,6 +292,21 @@ export async function sendFormResponseEmail(to: string, formTitle: string, link:
     to,
     subject: `Nouvelle réponse : "${formTitle}"`,
     html: formResponseHtml(formTitle, link),
+  })
+  return true
+}
+
+export async function sendVerificationEmail(to: string, name: string, link: string): Promise<boolean> {
+  const tx = getTransporter()
+  if (!tx) {
+    console.log(`\n📧 [mailer] SMTP non configuré — lien de vérification pour ${to} :\n   ${link}\n`)
+    return false
+  }
+  await tx.sendMail({
+    from: MAIL_FROM,
+    to,
+    subject: 'Vérifiez votre adresse email — PouetPouet',
+    html: verificationHtml(name, link),
   })
   return true
 }

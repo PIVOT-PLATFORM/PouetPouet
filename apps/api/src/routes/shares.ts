@@ -17,13 +17,15 @@ const RESOLVERS: Record<string, (id: string) => Promise<ResourceInfo | null>> = 
   meetops: (id) => prisma.meetEvent.findUnique({ where: { id }, select: { ownerId: true, name: true } }),
   quiz: (id) => prisma.quiz.findUnique({ where: { id }, select: { ownerId: true, title: true } }).then((q) => q ? { ownerId: q.ownerId, name: q.title } : null),
   roadmap: (id) => prisma.roadmap.findUnique({ where: { id }, select: { ownerId: true, name: true } }),
+  parcourTemplate: (id) => prisma.parcourTemplate.findUnique({ where: { id }, select: { ownerId: true, name: true } }),
+  parcourInstance: (id) => prisma.parcourInstance.findUnique({ where: { id }, select: { ownerId: true, title: true } }).then((r) => r ? { ownerId: r.ownerId, name: r.title } : null),
   form: (id) => prisma.form.findUnique({ where: { id }, select: { ownerId: true, title: true } }).then((r) => r ? { ownerId: r.ownerId, name: r.title } : null),
   pdf: (id) => prisma.pdfDocument.findUnique({ where: { id }, select: { ownerId: true, name: true } }),
   signdoc: (id) => prisma.signEnvelope.findUnique({ where: { id }, select: { ownerId: true, name: true } }),
 }
 
-const MODULE_LABEL: Record<string, string> = { scrum: 'Scrum Poker', daily: 'Daily', team: 'Équipe', wheel: 'La Roue', capacity: 'Capacité', meetops: 'MeetOps', quiz: 'Quiz', roadmap: 'Roadmap', form: 'Formulaire', pdf: 'PDF Manager', signdoc: 'SignDoc' }
-const MODULE_LINK: Record<string, string> = { scrum: '/scrum', daily: '/daily', team: '/equipes', wheel: '/wheel', capacity: '/capacity', meetops: '/meetops', quiz: '/quiz', roadmap: '/roadmap', form: '/forms', pdf: '/pdf', signdoc: '/signdoc' }
+const MODULE_LABEL: Record<string, string> = { scrum: 'Scrum Poker', daily: 'Daily', team: 'Équipe', wheel: 'La Roue', capacity: 'Capacité', meetops: 'MeetOps', quiz: 'Quiz', roadmap: 'Roadmap', parcourTemplate: 'Template Parcours', parcourInstance: 'Instance Parcours', form: 'Formulaire', pdf: 'PDF Manager', signdoc: 'SignDoc' }
+const MODULE_LINK: Record<string, string> = { scrum: '/scrum', daily: '/daily', team: '/equipes', wheel: '/wheel', capacity: '/capacity', meetops: '/meetops', quiz: '/quiz', roadmap: '/roadmap', parcourTemplate: '/parcours/templates', parcourInstance: '/parcours/run', form: '/forms', pdf: '/pdf', signdoc: '/signdoc' }
 
 const inviteSchema = z.object({ email: z.string().email(), role: z.enum(['VIEWER', 'EDITOR']) })
 const inviteTeamSchema = z.object({ teamId: z.string().min(1), role: z.enum(['VIEWER', 'EDITOR']) })
