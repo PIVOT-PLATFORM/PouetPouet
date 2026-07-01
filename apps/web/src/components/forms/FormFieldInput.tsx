@@ -22,18 +22,7 @@ export function FormFieldInput({ field, value, onChange, error, disabled, upload
   const options = field.options ?? []
   const [fileState, setFileState] = useState<'idle' | 'uploading' | 'error'>('idle')
 
-  // Une section est un en-tête de page, pas un champ de saisie.
-  if (field.type === 'section') {
-    return (
-      <div className="flex flex-col gap-1 border-l-4 border-violet-400 pl-3">
-        <h3 className="text-lg font-semibold dark:text-white">{field.label || 'Section'}</h3>
-        {field.description && <p className="text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap">{field.description}</p>}
-      </div>
-    )
-  }
-
-  // État local pour l'option « Autre » (radio/cases) : la valeur libre est stockée
-  // directement dans value (radio) ou comme élément hors-options du tableau (cases).
+  // Hooks pour l'option « Autre » — doivent être avant tout return conditionnel.
   const initialOther = (() => {
     if (!field.allowOther) return { active: false, text: '' }
     if (field.type === 'radio') {
@@ -48,6 +37,16 @@ export function FormFieldInput({ field, value, onChange, error, disabled, upload
   })()
   const [otherActive, setOtherActive] = useState(initialOther.active)
   const [otherText, setOtherText] = useState(initialOther.text)
+
+  // Une section est un en-tête de page, pas un champ de saisie.
+  if (field.type === 'section') {
+    return (
+      <div className="flex flex-col gap-1 border-l-4 border-violet-400 pl-3">
+        <h3 className="text-lg font-semibold dark:text-white">{field.label || 'Section'}</h3>
+        {field.description && <p className="text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap">{field.description}</p>}
+      </div>
+    )
+  }
 
   function renderInner() {
     switch (field.type) {
