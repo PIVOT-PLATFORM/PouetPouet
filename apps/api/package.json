@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file=.env src/index.ts",
+    "seed:demo": "tsx scripts/seed-demo.ts",
     "build": "prisma generate && tsc",
     "start": "node dist/index.js",
     "start:prod": "npx prisma migrate deploy && node dist/index.js",
