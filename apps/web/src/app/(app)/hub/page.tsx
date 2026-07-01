@@ -298,23 +298,23 @@ export default function HubPage() {
         </div>
       </div>
 
-      {/* À venir */}
+      {/* Modules à venir */}
       <div>
         <div className="flex items-center gap-3 mb-3">
           <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0 bg-gray-300 dark:bg-gray-600" />
-          <h2 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">À venir</h2>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Modules à venir</h2>
           <span className="flex-1 h-px bg-gray-100 dark:bg-gray-800" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {INCOMING.map((m) => (
             <div key={m.name} aria-disabled="true"
-              className="flex items-center gap-3 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/40 px-4 py-3 select-none opacity-50">
+              className="flex items-center gap-3 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 px-4 py-3 select-none">
               <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 shrink-0" />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-500 truncate">{m.name}</p>
-                <p className="text-[10px] text-gray-400 dark:text-gray-600">{m.domain}</p>
+                <p className="text-sm font-medium text-gray-400 dark:text-gray-500 truncate">{m.name}</p>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500">{m.domain}</p>
               </div>
-              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 rounded-full px-2 py-0.5">
+              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-full px-2 py-0.5">
                 À venir
               </span>
             </div>
