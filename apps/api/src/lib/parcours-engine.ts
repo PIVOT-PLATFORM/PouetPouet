@@ -59,12 +59,23 @@ export function interpolate(template: string, data: Record<string, unknown>): st
   return template.replace(/\{\{(\w+)\}\}/g, (_, k) => String(data[k] ?? ''))
 }
 
+// Bloque les schémas non-HTTP et les plages IP privées/lien-local (SSRF).
+function assertSafeUrl(raw: string): void {
+  const u = new URL(raw)
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('Schéma non autorisé')
+  const h = u.hostname
+  if (/^(localhost|127\.|0\.0\.0\.0|::1)/.test(h)) throw new Error('Hôte non autorisé')
+  if (/^169\.254\./.test(h)) throw new Error('Hôte non autorisé (lien-local)')
+  if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(h)) throw new Error('Hôte non autorisé (privé)')
+}
+
 export async function executeHttpStep(
   step: ModuleStepDef,
   instanceData: Record<string, unknown>,
 ): Promise<{ outputKey: string | null; output: unknown }> {
   const url = interpolate(step.httpUrl ?? '', instanceData)
   if (!url) return { outputKey: null, output: null }
+  assertSafeUrl(url)
   const method = step.httpMethod ?? 'GET'
   const body = step.httpBody ? interpolate(step.httpBody, instanceData) : undefined
   const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(step.httpHeaders ?? {}) }
@@ -73,6 +84,7 @@ export async function executeHttpStep(
     headers,
     ...(body ? { body } : {}),
   })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
   let output: unknown = null
   try { output = await res.json() } catch { output = await res.text().catch(() => null) }
   return { outputKey: step.httpOutputKey ?? null, output }

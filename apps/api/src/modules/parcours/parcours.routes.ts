@@ -124,7 +124,8 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
       // les images/PDF un peu lourds en dev (en prod l'upload va direct sur GCS).
       devApp.put('/_dev/*', { bodyLimit: 25 * 1024 * 1024 }, async (request, reply) => {
         const key = decodeURIComponent((request.params as { '*': string })['*'])
-        const dest = path.join(LOCAL_UPLOAD_DIR, key)
+        const dest = path.resolve(LOCAL_UPLOAD_DIR, key)
+        if (!dest.startsWith(LOCAL_UPLOAD_DIR + path.sep)) return reply.status(400).send({ error: 'Chemin invalide' })
         await fs.mkdir(path.dirname(dest), { recursive: true })
         const body = request.body as Buffer
         if (!body || body.length === 0) return reply.status(400).send({ error: 'Corps vide' })
@@ -134,7 +135,8 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
 
       devApp.get('/_dev/*', async (request, reply) => {
         const key = decodeURIComponent((request.params as { '*': string })['*'])
-        const filePath = path.join(LOCAL_UPLOAD_DIR, key)
+        const filePath = path.resolve(LOCAL_UPLOAD_DIR, key)
+        if (!filePath.startsWith(LOCAL_UPLOAD_DIR + path.sep)) return reply.status(400).send({ error: 'Chemin invalide' })
         try {
           const data = await fs.readFile(filePath)
           return reply.send(data)
@@ -530,7 +532,6 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
     const steps = Array.isArray(instance.template.steps) ? instance.template.steps as ModuleStepDef[] : []
     const flowEdges = Array.isArray(instance.template.flowEdges) ? instance.template.flowEdges as FlowEdgeDef[] : []
     const currentStepDef = steps[stepIndex] as ModuleStepDef | undefined
-    const newStatus = body.action === 'complete' ? 'COMPLETED' : 'REJECTED'
     const now = new Date()
 
     // Gérer les étapes approval-chain : enregistrer la décision sans marquer l'étape terminée
@@ -603,7 +604,13 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
       ;(body as Record<string, unknown>).action = outcome === 'approved' ? 'complete' : 'reject'
     }
 
+    // newStatus calculé ici, après toutes les mutations de body.action (chaînes d'approbation)
+    const newStatus = body.action === 'complete' ? 'COMPLETED' : 'REJECTED'
+
     // Gérer le rejet d'une étape approval-chain par un approbateur
+    // Les données _chain sont accumulées ici et fusionnées dans stepData ci-dessous
+    // (évite une double écriture qui écraserait l'audit trail _chain).
+    let chainRejectData: Record<string, unknown> | null = null
     if (currentStepDef?.type === 'approval-chain' && body.action === 'reject') {
       const approvers = currentStepDef.approvers ?? []
       const currentSiData = (instance.steps.find((s) => s.stepIndex === stepIndex)?.data ?? {}) as Record<string, unknown>
@@ -614,15 +621,12 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
       const { next } = recordDecision(approvers, chainData, {
         userId, decision: 'rejected', comment: body.comment, at: now.toISOString(),
       }, currentStepDef.requireAll ?? true)
-      await prisma.parcourStepInstance.update({
-        where: { instanceId_stepIndex: { instanceId: id, stepIndex } },
-        data: { data: { ...currentSiData, _chain: next } as Prisma.InputJsonValue },
-      })
+      chainRejectData = { ...currentSiData, _chain: next }
     }
 
-    // Persister le commentaire dans les données de l'étape
-    const stepData = (body.data || body.comment)
-      ? { ...(body.data ?? {}), ...(body.comment ? { comment: body.comment } : {}) }
+    // Persister le commentaire et les données de chaîne dans une seule écriture
+    const stepData: Record<string, unknown> | null = (chainRejectData || body.data || body.comment)
+      ? { ...(chainRejectData ?? {}), ...(body.data ?? {}), ...(body.comment ? { comment: body.comment } : {}) }
       : null
 
     // Mettre à jour l'étape courante
@@ -692,46 +696,36 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
           link: `/parcours/run/${id}`,
         })
       } else if (statuses.get(nextStep) === 'PENDING') {
-        const nextStepDef = steps[nextStep] as ModuleStepDef
-        const nextDueAt = nextStepDef?.slaDays
-          ? new Date(now.getTime() + nextStepDef.slaDays * 24 * 60 * 60 * 1000)
-          : null
-
-        // Étapes auto-exécutées : pas d'action humaine requise
-        const isAutoStep = nextStepDef?.type === 'http'
-          || nextStepDef?.type === 'ai-prompt'
-          || nextStepDef?.type === 'module'
-          || nextStepDef?.type === 'info'
-          || nextStepDef?.type === 'notification'
-          || nextStepDef?.type === 'email'
-        if (isAutoStep) {
+        // Exécuter en boucle toutes les étapes auto consécutives (http, ai-prompt, module, info, notification, email).
+        // Une seule itération ne suffit pas quand deux étapes auto se suivent directement.
+        const AUTO_TYPES = new Set(['http', 'ai-prompt', 'module', 'info', 'notification', 'email'])
+        while (nextStep < steps.length && statuses.get(nextStep) === 'PENDING' && AUTO_TYPES.has((steps[nextStep] as ModuleStepDef)?.type ?? '')) {
+          const autoStepDef = steps[nextStep] as ModuleStepDef
           let autoData: Record<string, unknown> = {}
-          if (nextStepDef?.type === 'http') {
-            const { outputKey, output } = await executeHttpStep(nextStepDef, instanceData).catch(() => ({ outputKey: null, output: null }))
+          if (autoStepDef.type === 'http') {
+            const { outputKey, output } = await executeHttpStep(autoStepDef, instanceData).catch(() => ({ outputKey: null, output: null }))
             autoData = { _httpOutput: output }
             if (outputKey) autoData[outputKey] = output
-          } else if (nextStepDef?.type === 'ai-prompt') {
-            const { outputKey, output } = await executeAiStep(nextStepDef, instanceData, process.env.ANTHROPIC_API_KEY).catch(() => ({ outputKey: null, output: null }))
+          } else if (autoStepDef.type === 'ai-prompt') {
+            const { outputKey, output } = await executeAiStep(autoStepDef, instanceData, process.env.ANTHROPIC_API_KEY).catch(() => ({ outputKey: null, output: null }))
             autoData = { _aiOutput: output }
             if (outputKey) autoData[outputKey] = output
-          } else if (nextStepDef?.type === 'module') {
-            const modData = await triggerModuleAction(nextStepDef as ModuleStepDef, instance.ownerId, instance.title).catch(() => null)
+          } else if (autoStepDef.type === 'module') {
+            const modData = await triggerModuleAction(autoStepDef, instance.ownerId, instance.title).catch(() => null)
             autoData = modData ?? {}
-          } else if (nextStepDef?.type === 'notification' || nextStepDef?.type === 'email') {
-            // Envoi de la notification aux destinataires configurés
-            const notifStep = nextStepDef as unknown as StepDef
+          } else if (autoStepDef.type === 'notification' || autoStepDef.type === 'email') {
+            const notifStep = autoStepDef as unknown as StepDef
             const to = interpolate(notifStep.to ?? instance.ownerId, instanceData)
             const subject = interpolate(notifStep.subject ?? notifStep.title ?? 'Notification', instanceData)
-            const body = interpolate(notifStep.body ?? '', instanceData)
+            const notifBody = interpolate(notifStep.body ?? '', instanceData)
             const channels = notifStep.notifyChannels ?? { inApp: true }
             if (channels.inApp !== false) {
-              await notify({ userId: to, type: 'PARCOURS_NOTIFICATION', title: subject, body, link: `/parcours/run/${id}` }).catch(() => null)
+              await notify({ userId: to, type: 'PARCOURS_NOTIFICATION', title: subject, body: notifBody, link: `/parcours/run/${id}` }).catch(() => null)
             }
             if (channels.email) {
-              await sendParcoursStepAssignedEmail(to, subject, body, nextStep + 1, instance.refNumber, `${process.env.FRONTEND_URL ?? ''}/parcours/run/${id}`).catch(() => null)
+              await sendParcoursStepAssignedEmail(to, subject, notifBody, nextStep + 1, instance.refNumber, `${process.env.FRONTEND_URL ?? ''}/parcours/run/${id}`).catch(() => null)
             }
           }
-          // info : rien à faire, on complete directement
           await prisma.parcourStepInstance.update({
             where: { instanceId_stepIndex: { instanceId: id, stepIndex: nextStep } },
             data: { status: 'COMPLETED', completedAt: now, data: autoData as Prisma.InputJsonValue },
@@ -741,14 +735,25 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
           })
           statuses.set(nextStep, 'COMPLETED')
           Object.assign(instanceData, autoData)
+
           const afterAuto = resolveNextStep(nextStep, steps, flowEdges, statuses, instanceData)
-          nextStep = afterAuto >= steps.length ? steps.length - 1 : afterAuto
           if (afterAuto >= steps.length) {
+            nextStep = steps.length - 1
             instanceStatus = 'COMPLETED'
             await prisma.parcourHistory.create({ data: { instanceId: id, userId, action: 'completed' } })
             await notify({ userId: instance.ownerId, type: 'PARCOURS_INSTANCE_COMPLETED', title: `Parcours terminé : "${instance.title}"`, link: `/parcours/run/${id}` })
+            break
           }
-        } else {
+          nextStep = afterAuto
+        }
+
+        // Étape manuelle suivante (si le workflow n'est pas terminé)
+        if (instanceStatus !== 'COMPLETED' && statuses.get(nextStep) === 'PENDING') {
+        const nextStepDef = steps[nextStep] as ModuleStepDef
+        const nextDueAt = nextStepDef?.slaDays
+          ? new Date(now.getTime() + nextStepDef.slaDays * 24 * 60 * 60 * 1000)
+          : null
+        {
           // Étapes normales : initialiser l'assigné selon le type
           let stepInitData: Record<string, unknown> | null = null
           let assignedTo: string | null = null
@@ -819,6 +824,7 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
               instanceId: id,
             }).catch(() => {})
           }
+        }
         }
       }
     }
@@ -897,7 +903,9 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
     const doc = await prisma.parcourDocument.findUnique({ where: { id: docId } })
     if (!doc) return reply.status(404).send({ error: 'Document introuvable' })
 
-    const role = await resolveRole('parcourInstance', doc.instanceId, userId, doc.uploadedBy)
+    const docInstance = await prisma.parcourInstance.findUnique({ where: { id: doc.instanceId }, select: { ownerId: true } })
+    if (!docInstance) return reply.status(404).send({ error: 'Instance introuvable' })
+    const role = await resolveRole('parcourInstance', doc.instanceId, userId, docInstance.ownerId)
     if (!role) return reply.status(403).send({ error: 'Accès refusé' })
 
     const url = await getDownloadSignedUrl(doc.storageKey)

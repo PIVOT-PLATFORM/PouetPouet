@@ -65,7 +65,12 @@ export async function runParcoursSla(now = new Date()): Promise<{ reminded: numb
 
     // Email si remindByEmail activé
     if (instance.remindByEmail) {
-      const emailTarget = stepDef?.assignedTo ?? instance.owner.email
+      // step.assignedTo est un userId — résoudre l'email réel avant envoi
+      let emailTarget = instance.owner.email
+      if (step.assignedTo) {
+        const assignee = await prisma.user.findUnique({ where: { id: step.assignedTo }, select: { email: true } })
+        if (assignee?.email) emailTarget = assignee.email
+      }
       await sendParcoursReminderEmail(
         emailTarget,
         instance.title,
