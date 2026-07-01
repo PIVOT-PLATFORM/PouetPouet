@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { ESTIMATION_SCALES } from '@/hooks/useScrum'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
+import { Target } from 'lucide-react'
 
 interface TeamSummary {
   id: string
@@ -93,7 +94,7 @@ export default function ScrumPage() {
       <div className="mb-8">
         <div className="flex items-end justify-between mb-5">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Scrum Poker</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><Target size={28} style={{ color: '#f59e0b' }} />Scrum Poker</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
               {isLoading ? '…' : `${rooms.length} salle${rooms.length !== 1 ? 's' : ''}`}
             </p>

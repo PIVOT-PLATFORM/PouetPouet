@@ -97,7 +97,7 @@ export default function QuizPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between mb-5">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Quiz interactif</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><Zap size={28} style={{ color: '#e11d48' }} />Quiz interactif</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
             {loading ? '…' : `${quizzes.length} quiz`}
           </p>

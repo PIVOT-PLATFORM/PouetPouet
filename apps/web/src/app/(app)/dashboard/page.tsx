@@ -6,6 +6,7 @@ import { useBoards, type Board } from '@/hooks/useBoards'
 import { useTemplates } from '@/hooks/useTemplates'
 import { CreateBoardModal } from '@/components/dashboard/create-board-modal'
 import { TemplatesSection } from '@/components/dashboard/templates-section'
+import { LayoutDashboard } from 'lucide-react'
 
 const BOARD_THEMES = [
   { gradient: 'from-violet-500 to-primary-600', light: 'bg-violet-50', text: 'text-violet-600' },
@@ -173,7 +174,7 @@ export default function DashboardPage() {
       <div className="mb-8">
         <div className="flex items-end justify-between mb-5">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Mes boards</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><LayoutDashboard size={28} style={{ color: '#6366f1' }} />Mes boards</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
               {isLoading ? '…' : `${boards.length} board${boards.length !== 1 ? 's' : ''}`}
             </p>

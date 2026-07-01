@@ -1,6 +1,6 @@
-# Roadmap Pivot — état au 2026-06-28
+# Roadmap Pivot — état au 2026-07-02
 
-> Version courante : **0.24.0** — PDF Manager + corrections Capacité
+> Version courante : **0.26.0** — Module SignDoc (signature de documents)
 >
 > Source unique de suivi : ce fichier centralise la roadmap et les chantiers ouverts.
 

@@ -9,6 +9,7 @@ import type { DailyTeam } from '@/hooks/useDaily'
 import { SlotCard, DrawResultPanel, CreateEventInline } from '@/components/wheel/wheel-panels'
 import { EventSection, StandaloneDrawsSection } from '@/components/wheel/wheel-history'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
+import { Shuffle } from 'lucide-react'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -137,7 +138,7 @@ export default function WheelPage() {
       <div className="flex flex-col gap-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">La roue</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><Shuffle size={28} style={{ color: '#ec4899' }} />La roue</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Tirage aléatoire depuis vos équipes</p>
         </div>
 

@@ -6,6 +6,18 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 > Les notes de version **détaillées** (groupées par thème, orientées utilisateur) sont la source de vérité in-app : [`apps/api/src/lib/patch-notes.ts`](apps/api/src/lib/patch-notes.ts), affichées dans le panneau de notifications. Ce fichier en est l'index public condensé.
 
+## [0.26.0] — 2026-07-02
+Nouveau module **SignDoc** : signature de documents auto-hébergée façon DocuSign. Atelier avec placement des champs par glisser-déposer, signataires internes et externes (lien email sécurisé sans compte), routage séquentiel ou parallèle, échéances avec relances automatiques, destinataires en copie. Preuve forte : document figé (SHA-256), journal d'événements à chaîne de hachage inviolable, **sceau numérique PAdES** + certificat de réalisation, endpoint de vérification. Divers : icônes de modules devant les titres de pages, outil Tableau toujours actif (flag retiré), panneau des flags limité aux modules.
+
+## [0.25.0] — 2026-07-01
+Nouveau module **Feedback** : kanban 5 colonnes (Analyse → Backlog → Implémentation → Parking → Fait) pour remonter bugs et idées. Création publique de tickets, votes en temps réel (Socket.io), édition par l'auteur ou l'admin, déplacement inter-colonnes et suppression réservés aux admins, mise en page plein écran.
+
+## [0.24.0] — 2026-06-28
+Nouveau module **PDF Manager** : bibliothèque centralisée de PDF avec dossiers (arborescence), tags, recherche et tri ; éditeur de pages (réordonnage DnD, rotation, extraction, split) ; fusion de documents ; exports variés (texte, images ZIP, DOCX/MD). Corrections **Capacité** : date de fin d'absence, erreurs API visibles, confirmations de suppression.
+
+## [0.23.0] — 2026-06-27
+**Quiz interactif** amélioré : séries de bonnes réponses (streak) avec bonus, timer adaptatif par question, jusqu'à 8 options de réponse, mode sans limite de temps, application en masse des réglages. **MeetOps** : vue calendrier complète.
+
 ## [0.22.0] — 2026-06-25
 Nouveau module **Roadmap** : planification visuelle façon Gantt (5 échelles, jalons, dépendances), drag & drop direct sur les barres pour ajuster les dates, filtres combinables par domaine/risque/priorité, export **PDF vectoriel** A4 paginé et export JSON. Partage par rôle (Lecteur / Éditeur / Owner).
 

@@ -11,6 +11,7 @@ import {
 } from '@/lib/capacity'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
+import { BarChart2 } from 'lucide-react'
 
 interface TeamMemberDraft { name: string; role: string; fte: number }
 
@@ -394,7 +395,7 @@ export default function CapacityPage() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Capacité</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><BarChart2 size={28} style={{ color: '#10b981' }} />Capacité</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Calculez la capacité de vos équipes par PI, sprint ou release</p>
         </div>
         <button

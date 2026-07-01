@@ -8,6 +8,7 @@ import { formatDuration } from '@/lib/time'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
 import { api } from '@/lib/api'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
+import { Sun } from 'lucide-react'
 
 interface DailyStats {
   totalSessions: number
@@ -482,7 +483,7 @@ export default function DailyPage() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Mes dailys</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><Sun size={28} style={{ color: '#0ea5e9' }} />Mes dailys</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Gérez vos standups quotidiens</p>
         </div>
         <div className="flex items-center gap-2">
