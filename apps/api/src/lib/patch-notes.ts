@@ -20,6 +20,52 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.26.0',
+    date: '2026-07-02',
+    title: 'Module SignDoc — signature de documents',
+    summary: 'Nouveau module SignDoc : faites signer vos PDF avec workflow de signataires, page publique de signature, sceau numérique et certificat de réalisation.',
+    sections: [
+      {
+        heading: '✍️ Module SignDoc (nouveau)',
+        items: [
+          'Créez une demande de signature depuis un PDF (upload ou import PDF Manager)',
+          'Atelier visuel : placez les champs Signature / Paraphe / Date / Texte par glisser-déposer, multi-pages',
+          'Signataires internes (compte) ou externes (lien email sécurisé, sans compte)',
+          'Routage séquentiel (chacun son tour) ou parallèle, échéance globale et par signataire',
+          'Signature au choix : dessin à main levée, saisie stylisée (3 polices) ou import d\'image',
+          'Destinataires en copie (CC) : lien de consultation à l\'envoi, document final à la complétion',
+          'Refus motivé possible ; le propriétaire est notifié à chaque étape (in-app + email)',
+        ],
+      },
+      {
+        heading: '🛡️ Preuve et intégrité',
+        items: [
+          'Document original figé et empreinte SHA-256 calculée à la création',
+          'Journal d\'événements inviolable (chaîne de hachage) : consultation, signature, refus, relance… tout est tracé',
+          'À la complétion : PDF final avec signatures apposées + page « certificat de réalisation »',
+          'Sceau numérique PAdES du serveur : toute modification ultérieure du PDF est détectable (vérifiable dans Adobe Reader)',
+          'Bouton « Vérifier » : contrôle d\'intégrité du fichier et de la chaîne de preuve à tout moment',
+        ],
+      },
+      {
+        heading: '⏰ Suivi automatique',
+        items: [
+          'Relances automatiques des signataires à l\'approche de l\'échéance (max 1 / 20 h)',
+          'Expiration automatique des demandes dont la date limite globale est dépassée',
+          'Alerte au propriétaire quand un signataire dépasse son échéance individuelle',
+        ],
+      },
+      {
+        heading: '🎨 Divers',
+        items: [
+          'Icône colorée du module devant le titre de chaque page (Boards, Capacité, Daily, MeetOps, PDF, Quiz, Roadmap, Scrum, SignDoc, Roue, Cahiers de tests)',
+          'L\'outil Tableau des boards est désormais toujours disponible (feature flag retiré)',
+          'Le panneau admin des feature flags ne liste plus que les modules',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.25.0',
     date: '2026-07-01',
     title: 'Module Feedback — kanban retours & idées',

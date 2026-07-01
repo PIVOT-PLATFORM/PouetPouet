@@ -9,7 +9,7 @@
 
 Suite collaborative temps réel pour animer des ateliers, organiser les rituels d'équipe et centraliser les outils de facilitation dans un hub unique.
 
-Le projet est actuellement en version **0.25.0**. Le produit historique **PouetPouet** devient le premier module d'un socle plus large nommé **PIVOT**.
+Le projet est actuellement en version **0.26.0**. Le produit historique **PouetPouet** devient le premier module d'un socle plus large nommé **PIVOT**.
 
 ## Modules disponibles
 
@@ -24,6 +24,7 @@ Le projet est actuellement en version **0.25.0**. Le produit historique **PouetP
 - **Roadmap** : timeline Gantt d'initiatives et jalons, vues trimestrielle / mensuelle / hebdomadaire.
 - **PDF Manager** : bibliothèque de PDF, dossiers, tags, éditeur de pages et exports.
 - **Feedback** : kanban de retours utilisateurs (bugs & idées) avec votes, temps réel et gestion admin.
+- **SignDoc** : signature de documents auto-hébergée — workflow de signataires, page publique de signature, sceau numérique PAdES et certificat de réalisation.
 
 Le hub agrège les modules, les favoris, les statistiques et l'activité récente.
 

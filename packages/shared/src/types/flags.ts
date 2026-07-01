@@ -22,8 +22,6 @@ export const FLAG_DEFINITIONS: FlagDefinition[] = [
   { key: 'module.roadmap', label: 'Module Roadmap', description: 'Active le module Roadmap (Hub + accès direct /roadmap).', defaultEnabled: true },
   { key: 'module.feedback', label: 'Module Feedback', description: 'Active le module Feedback Kanban (Hub + accès direct /feedback).', defaultEnabled: true },
   { key: 'module.signdoc', label: 'Module SignDoc', description: 'Active le module SignDoc (Hub + accès direct /signdoc).', defaultEnabled: false },
-  // Fonctionnalités board — gating in-code via useFlag().
-  { key: 'board.tables', label: 'Tableaux sur les boards', description: "Active l'outil Tableau dans l'éditeur de board.", defaultEnabled: true },
 ]
 
 export const FLAG_KEYS: string[] = FLAG_DEFINITIONS.map((f) => f.key)
