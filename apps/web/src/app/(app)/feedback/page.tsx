@@ -235,8 +235,8 @@ function KanbanColumn({ col, tickets, userId, isAdmin, onRefresh, onMove, onVote
   }
 
   return (
-    <div className="flex flex-col gap-3 min-w-[280px] max-w-[320px] w-[300px]">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col min-w-[280px] max-w-[320px] w-[300px] min-h-0">
+      <div className="flex items-center justify-between mb-3 shrink-0">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: col.color }} />
           <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{col.label}</span>
@@ -254,7 +254,7 @@ function KanbanColumn({ col, tickets, userId, isAdmin, onRefresh, onMove, onVote
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 overflow-y-auto max-h-[calc(100vh-220px)] pr-0.5">
+      <div className="flex flex-col gap-2 overflow-y-auto flex-1 min-h-0 pr-0.5">
         {tickets.length === 0 && (
           <div className="rounded-xl border-2 border-dashed border-gray-100 dark:border-gray-800 py-8 text-center">
             <p className="text-xs text-gray-400 dark:text-gray-600">Vide</p>
@@ -281,8 +281,8 @@ export default function FeedbackPage() {
   const byColumn = (col: FeedbackColumn) => tickets.filter((t) => t.column === col)
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-end justify-between mb-2">
+    <div className="flex flex-col h-[calc(100vh-56px-4rem)]">
+      <div className="flex items-end justify-between pb-5 shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2">
             <MessageSquare size={28} style={{ color: '#7c3aed' }} /> Feedback
@@ -297,11 +297,11 @@ export default function FeedbackPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-24">
+        <div className="flex items-center justify-center flex-1">
           <div className="h-8 w-8 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" />
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-4 overflow-x-auto flex-1 min-h-0 pb-4">
           {COLUMNS.map((col) => (
             <KanbanColumn
               key={col.key}
