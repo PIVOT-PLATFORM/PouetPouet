@@ -2,6 +2,7 @@
 
 import { use, useState } from 'react'
 import Link from 'next/link'
+import { ChevronLeft } from 'lucide-react'
 import { useActivite, useOrgUnits, useProduits, useGovernanceConfig } from '@/hooks/useProcurement'
 import type { ActiviteGain, ActiviteBudgetLigne, ActiviteRisque, TypeLigneBudget, JalonType } from '@/hooks/useProcurement'
 import {
@@ -242,7 +243,7 @@ export default function ActivitePage({ params }: { params: Promise<{ id: string 
       <div className="text-center py-16">
         <div className="text-5xl mb-4">😕</div>
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Activité introuvable</h2>
-        <Link href="/procurement" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-block">← Retour</Link>
+        <Link href="/procurement" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-flex items-center gap-1"><ChevronLeft size={16} />Retour</Link>
       </div>
     )
   }
@@ -276,7 +277,7 @@ export default function ActivitePage({ params }: { params: Promise<{ id: string 
               <input
                 value={activite.nom}
                 onChange={(e) => updateActivite({ nom: e.target.value })}
-                className="text-2xl font-bold text-gray-900 dark:text-white bg-transparent border border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-primary-400 rounded-lg px-1 -mx-1 outline-none"
+                className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight bg-transparent border border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-primary-400 rounded-lg px-1 -mx-1 outline-none"
               />
               <p className="text-sm text-gray-400 mt-0.5">
                 {TYPE_ACTIVITE_LABELS[activite.type]}

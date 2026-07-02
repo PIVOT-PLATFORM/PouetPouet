@@ -32,7 +32,7 @@ export default function GamesPage() {
     <div className="max-w-3xl mx-auto space-y-8">
       <div className="text-center space-y-2">
         <div className="text-5xl">🎮</div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Mini-jeux</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Mini-jeux</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm">
           Un coin secret pour se détendre entre deux sprints.
         </p>

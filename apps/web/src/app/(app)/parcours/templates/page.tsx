@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, GitBranch, Trash2, Play, Star, Copy, Upload, AlertCircle } from 'lucide-react'
+import { Plus, GitBranch, Trash2, Play, Star, Copy, Upload, AlertCircle, ChevronLeft } from 'lucide-react'
 import { useParcourTemplates } from '@/hooks/useParcours'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useState } from 'react'
@@ -59,10 +59,10 @@ export default function ParcourTemplatesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between">
         <div>
-          <Link href="/parcours" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-1 inline-block">
-            ← Parcours
+          <Link href="/parcours" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-1">
+            <ChevronLeft size={16} />Parcours
           </Link>
-          <h1 className="text-3xl font-bold dark:text-white">Templates</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Templates</h1>
         </div>
         <div className="flex gap-2">
           <button
@@ -74,7 +74,7 @@ export default function ParcourTemplatesPage() {
           </button>
           <Link
             href="/parcours/templates/new"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium transition-colors"
+            className="flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-700 active:scale-95 transition-all shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Nouveau template

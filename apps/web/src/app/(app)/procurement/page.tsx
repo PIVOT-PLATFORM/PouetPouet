@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react'
 import {
   useContrats, useDemandesAchat, useCommandes, useActivites, useProduits, useOrgUnits, useMesProfils, useMesValidations, useDelegations,
   useGovernanceConfig,
@@ -35,12 +36,12 @@ function Pagination({ page, pageSize, total, onChange }: { page: number; pageSiz
       <p className="text-xs text-gray-400">{total} résultat{total > 1 ? 's' : ''} — page {page} / {pageCount}</p>
       <div className="flex gap-2">
         <button onClick={() => onChange(page - 1)} disabled={page <= 1}
-          className="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40">
-          ← Précédent
+          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40">
+          <ChevronLeft size={14} />Précédent
         </button>
         <button onClick={() => onChange(page + 1)} disabled={page >= pageCount}
-          className="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40">
-          Suivant →
+          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40">
+          Suivant<ChevronRight size={14} />
         </button>
       </div>
     </div>
@@ -268,7 +269,7 @@ export default function ProcurementPage() {
     <div className="flex flex-col gap-8">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Commande publique</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><ClipboardList size={28} style={{ color: '#0f766e' }} />Commande publique</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Contrats, demandes d&apos;achat, commandes et budgets projets — circuit de validation par profil</p>
           {user?.isAdmin && (
             <button onClick={() => router.push('/procurement/organisation')} className="text-xs text-primary-600 hover:text-primary-800 font-semibold dark:text-primary-400 mt-2">

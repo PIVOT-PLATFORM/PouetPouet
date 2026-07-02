@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Eye, Link2, Check, BarChart3, Users, ChevronDown, ChevronUp, Settings2 } from 'lucide-react'
+import { ChevronLeft, Plus, Eye, Link2, Check, BarChart3, Users, ChevronDown, ChevronUp, Settings2 } from 'lucide-react'
 import { useForm } from '@/hooks/useForms'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { FormFieldBuilder } from '@/components/forms/FormFieldBuilder'
@@ -96,7 +96,7 @@ export default function FormEditPage() {
   if (accessDenied || !form) return (
     <div className="flex flex-col items-center justify-center py-20 gap-4">
       <p className="text-gray-500 dark:text-gray-400">Formulaire introuvable ou accès refusé.</p>
-      <Link href="/forms" className="text-violet-500 hover:underline text-sm">← Mes formulaires</Link>
+      <Link href="/forms" className="inline-flex items-center gap-1 text-violet-500 hover:underline text-sm"><ChevronLeft size={16} />Mes formulaires</Link>
     </div>
   )
 
@@ -146,7 +146,7 @@ export default function FormEditPage() {
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
       <div className="flex items-center justify-between gap-4">
-        <Link href="/forms" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">← Formulaires</Link>
+        <Link href="/forms" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 inline-flex items-center gap-1"><ChevronLeft size={16} />Formulaires</Link>
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-400 min-w-[80px] text-right">
             {saveState === 'saving' ? 'Enregistrement…' : saveState === 'saved' ? 'Enregistré ✓' : ''}

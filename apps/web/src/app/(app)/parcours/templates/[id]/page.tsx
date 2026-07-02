@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Play, Save, Rocket, AlertCircle, CheckCircle2, Download, Webhook, Copy, Trash2, RefreshCw } from 'lucide-react'
+import { ChevronLeft, Play, Save, Rocket, AlertCircle, CheckCircle2, Download, Webhook, Copy, Trash2, RefreshCw } from 'lucide-react'
 import { useParcourTemplate } from '@/hooks/useParcours'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { FlowBuilder, type FlowBuilderState } from '@/components/parcours/FlowBuilder'
@@ -164,7 +164,7 @@ export default function TemplateDetailPage() {
   if (accessDenied || !template) return (
     <div className="flex flex-col items-center justify-center py-20 gap-4">
       <p className="text-gray-500 dark:text-gray-400">Template introuvable ou accès refusé.</p>
-      <Link href="/parcours/templates" className="text-cyan-500 hover:underline text-sm">← Retour aux templates</Link>
+      <Link href="/parcours/templates" className="inline-flex items-center gap-1 text-cyan-500 hover:underline text-sm"><ChevronLeft size={16} />Retour aux templates</Link>
     </div>
   )
 
@@ -174,10 +174,10 @@ export default function TemplateDetailPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/parcours/templates" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-1 inline-block">
-          ← Templates
+        <Link href="/parcours/templates" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-1 inline-flex items-center gap-1">
+          <ChevronLeft size={16} />Templates
         </Link>
-        <h1 className="text-3xl font-bold dark:text-white">{template.name}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{template.name}</h1>
       </div>
 
       {/* Métadonnées */}
