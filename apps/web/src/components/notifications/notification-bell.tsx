@@ -91,7 +91,7 @@ function PatchNoteModal({
 }: {
   notes: PatchNote[]
   index: number
-  isNew: (date: string) => boolean
+  isNew: (version: string) => boolean
   onNavigate: (i: number) => void
   onClose: () => void
 }) {
@@ -120,7 +120,7 @@ function PatchNoteModal({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-mono font-bold text-primary-600 dark:text-primary-400">v{pn.version}</span>
-              {isNew(pn.date) && (
+              {isNew(pn.version) && (
                 <span className="text-[10px] font-bold uppercase tracking-wide text-rose-600 bg-rose-50 dark:bg-rose-950 dark:text-rose-400 rounded px-1.5 py-0.5">Nouveau</span>
               )}
             </div>
@@ -191,13 +191,13 @@ function PatchNoteModal({
 export function NotificationBell() {
   const router = useRouter()
   const {
-    activity, patchNotes, patchNotesSeenAt, hasUnreadPatchNotes, loaded, patchNotesSignal,
+    activity, patchNotes, patchNotesSeenVersion, hasUnreadPatchNotes, loaded, patchNotesSignal,
     fetch, receive, markRead, markAllRead, remove, markPatchNotesSeen,
   } = useNotificationsStore()
 
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<'activity' | 'patch'>('activity')
-  // Frozen "seen" timestamp so the "Nouveau" badges stay visible while the user reads,
+  // Frozen "seen" version so the "Nouveau" badges stay visible while the user reads,
   // even though opening the tab immediately persists the acknowledgement.
   const [patchSnapshot, setPatchSnapshot] = useState<string | null>(null)
   // Index of the patch note opened in the full detail modal, or null when closed.
@@ -236,7 +236,7 @@ export function NotificationBell() {
     if (!loaded) void fetch()
     setOpen(true)
     setTab('patch')
-    setPatchSnapshot(patchNotesSeenAt)
+    setPatchSnapshot(patchNotesSeenVersion)
     void markPatchNotesSeen()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patchNotesSignal])
@@ -251,7 +251,7 @@ export function NotificationBell() {
 
   function openPatchTab() {
     setTab('patch')
-    setPatchSnapshot(patchNotesSeenAt)
+    setPatchSnapshot(patchNotesSeenVersion)
     void markPatchNotesSeen()
   }
 
@@ -260,8 +260,14 @@ export function NotificationBell() {
     if (n.link) { setOpen(false); router.push(n.link) }
   }
 
-  function isPatchNew(date: string): boolean {
-    return patchSnapshot === null || new Date(date) > new Date(patchSnapshot)
+  // Une note est « nouvelle » si elle précède la version vue dans la liste
+  // (triée décroissante) — comparaison par version, pas par date (#219).
+  function isPatchNew(version: string): boolean {
+    if (patchSnapshot === null) return true
+    if (version === patchSnapshot) return false
+    const seenIdx = patchNotes.findIndex((n) => n.version === patchSnapshot)
+    if (seenIdx === -1) return false
+    return patchNotes.findIndex((n) => n.version === version) < seenIdx
   }
 
   return (
@@ -342,7 +348,7 @@ export function NotificationBell() {
               ) : (
                 <ol className="relative">
                   {patchNotes.map((pn, i) => {
-                    const isNew = isPatchNew(pn.date)
+                    const isNew = isPatchNew(pn.version)
                     const isLast = i === patchNotes.length - 1
                     return (
                       <li key={pn.version} className="relative pl-7 pb-5 last:pb-0">
