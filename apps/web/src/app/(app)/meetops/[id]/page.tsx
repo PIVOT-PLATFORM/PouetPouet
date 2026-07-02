@@ -1,5 +1,7 @@
 'use client'
 
+import { ChevronLeft } from 'lucide-react'
+
 import { use, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -577,7 +579,7 @@ export default function MeetopsEventPage({ params }: { params: Promise<{ id: str
       <div className="text-center py-16">
         <div className="text-5xl mb-4">😕</div>
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Événement introuvable</h2>
-        <Link href="/meetops" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-block">← Retour</Link>
+        <Link href="/meetops" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-flex items-center gap-1"><ChevronLeft size={16} />Retour</Link>
       </div>
     )
   }

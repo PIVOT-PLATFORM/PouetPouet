@@ -1,5 +1,7 @@
 'use client'
 
+import { ChevronLeft } from 'lucide-react'
+
 import { use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -26,7 +28,7 @@ export default function JoinBoardPage({ params }: { params: Promise<{ token: str
         </div>
         <h2 className="text-lg font-semibold text-gray-900">Lien invalide</h2>
         <p className="text-sm text-gray-500">{error}</p>
-        <Link href="/dashboard" className="text-sm text-primary-600 hover:text-primary-700 font-medium">← Retour au dashboard</Link>
+        <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 font-medium"><ChevronLeft size={16} />Retour au dashboard</Link>
       </div>
     )
   }

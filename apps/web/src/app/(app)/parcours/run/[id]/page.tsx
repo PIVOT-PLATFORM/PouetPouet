@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle2, XCircle, Clock, FileText, RotateCcw, Bell, BellOff, Download, MessageSquare, Send, Ban, Trash2 } from 'lucide-react'
+import { ChevronLeft, CheckCircle2, XCircle, Clock, FileText, RotateCcw, Bell, BellOff, Download, MessageSquare, Send, Ban, Trash2 } from 'lucide-react'
 import { useParcourInstance } from '@/hooks/useParcours'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { InstanceProgress } from '@/components/parcours/InstanceProgress'
@@ -45,7 +45,7 @@ export default function InstanceCockpitPage() {
   if (accessDenied || !instance) return (
     <div className="flex flex-col items-center justify-center py-20 gap-4">
       <p className="text-gray-500 dark:text-gray-400">Parcours introuvable ou accès refusé.</p>
-      <Link href="/parcours" className="text-cyan-500 hover:underline text-sm">← Mes parcours</Link>
+      <Link href="/parcours" className="inline-flex items-center gap-1 text-cyan-500 hover:underline text-sm"><ChevronLeft size={16} />Mes parcours</Link>
     </div>
   )
 
@@ -118,12 +118,12 @@ export default function InstanceCockpitPage() {
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div>
-        <Link href="/parcours" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-1 inline-block">
-          ← Parcours
+        <Link href="/parcours" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-1 inline-flex items-center gap-1">
+          <ChevronLeft size={16} />Parcours
         </Link>
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold dark:text-white">{instance.title}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{instance.title}</h1>
             <div className="flex items-center gap-3 mt-0.5 flex-wrap">
               {instance.refNumber && (
                 <span className="text-sm font-mono text-gray-400">{instance.refNumber}</span>

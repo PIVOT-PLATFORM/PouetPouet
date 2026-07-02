@@ -220,7 +220,7 @@ export default function ScrumRoomPage({ params }: { params: Promise<{ id: string
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">{room.name}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{room.name}</h1>
 
         <button
           onClick={copyLink}

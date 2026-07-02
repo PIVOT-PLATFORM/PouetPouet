@@ -1,5 +1,7 @@
 'use client'
 
+import { ChevronLeft } from 'lucide-react'
+
 import { use, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -31,7 +33,7 @@ export default function CapacityEventPage({ params }: { params: Promise<{ id: st
       <div className="text-center py-16">
         <div className="text-5xl mb-4">😕</div>
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Événement introuvable</h2>
-        <Link href="/capacity" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-block">← Retour</Link>
+        <Link href="/capacity" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-flex items-center gap-1"><ChevronLeft size={16} />Retour</Link>
       </div>
     )
   }

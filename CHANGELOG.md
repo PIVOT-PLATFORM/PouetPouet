@@ -6,6 +6,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 > Les notes de version **détaillées** (groupées par thème, orientées utilisateur) sont la source de vérité in-app : [`apps/api/src/lib/patch-notes.ts`](apps/api/src/lib/patch-notes.ts), affichées dans le panneau de notifications. Ce fichier en est l'index public condensé.
 
+## [0.28.1] — 2026-07-02
+**Feedback** : colonne « Refusé » ajoutée au kanban, colonnes en largeur flexible (les 6 tiennent dans la page), icône navbar d'origine restaurée. **Interface harmonisée** sur tous les modules : titres (taille/style/icône), boutons de création, chevrons à la place des flèches « ← », page Feature flags en pleine largeur sur 2 colonnes, fix du titre Scrum invisible en dark. **Commande publique** : 503 explicite quand le service externe (PGI/LDAP) est indisponible, bandeau d'erreur dans la page Organisation.
+
 ## [0.28.0] — 2026-07-02
 Deux nouveaux modules de pilotage. **Portefeuille** : vue consolidée de plusieurs roadmaps sur une timeline unique, légende-filtre par roadmap, accès transitif en lecture aux roadmaps rattachées via le partage du portefeuille. **Commande publique** : demandes d'achat avec circuit de validation hiérarchique (seuils, délégations), gouvernance projet (jalons PMPG, risques, budget OPEX/CAPEX/APCO), données de référence lues depuis des services externes PGI/LDAP (pods mock en dev — cf. [ADR-0011](docs/adr/0011-commande-publique-pods-externes.md)). **Roadmap** renforcée : statut et responsable par item (avec filtres), validation serveur des dépendances (cycles, références mortes), export CSV. Divers : tests d'autorisation Capacité/MeetOps, pastille « nouvelle version » fiabilisée (suivi par version vue, #219), bumps sécurité des actions CI.
 

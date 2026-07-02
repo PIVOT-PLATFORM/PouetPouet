@@ -1,5 +1,7 @@
 'use client'
 
+import { ChevronLeft } from 'lucide-react'
+
 import { useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -30,7 +32,7 @@ export default function PortfolioDetailPage() {
     return (
       <div className="max-w-2xl mx-auto px-6 py-20 text-center">
         <p className="text-gray-500 dark:text-gray-400 mb-4">Portefeuille introuvable ou accès refusé.</p>
-        <Link href="/portfolio" className="text-sm font-medium text-primary-600 hover:text-primary-700">← Retour aux portefeuilles</Link>
+        <Link href="/portfolio" className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700"><ChevronLeft size={16} />Retour aux portefeuilles</Link>
       </div>
     )
   }

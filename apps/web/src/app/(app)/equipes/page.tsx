@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { Users } from 'lucide-react'
 import { useTeams } from '@/hooks/useDaily'
 import type { DailyTeam } from '@/hooks/useDaily'
 import { ColorPicker } from '@/components/ui/color-picker'
@@ -436,7 +437,7 @@ export default function EquipesPage() {
         <div>
           <div className="flex items-end justify-between mb-5">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Mes équipes</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><Users size={28} style={{ color: '#0ea5e9' }} />Mes équipes</h1>
               <p className="text-gray-500 dark:text-gray-400 mt-1">
                 {teams.length} équipe{teams.length !== 1 ? 's' : ''} · utilisées dans les dailys et la roue
               </p>

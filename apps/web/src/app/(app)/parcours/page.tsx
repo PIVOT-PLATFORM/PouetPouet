@@ -37,20 +37,20 @@ export default function ParcoursPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between">
-        <div className="flex items-center gap-3">
-          <GitBranch className="w-7 h-7 text-cyan-500" />
-          <h1 className="text-3xl font-bold dark:text-white">Parcours</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><GitBranch size={28} style={{ color: '#06b6d4' }} />Parcours</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Instances de workflows : lancement, suivi et historique</p>
         </div>
         <div className="flex gap-2">
           <Link
             href="/parcours/templates"
-            className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-white transition-colors"
+            className="flex items-center px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-white transition-colors"
           >
             Templates
           </Link>
           <Link
             href="/parcours/templates/new"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium transition-colors"
+            className="flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-700 active:scale-95 transition-all shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Nouveau template
