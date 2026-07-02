@@ -21,6 +21,27 @@ services:
     volumes:
       - redis_data:/data
 
+  # Pods mock pour le module Commande publique : simulent les systèmes externes
+  # (PGI type SAP, LDAP/OIDC) dont l'app ne fait que consommer la donnée — jamais
+  # déployés en prod (PGI_API_URL/LDAP_API_URL y pointent vers les vrais systèmes).
+  pgi-mock:
+    build:
+      context: .
+      dockerfile: apps/pgi-mock/Dockerfile
+    container_name: pouetpouet_pgi_mock
+    restart: unless-stopped
+    ports:
+      - "4100:4100"
+
+  ldap-mock:
+    build:
+      context: .
+      dockerfile: apps/ldap-mock/Dockerfile
+    container_name: pouetpouet_ldap_mock
+    restart: unless-stopped
+    ports:
+      - "4102:4102"
+
   # IdP local pour tester le SSO OIDC (opt-in) :
   #   docker compose --profile sso up -d keycloak
   # Realm "forge" importé depuis keycloak/ — utilisateur test : sso-user / sso-password

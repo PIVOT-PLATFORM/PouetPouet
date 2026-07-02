@@ -37,6 +37,7 @@ export const MODULE_ICONS: Record<string, LucideIcon> = {
   testbooks:   FlaskConical,
   quiz:        Zap,
   roadmap:     Map,
+  procurement: ClipboardList,
   parcours:    GitBranch,
   forms:       FileTextIcon,
   pdf:         FileText,
