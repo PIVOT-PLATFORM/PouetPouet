@@ -12,8 +12,10 @@ export const metadata: Metadata = {
 // Inlined script to apply dark class before first paint — prevents flash
 const themeScript = `
 try {
-  const s = JSON.parse(localStorage.getItem('pouetpouet-auth') || '{}')
-  if (s?.state?.user?.theme === 'dark') document.documentElement.classList.add('dark')
+  var s = JSON.parse(localStorage.getItem('pouetpouet-auth') || '{}')
+  var t = s?.state?.user?.theme || 'system'
+  var sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  if (t === 'dark' || (t !== 'light' && sysDark)) document.documentElement.classList.add('dark')
 } catch {}
 `
 

@@ -12,7 +12,7 @@ export interface User {
   name: string
   avatar: string | null
   bio: string | null
-  theme: 'light' | 'dark'
+  theme: 'light' | 'dark' | 'system'
   palette: Palette
   emailVerified: boolean
   favoriteModules: string[]
@@ -47,7 +47,7 @@ interface AuthState {
   expireSession: () => void
   refreshSession: () => Promise<boolean>
   clearError: () => void
-  updateProfile: (data: { name?: string; bio?: string | null; theme?: 'light' | 'dark'; palette?: Palette }) => Promise<void>
+  updateProfile: (data: { name?: string; bio?: string | null; theme?: 'light' | 'dark' | 'system'; palette?: Palette }) => Promise<void>
   updateAvatar: (avatar: string | null) => Promise<void>
   changePassword: (current: string, next: string) => Promise<void>
   deleteAccount: (password: string) => Promise<void>
@@ -145,7 +145,7 @@ export const useAuthStore = create<AuthState>()(
 
       clearError: () => set({ error: null }),
 
-      updateProfile: async (data: { name?: string; bio?: string | null; theme?: 'light' | 'dark'; palette?: Palette }) => {
+      updateProfile: async (data: { name?: string; bio?: string | null; theme?: 'light' | 'dark' | 'system'; palette?: Palette }) => {
         const updated = await api.patch<User>('/api/auth/profile', data)
         set((state) => ({ user: state.user ? { ...state.user, ...updated } : null }))
       },

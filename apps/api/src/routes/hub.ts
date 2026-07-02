@@ -69,4 +69,30 @@ export const hubRoutes: FastifyPluginAsync = async (app) => {
 
     return { boards, dailySessions, scrumRooms, wheelDraws, parcourInstances }
   })
+
+  // ── Intérêt pour les outils à venir (Explorateur) ──────────────────────────
+  // Permet de prioriser la roadmap selon la demande réelle des utilisateurs.
+
+  // Liste des outils pour lesquels l'utilisateur a exprimé un intérêt.
+  app.get('/interest', { preHandler: [app.authenticate] }, async (request) => {
+    const { id: userId } = request.user as { id: string }
+    const rows = await prisma.toolInterest.findMany({ where: { userId }, select: { tool: true } })
+    return rows.map((r) => r.tool)
+  })
+
+  // Bascule l'intérêt pour un outil à venir. Retourne l'état résultant + le total.
+  app.post('/interest', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { tool } = request.body as { tool?: string }
+    if (!tool || tool.length > 120) return reply.status(400).send({ error: 'Outil invalide' })
+
+    const existing = await prisma.toolInterest.findUnique({ where: { tool_userId: { tool, userId } } })
+    if (existing) {
+      await prisma.toolInterest.delete({ where: { tool_userId: { tool, userId } } })
+    } else {
+      await prisma.toolInterest.create({ data: { tool, userId } })
+    }
+    const count = await prisma.toolInterest.count({ where: { tool } })
+    return { interested: !existing, count }
+  })
 }

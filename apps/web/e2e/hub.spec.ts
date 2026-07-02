@@ -5,15 +5,10 @@ test('le hub affiche une tuile par module FORGE', async ({ page }) => {
   await registerUser(page, 'E2E Hub')
   await page.goto('/hub')
 
-  // Une tuile par module actif du registre
+  // Une tuile par module actif du registre (grille « Tous les outils »)
   for (const name of ['PouetPouet', 'Daily', 'Scrum Poker', 'La Roue']) {
     await expect(page.getByRole('heading', { name })).toBeVisible()
   }
-
-  // Modules à venir : affichés mais non cliquables
-  await expect(page.getByRole('heading', { name: 'Modules à venir' })).toBeVisible()
-  await expect(page.getByText('Mes PIP')).toBeVisible()
-  await expect(page.getByRole('link', { name: /Mes PIP/ })).toHaveCount(0)
 
   // SignDoc est un vrai module gated par flag (OFF par défaut) : absent du hub.
   await expect(page.getByText('SignDoc')).toHaveCount(0)
@@ -22,6 +17,24 @@ test('le hub affiche une tuile par module FORGE', async ({ page }) => {
   // porte aussi le nom accessible "PouetPouet")
   await page.locator('main').getByRole('link', { name: 'PouetPouet' }).click()
   await page.waitForURL('**/dashboard')
+})
+
+test('l\'Explorateur présente les outils actuels et à venir + capte l\'intérêt', async ({ page }) => {
+  await registerUser(page, 'E2E Explorer')
+  await page.goto('/hub')
+
+  // Depuis le hub, le CTA mène à l'Explorateur
+  await page.getByRole('link', { name: /Explorer les domaines/ }).click()
+  await page.waitForURL('**/explorer')
+
+  // Domaines et outils à venir présents
+  await expect(page.getByRole('heading', { name: 'Architecture', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Cartographie SI', exact: true })).toBeVisible()
+
+  // Exprimer un intérêt bascule le bouton (scopé à la carte « Cartographie SI »)
+  const card = page.locator('div.rounded-2xl').filter({ hasText: 'Cartographie SI' }).first()
+  await card.getByRole('button', { name: "M'intéresse" }).click()
+  await expect(card.getByRole('button', { name: "Ça m'intéresse" })).toBeVisible()
 })
 
 test('le changement de palette s\'applique et persiste', async ({ page }) => {

@@ -12,7 +12,7 @@ import { SessionCountdown } from '@/components/session-countdown'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useNotificationsStore } from '@/store/notifications'
 import { useFlagsStore } from '@/store/flags'
-import { MessageSquare } from 'lucide-react'
+import { MessageSquare, Sun, Moon, Monitor, Presentation } from 'lucide-react'
 import { APP_VERSION } from '@/lib/version'
 
 function Avatar({ name, src }: { name: string; src?: string | null }) {
@@ -28,7 +28,7 @@ function Avatar({ name, src }: { name: string; src?: string | null }) {
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { token, user, logout, expireSession, refreshSession, sessionExpired } = useAuthStore()
+  const { token, user, logout, expireSession, refreshSession, sessionExpired, updateProfile } = useAuthStore()
   const hydrated = useAuthHydrated()
   const router = useRouter()
   const pathname = usePathname()
@@ -122,13 +122,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [token, refreshSession, expireSession, logout])
 
-  // Sync dark mode class on html element whenever theme changes
+  // Sync dark mode class on <html>. 'system' (ou non défini) suit la préférence
+  // OS via prefers-color-scheme, et réagit en direct si l'utilisateur change son
+  // réglage système. 'light'/'dark' forcent le mode.
   useEffect(() => {
     if (!user) return
-    if (user.theme === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
+    const theme = user.theme ?? 'system'
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const apply = () => {
+      const dark = theme === 'dark' || (theme !== 'light' && mq.matches)
+      document.documentElement.classList.toggle('dark', dark)
+    }
+    apply()
+    if (theme === 'system') {
+      mq.addEventListener('change', apply)
+      return () => mq.removeEventListener('change', apply)
     }
   }, [user?.theme])
 
@@ -156,7 +164,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Pages pleine largeur : éditeur Roadmap (Gantt), détail événement MeetOps, calendrier global MeetOps.
   const isRoadmapEditor = /^\/roadmap\/[^/]+$/.test(pathname)
   const isMeetopsWide = /^\/meetops\/(?:calendar|[^/]+)$/.test(pathname)
-  const isWide = isBoardPage || isRoadmapEditor || isMeetopsWide || pathname === '/feedback'
+  const isWide = isBoardPage || isRoadmapEditor || isMeetopsWide || pathname === '/feedback' || pathname === '/hub' || pathname === '/explorer'
 
   return (
     // overflow-clip (pas hidden) sur les pages board : un conteneur overflow-hidden reste
@@ -212,6 +220,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
 
           <div className="ml-auto flex items-center gap-3">
+            {(() => {
+              const theme = user.theme ?? 'system'
+              const next = theme === 'system' ? 'light' : theme === 'light' ? 'dark' : 'system'
+              const label = theme === 'system' ? 'Thème : système' : theme === 'light' ? 'Thème : clair' : 'Thème : sombre'
+              return (
+                <button
+                  onClick={() => updateProfile({ theme: next }).catch(() => {})}
+                  title={`${label} — cliquer pour ${next === 'system' ? 'système' : next === 'light' ? 'clair' : 'sombre'}`}
+                  aria-label={label}
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors"
+                >
+                  {theme === 'system' ? <Monitor size={16} /> : theme === 'light' ? <Sun size={16} /> : <Moon size={16} />}
+                </button>
+              )
+            })()}
+            <Link
+              href="/present"
+              title="Présentation du projet Pivot"
+              aria-label="Présentation du projet Pivot"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors"
+            >
+              <Presentation size={16} />
+            </Link>
             <Link
               href="/feedback"
               title="Feedback — bugs & idées"

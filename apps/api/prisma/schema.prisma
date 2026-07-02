@@ -65,6 +65,7 @@ model User {
   parcourStars      ParcourStar[]
   forms             Form[]
   formResponses     FormResponse[]
+  toolInterests   ToolInterest[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1465,4 +1466,18 @@ enum ParcourDocClass {
   C1
   C2
   C3
+}
+
+// Intérêt exprimé par un utilisateur pour un outil à venir (Explorateur) —
+// permet de prioriser la roadmap selon la demande réelle.
+model ToolInterest {
+  id        String   @id @default(cuid())
+  tool      String
+  userId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tool, userId])
+  @@index([tool])
 }

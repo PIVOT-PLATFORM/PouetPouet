@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { useAuthHydrated } from '@/hooks/useAuthHydrated'
+import { Logo } from '@/components/ui/logo'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore()
@@ -25,8 +26,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       <div className="relative w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="relative inline-flex items-center justify-center w-28 h-28 rounded-2xl bg-white/20 backdrop-blur mb-4">
-            <img src="/pivot-logo.png" alt="Pivot" className="absolute w-52 h-52 object-contain" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+          <div className="inline-flex items-center justify-center mb-4 drop-shadow-2xl">
+            <Logo size={72} showText={false} />
           </div>
           <h1 className="text-3xl font-bold text-white tracking-tight">PIVOT</h1>
           <p className="text-primary-200 text-sm mt-1">Outil collaboratif interactif</p>

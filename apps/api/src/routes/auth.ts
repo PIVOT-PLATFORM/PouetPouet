@@ -41,7 +41,7 @@ const resendSchema = z.object({ email: z.string().email() })
 const profileSchema = z.object({
   name: z.string().min(2).optional(),
   bio: z.string().max(500).nullable().optional(),
-  theme: z.enum(['light', 'dark']).optional(),
+  theme: z.enum(['light', 'dark', 'system']).optional(),
   palette: z.enum(['default', 'fde-bleu-vert', 'fde-orange-vert', 'fde-bleu-orange', 'amethyste', 'ocean', 'rubis']).optional(),
 })
 
