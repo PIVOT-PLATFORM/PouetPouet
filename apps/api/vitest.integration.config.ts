@@ -15,6 +15,9 @@ export default defineConfig({
     env: {
       DATABASE_URL: devUrl ? toTestDatabaseUrl(devUrl) : '',
       ALLOW_EMAIL_BYPASS: 'true',
+      // Email admin déterministe pour les tests d'intégration (module feedback :
+      // déplacement/suppression réservés aux admins). Lu au chargement de feature-flags.
+      ADMIN_EMAILS: 'admin@feedback.int.test',
     },
   },
 })
