@@ -20,6 +20,38 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.28.1',
+    date: '2026-07-02',
+    title: 'Colonne Refusé & harmonisation de l\'interface',
+    summary: 'Le kanban Feedback gagne une colonne « Refusé » et occupe toute la page. Les en-têtes de tous les modules sont harmonisés (titres, boutons, chevrons) et le module Commande publique signale proprement un service externe indisponible.',
+    sections: [
+      {
+        heading: '💬 Feedback',
+        items: [
+          'Nouvelle colonne « Refusé » en fin de kanban pour les tickets écartés',
+          'Les colonnes se partagent toute la largeur de la page (plus de scroll horizontal inutile)',
+          'L\'icône Feedback de la barre de navigation retrouve sa bulle d\'origine',
+        ],
+      },
+      {
+        heading: '🎨 Interface harmonisée',
+        items: [
+          'Titres de modules uniformisés : même taille, même style, icône du module partout',
+          'Boutons de création alignés (taille, hauteur, effet) sur tous les modules',
+          'Tous les liens retour utilisent désormais un chevron (fini les flèches « ← » disparates)',
+          'Page Feature flags : pleine largeur et affichage sur 2 colonnes',
+          'Correction du titre de salle Scrum invisible en mode sombre',
+        ],
+      },
+      {
+        heading: '🏛️ Commande publique',
+        items: [
+          'Si le PGI ou l\'annuaire externe est indisponible, l\'application l\'annonce clairement au lieu d\'une erreur brute',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.28.0',
     date: '2026-07-02',
     title: 'Modules Portefeuille & Commande publique',

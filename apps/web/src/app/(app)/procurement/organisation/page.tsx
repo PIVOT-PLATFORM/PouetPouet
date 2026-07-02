@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { ChevronLeft } from 'lucide-react'
 import { useOrgUnits, useProfils, useMesProfils, useGovernanceEtat } from '@/hooks/useProcurement'
 import type { OrgUnit, RoleAchat, ChampConfigurable, GovernanceValue } from '@/hooks/useProcurement'
 import { ORG_UNIT_NIVEAU_LABELS, ROLE_ACHAT_LABELS, TYPE_LIGNE_BUDGET_LABELS, JALON_TYPE_LABELS, TYPE_ACTIVITE_LABELS } from '@/lib/procurement'
@@ -183,7 +184,7 @@ function ProfilForm({ orgUnits, onAdd }: { orgUnits: OrgUnit[]; onAdd: (input: {
 export default function OrganisationPage() {
   useFlagGuard('module.procurement')
   const user = useAuthStore((s) => s.user)
-  const { orgUnits, isLoading, updateOrgUnit } = useOrgUnits()
+  const { orgUnits, isLoading, error, updateOrgUnit } = useOrgUnits()
   const { profils: profilsAdmin, addProfil, deleteProfil } = useProfils('all')
   const { profils: mesProfils } = useMesProfils()
 
@@ -198,7 +199,7 @@ export default function OrganisationPage() {
       <div className="text-center py-16">
         <div className="text-5xl mb-4">🔒</div>
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Réservé aux administrateurs et valideurs</h2>
-        <Link href="/procurement" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-block">← Retour</Link>
+        <Link href="/procurement" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-flex items-center gap-1"><ChevronLeft size={16} />Retour</Link>
       </div>
     )
   }
@@ -213,6 +214,12 @@ export default function OrganisationPage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Organigramme &amp; profils</h1>
         <p className="text-gray-500 dark:text-gray-400 mt-1">Périmètres, seuils d&apos;approbation et profils achat (chef de projet, valideur, finance, contract manager)</p>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+          {error}
+        </div>
+      )}
 
       {user?.isAdmin && (
       <>

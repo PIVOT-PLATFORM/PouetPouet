@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance, type FastifyPluginAsync, type FastifyRequest, type FastifyReply } from 'fastify'
 import jwt from '@fastify/jwt'
 import { ZodError } from 'zod'
+import { ExternalUnavailableError } from '../lib/external-client.js'
 import { prisma } from '../lib/prisma.js'
 
 // Minimal Fastify instance mirroring the auth setup of index.ts, for
@@ -9,10 +10,14 @@ export async function buildTestApp(
   routes: { plugin: FastifyPluginAsync; prefix: string }[],
 ): Promise<FastifyInstance> {
   const app = Fastify({ logger: false })
-  // Miroir de index.ts : une payload invalide répond 400, pas 500
+  // Miroir de index.ts : une payload invalide répond 400, pas 500 ;
+  // un service externe non configuré/injoignable répond 503.
   app.setErrorHandler((err, _request, reply) => {
     if (err instanceof ZodError) {
       return reply.status(400).send({ error: 'Requête invalide', details: err.issues })
+    }
+    if (err instanceof ExternalUnavailableError) {
+      return reply.status(503).send({ error: 'Service externe indisponible — réessayez plus tard.' })
     }
     throw err
   })

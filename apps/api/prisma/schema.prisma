@@ -1169,6 +1169,7 @@ enum FeedbackColumn {
   IMPLEMENTING
   PARKING
   DONE
+  REJECTED
 }
 
 enum FeedbackType {

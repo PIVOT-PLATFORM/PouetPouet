@@ -2,6 +2,7 @@
 
 import { use, useState } from 'react'
 import Link from 'next/link'
+import { ChevronLeft } from 'lucide-react'
 import { useDemandeAchat, useOrgUnits, useActivites, useCommandes } from '@/hooks/useProcurement'
 import type { CommandeStatut } from '@/hooks/useProcurement'
 import {
@@ -88,7 +89,7 @@ export default function DemandeAchatPage({ params }: { params: Promise<{ id: str
       <div className="text-center py-16">
         <div className="text-5xl mb-4">😕</div>
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Demande d&apos;achat introuvable</h2>
-        <Link href="/procurement" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-block">← Retour</Link>
+        <Link href="/procurement" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-flex items-center gap-1"><ChevronLeft size={16} />Retour</Link>
       </div>
     )
   }
@@ -109,7 +110,7 @@ export default function DemandeAchatPage({ params }: { params: Promise<{ id: str
           <div className="flex items-center gap-3">
             <span className="text-3xl">📝</span>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{demandeAchat.numero}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{demandeAchat.numero}</h1>
               <p className="text-sm text-gray-400 mt-0.5">{demandeAchat.objet} · {formatDate(demandeAchat.dateDemande)}</p>
             </div>
           </div>

@@ -12,7 +12,7 @@ import { SessionCountdown } from '@/components/session-countdown'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useNotificationsStore } from '@/store/notifications'
 import { useFlagsStore } from '@/store/flags'
-import { Lightbulb } from 'lucide-react'
+import { MessageSquare } from 'lucide-react'
 import { APP_VERSION } from '@/lib/version'
 
 function Avatar({ name, src }: { name: string; src?: string | null }) {
@@ -214,15 +214,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="ml-auto flex items-center gap-3">
             <Link
               href="/feedback"
-              title="Idées pour PIVOT — bugs & suggestions"
-              aria-label="Idées pour PIVOT"
+              title="Feedback — bugs & idées"
               className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
                 pathname.startsWith('/feedback')
                   ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
                   : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-800'
               }`}
             >
-              <Lightbulb size={16} />
+              <MessageSquare size={16} />
             </Link>
             <Link
               href="/aide"

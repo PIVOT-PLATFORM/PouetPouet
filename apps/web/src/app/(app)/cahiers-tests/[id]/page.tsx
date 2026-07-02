@@ -1,5 +1,7 @@
 'use client'
 
+import { ChevronLeft } from 'lucide-react'
+
 import { use, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -327,7 +329,7 @@ export default function TestBookDetailPage({ params }: { params: Promise<{ id: s
   if (error || !book) return (
     <div className="text-center py-8">
       <p className="text-red-500 mb-4">{error ?? 'Cahier introuvable'}</p>
-      <Link href="/cahiers-tests" className="text-primary-600 hover:underline text-sm">← Retour à la liste</Link>
+      <Link href="/cahiers-tests" className="inline-flex items-center gap-1 text-primary-600 hover:underline text-sm"><ChevronLeft size={16} />Retour à la liste</Link>
     </div>
   )
 

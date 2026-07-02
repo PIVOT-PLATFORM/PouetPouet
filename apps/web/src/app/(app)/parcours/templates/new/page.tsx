@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useParcourTemplates } from '@/hooks/useParcours'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { FlowBuilder, type FlowBuilderState } from '@/components/parcours/FlowBuilder'
-import { AlertCircle, CheckCircle2, Save, Rocket, Upload } from 'lucide-react'
+import { ChevronLeft, AlertCircle, CheckCircle2, Save, Rocket, Upload } from 'lucide-react'
 import { validateForPublish, type ValidationIssue } from '@/lib/parcours-validate'
 
 const CATEGORIES = ['cyber', 'archi', 'onboarding', 'qualite', 'rh', 'it', 'autre']
@@ -130,10 +130,10 @@ export default function NewTemplatePage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Link href="/parcours/templates" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-1 inline-block">
-            ← Templates
+          <Link href="/parcours/templates" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-1 inline-flex items-center gap-1">
+            <ChevronLeft size={16} />Templates
           </Link>
-          <h1 className="text-3xl font-bold dark:text-white">Nouveau template</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Nouveau template</h1>
         </div>
         <button onClick={() => setImportOpen(true)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:border-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors mt-2">

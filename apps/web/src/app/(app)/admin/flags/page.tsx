@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Flag } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useFlagsStore } from '@/store/flags'
 import { api } from '@/lib/api'
@@ -43,9 +44,9 @@ export default function AdminFlagsPage() {
   const env = flags?.[0]?.environment
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="flex flex-col">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Feature flags</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><Flag size={28} style={{ color: '#64748b' }} />Feature flags</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Activez, désactivez ou déployez progressivement des fonctionnalités sans redéploiement.
           {env && <> Environnement : <span className="font-mono font-semibold">{env}</span>.</>}
@@ -56,7 +57,8 @@ export default function AdminFlagsPage() {
         <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 text-sm px-4 py-2">{error}</div>
       )}
 
-      <div className="space-y-3">
+      {/* 2 flags par ligne pour balayer le catalogue d'un coup d'œil */}
+      <div className="grid gap-3 md:grid-cols-2">
         {flags === null ? (
           <div className="text-sm text-gray-400">Chargement…</div>
         ) : (

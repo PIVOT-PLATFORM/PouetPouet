@@ -28,13 +28,13 @@ export default function FormsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold dark:text-white">Formulaires</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Créez des formulaires, partagez un lien, collectez les réponses.</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><FileText size={28} style={{ color: '#7c3aed' }} />Formulaires</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Créez des formulaires, partagez un lien, collectez les réponses.</p>
         </div>
         <button
           onClick={handleCreate}
           disabled={creating}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+          className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50 active:scale-95 transition-all shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Nouveau formulaire

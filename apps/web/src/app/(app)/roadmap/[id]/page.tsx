@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import { ChevronLeft, Plus } from 'lucide-react'
 import { useRoadmap, useRoadmapCollaborators, type RoadmapScale, type RoadmapItem, type ItemInput, type Category, type Risk, type Prio, type ItemStatus } from '@/hooks/useRoadmap'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useAuthStore } from '@/store/auth'
@@ -45,7 +45,7 @@ export default function RoadmapEditorPage() {
     return (
       <div className="max-w-2xl mx-auto px-6 py-20 text-center">
         <p className="text-gray-500 dark:text-gray-400 mb-4">Roadmap introuvable ou accès refusé.</p>
-        <Link href="/roadmap" className="text-sm font-medium text-primary-600 hover:text-primary-700">← Retour aux roadmaps</Link>
+        <Link href="/roadmap" className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700"><ChevronLeft size={16} />Retour aux roadmaps</Link>
       </div>
     )
   }

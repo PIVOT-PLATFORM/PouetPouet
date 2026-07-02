@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { PenLine, Upload, FileText, Trash2, Plus, Loader2, Users, X } from 'lucide-react'
+import { ChevronLeft, PenLine, Upload, FileText, Trash2, Plus, Loader2, Users, X } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useEnvelopes, type SignStatus } from '@/hooks/useSigndoc'
 
@@ -68,7 +68,7 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
           <div className="flex items-center gap-2 justify-center py-10 text-gray-500"><Loader2 className="animate-spin" size={18} /> Création…</div>
         ) : showPicker ? (
           <div className="flex flex-col gap-1 max-h-80 overflow-auto">
-            <button onClick={() => setShowPicker(false)} className="self-start text-xs text-teal-600 dark:text-teal-400 hover:underline mb-1">← Retour</button>
+            <button onClick={() => setShowPicker(false)} className="self-start inline-flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400 hover:underline mb-1"><ChevronLeft size={14} />Retour</button>
             {pdfs === null ? (
               <p className="text-sm text-gray-400 py-6 text-center">Chargement…</p>
             ) : pdfs.length === 0 ? (

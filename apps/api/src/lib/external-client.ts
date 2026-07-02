@@ -11,6 +11,10 @@ const memCache = new Map<string, { value: unknown; expires: number }>()
 
 export class ExternalNotFoundError extends Error {}
 
+// Service externe non configuré (env var absente) ou injoignable (connexion refusée) :
+// mappé en 503 par le error handler global — jamais un 500 brut.
+export class ExternalUnavailableError extends Error {}
+
 export interface ExternalServiceClient {
   get<T>(path: string, ttlSeconds?: number): Promise<T>
   // Comme get, mais renvoie null sur 404 au lieu de lever — pratique pour les lookups
@@ -35,11 +39,16 @@ export function createExternalServiceClient(opts: ExternalServiceClientOptions):
 
   async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
     const baseUrl = process.env[opts.baseUrlEnv]
-    if (!baseUrl) throw new Error(`${opts.baseUrlEnv} non configurée`)
-    const res = await fetch(`${baseUrl}${path}`, {
-      ...init,
-      headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-    })
+    if (!baseUrl) throw new ExternalUnavailableError(`${opts.baseUrlEnv} non configurée`)
+    let res: Response
+    try {
+      res = await fetch(`${baseUrl}${path}`, {
+        ...init,
+        headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+      })
+    } catch {
+      throw new ExternalUnavailableError(`${opts.baseUrlEnv} injoignable (${baseUrl})`)
+    }
     if (res.status === 404) throw new ExternalNotFoundError(`${opts.baseUrlEnv}${path} → 404`)
     if (!res.ok) throw new Error(`${opts.baseUrlEnv}${path} → HTTP ${res.status}`)
     if (res.status === 204) return undefined as T

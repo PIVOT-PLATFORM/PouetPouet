@@ -498,11 +498,15 @@ export function useProduit(produitId: string) {
 export function useOrgUnits() {
   const [orgUnits, setOrgUnits] = useState<OrgUnit[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
     try {
       const units = await api.get<OrgUnit[]>('/api/procurement/org-units')
       setOrgUnits(units)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de chargement')
     } finally {
       setIsLoading(false)
     }
@@ -516,7 +520,7 @@ export function useOrgUnits() {
     await reload()
   }, [reload])
 
-  return { orgUnits, isLoading, reload, updateOrgUnit }
+  return { orgUnits, isLoading, error, reload, updateOrgUnit }
 }
 
 // ── Profils achat ─────────────────────────────────────────────────────────────
