@@ -53,7 +53,9 @@ export function useFeedback() {
       setTickets((prev) => prev.some((p) => p.id === t.id) ? prev : [t, ...prev])
     })
     socket.on('feedback:ticket:updated', (t: FeedbackTicket) => {
-      setTickets((prev) => prev.map((p) => p.id === t.id ? { ...p, ...t } : p))
+      // hasVoted est par-utilisateur : le payload broadcast le met toujours à false,
+      // on préserve donc l'état de vote local du client.
+      setTickets((prev) => prev.map((p) => p.id === t.id ? { ...p, ...t, hasVoted: p.hasVoted } : p))
     })
     socket.on('feedback:ticket:moved', (t: FeedbackTicket) => {
       setTickets((prev) => prev.map((p) => p.id === t.id ? { ...p, column: t.column } : p))

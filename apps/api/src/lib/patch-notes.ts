@@ -20,6 +20,50 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.27.0',
+    date: '2026-07-02',
+    title: 'Modules Formulaires & Parcours',
+    summary: 'Deux nouveaux modules : Formulaires (type Google Forms, lien public et collecte de réponses) et Parcours (workflows structurés avec builder visuel). Plus : relances SignDoc fiabilisées, Feedback dans la navbar, export RGPD réparé.',
+    sections: [
+      {
+        heading: '🧭 Module Parcours (nouveau)',
+        items: [
+          'Concevez des workflows structurés dans un builder visuel (graphe d\'étapes reliées)',
+          'Étapes de type formulaire, document, validation — avec conditions d\'enchaînement',
+          'Lancez des instances depuis un template et suivez leur progression étape par étape',
+          'Historique complet de chaque parcours et panneau de détail par étape',
+          'Webhooks entrants pour déclencher des avancements depuis l\'extérieur',
+        ],
+      },
+      {
+        heading: '📋 Module Formulaires (nouveau)',
+        items: [
+          'Constructeur visuel : 11 types de champs (texte court/long, nombre, date, email, liste, choix unique/multiple, échelle, fichier, grille) + sauts de section',
+          'Partage par lien public : les répondants n\'ont pas besoin de compte',
+          'Options de collecte : limite d\'une réponse par personne, date de fermeture automatique, nombre maximum de réponses',
+          'Notification à chaque réponse (optionnelle) et email de confirmation au répondant',
+          'Vue des réponses : résumé agrégé par question + détail réponse par réponse',
+          'Partage du formulaire par rôle (Lecteur / Éditeur / Propriétaire)',
+        ],
+      },
+      {
+        heading: '🔧 Corrections',
+        items: [
+          'SignDoc : relances et expirations automatiques fonctionnent désormais sans Redis (verrou Postgres) — elles étaient inactives en production',
+          'Export RGPD « Mes données » réparé : le téléchargement échouait car la requête n\'était pas authentifiée',
+        ],
+      },
+      {
+        heading: '🎨 Divers',
+        items: [
+          'Hub : page d\'accueil restructurée par domaine pour s\'y retrouver parmi les 14 modules',
+          'Accès direct au Feedback depuis la barre de navigation (icône bulle, à côté de l\'aide)',
+          'Feedback : correction du vote (état préservé lors des mises à jour temps réel)',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.26.0',
     date: '2026-07-02',
     title: 'Module SignDoc — signature de documents',

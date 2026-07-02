@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../../lib/prisma.js'
 import { isAdminEmail } from '../../lib/feature-flags.js'
 import { bus } from '../../lib/bus.js'
+import { serializeTicket } from './feedback-serialize.js'
 
 const createSchema = z.object({
   title: z.string().min(1).max(120),
@@ -21,21 +22,7 @@ const moveSchema = z.object({
   column: z.enum(['ANALYSE', 'BACKLOG', 'IMPLEMENTING', 'PARKING', 'DONE']),
 })
 
-function serialize(t: { id: string; title: string; body: string; type: string; column: string; authorName: string; authorId: string | null; createdAt: Date; updatedAt: Date; _count?: { votes: number }; votes?: { id: string }[] }, userId: string | null) {
-  return {
-    id: t.id,
-    title: t.title,
-    body: t.body,
-    type: t.type,
-    column: t.column,
-    authorName: t.authorName,
-    authorId: t.authorId,
-    votes: t._count?.votes ?? 0,
-    hasVoted: userId && t.votes ? t.votes.length > 0 : false,
-    createdAt: t.createdAt,
-    updatedAt: t.updatedAt,
-  }
-}
+const serialize = serializeTicket
 
 export const feedbackRoutes: FastifyPluginAsync = async (app) => {
   // GET / — liste tous les tickets, avec comptage des votes et flag hasVoted.

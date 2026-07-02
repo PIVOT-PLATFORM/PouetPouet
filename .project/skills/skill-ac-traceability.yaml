@@ -1,0 +1,83 @@
+skill:
+  id: pivot-ac-traceability
+  version: "1.0"
+  name: "AC Traceability & Gates ACDD"
+  description: >
+    Traçabilité AC → code → tests. Calcul des scores Gate 2 et Gate 4.
+    Chargé pour toute implémentation d'US et lors des gates ACDD.
+  loaded_by:
+    - Dev_Agent
+    - QA_Agent
+    - PR_Review_Agent
+
+---
+
+ac_format:
+
+  template: |
+    - [ ] Given [contexte], when [action], then [résultat observable]
+    - [ ] Error case: given [input invalide], system retourne [erreur / status code]
+    - [ ] Security: [propriété de sécurité qui doit tenir]
+
+  rules:
+    - "Chaque AC mappe à au moins un test nommé avec son identifiant"
+    - "AC sans test = non implémenté, peu importe le code présent"
+    - "AC ambigu → stopper et demander au PO Agent — jamais d'interprétation unilatérale"
+
+---
+
+traceability_matrix:
+
+  description: "Table AC → implémentation → test dans le PR template"
+  format: |
+    | AC | Implémentation | Test |
+    |----|----------------|------|
+    | AC-42-01 | ModuleService.activate() | ac42_01_activatesModuleForValidTenant() |
+    | AC-42-02 | ModuleService.activate() | ac42_02_throwsWhenModuleNotFound() |
+    | AC-42-SEC-01 | SecurityConfig + @PreAuthorize | ac42_sec01_returns403WhenModuleDisabled() |
+
+---
+
+gates:
+
+  gate_2_scoring:
+    ac_covered_50pts: "Chaque AC couvert par ≥ 1 test"
+    no_untested_code_30pts: "Pas de nouveau code sans test"
+    test_quality_20pts: "Tests non triviaux (vérifient un comportement observable)"
+    thresholds:
+      continue: "≥ 85"
+      write_missing_tests: "70–84"
+      stop_consult_qa: "< 70"
+
+  gate_4_traceability_25pts:
+    rule: "Vérifier que chaque AC listé dans l'US est tracé dans la table AC → test"
+    zero_if: "AC présent dans l'US mais absent de la table"
+
+---
+
+artifact_example: |
+  gate: COVERAGE
+  us_id: 42
+  commit: a3f9c12
+  score: 91
+  decision: CONTINUE
+  executed_by: Claude
+  breakdown:
+    ac_covered: 7/8        # AC-42-03 error case manquant
+    no_untested_code: 28/30
+    test_quality: 18/20
+  pending_ac:
+    - "AC-42-03: Error case — token expiré retourne 401"
+
+---
+
+gate_checklist:
+  gate_2:
+    - "Table de traçabilité AC → test remplie"
+    - "Tous les ACs de l'US couverts par au moins un test"
+    - "Tests nommés avec identifiant AC"
+    - "Score Gate 2 posté en commentaire de PR (pas de fichier committé)"
+  gate_4:
+    - "Table traçabilité complète dans le PR template"
+    - "Aucun AC orphelin (présent dans l'US mais absent de la table)"
+    - "Score Gate 4 posté en commentaire de PR (pas de fichier committé)"

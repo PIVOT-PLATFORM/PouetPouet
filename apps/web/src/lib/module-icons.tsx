@@ -20,6 +20,8 @@ import {
   Timer,
   Zap,
   MessageSquare,
+  GitBranch,
+  FileText as FileTextIcon,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -35,6 +37,8 @@ export const MODULE_ICONS: Record<string, LucideIcon> = {
   testbooks:   FlaskConical,
   quiz:        Zap,
   roadmap:     Map,
+  parcours:    GitBranch,
+  forms:       FileTextIcon,
   pdf:         FileText,
   feedback:    MessageSquare,
   signdoc:     PenLine,

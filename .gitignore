@@ -8,6 +8,9 @@ build
 coverage/
 *.log
 
+# Fichiers uploadés en dev local (stockage GCS en prod)
+apps/api/.uploads/
+
 # TypeScript incremental build cache
 *.tsbuildinfo
 

@@ -89,6 +89,24 @@ function resizeImage(file: File, maxPx: number): Promise<string> {
   })
 }
 
+// Export RGPD : la route API exige le Bearer, un simple <a href> n'est pas
+// authentifié (et pointait sur l'origine Next, pas l'API) — fetch + blob.
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
+async function downloadDataExport(): Promise<void> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+  const res = await fetch(`${API_URL}/api/auth/export`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (!res.ok) throw new Error('Export indisponible')
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `pouetpouet-export-${new Date().toISOString().slice(0, 10)}.json`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 10_000)
+}
+
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
@@ -608,13 +626,12 @@ export default function ProfilePage() {
               Télécharge toutes vos données personnelles (profil, boards, dailys, équipes…) au format JSON.
             </p>
           </div>
-          <a
-            href="/api/auth/export"
-            download
+          <button
+            onClick={() => downloadDataExport().catch(() => alert("L'export a échoué. Réessayez dans un instant."))}
             className="shrink-0 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             Exporter
-          </a>
+          </button>
         </div>
       </div>
 

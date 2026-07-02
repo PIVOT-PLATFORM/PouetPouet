@@ -1,5 +1,4 @@
 import { prisma } from '../../lib/prisma.js'
-import { redis } from '../../lib/redis.js'
 import { notify } from '../../lib/notify.js'
 import { recordEvent } from './signdoc.events.js'
 import { canSignNow, isActingRecipient, remindRecipient } from './signdoc.workflow.js'
@@ -7,8 +6,9 @@ import { canSignNow, isActingRecipient, remindRecipient } from './signdoc.workfl
 // Maintenance périodique des enveloppes SignDoc :
 //  - expiration des enveloppes dont la date butoir globale est dépassée,
 //  - relances des signataires de l'étape active dont l'échéance approche.
-// Tourne in-process façon lib/retention.ts ; verrou Redis pour une seule
-// exécution quand plusieurs instances tournent.
+// Tourne in-process façon lib/retention.ts ; verrou consultatif Postgres pour
+// une seule exécution quand plusieurs instances tournent (#205 — la prod
+// mono-instance n'a pas de Redis, la base est toujours disponible).
 
 const HOUR_MS = 3_600_000
 const REMIND_WINDOW_MS = 48 * HOUR_MS // relance si l'échéance est à moins de 48 h
@@ -84,16 +84,19 @@ export async function runSigndocMaintenance(now = new Date()): Promise<Maintenan
 export function scheduleSigndocMaintenance(log: { info: (obj: object, msg: string) => void; warn: (obj: object, msg: string) => void }) {
   async function tick() {
     try {
-      // Sans verrou pas d'exécution : en multi-instance, tourner sans Redis
-      // enverrait relances et expirations en double. Le tick suivant réessaiera.
-      if (redis.status !== 'ready') {
-        log.warn({}, 'signdoc maintenance skipped: redis unavailable')
-        return
-      }
-      const acquired = await redis.set('signdoc:maintenance:lock', '1', 'EX', 3600, 'NX')
-      if (!acquired) return
-      const result = await runSigndocMaintenance()
-      if (result.expired || result.reminded || result.deadlineAlerts) log.info({ signdoc: result }, 'signdoc maintenance done')
+      // Verrou consultatif Postgres (portée transaction) : une seule instance
+      // exécute la maintenance, le verrou est relâché automatiquement à la fin
+      // de la transaction. La connexion de la transaction ne sert qu'à porter
+      // le verrou ; la maintenance elle-même tourne sur le client global.
+      await prisma.$transaction(
+        async (tx) => {
+          const rows = await tx.$queryRaw<{ locked: boolean }[]>`SELECT pg_try_advisory_xact_lock(hashtext('signdoc:maintenance')) AS locked`
+          if (!rows[0]?.locked) return // une autre instance s'en charge
+          const result = await runSigndocMaintenance()
+          if (result.expired || result.reminded || result.deadlineAlerts) log.info({ signdoc: result }, 'signdoc maintenance done')
+        },
+        { maxWait: 5_000, timeout: 600_000 },
+      )
     } catch (err) {
       log.warn({ err: (err as Error).message }, 'signdoc maintenance failed')
     }

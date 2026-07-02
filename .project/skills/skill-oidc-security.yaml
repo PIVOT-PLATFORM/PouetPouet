@@ -1,0 +1,106 @@
+skill:
+  id: pivot-oidc-security
+  version: "1.0"
+  name: "OIDC / IAM & Spring Security"
+  description: >
+    Sécurité PIVOT : OIDC PKCE S256, Spring Security OAuth2 Resource Server,
+    rôles RBAC multi-tenant, JWT validation. Chargé pour tout fichier auth/security.
+  loaded_by:
+    - Expert_OIDC_IAM
+    - Expert_Blue_Team
+    - Dev_Agent
+
+---
+
+roles:
+
+  hierarchy:
+    ROLE_SUPER_ADMIN: "Plateforme — gestion tenants, configuration globale"
+    ROLE_ADMIN: "Tenant — activation modules, gestion utilisateurs"
+    ROLE_USER: "Tenant — utilisation des modules activés"
+    ROLE_GUEST: "Session — participation anonyme (sessions live)"
+
+  rules:
+    - "Rôles portés via claims OIDC ou assignés localement"
+    - "Mapping claims → rôles configurable par tenant"
+    - "Module désactivé = 403 quelle que soit le rôle de l'utilisateur"
+    - "ROLE_GUEST ne peut pas activer ou configurer de module"
+
+---
+
+spring_security:
+
+  resource_server:
+    rules:
+      - "JWT validé via Spring Security OAuth2 Resource Server"
+      - "Pas de validation JWT manuelle — laisser Spring Security gérer"
+      - "OIDC issuer configuré via application.properties — jamais hardcodé"
+    pattern: |
+      @Configuration
+      @EnableWebSecurity
+      public class SecurityConfig {
+
+          @Bean
+          public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+              return http
+                  .csrf(AbstractHttpConfigurer::disable)  // API REST stateless
+                  .sessionManagement(s -> s.sessionCreationPolicy(STATELESS))
+                  .authorizeHttpRequests(auth -> auth
+                      .requestMatchers("/actuator/health").permitAll()
+                      .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                      .anyRequest().authenticated()
+                  )
+                  .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
+                  .build();
+          }
+      }
+
+  cors:
+    rule: "CORS configuré explicitement — pas de allowedOrigins(*) en production"
+    pattern: |
+      @Bean
+      CorsConfigurationSource corsConfigurationSource() {
+          CorsConfiguration config = new CorsConfiguration();
+          config.setAllowedOrigins(List.of(allowedOrigin));
+          config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
+          config.setAllowCredentials(true);
+          UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+          source.registerCorsConfiguration("/api/**", config);
+          return source;
+      }
+
+  method_security:
+    rule: "@PreAuthorize sur les méthodes Service sensibles"
+    pattern: |
+      @PreAuthorize("hasRole('ADMIN') and @tenantService.isMember(authentication, #tenantId)")
+      public void activateModule(String moduleId, UUID tenantId) { ... }
+
+---
+
+jwt:
+
+  rules:
+    - "JWT_SECRET via variable d'environnement — jamais dans le code"
+    - "Durée de validité courte (15 min access token) + refresh token"
+    - "Claims vérifiés : iss, aud, exp, sub — rejeter si manquants"
+    - "Pas de données sensibles dans le payload JWT (pas de mot de passe, pas de secrets)"
+
+---
+
+oidc_pkce:
+
+  rules:
+    - "PKCE S256 obligatoire côté Angular (code_challenge_method=S256)"
+    - "Pas de client_secret côté navigateur"
+    - "State parameter validé pour prévenir CSRF sur le callback"
+
+---
+
+gate_checklist:
+  gate_2:
+    - "JWT_SECRET dans variable d'environnement"
+    - "CORS explicite — pas de allowedOrigins(*)"
+    - "Module désactivé retourne 403 avant toute logique"
+    - "@PreAuthorize sur les méthodes admin sensibles"
+    - "Pas de validation JWT manuelle — Spring Security gère"
+    - "Modification OIDC/Security → hard block Gate 4, review humaine"

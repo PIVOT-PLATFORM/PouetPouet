@@ -153,6 +153,31 @@ const MODULES = [
     ],
   },
   {
+    icon: '📋',
+    title: 'Formulaires',
+    href: '/forms',
+    desc: 'Formulaires type Google Forms : construction, partage par lien public et collecte des réponses.',
+    features: [
+      'Constructeur visuel : 11 types de champs (texte, nombre, date, email, choix, échelle, fichier, grille) + sections',
+      'Lien public de réponse : aucun compte requis pour répondre',
+      'Options de collecte : réponse unique, fermeture automatique à date, plafond de réponses',
+      'Notification à chaque réponse et email de confirmation au répondant',
+      'Vue résumé agrégée par question + détail des réponses individuelles',
+    ],
+  },
+  {
+    icon: '🧭',
+    title: 'Parcours',
+    href: '/parcours',
+    desc: 'Workflows structurés : concevez des parcours d’étapes et suivez leurs instances.',
+    features: [
+      'Builder visuel : graphe d’étapes reliées (formulaire, document, validation)',
+      'Templates réutilisables : lancez autant d’instances que nécessaire',
+      'Suivi de progression étape par étape avec historique complet',
+      'Webhooks entrants pour faire avancer un parcours depuis l’extérieur',
+    ],
+  },
+  {
     icon: '👤',
     title: 'Compte & Profil',
     href: '/profile',

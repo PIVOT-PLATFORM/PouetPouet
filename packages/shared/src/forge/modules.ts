@@ -177,6 +177,34 @@ export const SIGNDOC_MODULE: ModuleManifest = {
 }
 
 /** Modules actifs, dans l'ordre d'affichage de la navigation. */
+export const PARCOURS_MODULE: ModuleManifest = {
+  id: 'parcours',
+  name: 'Parcours',
+  description: 'Workflows structurés : formulaires, documents, validations et suivi de parcours',
+  icon: '🧭',
+  color: '#06b6d4',
+  nav: [{ label: 'Parcours', href: '/parcours', match: '/parcours' }],
+  apiPrefix: '/api/parcours',
+  ownedEntities: ['ParcourTemplate', 'ParcourInstance', 'ParcourDocument', 'ParcourHistory'],
+  referencedPivots: ['User'],
+  emits: ['parcours.instance.completed', 'parcours.step.completed'],
+  listensTo: [],
+}
+
+export const FORMS_MODULE: ModuleManifest = {
+  id: 'forms',
+  name: 'Formulaires',
+  description: 'Formulaires type Google Forms : création, partage par lien public, collecte et export des réponses',
+  icon: '📝',
+  color: '#7c3aed',
+  nav: [{ label: 'Formulaires', href: '/forms', match: '/forms' }],
+  apiPrefix: '/api/forms',
+  ownedEntities: ['Form', 'FormResponse'],
+  referencedPivots: ['User'],
+  emits: [],
+  listensTo: [],
+}
+
 export const PIVOT_MODULES: ModuleManifest[] = [
   POUETPOUET_MODULE,
   DAILY_MODULE,
@@ -187,6 +215,8 @@ export const PIVOT_MODULES: ModuleManifest[] = [
   TESTBOOKS_MODULE,
   QUIZ_MODULE,
   ROADMAP_MODULE,
+  PARCOURS_MODULE,
+  FORMS_MODULE,
   PDF_MODULE,
   FEEDBACK_MODULE,
   SIGNDOC_MODULE,
