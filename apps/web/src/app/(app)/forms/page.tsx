@@ -29,7 +29,7 @@ export default function FormsPage() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><FileText size={28} style={{ color: '#7c3aed' }} />Formulaires</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Créez des formulaires, partagez un lien, collectez les réponses.</p>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Créez des formulaires, partagez un lien, collectez les réponses.</p>
         </div>
         <button
           onClick={handleCreate}
