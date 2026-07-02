@@ -251,7 +251,7 @@ function KanbanColumn({ col, tickets, userId, isAdmin, draggedId, onDragStart, o
 
   return (
     <div
-      className={`flex flex-col min-w-[280px] max-w-[320px] w-[300px] min-h-0 rounded-2xl transition-colors ${isDraggingOver ? 'bg-violet-50 dark:bg-violet-950/30' : 'bg-transparent'}`}
+      className={`flex flex-col flex-1 min-w-[220px] min-h-0 rounded-2xl transition-colors ${isDraggingOver ? 'bg-violet-50 dark:bg-violet-950/30' : 'bg-transparent'}`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
