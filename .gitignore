@@ -24,6 +24,7 @@ apps/api/.uploads/
 backup.sql
 ideatank.txt
 /scripts/
+Remy.txt
 
 # Estimation de coût — local uniquement, ne JAMAIS pousser
 docs/cout-reconstruction.md

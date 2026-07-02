@@ -20,6 +20,50 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.28.0',
+    date: '2026-07-02',
+    title: 'Modules Portefeuille & Commande publique',
+    summary: 'Deux nouveaux modules de pilotage : Portefeuille (vue consolidée de plusieurs roadmaps) et Commande publique (demandes d\'achat, gouvernance projet, approbations). La Roadmap gagne statuts, responsables, validation des dépendances et export CSV.',
+    sections: [
+      {
+        heading: '🗂️ Module Portefeuille (nouveau)',
+        items: [
+          'Regroupez plusieurs roadmaps dans un portefeuille et suivez-les sur une timeline consolidée',
+          'Légende cliquable par roadmap (couleur) qui sert aussi de filtre',
+          'Un clic sur un item ouvre sa roadmap source pour l\'éditer',
+          'Partage par rôle : un accès au portefeuille donne un accès en lecture aux roadmaps rattachées, sans partage individuel',
+          'Rattachez / détachez vos roadmaps librement — supprimer un portefeuille ne supprime jamais les roadmaps',
+        ],
+      },
+      {
+        heading: '🏛️ Module Commande publique (nouveau)',
+        items: [
+          'Demandes d\'achat avec circuit de validation hiérarchique par seuils d\'approbation et délégations',
+          'Gouvernance projet (Activités) : jalons PMPG, risques, budget OPEX/CAPEX/APCO, agrégation par Produit',
+          'Organigramme et référentiels lus depuis des services externes (PGI / LDAP) — pods de démonstration inclus en dev',
+          'Référentiels configurables par organisation avec héritage descendant (types de jalon, de budget, d\'activité)',
+          'Transparence : lecture libre sur toute l\'organisation, édition restreinte à son périmètre',
+        ],
+      },
+      {
+        heading: '🗺️ Roadmap — pilotage renforcé',
+        items: [
+          'Statut par item (À faire / En cours / Bloqué / Terminé) avec badge et filtre',
+          'Responsable par item, choisi parmi les collaborateurs de la roadmap, avec filtre dédié',
+          'Dépendances validées : plus de cycle ni de référence morte possible (contrôle serveur)',
+          'Export CSV (compatible Excel) en plus des exports PDF et JSON',
+        ],
+      },
+      {
+        heading: '🔧 Divers',
+        items: [
+          'Tests d\'autorisation systématiques ajoutés sur les modules Capacité et MeetOps',
+          'Mises à jour de sécurité des actions CI (dependabot)',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.27.0',
     date: '2026-07-02',
     title: 'Modules Formulaires & Parcours',
