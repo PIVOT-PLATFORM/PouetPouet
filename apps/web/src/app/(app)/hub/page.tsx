@@ -56,7 +56,7 @@ const DOMAINS: { id: string; label: string; color: string; moduleIds: string[] }
     id: 'pilotage',
     label: 'Pilotage',
     color: '#4f6ef7',
-    moduleIds: ['roadmap', 'portfolio', 'feedback'],
+    moduleIds: ['roadmap', 'portfolio', 'procurement'],
   },
   {
     id: 'outillage',

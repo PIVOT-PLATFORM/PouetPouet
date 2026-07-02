@@ -39,6 +39,7 @@ export const MODULE_ICONS: Record<string, LucideIcon> = {
   quiz:        Zap,
   roadmap:     Map,
   portfolio:   FolderKanban,
+  procurement: ClipboardList,
   parcours:    GitBranch,
   forms:       FileTextIcon,
   pdf:         FileText,

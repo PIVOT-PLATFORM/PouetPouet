@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify'
 import type { Server, Socket } from 'socket.io'
 import type { ModuleManifest } from '@pouetpouet/shared'
-import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE, MEETOPS_MODULE, TESTBOOKS_MODULE, QUIZ_MODULE, ROADMAP_MODULE, PORTFOLIO_MODULE, PARCOURS_MODULE, FORMS_MODULE, PDF_MODULE, FEEDBACK_MODULE, SIGNDOC_MODULE } from '@pouetpouet/shared'
+import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE, MEETOPS_MODULE, TESTBOOKS_MODULE, QUIZ_MODULE, ROADMAP_MODULE, PORTFOLIO_MODULE, PARCOURS_MODULE, FORMS_MODULE, PDF_MODULE, FEEDBACK_MODULE, SIGNDOC_MODULE, PROCUREMENT_MODULE } from '@pouetpouet/shared'
 
 import { boardRoutes } from './pouetpouet/boards.routes.js'
 import { templateRoutes } from './pouetpouet/templates.routes.js'
@@ -22,6 +22,9 @@ import { portfolioRoutes } from './portfolio/portfolio.routes.js'
 import { parcoursRoutes } from './parcours/parcours.routes.js'
 import { formsRoutes } from './forms/forms.routes.js'
 import { pdfRoutes } from './pdf/pdf.routes.js'
+import { procurementRoutes } from './procurement/procurement.routes.js'
+import { activiteRoutes } from './procurement/activite.routes.js'
+import { governanceConfigRoutes } from './procurement/governance-config.routes.js'
 import { feedbackRoutes } from './feedback/feedback.routes.js'
 import { feedbackSocketHandlers } from './feedback/feedback.sockets.js'
 import { signdocRoutes } from './signdoc/signdoc.routes.js'
@@ -121,6 +124,15 @@ export const API_MODULES: ApiModule[] = [
       { plugin: signdocRoutes, prefix: '/api/signdoc' },
       // Routes publiques de signature (non authentifiées, jeton à usage unique).
       { plugin: signdocPublicRoutes, prefix: '/api/sign' },
+    ],
+    socketHandlers: [],
+  },
+  {
+    manifest: PROCUREMENT_MODULE,
+    routes: [
+      { plugin: procurementRoutes, prefix: '/api/procurement' },
+      { plugin: activiteRoutes, prefix: '/api/procurement' },
+      { plugin: governanceConfigRoutes, prefix: '/api/procurement' },
     ],
     socketHandlers: [],
   },
