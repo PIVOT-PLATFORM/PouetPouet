@@ -58,6 +58,7 @@ export const PATCH_NOTES: PatchNote[] = [
         heading: '🔧 Divers',
         items: [
           'Tests d\'autorisation systématiques ajoutés sur les modules Capacité et MeetOps',
+          'Pastille « nouvelle version » fiabilisée : deux releases le même jour rallument bien l\'indicateur',
           'Mises à jour de sécurité des actions CI (dependabot)',
         ],
       },
