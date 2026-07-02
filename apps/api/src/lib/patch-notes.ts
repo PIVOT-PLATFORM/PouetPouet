@@ -56,7 +56,9 @@ export const PATCH_NOTES: PatchNote[] = [
       {
         heading: '🎨 Divers',
         items: [
+          'Hub : page d\'accueil restructurée par domaine pour s\'y retrouver parmi les 14 modules',
           'Accès direct au Feedback depuis la barre de navigation (icône bulle, à côté de l\'aide)',
+          'Feedback : correction du vote (état préservé lors des mises à jour temps réel)',
         ],
       },
     ],
