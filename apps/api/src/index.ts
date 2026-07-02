@@ -3,6 +3,7 @@ import { Sentry } from './lib/sentry.js'
 
 import { readFileSync } from 'node:fs'
 import { ZodError } from 'zod'
+import { ExternalUnavailableError } from './lib/external-client.js'
 import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
@@ -63,9 +64,14 @@ if (process.env.SENTRY_DSN) {
 }
 
 // Une payload invalide (ZodError) est une erreur client : 400, pas 500.
-app.setErrorHandler((err, _request, reply) => {
+// Un système externe (PGI/LDAP) non configuré ou injoignable : 503 explicite.
+app.setErrorHandler((err, request, reply) => {
   if (err instanceof ZodError) {
     return reply.status(400).send({ error: 'Requête invalide', details: err.issues })
+  }
+  if (err instanceof ExternalUnavailableError) {
+    request.log.warn({ err }, 'service externe indisponible')
+    return reply.status(503).send({ error: 'Service externe indisponible — réessayez plus tard.' })
   }
   throw err
 })

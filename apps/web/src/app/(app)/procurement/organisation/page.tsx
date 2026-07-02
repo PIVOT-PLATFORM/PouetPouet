@@ -183,7 +183,7 @@ function ProfilForm({ orgUnits, onAdd }: { orgUnits: OrgUnit[]; onAdd: (input: {
 export default function OrganisationPage() {
   useFlagGuard('module.procurement')
   const user = useAuthStore((s) => s.user)
-  const { orgUnits, isLoading, updateOrgUnit } = useOrgUnits()
+  const { orgUnits, isLoading, error, updateOrgUnit } = useOrgUnits()
   const { profils: profilsAdmin, addProfil, deleteProfil } = useProfils('all')
   const { profils: mesProfils } = useMesProfils()
 
@@ -213,6 +213,12 @@ export default function OrganisationPage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Organigramme &amp; profils</h1>
         <p className="text-gray-500 dark:text-gray-400 mt-1">Périmètres, seuils d&apos;approbation et profils achat (chef de projet, valideur, finance, contract manager)</p>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+          {error}
+        </div>
+      )}
 
       {user?.isAdmin && (
       <>
