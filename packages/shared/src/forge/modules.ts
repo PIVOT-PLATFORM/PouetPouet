@@ -205,6 +205,20 @@ export const FORMS_MODULE: ModuleManifest = {
   listensTo: [],
 }
 
+export const PROCUREMENT_MODULE: ModuleManifest = {
+  id: 'procurement',
+  name: 'Commande publique',
+  description: "Suivi des contrats et demandes d'achat publiques (lots, gré à gré, circuit de validation, consommation budgétaire)",
+  icon: '🏛️',
+  color: '#0f766e',
+  nav: [{ label: 'Commande publique', href: '/procurement', match: '/procurement' }],
+  apiPrefix: '/api/procurement',
+  ownedEntities: ['Activite', 'Produit', 'ActiviteGain', 'ActiviteFaitMarquant', 'ActiviteBudgetLigne', 'ActiviteJalon', 'ActiviteRisque', 'DemandeAchatWorkflow', 'OrgUnitConfig', 'ProfilAchat', 'DelegationValidation', 'CommandeApprobation', 'GovernanceConfig'],
+  referencedPivots: ['User'],
+  emits: [],
+  listensTo: [],
+}
+
 export const PIVOT_MODULES: ModuleManifest[] = [
   POUETPOUET_MODULE,
   DAILY_MODULE,
@@ -219,5 +233,5 @@ export const PIVOT_MODULES: ModuleManifest[] = [
   FORMS_MODULE,
   PDF_MODULE,
   FEEDBACK_MODULE,
-  SIGNDOC_MODULE,
+  SIGNDOC_MODULE,  PROCUREMENT_MODULE,
 ]

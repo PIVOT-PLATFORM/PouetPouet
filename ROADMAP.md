@@ -236,6 +236,16 @@
 - [x] Barre de recherche + tri (Nom / Date / Taille / Pages)
 - [x] Partage par rôle (via ModuleShare)
 
+### Module Commande publique (en cours)
+- [x] Architecture « l'app gère le workflow, les données viennent toujours d'ailleurs » : contrats / demandes d'achat / commandes lus depuis un PGI externe (pod mock `apps/pgi-mock` en dev/démo, vraie API SAP en prod), organigramme lu depuis un LDAP externe (pod mock `apps/ldap-mock`) — l'app ne stocke que ce qu'elle gère réellement
+- [x] Code abstrait réutilisable pour brancher un futur système externe : `packages/mock-service-kit` (fabrique de pod mock) + `apps/api/src/lib/external-client.ts` (client HTTP caché Redis, repli mémoire) — ajouter un pod = un fichier `<nom>-client.ts` de quelques lignes
+- [x] Circuit de validation hiérarchique par seuils d'approbation, avec délégation (`DemandeAchatWorkflow` comme enveloppe applicative sur une demande d'achat externe, `ProfilAchat`/`DelegationValidation` pour les droits)
+- [x] Le manager d'une structure organisationnelle (lu depuis le LDAP) est admin de son périmètre par défaut, peut déléguer sa validation à un autre manager
+- [x] Transparence en lecture sur l'ensemble de l'organisation (consultation libre, édition restreinte au périmètre)
+- [x] Gouvernance projet (Activité) : PMT, jalons PMPG (obligatoires vs libres), risques, budget OPEX/CAPEX/APCO, agrégation par Produit
+- [x] Référentiels configurables par les admins, scopés à un OrgUnit et hérités vers le bas de l'arbre (`GovernanceConfig` : types de ligne budgétaire, types de jalon, types d'activité) — standardisable globalement, adaptable par override à un niveau plus bas
+- [ ] Pod référentiel Produit/taxonomie externe (différé — l'abstraction `mock-service-kit`/`external-client` le permet sans réécriture)
+
 ### Assistant IA Pouet — #163 (PR ouverte)
 - [x] F0 : Ollama docker + LLMProvider/OllamaProvider + route SSE `/api/pouet/chat`
 - [x] F1 : auth, rate-limit Redis, audit, base de connaissances rédigée
