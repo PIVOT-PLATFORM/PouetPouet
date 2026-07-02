@@ -1,21 +1,22 @@
 'use client'
 
 import { useState } from 'react'
-import type { RoadmapItem } from '@/hooks/useRoadmap'
-import { CATEGORIES, RISKS } from './roadmap-constants'
+import type { RoadmapItem, Collaborator } from '@/hooks/useRoadmap'
+import { CATEGORIES, RISKS, STATUSES } from './roadmap-constants'
 import { diffDays } from '@/lib/roadmap-timeline'
 
 interface Props {
   items: RoadmapItem[] // ordonnés
   totalDays: number
   canEdit: boolean
+  collaborators: Collaborator[]
   onEdit: (item: RoadmapItem) => void
   onDuplicate: (item: RoadmapItem) => void
   onDelete: (item: RoadmapItem) => void
   onReorder: (orderedIds: string[]) => void
 }
 
-export function RoadmapItemsPanel({ items, totalDays, canEdit, onEdit, onDuplicate, onDelete, onReorder }: Props) {
+export function RoadmapItemsPanel({ items, totalDays, canEdit, collaborators, onEdit, onDuplicate, onDelete, onReorder }: Props) {
   const [query, setQuery] = useState('')
   const [dragId, setDragId] = useState<string | null>(null)
   const [overId, setOverId] = useState<string | null>(null)
@@ -70,6 +71,7 @@ export function RoadmapItemsPanel({ items, totalDays, canEdit, onEdit, onDuplica
                   <span className="w-2.5 h-2.5 rounded shrink-0" style={{ background: catColor }} />
                   <span className="text-sm font-bold text-gray-900 dark:text-white flex-1 truncate">{item.name}</span>
                   <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide" style={{ background: RISKS[item.risk].color + '1f', color: RISKS[item.risk].color }}>{RISKS[item.risk].label}</span>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide" style={{ background: STATUSES[item.status].color + '1f', color: STATUSES[item.status].color }}>{STATUSES[item.status].label}</span>
                   {cats.map((k) => (
                     <span key={k} className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: CATEGORIES[k].color + '22', color: CATEGORIES[k].color }}>{CATEGORIES[k].label}</span>
                   ))}
@@ -86,6 +88,11 @@ export function RoadmapItemsPanel({ items, totalDays, canEdit, onEdit, onDuplica
                 </div>
 
                 {item.biz && <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-2">{item.biz}</p>}
+
+                {item.assigneeId && (() => {
+                  const person = collaborators.find((c) => c.id === item.assigneeId)
+                  return person ? <p className="text-[11px] text-gray-400 flex items-center gap-1">👤 {person.name}</p> : null
+                })()}
 
                 {item.deps.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">

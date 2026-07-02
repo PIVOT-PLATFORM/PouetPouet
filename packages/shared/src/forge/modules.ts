@@ -134,6 +134,20 @@ export const ROADMAP_MODULE: ModuleManifest = {
   listensTo: [],
 }
 
+export const PORTFOLIO_MODULE: ModuleManifest = {
+  id: 'portfolio',
+  name: 'Portefeuille',
+  description: 'Vue consolidée de plusieurs Roadmaps : suivi de portefeuille de projets',
+  icon: '🗂️',
+  color: '#7c5cff',
+  nav: [{ label: 'Portefeuille', href: '/portfolio', match: '/portfolio' }],
+  apiPrefix: '/api/portfolio',
+  ownedEntities: ['Portfolio'],
+  referencedPivots: ['User', 'Roadmap'],
+  emits: [],
+  listensTo: [],
+}
+
 export const PDF_MODULE: ModuleManifest = {
   id: 'pdf',
   name: 'PDF Manager',
@@ -229,6 +243,7 @@ export const PIVOT_MODULES: ModuleManifest[] = [
   TESTBOOKS_MODULE,
   QUIZ_MODULE,
   ROADMAP_MODULE,
+  PORTFOLIO_MODULE,
   PARCOURS_MODULE,
   FORMS_MODULE,
   PDF_MODULE,

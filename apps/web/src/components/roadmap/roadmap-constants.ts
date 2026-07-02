@@ -1,4 +1,4 @@
-import type { Category, Risk, Prio } from '@/hooks/useRoadmap'
+import type { Category, Risk, Prio, ItemStatus } from '@/hooks/useRoadmap'
 
 // Catégories de domaine — couleur unique par catégorie.
 export const CATEGORIES: Record<Category, { label: string; color: string; text: string }> = {
@@ -17,6 +17,15 @@ export const RISKS: Record<Risk, { label: string; color: string }> = {
 export const RISK_KEYS: Risk[] = ['low', 'med', 'high']
 
 export const PRIOS: Record<Prio, string> = { should: 'Should', must: 'Must' }
+
+// Statut d'exécution.
+export const STATUSES: Record<ItemStatus, { label: string; color: string }> = {
+  TODO: { label: 'À faire', color: '#9ca3af' },
+  DOING: { label: 'En cours', color: '#3b82f6' },
+  BLOCKED: { label: 'Bloquée', color: '#ef4444' },
+  DONE: { label: 'Terminée', color: '#22c78a' },
+}
+export const STATUS_KEYS: ItemStatus[] = ['TODO', 'DOING', 'BLOCKED', 'DONE']
 
 // Couleur de texte lisible sur un fond hexa donné.
 export function textOn(hex: string): string {

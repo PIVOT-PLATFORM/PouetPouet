@@ -20,6 +20,7 @@ export const FLAG_DEFINITIONS: FlagDefinition[] = [
   { key: 'module.meetops', label: 'Module MeetOps', description: 'Active le module MeetOps (Hub + accès direct /meetops).', defaultEnabled: true },
   { key: 'module.quiz', label: 'Module Quiz interactif', description: 'Active le module Quiz interactif (Hub + accès direct /quiz).', defaultEnabled: true },
   { key: 'module.roadmap', label: 'Module Roadmap', description: 'Active le module Roadmap (Hub + accès direct /roadmap).', defaultEnabled: true },
+  { key: 'module.portfolio', label: 'Module Portefeuille', description: 'Active le module Portefeuille — vue consolidée de plusieurs Roadmaps (Hub + accès direct /portfolio).', defaultEnabled: true },
   { key: 'module.parcours', label: 'Module Parcours', description: 'Active le module Parcours — workflows structurés (Hub + accès direct /parcours).', defaultEnabled: true },
   { key: 'module.forms', label: 'Module Formulaires', description: 'Active le module Formulaires — formulaires type Google Forms (Hub + accès direct /forms).', defaultEnabled: true },
   { key: 'module.feedback', label: 'Module Feedback', description: 'Active le module Feedback Kanban (Hub + accès direct /feedback).', defaultEnabled: true },
