@@ -1,6 +1,6 @@
 # Roadmap Pivot — état au 2026-07-02
 
-> Version courante : **0.27.0** — Module Formulaires + fiabilisation SignDoc
+> Version courante : **0.27.0** — Modules Formulaires & Parcours + fiabilisation SignDoc
 >
 > Source unique de suivi : ce fichier centralise la roadmap et les chantiers ouverts.
 

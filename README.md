@@ -26,6 +26,7 @@ Le projet est actuellement en version **0.27.0**. Le produit historique **PouetP
 - **Feedback** : kanban de retours utilisateurs (bugs & idées) avec votes, temps réel et gestion admin.
 - **SignDoc** : signature de documents auto-hébergée — workflow de signataires, page publique de signature, sceau numérique PAdES et certificat de réalisation.
 - **Formulaires** : création de formulaires type Google Forms, lien public, collecte et analyse des réponses.
+- **Parcours** : workflows structurés — builder visuel d'étapes (formulaires, documents, validations), instances et suivi.
 
 Le hub agrège les modules, les favoris, les statistiques et l'activité récente.
 

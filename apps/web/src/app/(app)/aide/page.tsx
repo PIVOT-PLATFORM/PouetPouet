@@ -166,6 +166,18 @@ const MODULES = [
     ],
   },
   {
+    icon: '🧭',
+    title: 'Parcours',
+    href: '/parcours',
+    desc: 'Workflows structurés : concevez des parcours d’étapes et suivez leurs instances.',
+    features: [
+      'Builder visuel : graphe d’étapes reliées (formulaire, document, validation)',
+      'Templates réutilisables : lancez autant d’instances que nécessaire',
+      'Suivi de progression étape par étape avec historique complet',
+      'Webhooks entrants pour faire avancer un parcours depuis l’extérieur',
+    ],
+  },
+  {
     icon: '👤',
     title: 'Compte & Profil',
     href: '/profile',

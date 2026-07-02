@@ -22,9 +22,19 @@ export const PATCH_NOTES: PatchNote[] = [
   {
     version: '0.27.0',
     date: '2026-07-02',
-    title: 'Module Formulaires — création et collecte de réponses',
-    summary: 'Nouveau module Formulaires type Google Forms : construisez vos formulaires, partagez un lien public et collectez les réponses. Plus : relances SignDoc fiabilisées, Feedback dans la navbar, export RGPD réparé.',
+    title: 'Modules Formulaires & Parcours',
+    summary: 'Deux nouveaux modules : Formulaires (type Google Forms, lien public et collecte de réponses) et Parcours (workflows structurés avec builder visuel). Plus : relances SignDoc fiabilisées, Feedback dans la navbar, export RGPD réparé.',
     sections: [
+      {
+        heading: '🧭 Module Parcours (nouveau)',
+        items: [
+          'Concevez des workflows structurés dans un builder visuel (graphe d\'étapes reliées)',
+          'Étapes de type formulaire, document, validation — avec conditions d\'enchaînement',
+          'Lancez des instances depuis un template et suivez leur progression étape par étape',
+          'Historique complet de chaque parcours et panneau de détail par étape',
+          'Webhooks entrants pour déclencher des avancements depuis l\'extérieur',
+        ],
+      },
       {
         heading: '📋 Module Formulaires (nouveau)',
         items: [
