@@ -1,6 +1,6 @@
 // Source of truth for the in-app release notes shown in the notifications panel.
-// Add a new entry at the TOP for each release; `date` (ISO) drives the "new" indicator,
-// which compares the latest entry's date against the user's `patchNotesSeenAt`.
+// Add a new entry at the TOP for each release; the "new" indicator compares the
+// latest entry's `version` against the user's `patchNotesSeenVersion` (#219).
 //
 // `summary` is the one-liner shown on the card; `sections` is the full, grouped
 // changelog shown when a card is opened in detail.
@@ -58,6 +58,7 @@ export const PATCH_NOTES: PatchNote[] = [
         heading: '🔧 Divers',
         items: [
           'Tests d\'autorisation systématiques ajoutés sur les modules Capacité et MeetOps',
+          'Pastille « nouvelle version » fiabilisée : deux releases le même jour rallument bien l\'indicateur',
           'Mises à jour de sécurité des actions CI (dependabot)',
         ],
       },
@@ -981,6 +982,3 @@ export const PATCH_NOTES: PatchNote[] = [
     ],
   },
 ]
-
-// Most recent release date — used server-side to decide whether a user has unseen notes.
-export const LATEST_PATCH_DATE = PATCH_NOTES[0]?.date ?? null
