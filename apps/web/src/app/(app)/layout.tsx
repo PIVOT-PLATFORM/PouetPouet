@@ -12,7 +12,7 @@ import { SessionCountdown } from '@/components/session-countdown'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useNotificationsStore } from '@/store/notifications'
 import { useFlagsStore } from '@/store/flags'
-import { MessageSquare, Sun, Moon, Monitor } from 'lucide-react'
+import { MessageSquare, Sun, Moon, Monitor, Presentation } from 'lucide-react'
 import { APP_VERSION } from '@/lib/version'
 
 function Avatar({ name, src }: { name: string; src?: string | null }) {
@@ -235,6 +235,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </button>
               )
             })()}
+            <Link
+              href="/present"
+              title="Présentation du projet Pivot"
+              aria-label="Présentation du projet Pivot"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors"
+            >
+              <Presentation size={16} />
+            </Link>
             <Link
               href="/feedback"
               title="Feedback — bugs & idées"

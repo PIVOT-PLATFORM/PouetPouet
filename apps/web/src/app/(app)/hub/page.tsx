@@ -9,7 +9,7 @@ import { useFlags } from '@/store/flags'
 import { api } from '@/lib/api'
 import { MODULE_ICONS } from '@/lib/module-icons'
 import { DOMAINS, MON_ESPACE } from '@/lib/hub-domains'
-import { Star, ArrowRight, Compass } from 'lucide-react'
+import { Star, ArrowRight, Compass, Presentation } from 'lucide-react'
 
 interface RecentBoard   { id: string; name: string; updatedAt: string; coverImage: string | null }
 interface RecentDaily   { id: string; name: string; status: string; endedAt: string | null; updatedAt: string }
@@ -92,10 +92,15 @@ export default function HubPage() {
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5">Vos outils, vos favoris et votre activité — au même endroit.</p>
         </div>
-        <Link href="/explorer" className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold shadow-sm transition-colors">
-          <Compass className="w-4 h-4" /> Explorer les domaines
-          <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/present" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:border-primary-300 dark:hover:border-primary-700 hover:text-primary-600 transition-colors">
+            <Presentation className="w-4 h-4" /> Présenter Pivot
+          </Link>
+          <Link href="/explorer" className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold shadow-sm transition-colors">
+            <Compass className="w-4 h-4" /> Explorer les domaines
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
       </div>
 
       {/* Favoris */}
