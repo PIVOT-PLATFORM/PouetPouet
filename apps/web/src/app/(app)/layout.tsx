@@ -12,7 +12,7 @@ import { SessionCountdown } from '@/components/session-countdown'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useNotificationsStore } from '@/store/notifications'
 import { useFlagsStore } from '@/store/flags'
-import { MessageSquare } from 'lucide-react'
+import { MessageSquare, Sun, Moon } from 'lucide-react'
 import { APP_VERSION } from '@/lib/version'
 
 function Avatar({ name, src }: { name: string; src?: string | null }) {
@@ -28,7 +28,7 @@ function Avatar({ name, src }: { name: string; src?: string | null }) {
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { token, user, logout, expireSession, refreshSession, sessionExpired } = useAuthStore()
+  const { token, user, logout, expireSession, refreshSession, sessionExpired, updateProfile } = useAuthStore()
   const hydrated = useAuthHydrated()
   const router = useRouter()
   const pathname = usePathname()
@@ -212,6 +212,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
 
           <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={() => updateProfile({ theme: user.theme === 'dark' ? 'light' : 'dark' }).catch(() => {})}
+              title={user.theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+              aria-label="Basculer le thème"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors"
+            >
+              {user.theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
             <Link
               href="/feedback"
               title="Feedback — bugs & idées"

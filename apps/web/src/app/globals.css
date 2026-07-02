@@ -32,16 +32,17 @@
   --color-secondary-950: var(--secondary-950);
 }
 
-/* ── Palette par défaut : l'identité actuelle (indigo + violet) ── */
+/* ── Palette par défaut : identité PIVOT 2026 (violet #7C5CFF + accent cyan #4EE1FF) ── */
 :root {
-  --primary-50: #eef2ff;  --primary-100: #e0e7ff; --primary-200: #c7d2fe;
-  --primary-300: #a5b4fc; --primary-400: #818cf8; --primary-500: #6366f1;
-  --primary-600: #4f46e5; --primary-700: #4338ca; --primary-800: #3730a3;
-  --primary-900: #312e81; --primary-950: #1e1b4b;
-  --secondary-50: #faf5ff;  --secondary-100: #f3e8ff; --secondary-200: #e9d5ff;
-  --secondary-300: #d8b4fe; --secondary-400: #c084fc; --secondary-500: #a855f7;
-  --secondary-600: #9333ea; --secondary-700: #7e22ce; --secondary-800: #6b21a8;
-  --secondary-900: #581c87; --secondary-950: #3b0764;
+  --primary-50: #f4f1ff;  --primary-100: #eae4ff; --primary-200: #d7ccff;
+  --primary-300: #bba5ff; --primary-400: #9f80ff; --primary-500: #8b6bff;
+  --primary-600: #7c5cff; --primary-700: #6a44f5; --primary-800: #5836d0;
+  --primary-900: #472ba3; --primary-950: #2b1a6b;
+  /* secondary = cyan « point de pivot » : éléments actifs, votes, surlignages */
+  --secondary-50: #ecfdff;  --secondary-100: #cff9ff; --secondary-200: #a5f2ff;
+  --secondary-300: #67e7ff; --secondary-400: #4ee1ff; --secondary-500: #1cc9ee;
+  --secondary-600: #0aa2c8; --secondary-700: #0f81a1; --secondary-800: #156882;
+  --secondary-900: #16566e; --secondary-950: #083a4c;
 }
 
 /* ── Ramps FDE (charte : bleus 001A70/1057C8/1089FF, oranges FE5716/FF861D/FFB210,
