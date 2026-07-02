@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '@/lib/api'
 import { connectSocket } from '@/lib/socket'
 
-export type FeedbackColumn = 'ANALYSE' | 'BACKLOG' | 'IMPLEMENTING' | 'PARKING' | 'DONE'
+export type FeedbackColumn = 'ANALYSE' | 'BACKLOG' | 'IMPLEMENTING' | 'PARKING' | 'DONE' | 'REJECTED'
 export type FeedbackType = 'BUG' | 'FEATURE'
 
 export interface FeedbackTicket {

@@ -19,7 +19,7 @@ const editSchema = z.object({
 })
 
 const moveSchema = z.object({
-  column: z.enum(['ANALYSE', 'BACKLOG', 'IMPLEMENTING', 'PARKING', 'DONE']),
+  column: z.enum(['ANALYSE', 'BACKLOG', 'IMPLEMENTING', 'PARKING', 'DONE', 'REJECTED']),
 })
 
 const serialize = serializeTicket

@@ -14,6 +14,7 @@ const COLUMNS: { key: FeedbackColumn; label: string; color: string }[] = [
   { key: 'IMPLEMENTING', label: 'Implémentation', color: '#d97706' },
   { key: 'PARKING', label: 'Parking', color: '#6b7280' },
   { key: 'DONE', label: 'Fait', color: '#16a34a' },
+  { key: 'REJECTED', label: 'Refusé', color: '#dc2626' },
 ]
 
 const COLUMN_ORDER = COLUMNS.map((c) => c.key)
