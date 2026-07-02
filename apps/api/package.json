@@ -55,7 +55,7 @@
     "@stryker-mutator/typescript-checker": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^22.19.21",
+    "@types/node": "^22.20.0",
     "@types/node-forge": "^1.3.14",
     "@types/pdf-parse": "^1.1.5",
     "prisma": "7.8.0",
