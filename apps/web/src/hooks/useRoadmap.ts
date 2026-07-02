@@ -5,6 +5,7 @@ export type RoadmapScale = 'week' | 'month' | 'quarter' | 'semester' | 'year'
 export type Risk = 'low' | 'med' | 'high'
 export type Prio = 'should' | 'must'
 export type Category = 'infra' | 'dev' | 'cyber'
+export type ItemStatus = 'TODO' | 'DOING' | 'BLOCKED' | 'DONE'
 export type Role = 'OWNER' | 'EDITOR' | 'VIEWER'
 
 export interface RoadmapItem {
@@ -16,6 +17,8 @@ export interface RoadmapItem {
   biz: string | null
   risk: Risk
   prio: Prio
+  status: ItemStatus
+  assigneeId: string | null
   categories: Category[]
   deps: string[]
   order: number
@@ -27,6 +30,7 @@ export interface RoadmapSummary {
   id: string
   name: string
   ownerId: string
+  portfolioId: string | null
   startDate: string
   endDate: string
   scale: RoadmapScale
@@ -40,6 +44,7 @@ export interface RoadmapDetail {
   id: string
   name: string
   ownerId: string
+  portfolioId: string | null
   startDate: string
   endDate: string
   scale: RoadmapScale
@@ -56,8 +61,39 @@ export interface ItemInput {
   biz?: string
   risk?: Risk
   prio?: Prio
+  status?: ItemStatus
+  assigneeId?: string | null
   categories?: Category[]
   deps?: string[]
+}
+
+export interface Collaborator {
+  id: string
+  name: string
+  email: string
+}
+
+// Collaborateurs assignables sur un roadmap : propriétaire + partagés (la
+// liste GET /api/shares/roadmap/:id ne renvoie que les partages, pas le
+// propriétaire — on l'ajoute côté client si l'utilisateur courant l'est).
+export function useRoadmapCollaborators(roadmapId: string, currentUser: Collaborator | null, isOwner: boolean, enabled: boolean) {
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([])
+
+  useEffect(() => {
+    if (!enabled) return
+    let cancelled = false
+    api.get<{ user: Collaborator }[]>(`/api/shares/roadmap/${roadmapId}`)
+      .then((shares) => {
+        if (cancelled) return
+        const list = shares.map((s) => s.user)
+        if (isOwner && currentUser && !list.some((u) => u.id === currentUser.id)) list.unshift(currentUser)
+        setCollaborators(list)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [roadmapId, currentUser, isOwner, enabled])
+
+  return collaborators
 }
 
 // ── Liste des roadmaps (page /roadmap) ──────────────────────────────────────────

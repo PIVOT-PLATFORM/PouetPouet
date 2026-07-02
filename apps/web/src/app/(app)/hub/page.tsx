@@ -56,7 +56,7 @@ const DOMAINS: { id: string; label: string; color: string; moduleIds: string[] }
     id: 'pilotage',
     label: 'Pilotage',
     color: '#4f6ef7',
-    moduleIds: ['roadmap', 'feedback'],
+    moduleIds: ['roadmap', 'portfolio', 'procurement'],
   },
   {
     id: 'outillage',
@@ -75,7 +75,6 @@ const MON_ESPACE: { label: string; desc: string; href: string; moduleId: string 
 // Tous les modules à venir (plateforme cible)
 const INCOMING: { name: string; domain: string }[] = [
   { name: 'OKR & Objectifs',                domain: 'Pilotage'       },
-  { name: 'PPM / Portefeuille projets',     domain: 'Pilotage'       },
   { name: 'Tableaux de bord',               domain: 'Pilotage'       },
   { name: 'Gestion des risques',            domain: 'Pilotage'       },
   { name: 'Cartographie SI',                domain: 'Architecture'   },

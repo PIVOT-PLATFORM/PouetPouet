@@ -34,13 +34,14 @@ interface NotificationsPayload {
   unreadActivity: number
   patchNotes: PatchNote[]
   patchNotesSeenAt: string | null
+  patchNotesSeenVersion: string | null
   hasUnreadPatchNotes: boolean
 }
 
 interface NotificationsState {
   activity: ActivityNotification[]
   patchNotes: PatchNote[]
-  patchNotesSeenAt: string | null
+  patchNotesSeenVersion: string | null
   hasUnreadPatchNotes: boolean
   loaded: boolean
   // Bumped to ask the NotificationBell to open straight onto the patch notes tab
@@ -57,18 +58,18 @@ interface NotificationsState {
   reset: () => void
 }
 
-// True when an activity item newer than the latest patch note read-state is unread,
-// computed from the patch notes list + the stored "seen" timestamp.
-function computeUnreadPatchNotes(patchNotes: PatchNote[], seenAt: string | null): boolean {
-  const latest = patchNotes[0]?.date
+// True when the latest patch note hasn't been acknowledged. Compares versions,
+// not dates: two releases shipped the same day must each light the badge (#219).
+function computeUnreadPatchNotes(patchNotes: PatchNote[], seenVersion: string | null): boolean {
+  const latest = patchNotes[0]?.version
   if (!latest) return false
-  return seenAt === null || new Date(latest) > new Date(seenAt)
+  return latest !== seenVersion
 }
 
 export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   activity: [],
   patchNotes: [],
-  patchNotesSeenAt: null,
+  patchNotesSeenVersion: null,
   hasUnreadPatchNotes: false,
   loaded: false,
   patchNotesSignal: 0,
@@ -81,7 +82,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       set({
         activity: data.activity,
         patchNotes: data.patchNotes,
-        patchNotesSeenAt: data.patchNotesSeenAt,
+        patchNotesSeenVersion: data.patchNotesSeenVersion,
         hasUnreadPatchNotes: data.hasUnreadPatchNotes,
         loaded: true,
       })
@@ -127,7 +128,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
   markPatchNotesSeen: async () => {
     if (!get().hasUnreadPatchNotes) return
-    set({ hasUnreadPatchNotes: false, patchNotesSeenAt: new Date().toISOString() })
+    set({ hasUnreadPatchNotes: false, patchNotesSeenVersion: get().patchNotes[0]?.version ?? null })
     try {
       await api.post('/api/notifications/patch-notes/seen', {})
     } catch { /* optimistic */ }
@@ -137,7 +138,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     set({
       activity: [],
       patchNotes: [],
-      patchNotesSeenAt: null,
+      patchNotesSeenVersion: null,
       hasUnreadPatchNotes: false,
       loaded: false,
     }),

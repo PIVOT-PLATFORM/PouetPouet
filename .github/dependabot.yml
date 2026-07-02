@@ -3,6 +3,10 @@ version: 2
 updates:
   - package-ecosystem: npm
     directory: /
+    # Les PRs de deps suivent le flux normal feature → develop → master ;
+    # sans ça dependabot vise la branche par défaut (master) et un merge
+    # déclencherait le deploy prod direct.
+    target-branch: develop
     schedule:
       interval: weekly
       day: monday
@@ -31,6 +35,7 @@ updates:
 
   - package-ecosystem: github-actions
     directory: /
+    target-branch: develop
     schedule:
       interval: weekly
       day: monday

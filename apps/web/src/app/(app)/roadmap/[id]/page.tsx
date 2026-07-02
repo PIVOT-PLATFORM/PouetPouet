@@ -4,14 +4,15 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Plus } from 'lucide-react'
-import { useRoadmap, type RoadmapScale, type RoadmapItem, type ItemInput, type Category, type Risk, type Prio } from '@/hooks/useRoadmap'
+import { useRoadmap, useRoadmapCollaborators, type RoadmapScale, type RoadmapItem, type ItemInput, type Category, type Risk, type Prio, type ItemStatus } from '@/hooks/useRoadmap'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
+import { useAuthStore } from '@/store/auth'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
 import { RoadmapTimeline } from '@/components/roadmap/roadmap-timeline'
 import { RoadmapItemsPanel } from '@/components/roadmap/roadmap-items-panel'
 import { RoadmapItemModal } from '@/components/roadmap/roadmap-item-modal'
 import { exportRoadmapPDF } from '@/components/roadmap/roadmap-pdf'
-import { CATEGORIES, RISKS, CATEGORY_KEYS, RISK_KEYS } from '@/components/roadmap/roadmap-constants'
+import { CATEGORIES, RISKS, STATUSES, CATEGORY_KEYS, RISK_KEYS, STATUS_KEYS } from '@/components/roadmap/roadmap-constants'
 import { SCALE_LABELS, diffDays } from '@/lib/roadmap-timeline'
 
 type Tab = 'roadmap' | 'items'
@@ -21,6 +22,7 @@ export default function RoadmapEditorPage() {
   useFlagGuard('module.roadmap')
   const { id } = useParams<{ id: string }>()
   const { roadmap, isLoading, accessDenied, updateMeta, createItem, updateItem, deleteItem, reorderItems } = useRoadmap(id)
+  const { user } = useAuthStore()
 
   const [tab, setTab] = useState<Tab>('roadmap')
   const [showDeps, setShowDeps] = useState(false)
@@ -30,6 +32,11 @@ export default function RoadmapEditorPage() {
   const [filterCat, setFilterCat] = useState<Category | null>(null)
   const [filterRisk, setFilterRisk] = useState<Risk | null>(null)
   const [filterPrio, setFilterPrio] = useState<Prio | null>(null)
+  const [filterStatus, setFilterStatus] = useState<ItemStatus | null>(null)
+  const [filterAssignee, setFilterAssignee] = useState<string | null>(null)
+
+  const canEditRole = roadmap?.role === 'OWNER' || roadmap?.role === 'EDITOR'
+  const collaborators = useRoadmapCollaborators(id, user, roadmap?.role === 'OWNER', canEditRole)
 
   if (isLoading) {
     return <div className="flex justify-center py-20"><div className="w-7 h-7 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" /></div>
@@ -43,17 +50,19 @@ export default function RoadmapEditorPage() {
     )
   }
 
-  const canEdit = roadmap.role === 'OWNER' || roadmap.role === 'EDITOR'
+  const canEdit = canEditRole
   const isOwner = roadmap.role === 'OWNER'
   const orderedItems = [...roadmap.items].sort((a, b) => a.order - b.order)
   const filteredItems = orderedItems.filter((item) => {
     if (filterCat && !item.categories.includes(filterCat)) return false
     if (filterRisk && item.risk !== filterRisk) return false
     if (filterPrio && item.prio !== filterPrio) return false
+    if (filterStatus && item.status !== filterStatus) return false
+    if (filterAssignee && item.assigneeId !== filterAssignee) return false
     return true
   })
   const totalDays = diffDays(roadmap.startDate, roadmap.endDate)
-  const hasFilters = !!(filterCat || filterRisk || filterPrio)
+  const hasFilters = !!(filterCat || filterRisk || filterPrio || filterStatus || filterAssignee)
 
   async function handleSaveItem(input: ItemInput) {
     if (editing) await updateItem(editing.id, input)
@@ -91,6 +100,22 @@ export default function RoadmapEditorPage() {
     URL.revokeObjectURL(a.href)
   }
 
+  function exportCSV() {
+    const collabName = (uid: string | null) => (uid ? (collaborators.find((c) => c.id === uid)?.name ?? uid) : '')
+    const headers = ['Nom', 'Début', 'Fin', 'Statut', 'Risque', 'Priorité', 'Catégories', 'Responsable', 'Valeur business']
+    const rows = orderedItems.map((it) => [
+      it.name, it.startDate, it.endDate, STATUSES[it.status].label, RISKS[it.risk].label, it.prio, it.categories.join('/'), collabName(it.assigneeId), it.biz ?? '',
+    ])
+    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`
+    const csv = [headers, ...rows].map((r) => r.map((v) => escape(String(v))).join(',')).join('\n')
+    const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8' }) // BOM pour Excel
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `${roadmap!.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <Link href="/roadmap" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>Roadmap</Link>
@@ -118,6 +143,7 @@ export default function RoadmapEditorPage() {
           {canEdit && <button onClick={() => setEditing(null)} className="flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold px-4 py-2.5 active:scale-95 transition-all shadow-sm"><Plus className="w-4 h-4" />Item</button>}
           <button onClick={exportPDF} className="rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">↓ PDF</button>
           <button onClick={exportJSON} className="rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">↓ JSON</button>
+          <button onClick={exportCSV} className="rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">↓ CSV</button>
           {isOwner && <button onClick={() => setShowShare(true)} className="rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Partager</button>}
         </div>
       </div>
@@ -169,9 +195,23 @@ export default function RoadmapEditorPage() {
               className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${filterPrio === 'must' ? 'border-amber-400 bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 font-bold' : 'border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600'}`}>
               ★ Must
             </button>
+            {STATUS_KEYS.map((s) => (
+              <button key={s} onClick={() => setFilterStatus(filterStatus === s ? null : s)}
+                className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${filterStatus === s ? 'font-bold' : 'border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600'}`}
+                style={filterStatus === s ? { color: STATUSES[s].color, borderColor: STATUSES[s].color, background: STATUSES[s].color + '18' } : {}}>
+                ● {STATUSES[s].label}
+              </button>
+            ))}
+            {collaborators.length > 0 && (
+              <select value={filterAssignee ?? ''} onChange={(e) => setFilterAssignee(e.target.value || null)}
+                className="rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-300">
+                <option value="">Tous les responsables</option>
+                {collaborators.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            )}
             {hasFilters && (
               <>
-                <button onClick={() => { setFilterCat(null); setFilterRisk(null); setFilterPrio(null) }}
+                <button onClick={() => { setFilterCat(null); setFilterRisk(null); setFilterPrio(null); setFilterStatus(null); setFilterAssignee(null) }}
                   className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
                   × Effacer
                 </button>
@@ -206,6 +246,7 @@ export default function RoadmapEditorPage() {
           items={filteredItems}
           totalDays={totalDays}
           canEdit={canEdit}
+          collaborators={collaborators}
           onEdit={(item) => setEditing(item)}
           onDuplicate={handleDuplicate}
           onDelete={handleDeleteItem}
@@ -234,6 +275,7 @@ export default function RoadmapEditorPage() {
         <RoadmapItemModal
           item={editing}
           allItems={orderedItems}
+          collaborators={collaborators}
           defaultStart={roadmap.startDate}
           defaultEnd={roadmap.endDate}
           onSave={handleSaveItem}

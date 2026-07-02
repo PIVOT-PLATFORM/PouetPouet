@@ -116,7 +116,7 @@
 - [x] Rôles enforced sur les boards (reset, sessions, votes, export)
 - [ ] SAML 2.0
 - [x] Permissions par module *(tous les modules dans `ModuleShare` : scrum, daily, team, wheel, capacity, meetops, quiz, roadmap, pdf — cf. ADR-0005)*
-- [~] Tests d'autorisation systématiques *(matrice owner/éditeur/lecteur/étranger : Daily, Scrum, Boards, Roadmap, Wheel ✅ — reste Capacity, MeetOps, Quiz, Games, Testbooks, PDF — #37)*
+- [~] Tests d'autorisation systématiques *(matrice owner/éditeur/lecteur/étranger : Daily, Scrum, Boards, Roadmap, Wheel, Capacity, MeetOps, Portfolio ✅ — reste Quiz, Games, Testbooks, PDF — #37)*
 
 ---
 
@@ -209,6 +209,17 @@
 - [x] Export PDF vectoriel (A4 paysage, paginé, data-driven)
 - [x] Export JSON
 - [x] Partage par rôle (Lecteur / Éditeur / Owner)
+- [x] *(v0.28.0)* Statut par item (À faire / En cours / Bloqué / Terminé) + filtre
+- [x] *(v0.28.0)* Responsable par item (collaborateurs de la roadmap) + filtre
+- [x] *(v0.28.0)* Validation serveur des dépendances : cycles et références mortes refusés (400)
+- [x] *(v0.28.0)* Export CSV (BOM, compatible Excel)
+
+### Module Portefeuille — livré v0.28.0
+- [x] CRUD portefeuilles + rattachement/détachement de roadmaps (suppression du portefeuille = détachement, jamais de perte)
+- [x] Timeline consolidée en lecture seule fusionnant les items de toutes les roadmaps rattachées
+- [x] Légende par roadmap (couleur) servant de filtre ; clic sur un item → ouvre la roadmap source
+- [x] Accès transitif : un rôle sur le portefeuille donne un accès lecture aux roadmaps rattachées (via `bestRole`, sans partage individuel)
+- [x] Partage par rôle (via ModuleShare) + matrice de tests d'autorisation
 
 ### Module Quiz interactif (style Kahoot) — #164
 - [x] CRUD quiz : titre, questions (texte + 2–4 options, bonne réponse, timer, points)
@@ -235,6 +246,16 @@
 - [x] Exports : PDF, texte, images ZIP (client-side), DOCX/MD (si pandoc)
 - [x] Barre de recherche + tri (Nom / Date / Taille / Pages)
 - [x] Partage par rôle (via ModuleShare)
+
+### Module Commande publique — livré v0.28.0
+- [x] Architecture « l'app gère le workflow, les données viennent toujours d'ailleurs » : contrats / demandes d'achat / commandes lus depuis un PGI externe (pod mock `apps/pgi-mock` en dev/démo, vraie API SAP en prod), organigramme lu depuis un LDAP externe (pod mock `apps/ldap-mock`) — l'app ne stocke que ce qu'elle gère réellement
+- [x] Code abstrait réutilisable pour brancher un futur système externe : `packages/mock-service-kit` (fabrique de pod mock) + `apps/api/src/lib/external-client.ts` (client HTTP caché Redis, repli mémoire) — ajouter un pod = un fichier `<nom>-client.ts` de quelques lignes
+- [x] Circuit de validation hiérarchique par seuils d'approbation, avec délégation (`DemandeAchatWorkflow` comme enveloppe applicative sur une demande d'achat externe, `ProfilAchat`/`DelegationValidation` pour les droits)
+- [x] Le manager d'une structure organisationnelle (lu depuis le LDAP) est admin de son périmètre par défaut, peut déléguer sa validation à un autre manager
+- [x] Transparence en lecture sur l'ensemble de l'organisation (consultation libre, édition restreinte au périmètre)
+- [x] Gouvernance projet (Activité) : PMT, jalons PMPG (obligatoires vs libres), risques, budget OPEX/CAPEX/APCO, agrégation par Produit
+- [x] Référentiels configurables par les admins, scopés à un OrgUnit et hérités vers le bas de l'arbre (`GovernanceConfig` : types de ligne budgétaire, types de jalon, types d'activité) — standardisable globalement, adaptable par override à un niveau plus bas
+- [ ] Pod référentiel Produit/taxonomie externe (différé — l'abstraction `mock-service-kit`/`external-client` le permet sans réécriture)
 
 ### Assistant IA Pouet — #163 (PR ouverte)
 - [x] F0 : Ollama docker + LLMProvider/OllamaProvider + route SSE `/api/pouet/chat`

@@ -1,6 +1,6 @@
 {
   "name": "@pouetpouet/api",
-  "version": "0.27.0",
+  "version": "0.28.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,7 +16,8 @@
     "test:mutation": "stryker run",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:seed:procurement": "tsx --env-file=.env scripts/seed-procurement.ts"
   },
   "dependencies": {
     "@types/node-cron": "^3.0.11",

@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Check PROD_URL
         run: |
@@ -31,7 +31,7 @@ jobs:
           fi
 
       - name: ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.14.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
           target: ${{ vars.PROD_URL }}
           rules_file_name: '.zap/rules.tsv'

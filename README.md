@@ -9,7 +9,7 @@
 
 Suite collaborative temps réel pour animer des ateliers, organiser les rituels d'équipe et centraliser les outils de facilitation dans un hub unique.
 
-Le projet est actuellement en version **0.27.0**. Le produit historique **PouetPouet** devient le premier module d'un socle plus large nommé **PIVOT**.
+Le projet est actuellement en version **0.28.0**. Le produit historique **PouetPouet** devient le premier module d'un socle plus large nommé **PIVOT**.
 
 ## Modules disponibles
 
@@ -21,7 +21,9 @@ Le projet est actuellement en version **0.27.0**. Le produit historique **PouetP
 - **MeetOps** : gestion de réunions, comptes-rendus, listes de distribution et historique.
 - **Cahiers de tests** : cahiers et cas de tests collaboratifs avec suivi de recette.
 - **Quiz** : sessions de quiz interactif avec classement, séries et timer adaptatif.
-- **Roadmap** : timeline Gantt d'initiatives et jalons, vues trimestrielle / mensuelle / hebdomadaire.
+- **Roadmap** : timeline Gantt d'initiatives et jalons (statuts, responsables, dépendances validées), vues trimestrielle / mensuelle / hebdomadaire, exports PDF / JSON / CSV.
+- **Portefeuille** : vue consolidée de plusieurs roadmaps sur une timeline unique, avec accès transitif en lecture.
+- **Commande publique** : demandes d'achat (circuit de validation hiérarchique, délégations) et gouvernance projet (jalons, budget, risques), données de référence lues depuis des services externes PGI / LDAP.
 - **PDF Manager** : bibliothèque de PDF, dossiers, tags, éditeur de pages et exports.
 - **Feedback** : kanban de retours utilisateurs (bugs & idées) avec votes, temps réel et gestion admin.
 - **SignDoc** : signature de documents auto-hébergée — workflow de signataires, page publique de signature, sceau numérique PAdES et certificat de réalisation.

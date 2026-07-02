@@ -14,6 +14,14 @@ export function atLeast(role: ModuleRole | null, min: ModuleRole): boolean {
   return role != null && RANK[role] >= RANK[min]
 }
 
+// Le meilleur des deux rôles (utile pour combiner un accès direct et un accès
+// transitif, ex. Portfolio → Roadmap).
+export function bestRole(a: ModuleRole | null, b: ModuleRole | null): ModuleRole | null {
+  if (!a) return b
+  if (!b) return a
+  return RANK[a] >= RANK[b] ? a : b
+}
+
 // Rôle effectif d'un utilisateur sur une ressource : OWNER s'il en est le créateur,
 // sinon le rôle de son partage, sinon null (aucun accès).
 export async function resolveRole(

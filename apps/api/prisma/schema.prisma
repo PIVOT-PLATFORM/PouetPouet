@@ -21,61 +21,76 @@ model User {
   resetToken         String?   @unique
   resetTokenExpires  DateTime?
   patchNotesSeenAt   DateTime?
+  // Dernière version des patch notes vue — la pastille compare les versions, pas
+  // les dates (deux releases le même jour ne rallumaient pas l'indicateur, #219).
+  patchNotesSeenVersion String?
   favoriteModules    String[]  @default([])
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  boards         Board[]
-  boardShares    BoardShare[]
-  notifications  Notification[]
-  boardVotes     BoardVote[]
-  boardFavorites BoardFavorite[]
-  boardTemplates BoardTemplate[]
-  sessions       SessionParticipant[]
-  scrumRooms     ScrumRoom[]
-  teams          Team[]
-  dailySessions  DailySession[]
-  wheelEvents    WheelEvent[]
-  wheelDraws     WheelDraw[]
-  capacityEvents   CapacityEvent[]
-  meetEvents       MeetEvent[]
-  meetDistLists    MeetDistList[]
-  meetTemplates    MeetTemplate[]
-  meetGraphAccount MeetGraphAccount?
-  apiKeys          ApiKey[]
-  webhooks       Webhook[]
-  auditLogs      AuditLog[]
-  oauthAccounts  OAuthAccount[]
-  moduleShares   ModuleShare[]
-  testBooks      TestBook[]
-  quizzes        Quiz[]
-  quizSessions   QuizSession[]
-  gameScores     GameScore[]
-  roadmaps       Roadmap[]
-  pdfDocuments    PdfDocument[]
-  pdfFolders      PdfFolder[]
-  feedbackTickets FeedbackTicket[]
-  feedbackVotes   FeedbackVote[]
-  signEnvelopes   SignEnvelope[]
-  signRecipients  SignRecipient[]
-  parcourTemplates  ParcourTemplate[]
-  parcourInstances  ParcourInstance[]
-  parcourDocuments  ParcourDocument[]
-  parcourHistory    ParcourHistory[]
-  parcourStars      ParcourStar[]
-  forms             Form[]
-  formResponses     FormResponse[]
+  boards             Board[]
+  boardShares        BoardShare[]
+  notifications      Notification[]
+  boardVotes         BoardVote[]
+  boardFavorites     BoardFavorite[]
+  boardTemplates     BoardTemplate[]
+  sessions           SessionParticipant[]
+  scrumRooms         ScrumRoom[]
+  teams              Team[]
+  dailySessions      DailySession[]
+  wheelEvents        WheelEvent[]
+  wheelDraws         WheelDraw[]
+  capacityEvents     CapacityEvent[]
+  meetEvents         MeetEvent[]
+  meetDistLists      MeetDistList[]
+  meetTemplates      MeetTemplate[]
+  meetGraphAccount   MeetGraphAccount?
+  apiKeys            ApiKey[]
+  webhooks           Webhook[]
+  auditLogs          AuditLog[]
+  oauthAccounts      OAuthAccount[]
+  moduleShares       ModuleShare[]
+  testBooks          TestBook[]
+  quizzes            Quiz[]
+  quizSessions       QuizSession[]
+  gameScores         GameScore[]
+  roadmaps           Roadmap[]
+  pdfDocuments       PdfDocument[]
+  pdfFolders         PdfFolder[]
+  feedbackTickets    FeedbackTicket[]
+  feedbackVotes      FeedbackVote[]
+  signEnvelopes      SignEnvelope[]
+  signRecipients     SignRecipient[]
+  parcourTemplates   ParcourTemplate[]
+  parcourInstances   ParcourInstance[]
+  parcourDocuments   ParcourDocument[]
+  parcourHistory     ParcourHistory[]
+  parcourStars       ParcourStar[]
+  forms              Form[]
+  formResponses      FormResponse[]
+  portfolios         Portfolio[]
+  roadmapAssignments RoadmapItem[]
+  demandeAchatWorkflows DemandeAchatWorkflow[]
+  activites             Activite[]
+  activitesPilotees     Activite[]             @relation("ActivitePilote")
+  produits              Produit[]
+  orgUnitConfigs        OrgUnitConfig[]
+  profilsAchat          ProfilAchat[]
+  approbationsDecidees  CommandeApprobation[]
+  delegationsDonnees    DelegationValidation[] @relation("DelegationDelegant")
+  delegationsRecues     DelegationValidation[] @relation("DelegationDelegue")
+  governanceConfigs     GovernanceConfig[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
 // plusieurs providers ; un (provider, sujet) ne mappe qu'un seul compte.
 model OAuthAccount {
-  id         String   @id @default(cuid())
-  userId     String
-  provider   String // issuer URL ou alias (ex. "keycloak", "google")
-  subject    String // claim "sub" du token OIDC
-  email      String?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  provider  String // issuer URL ou alias (ex. "keycloak", "google")
+  subject   String // claim "sub" du token OIDC
+  email     String?
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -143,7 +158,7 @@ model Board {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  owner        User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner        User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   cards        Card[]
   connections  CardConnection[]
   frames       Frame[]
@@ -199,22 +214,22 @@ model BoardShare {
 }
 
 model Card {
-  id        String   @id @default(cuid())
-  boardId   String
-  type      CardType @default(TEXT)
-  content   String
-  meta      Json?
-  posX      Float    @default(0)
-  posY      Float    @default(0)
-  width     Float    @default(192)
-  height    Float    @default(128)
+  id         String   @id @default(cuid())
+  boardId    String
+  type       CardType @default(TEXT)
+  content    String
+  meta       Json?
+  posX       Float    @default(0)
+  posY       Float    @default(0)
+  width      Float    @default(192)
+  height     Float    @default(128)
   color      String   @default("#FFEB3B")
   groupId    String?
   groupColor String?
   locked     Boolean  @default(false)
   layer      Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   board           Board            @relation(fields: [boardId], references: [id], onDelete: Cascade)
   connectionsFrom CardConnection[] @relation("ConnectionFrom")
@@ -249,7 +264,7 @@ model BoardField {
   order     Int       @default(0)
   createdAt DateTime  @default(now())
 
-  board  Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  board  Board            @relation(fields: [boardId], references: [id], onDelete: Cascade)
   values CardFieldValue[]
 }
 
@@ -482,12 +497,12 @@ model ScrumTicket {
 }
 
 model ScrumVote {
-  id              String      @id @default(cuid())
+  id              String   @id @default(cuid())
   ticketId        String
   participantName String
   value           String
-  scale           String      @default("FIBONACCI")
-  createdAt       DateTime    @default(now())
+  scale           String   @default("FIBONACCI")
+  createdAt       DateTime @default(now())
 
   ticket ScrumTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
@@ -514,7 +529,7 @@ model Team {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  owner          User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner          User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members        TeamMember[]
   wheelDraws     WheelDraw[]
   dailySessions  DailySession[]
@@ -697,17 +712,17 @@ model WheelEvent {
 }
 
 model WheelDraw {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   ownerId   String
   teamId    String?
   teamName  String?
   eventId   String?
   note      String?
   count     Int
-  mode      DrawMode  @default(WEIGHTED)
+  mode      DrawMode @default(WEIGHTED)
   results   String[]
   excluded  String[]
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   owner User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   team  Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
@@ -801,7 +816,7 @@ model MeetDistMember {
 
 // Journal d'activité au niveau événement (survit à la suppression d'une réunion).
 model MeetHistory {
-  id           String    @id @default(cuid())
+  id           String   @id @default(cuid())
   eventId      String
   meetingId    String? // null = action sur l'événement
   meetingTitle String? // libellé figé au moment de l'action
@@ -810,7 +825,7 @@ model MeetHistory {
   field        String?
   oldValue     String?
   newValue     String?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime @default(now())
 
   event MeetEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
@@ -834,11 +849,11 @@ model TestBook {
 }
 
 model TestSection {
-  id        String     @id @default(cuid())
+  id        String   @id @default(cuid())
   bookId    String
   title     String
-  order     Int        @default(0)
-  createdAt DateTime   @default(now())
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
 
   book  TestBook   @relation(fields: [bookId], references: [id], onDelete: Cascade)
   cases TestCase[]
@@ -942,44 +957,44 @@ enum MeetingRsvp {
 // ── Quiz interactif ───────────────────────────────────────────────────────────
 
 model Quiz {
-  id         String        @id @default(cuid())
+  id         String         @id @default(cuid())
   title      String
   ownerId    String
-  owner      User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner      User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   questions  QuizQuestion[]
   sessions   QuizSession[]
-  isFavorite Boolean       @default(false)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  isFavorite Boolean        @default(false)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 }
 
 model QuizQuestion {
-  id        String      @id @default(cuid())
+  id        String       @id @default(cuid())
   quizId    String
-  quiz      Quiz        @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quiz      Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
   text      String
-  options   Json        // string[] de 2 à 4 options
-  correct   Int         // index de la bonne réponse (0-based)
-  timeLimit Int         @default(30)   // secondes
-  points    Int         @default(1000)
+  options   Json // string[] de 2 à 4 options
+  correct   Int // index de la bonne réponse (0-based)
+  timeLimit Int          @default(30) // secondes
+  points    Int          @default(1000)
   order     Int
   answers   QuizAnswer[]
 }
 
 model QuizSession {
-  id              String           @id @default(cuid())
+  id              String            @id @default(cuid())
   quizId          String
-  quiz            Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quiz            Quiz              @relation(fields: [quizId], references: [id], onDelete: Cascade)
   ownerId         String
-  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  code            String           @unique
+  owner           User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  code            String            @unique
   title           String?
-  status          QuizStatus       @default(LOBBY)
-  currentQuestion Int              @default(0)
+  status          QuizStatus        @default(LOBBY)
+  currentQuestion Int               @default(0)
   questionEndAt   DateTime?
   participants    QuizParticipant[]
   answers         QuizAnswer[]
-  createdAt       DateTime         @default(now())
+  createdAt       DateTime          @default(now())
 }
 
 enum QuizStatus {
@@ -991,15 +1006,15 @@ enum QuizStatus {
 }
 
 model QuizParticipant {
-  id        String      @id @default(cuid())
-  sessionId String
-  session   QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  name      String
-  score     Int         @default(0)
-  streak      Int         @default(0)
-  bestStreak  Int         @default(0)
-  answers   QuizAnswer[]
-  createdAt DateTime    @default(now())
+  id         String       @id @default(cuid())
+  sessionId  String
+  session    QuizSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name       String
+  score      Int          @default(0)
+  streak     Int          @default(0)
+  bestStreak Int          @default(0)
+  answers    QuizAnswer[]
+  createdAt  DateTime     @default(now())
 
   @@unique([sessionId, name])
 }
@@ -1026,9 +1041,9 @@ model QuizAnswer {
 model GameScore {
   id        String   @id @default(cuid())
   userId    String
-  game      String   // 'postit-rush' | 'trivia' | 'bingo'
+  game      String // 'postit-rush' | 'trivia' | 'bingo'
   score     Int
-  metadata  Json?    // ex: { combo, accuracy, correctAnswers }
+  metadata  Json? // ex: { combo, accuracy, correctAnswers }
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1043,39 +1058,72 @@ model GameScore {
 // d'ids d'autres RoadmapItem du même roadmap (graphe simple, validé côté code).
 
 model Roadmap {
-  id        String   @id @default(cuid())
-  name      String
-  ownerId   String
-  startDate String // yyyy-mm-dd
-  endDate   String // yyyy-mm-dd
-  scale     String   @default("quarter") // week | month | quarter | semester | year
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  name        String
+  ownerId     String
+  portfolioId String? // rattachement optionnel à un Portfolio (accès transitif, cf. portfolio.routes.ts)
+  startDate   String // yyyy-mm-dd
+  endDate     String // yyyy-mm-dd
+  scale       String   @default("quarter") // week | month | quarter | semester | year
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  owner User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  items RoadmapItem[]
+  owner     User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  portfolio Portfolio?    @relation(fields: [portfolioId], references: [id], onDelete: SetNull)
+  items     RoadmapItem[]
 
   @@index([ownerId])
+  @@index([portfolioId])
+}
+
+enum RoadmapItemStatus {
+  TODO
+  DOING
+  BLOCKED
+  DONE
 }
 
 model RoadmapItem {
-  id         String   @id @default(cuid())
+  id         String            @id @default(cuid())
   roadmapId  String
   name       String
   startDate  String // yyyy-mm-dd
   endDate    String // yyyy-mm-dd
   biz        String? // valeur business
-  risk       String   @default("med") // low | med | high
-  prio       String   @default("should") // should | must
-  categories String[] @default([]) // ex. ['infra', 'dev', 'cyber']
-  deps       String[] @default([]) // ids d'autres RoadmapItem (cet item démarre après)
-  order      Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  risk       String            @default("med") // low | med | high
+  prio       String            @default("should") // should | must
+  status     RoadmapItemStatus @default(TODO)
+  assigneeId String? // responsable optionnel — doit avoir accès au roadmap (validé côté code)
+  categories String[]          @default([]) // ex. ['infra', 'dev', 'cyber']
+  deps       String[]          @default([]) // ids d'autres RoadmapItem du même roadmap (cet item démarre après), validés + sans cycle côté code
+  order      Int               @default(0)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
-  roadmap Roadmap @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  roadmap  Roadmap @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  assignee User?   @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
 
   @@index([roadmapId])
+  @@index([assigneeId])
+}
+
+// Portefeuille : regroupe plusieurs Roadmap pour une vue consolidée. Le rôle
+// (OWNER/EDITOR/VIEWER, via ModuleShare module='portfolio') donne un accès
+// TRANSITIF en lecture (VIEWER) ou édition (EDITOR) aux roadmaps rattachées,
+// même sans partage direct dessus — cf. resolveRoadmapAccess() dans
+// roadmap.routes.ts. Une roadmap peut être détachée sans être supprimée.
+model Portfolio {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  roadmaps Roadmap[]
+
+  @@index([ownerId])
 }
 
 model PdfDocument {
@@ -1104,9 +1152,9 @@ model PdfFolder {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  owner     User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  parent    PdfFolder?  @relation("PdfFolderTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children  PdfFolder[] @relation("PdfFolderTree")
+  owner     User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  parent    PdfFolder?    @relation("PdfFolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  PdfFolder[]   @relation("PdfFolderTree")
   documents PdfDocument[]
 
   @@index([ownerId])
@@ -1156,6 +1204,7 @@ model FeedbackVote {
   @@unique([ticketId, userId])
   @@index([userId])
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SignDoc — gestion de documents signés (type DocuSign), auto-hébergé.
 // L'enveloppe fige une copie du PDF (originalHash) et porte un workflow de
@@ -1291,28 +1340,29 @@ enum SignFieldType {
 // ── Module Formulaires ───────────────────────────────────────────────────────
 
 model Form {
-  id                 String   @id @default(cuid())
-  ownerId            String
-  title              String
-  description        String?
-  fields             Json     @default("[]") // FormFieldDef[]
-  isPublished         Boolean @default(false)
-  acceptingResponses  Boolean @default(true)
-  limitOneResponse    Boolean @default(false)
+  id                  String    @id @default(cuid())
+  ownerId             String
+  title               String
+  description         String?
+  fields              Json      @default("[]") // FormFieldDef[]
+  isPublished         Boolean   @default(false)
+  acceptingResponses  Boolean   @default(true)
+  limitOneResponse    Boolean   @default(false)
   notifyOnResponse    Boolean   @default(false)
   confirmationMessage String?
   redirectUrl         String?
   closesAt            DateTime?
   maxResponses        Int?
   publicToken         String    @unique
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   owner     User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   responses FormResponse[]
 
   @@index([ownerId])
 }
+
 model FormResponse {
   id           String   @id @default(cuid())
   formId       String
@@ -1337,7 +1387,7 @@ model ParcourTemplate {
   tags             String[] @default([])
   isPublic         Boolean  @default(false)
   starCount        Int      @default(0)
-  steps            Json     // StepDef[]
+  steps            Json // StepDef[]
   flowEdges        Json     @default("[]") // FlowEdge[]
   triggerType      String   @default("manual") // manual | form_response | webhook | schedule
   triggerConfig    Json     @default("{}") // { formId?, cronExpression?, cronTitle?, webhookTitle? }
@@ -1365,19 +1415,19 @@ model ParcourStar {
 }
 
 model ParcourInstance {
-  id          String        @id @default(cuid())
-  templateId  String
-  ownerId     String
-  title       String
-  refNumber   String?       @unique
-  status         ParcourStatus @default(IN_PROGRESS)
-  priority       String        @default("normal")
-  currentStep    Int           @default(0)
-  dueAt          DateTime?
-  remindByEmail  Boolean       @default(false)
-  data           Json          @default("{}")
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id            String        @id @default(cuid())
+  templateId    String
+  ownerId       String
+  title         String
+  refNumber     String?       @unique
+  status        ParcourStatus @default(IN_PROGRESS)
+  priority      String        @default("normal")
+  currentStep   Int           @default(0)
+  dueAt         DateTime?
+  remindByEmail Boolean       @default(false)
+  data          Json          @default("{}")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   template  ParcourTemplate       @relation(fields: [templateId], references: [id], onDelete: Restrict)
   owner     User                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -1465,4 +1515,321 @@ enum ParcourDocClass {
   C1
   C2
   C3
+}
+
+// ── Module Commande publique (procurement) ──────────────────────────────────
+
+model Activite {
+  id          String         @id @default(cuid())
+  ownerId     String
+  nom         String
+  type        TypeActivite   @default(AUTRE)
+  statut      ActiviteStatut @default(ACTIF)
+  meteo       Meteo          @default(GRIS)
+  description String?
+  enjeux      Boolean        @default(false)
+
+  // Structurel
+  pmt                String?
+  planProduction     Boolean @default(false)
+  schemaDirecteur    Boolean @default(false)
+  hopexLien          String?
+  piloteId           String?
+  produitId          String?
+  departementId      String?
+  pole               String?
+  domaineMetier      String?
+  sousDomaineMetier  String?
+  capaciteMetier     String?
+  sousCapaciteMetier String?
+  prioriteMetier     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner                 User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  pilote                User?                  @relation("ActivitePilote", fields: [piloteId], references: [id], onDelete: SetNull)
+  produit               Produit?               @relation(fields: [produitId], references: [id], onDelete: SetNull)
+  departement           OrgUnitConfig?         @relation(fields: [departementId], references: [id], onDelete: SetNull)
+  demandeAchatWorkflows DemandeAchatWorkflow[]
+  gains                 ActiviteGain[]
+  faitsMarquants        ActiviteFaitMarquant[]
+  budgetLignes          ActiviteBudgetLigne[]
+  jalons                ActiviteJalon[]
+  risques               ActiviteRisque[]
+}
+
+model Produit {
+  id        String   @id @default(cuid())
+  ownerId   String
+  nom       String
+  createdAt DateTime @default(now())
+
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  activites Activite[]
+}
+
+model ActiviteGain {
+  id          String  @id @default(cuid())
+  activiteId  String
+  montant     Float
+  typologie   String
+  commentaire String?
+  order       Int     @default(0)
+
+  activite Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+}
+
+model ActiviteFaitMarquant {
+  id         String   @id @default(cuid())
+  activiteId String
+  date       DateTime
+  texte      String
+  createdAt  DateTime @default(now())
+
+  activite Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+}
+
+model ActiviteBudgetLigne {
+  id                String          @id @default(cuid())
+  activiteId        String
+  annee             Int
+  type              TypeLigneBudget
+  montantMo         Float?
+  montantHmo        Float?
+  utilisateurMetier String?
+  priorite          String?
+  objetGestion      String?
+  jalonPhase        JalonType?
+  contratId         String? // id externe opaque (pod pgi-mock) — validé via pgiClient, pas de FK
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  activite Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+}
+
+model ActiviteJalon {
+  id          String    @id @default(cuid())
+  activiteId  String
+  type        JalonType
+  libelle     String?
+  datePrevue  DateTime?
+  dateReelle  DateTime?
+  decision    String?
+  commentaire String?
+  order       Int       @default(0)
+  // Figé à la création selon la résolution GovernanceConfig en vigueur à ce moment
+  // (cf. governance-config.ts) — un jalon "obligatoire" ne peut pas être supprimé.
+  // Un changement de configuration ultérieur n'affecte pas les jalons déjà créés.
+  obligatoire Boolean   @default(false)
+
+  activite Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+}
+
+model ActiviteRisque {
+  id                 String       @id @default(cuid())
+  activiteId         String
+  titre              String
+  description        String?
+  categorie          String?
+  probabilite        Int
+  impact             Int
+  planMitigation     String?
+  responsable        String?
+  jiraLien           String?
+  statut             RisqueStatut @default(OUVERT)
+  dateIdentification DateTime     @default(now())
+  dateRevue          DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  activite Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+}
+
+model DemandeAchatWorkflow {
+  id                     String           @id @default(cuid())
+  demandeAchatExternalId String           @unique
+  ownerId                String
+  orgUnitId              String
+  activiteId             String?
+  validationStatut       ValidationStatut @default(EN_VALIDATION)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  owner        User                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  orgUnit      OrgUnitConfig         @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+  activite     Activite?             @relation(fields: [activiteId], references: [id], onDelete: SetNull)
+  approbations CommandeApprobation[]
+}
+
+model OrgUnitConfig {
+  id               String   @id
+  ownerId          String
+  seuilApprobation Float?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  owner                 User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  profils               ProfilAchat[]
+  demandeAchatWorkflows DemandeAchatWorkflow[]
+  approbations          CommandeApprobation[]
+  delegations           DelegationValidation[]
+  activites             Activite[]
+  governanceConfigs     GovernanceConfig[]
+}
+
+model GovernanceConfig {
+  id          String            @id @default(cuid())
+  ownerId     String
+  orgUnitId   String
+  champ       ChampConfigurable
+  valeur      String
+  obligatoire Boolean           @default(false)
+  actif       Boolean           @default(true)
+  ordre       Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  owner   User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  orgUnit OrgUnitConfig @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+
+  @@unique([orgUnitId, champ, valeur])
+}
+
+enum ChampConfigurable {
+  TYPE_LIGNE_BUDGET
+  JALON_TYPE
+  TYPE_ACTIVITE
+}
+
+model ProfilAchat {
+  id        String    @id @default(cuid())
+  userId    String
+  role      RoleAchat
+  orgUnitId String?
+  createdAt DateTime  @default(now())
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orgUnit OrgUnitConfig? @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role, orgUnitId])
+}
+
+model DelegationValidation {
+  id          String            @id @default(cuid())
+  delegantId  String
+  delegueId   String
+  orgUnitId   String
+  pouvoir     PouvoirDelegation
+  pourcentage Float?
+  seuilEuro   Float?
+  dateDebut   DateTime?
+  dateFin     DateTime?
+  statut      StatutDelegation  @default(ACTIVE)
+  createdAt   DateTime          @default(now())
+
+  delegant User          @relation("DelegationDelegant", fields: [delegantId], references: [id], onDelete: Cascade)
+  delegue  User          @relation("DelegationDelegue", fields: [delegueId], references: [id], onDelete: Cascade)
+  orgUnit  OrgUnitConfig @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+}
+
+model CommandeApprobation {
+  id                     String            @id @default(cuid())
+  demandeAchatWorkflowId String
+  order                  Int
+  type                   ApprobationType
+  orgUnitId              String?
+  statut                 StatutApprobation @default(EN_ATTENTE)
+  validateurId           String?
+  decidedAt              DateTime?
+  commentaire            String?
+  createdAt              DateTime          @default(now())
+
+  demandeAchatWorkflow DemandeAchatWorkflow @relation(fields: [demandeAchatWorkflowId], references: [id], onDelete: Cascade)
+  orgUnit              OrgUnitConfig?       @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+  validateur           User?                @relation(fields: [validateurId], references: [id], onDelete: SetNull)
+}
+
+enum TypeActivite {
+  REFONTE
+  RUN
+  NOUVEAU
+  EVOLUTION
+  MAINTENANCE
+  DECOMMISSIONNEMENT
+  AUTRE
+}
+
+enum ActiviteStatut {
+  ACTIF
+  CLOTURE
+  SUSPENDU
+}
+
+enum Meteo {
+  VERT
+  ORANGE
+  ROUGE
+  GRIS
+}
+
+enum TypeLigneBudget {
+  OPEX
+  CAPEX
+  APCO
+}
+
+enum JalonType {
+  A_ARRIVEE
+  B_ETUDE
+  C_REALISATION
+  D_DECLARATION_GAINS
+  E_DECOMMISSIONNEMENT
+  REVUE_PROJET
+  J7_MEP
+  J3_RECETTE
+  COMITE_TECHNIQUE
+  COMITE_ARCHITECTURE
+  COMITE_CADRAGE
+  AUTRE
+}
+
+enum RisqueStatut {
+  OUVERT
+  EN_COURS
+  CLOS
+}
+
+enum ValidationStatut {
+  EN_VALIDATION
+  VALIDEE
+  REJETEE
+}
+
+enum RoleAchat {
+  CHEF_DE_PROJET
+  VALIDEUR
+  FINANCE
+  CONTRACT_MANAGER
+}
+
+enum PouvoirDelegation {
+  COMPLET
+  PARTIEL
+}
+
+enum StatutDelegation {
+  ACTIVE
+  REVOQUEE
+}
+
+enum ApprobationType {
+  HIERARCHIE
+  FINANCE
+}
+
+enum StatutApprobation {
+  EN_ATTENTE
+  APPROUVEE
+  REJETEE
 }

@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import type { RoadmapItem, ItemInput, Category, Risk, Prio } from '@/hooks/useRoadmap'
-import { CATEGORIES, CATEGORY_KEYS, RISKS, RISK_KEYS } from './roadmap-constants'
+import type { RoadmapItem, ItemInput, Category, Risk, Prio, ItemStatus, Collaborator } from '@/hooks/useRoadmap'
+import { CATEGORIES, CATEGORY_KEYS, RISKS, RISK_KEYS, STATUSES, STATUS_KEYS } from './roadmap-constants'
 
 interface Props {
   item: RoadmapItem | null // null = création
   allItems: RoadmapItem[] // pour la liste de dépendances
+  collaborators: Collaborator[] // pour l'assignation
   defaultStart: string
   defaultEnd: string
   onSave: (input: ItemInput) => Promise<void>
@@ -17,13 +18,15 @@ interface Props {
 
 const inputCls = 'w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400'
 
-export function RoadmapItemModal({ item, allItems, defaultStart, defaultEnd, onSave, onDelete, onDuplicate, onClose }: Props) {
+export function RoadmapItemModal({ item, allItems, collaborators, defaultStart, defaultEnd, onSave, onDelete, onDuplicate, onClose }: Props) {
   const [name, setName] = useState(item?.name ?? '')
   const [startDate, setStartDate] = useState(item?.startDate ?? defaultStart)
   const [endDate, setEndDate] = useState(item?.endDate ?? defaultEnd)
   const [biz, setBiz] = useState(item?.biz ?? '')
   const [risk, setRisk] = useState<Risk>(item?.risk ?? 'med')
   const [prio, setPrio] = useState<Prio>(item?.prio ?? 'should')
+  const [status, setStatus] = useState<ItemStatus>(item?.status ?? 'TODO')
+  const [assigneeId, setAssigneeId] = useState<string>(item?.assigneeId ?? '')
   const [categories, setCategories] = useState<Category[]>(item?.categories?.length ? item.categories : ['dev'])
   const [deps, setDeps] = useState<string[]>(item?.deps ?? [])
   const [depQuery, setDepQuery] = useState('')
@@ -64,6 +67,8 @@ export function RoadmapItemModal({ item, allItems, defaultStart, defaultEnd, onS
         biz: biz.trim() || undefined,
         risk,
         prio,
+        status,
+        assigneeId: assigneeId || null,
         categories: categories.length ? categories : ['dev'],
         deps,
       })
@@ -136,6 +141,28 @@ export function RoadmapItemModal({ item, allItems, defaultStart, defaultEnd, onS
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">Statut</label>
+            <div className="flex gap-2">
+              {STATUS_KEYS.map((s) => (
+                <button key={s} type="button" onClick={() => setStatus(s)}
+                  className={`flex-1 rounded-xl border py-2 text-xs font-medium transition-colors ${status === s ? 'border-primary-500 bg-primary-50 dark:bg-primary-950 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300'}`}>
+                  <span style={{ color: STATUSES[s].color }}>●</span> {STATUSES[s].label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">Responsable</label>
+            <select value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)} className={inputCls}>
+              <option value="">— Non assigné —</option>
+              {collaborators.map((c) => (
+                <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex flex-col gap-1.5">
