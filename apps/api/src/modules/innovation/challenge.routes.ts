@@ -3,9 +3,10 @@ import { z } from 'zod'
 import { prisma } from '../../lib/prisma.js'
 import { isAdminEmail } from '../../lib/feature-flags.js'
 import { notify } from '../../lib/notify.js'
-import { resolveRole, canManage, deleteResourceShares } from '../../lib/module-share.js'
+import { deleteResourceShares } from '../../lib/module-share.js'
 import { serializeChallenge } from './challenge-serialize.js'
 import { resolveOrgUnits, isInSubtree } from './innovation-org.js'
+import { canManageChallenge, isJuror } from './challenge-access.js'
 
 const STATUSES = ['DRAFT', 'OPEN', 'EVALUATION', 'CLOSED'] as const
 const STATUS_RANK: Record<(typeof STATUSES)[number], number> = { DRAFT: 0, OPEN: 1, EVALUATION: 2, CLOSED: 3 }
@@ -41,15 +42,6 @@ const entrySchema = z.object({ ficheId: z.string().min(1) })
 const winnersSchema = z.object({ ficheIds: z.array(z.string().min(1)) })
 
 const CHALLENGE_INCLUDE = { _count: { select: { entries: true } } } as const
-
-// Propriétaire, éditeur partagé (ModuleShare) ou admin de l'app : seuls habilités
-// à administrer un challenge (édition, transitions, lauréats). La liste et le détail
-// restent visibles par tous les connectés — comme les fiches (#223).
-async function canManageChallenge(challenge: { id: string; ownerId: string }, userId: string, email: string): Promise<boolean> {
-  if (isAdminEmail(email)) return true
-  const role = await resolveRole('challenge', challenge.id, userId, challenge.ownerId)
-  return canManage(role)
-}
 
 export const challengeRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate)
@@ -108,6 +100,7 @@ export const challengeRoutes: FastifyPluginAsync = async (app) => {
     return {
       ...serializeChallenge(challenge),
       canManage: await canManageChallenge(challenge, userId, email),
+      isJuror: await isJuror(id, userId),
       entries: challenge.entries.map((e) => ({ fiche: e.fiche, isWinner: e.isWinner, submittedById: e.submittedById })),
     }
   })
