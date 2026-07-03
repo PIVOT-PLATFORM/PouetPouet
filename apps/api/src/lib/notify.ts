@@ -22,6 +22,7 @@ export type NotificationType =
   | 'INNOVATION_CONTRIBUTOR_ADDED'
   | 'INNOVATION_FICHE_SUBMITTED'
   | 'INNOVATION_FICHE_WINNER'
+  | 'INNOVATION_JUROR_INVITED'
 
 interface NotifyInput {
   userId: string

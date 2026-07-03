@@ -37,6 +37,7 @@ export interface ChallengeEntry {
 
 export interface ChallengeDetail extends Challenge {
   canManage: boolean
+  isJuror: boolean
   entries: ChallengeEntry[]
 }
 

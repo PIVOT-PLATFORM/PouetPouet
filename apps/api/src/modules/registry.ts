@@ -33,6 +33,7 @@ import { innovationRoutes } from './innovation/innovation.routes.js'
 import { challengeRoutes } from './innovation/challenge.routes.js'
 import { innovationOrgRoutes } from './innovation/org.routes.js'
 import { innovationStatsRoutes } from './innovation/stats.routes.js'
+import { scoringRoutes } from './innovation/scoring.routes.js'
 
 // FORGE F0 — registre des modules côté API.
 // Le socle (index.ts) monte routes et handlers socket en itérant ce registre :
@@ -147,6 +148,7 @@ export const API_MODULES: ApiModule[] = [
       { plugin: challengeRoutes, prefix: '/api/innovation' },
       { plugin: innovationOrgRoutes, prefix: '/api/innovation' },
       { plugin: innovationStatsRoutes, prefix: '/api/innovation' },
+      { plugin: scoringRoutes, prefix: '/api/innovation' },
     ],
     socketHandlers: [],
   },

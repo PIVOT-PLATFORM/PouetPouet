@@ -85,6 +85,8 @@ model User {
   innovationVotes         InnovationVote[]
   innovationChallenges    InnovationChallenge[]
   challengeEntriesSubmitted ChallengeEntry[]
+  challengeJuryMemberships ChallengeJuror[]
+  challengeScoresGiven     ChallengeScore[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1334,8 +1336,10 @@ model InnovationChallenge {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  owner   User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  entries ChallengeEntry[]
+  owner    User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  entries  ChallengeEntry[]
+  criteria ChallengeCriterion[]
+  jurors   ChallengeJuror[]
 
   @@index([ownerId])
   @@index([status])
@@ -1352,9 +1356,59 @@ model ChallengeEntry {
   challenge   InnovationChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
   fiche       InnovationFiche     @relation(fields: [ficheId], references: [id], onDelete: Cascade)
   submittedBy User                @relation(fields: [submittedById], references: [id], onDelete: Cascade)
+  scores      ChallengeScore[]
 
   @@unique([challengeId, ficheId])
   @@index([ficheId])
+}
+
+// Scoring multi-critères & jurys (v2-B, #231). Un critère est défini par l'admin du
+// challenge, pondéré (poids 1-5) ; verrouillé (plus de création/édition/suppression)
+// une fois le challenge passé en EVALUATION pour garder un référentiel de notation
+// stable pendant que les jurés notent.
+model ChallengeCriterion {
+  id          String   @id @default(cuid())
+  challengeId String
+  label       String
+  poids       Int      @default(1)
+  ordre       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  challenge InnovationChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  scores    ChallengeScore[]
+
+  @@index([challengeId])
+}
+
+model ChallengeJuror {
+  id          String   @id @default(cuid())
+  challengeId String
+  userId      String
+  createdAt   DateTime @default(now())
+
+  challenge InnovationChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+}
+
+model ChallengeScore {
+  id          String   @id @default(cuid())
+  entryId     String
+  criterionId String
+  jurorId     String
+  note        Int
+  commentaire String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  entry     ChallengeEntry     @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  criterion ChallengeCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+  juror     User               @relation(fields: [jurorId], references: [id], onDelete: Cascade)
+
+  @@unique([entryId, criterionId, jurorId])
+  @@index([entryId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
