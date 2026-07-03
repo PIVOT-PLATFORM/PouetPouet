@@ -6,6 +6,8 @@ import { useParams } from 'next/navigation'
 import { ChevronLeft, ThumbsUp, Trophy, User, X } from 'lucide-react'
 import { useInnovationFiche, type InnovationStatus } from '@/hooks/useInnovation'
 import { useChallenges, useFicheChallengeEntries, submitFicheToChallenge } from '@/hooks/useChallenges'
+import { useOrgUnits, useInnovationCategories } from '@/hooks/useInnovationOrg'
+import { OrgUnitPicker } from '@/components/innovation/org-unit-picker'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useAuthStore } from '@/store/auth'
 
@@ -39,6 +41,8 @@ export default function InnovationDetailPage() {
   const { fiche, isLoading, notFound, updateFiche, toggleVote, addContributor, removeContributor } = useInnovationFiche(id)
   const { entries: challengeEntries, reload: reloadChallengeEntries } = useFicheChallengeEntries(id)
   const { challenges } = useChallenges()
+  const { units } = useOrgUnits()
+  const { categories } = useInnovationCategories(fiche?.orgUnitRef ?? null)
 
   const [editing, setEditing] = useState(false)
   const [contributorEmail, setContributorEmail] = useState('')
@@ -144,6 +148,22 @@ export default function InnovationDetailPage() {
       </div>
       {fiche.status === 'ABANDONNEE' && fiche.abandonReason && (
         <p className="text-sm text-gray-500 dark:text-gray-400 italic">Motif d'abandon : {fiche.abandonReason}</p>
+      )}
+
+      {/* Périmètre & catégorie */}
+      {canEdit ? (
+        <div className="grid grid-cols-2 gap-3">
+          <OrgUnitPicker units={units} value={fiche.orgUnitRef} onChange={(v) => updateFiche({ orgUnitRef: v, categoryId: null })} placeholder="Aucun périmètre" className={inputCls} />
+          <select value={fiche.category?.id ?? ''} onChange={(e) => updateFiche({ categoryId: e.target.value || null })} className={inputCls}>
+            <option value="">Aucune catégorie</option>
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+        </div>
+      ) : (fiche.orgUnitRef || fiche.category) && (
+        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+          {fiche.orgUnitRef && <span>{units.find((u) => u.ref === fiche.orgUnitRef)?.nom ?? fiche.orgUnitRef}</span>}
+          {fiche.category && <span className="font-medium text-amber-600 dark:text-amber-400">{fiche.category.label}</span>}
+        </div>
       )}
 
       {/* Contenu */}

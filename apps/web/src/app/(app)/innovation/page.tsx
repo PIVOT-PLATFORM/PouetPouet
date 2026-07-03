@@ -4,8 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Lightbulb, Plus, ThumbsUp, User } from 'lucide-react'
 import { useInnovationFiches, type InnovationStatus, type FicheInput } from '@/hooks/useInnovation'
+import { useOrgUnits, useInnovationCategories } from '@/hooks/useInnovationOrg'
+import { OrgUnitPicker } from '@/components/innovation/org-unit-picker'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
+import { useAuthStore } from '@/store/auth'
 
 const STATUSES: { key: InnovationStatus; label: string; color: string }[] = [
   { key: 'IDEE', label: 'Idée', color: '#eab308' },
@@ -26,8 +29,12 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (input:
   const [probleme, setProbleme] = useState('')
   const [solution, setSolution] = useState('')
   const [benefices, setBenefices] = useState('')
+  const [orgUnitRef, setOrgUnitRef] = useState<string | null>(null)
+  const [categoryId, setCategoryId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { units } = useOrgUnits()
+  const { categories } = useInnovationCategories(orgUnitRef)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -41,6 +48,8 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (input:
         probleme: probleme.trim() || undefined,
         solution: solution.trim() || undefined,
         benefices: benefices.trim() || undefined,
+        orgUnitRef: orgUnitRef ?? undefined,
+        categoryId: categoryId ?? undefined,
       })
       onClose()
     } catch {
@@ -78,6 +87,19 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (input:
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Bénéfices (optionnel)</label>
             <textarea value={benefices} onChange={(e) => setBenefices(e.target.value)} rows={2} className={`${inputCls} resize-none`} />
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Périmètre (optionnel)</label>
+              <OrgUnitPicker units={units} value={orgUnitRef} onChange={(v) => { setOrgUnitRef(v); setCategoryId(null) }} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Catégorie (optionnel)</label>
+              <select value={categoryId ?? ''} onChange={(e) => setCategoryId(e.target.value || null)} className={inputCls}>
+                <option value="">Aucune</option>
+                {categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </div>
+          </div>
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
           <div className="flex gap-3 pt-1 shrink-0">
             <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Annuler</button>
@@ -93,14 +115,21 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (input:
 
 export default function InnovationListPage() {
   useFlagGuard('module.innovation')
+  const user = useAuthStore((s) => s.user)
   const [status, setStatus] = useState<InnovationStatus | null>(null)
   const [mine, setMine] = useState(false)
   const [search, setSearch] = useState('')
+  const [orgUnitRef, setOrgUnitRef] = useState<string | null>(null)
+  const [categoryId, setCategoryId] = useState<string | null>(null)
   const debouncedSearch = useDebouncedValue(search)
+  const { units } = useOrgUnits()
+  const { categories } = useInnovationCategories(orgUnitRef)
   const { fiches, isLoading, createFiche, toggleVote } = useInnovationFiches({
     status: status ?? undefined,
     mine,
     q: debouncedSearch || undefined,
+    orgUnitRef: orgUnitRef ?? undefined,
+    categoryId: categoryId ?? undefined,
   })
   const [creating, setCreating] = useState(false)
 
@@ -111,9 +140,14 @@ export default function InnovationListPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2"><Lightbulb size={28} style={{ color: '#eab308' }} />Innovation</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">{isLoading ? '…' : `${fiches.length} fiche${fiches.length !== 1 ? 's' : ''}`} — visibles par toute l'équipe</p>
         </div>
-        <button onClick={() => setCreating(true)} className="flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 active:scale-95 transition-all shadow-sm">
-          <Plus size={16} /> Nouvelle fiche
-        </button>
+        <div className="flex items-center gap-2">
+          {user?.isAdmin && (
+            <Link href="/innovation/organisation" className="rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Organisation</Link>
+          )}
+          <button onClick={() => setCreating(true)} className="flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 active:scale-95 transition-all shadow-sm">
+            <Plus size={16} /> Nouvelle fiche
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-4 border-b border-gray-100 dark:border-gray-800 -mt-2">
@@ -152,6 +186,24 @@ export default function InnovationListPage() {
         />
       </div>
 
+      <div className="flex items-center gap-2 flex-wrap">
+        <OrgUnitPicker
+          units={units}
+          value={orgUnitRef}
+          onChange={(v) => { setOrgUnitRef(v); setCategoryId(null) }}
+          placeholder="Tous les périmètres"
+          className="w-56 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+        />
+        <select
+          value={categoryId ?? ''}
+          onChange={(e) => setCategoryId(e.target.value || null)}
+          className="w-48 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+        >
+          <option value="">Toutes les catégories</option>
+          {categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+        </select>
+      </div>
+
       {isLoading ? (
         <div className="flex justify-center py-20"><div className="w-7 h-7 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" /></div>
       ) : fiches.length === 0 ? (
@@ -171,6 +223,7 @@ export default function InnovationListPage() {
                   <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0" style={{ background: meta.color + '1a', color: meta.color }}>{meta.label}</span>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3">{f.pitch}</p>
+                {f.category && <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 w-fit">{f.category.label}</span>}
                 <div className="flex items-center justify-between gap-2 pt-2 mt-auto border-t border-gray-50 dark:border-gray-800">
                   <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 truncate"><User size={12} />{f.author.name}</span>
                   <button

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ChevronLeft, Trophy, User } from 'lucide-react'
 import { useChallenge, type ChallengeStatus } from '@/hooks/useChallenges'
+import { useOrgUnits } from '@/hooks/useInnovationOrg'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
 
@@ -24,6 +25,7 @@ export default function ChallengeDetailPage() {
   useFlagGuard('module.innovation')
   const { id } = useParams<{ id: string }>()
   const { challenge, isLoading, notFound, updateChallenge, removeEntry, setWinners } = useChallenge(id)
+  const { units } = useOrgUnits()
 
   const [showShare, setShowShare] = useState(false)
   const [selectingWinners, setSelectingWinners] = useState(false)
@@ -71,6 +73,9 @@ export default function ChallengeDetailPage() {
           {challenge.theme && <p className="text-amber-600 dark:text-amber-400 font-medium mt-1">{challenge.theme}</p>}
           {(challenge.opensAt || challenge.closesAt) && (
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{frDate(challenge.opensAt)}{challenge.closesAt ? ` → ${frDate(challenge.closesAt)}` : ''}</p>
+          )}
+          {challenge.orgUnitRef && (
+            <p className="text-xs text-gray-400 mt-1">Éligibilité : {units.find((u) => u.ref === challenge.orgUnitRef)?.nom ?? challenge.orgUnitRef} et son périmètre</p>
           )}
         </div>
         {challenge.canManage && (

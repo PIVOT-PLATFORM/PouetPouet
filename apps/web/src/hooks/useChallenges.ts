@@ -14,6 +14,7 @@ export interface Challenge {
   opensAt: string | null
   closesAt: string | null
   ownerId: string
+  orgUnitRef: string | null
   entryCount: number
   createdAt: string
   updatedAt: string
@@ -45,6 +46,7 @@ export interface ChallengeInput {
   theme?: string
   opensAt?: string
   closesAt?: string
+  orgUnitRef?: string
 }
 
 // ── Liste des challenges (page /innovation/challenges) ──────────────────────────

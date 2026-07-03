@@ -11,9 +11,11 @@ const base: InnovationFicheRow = {
   status: 'IDEE',
   abandonReason: null,
   authorId: 'u-alice',
+  orgUnitRef: null,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-02'),
   author: { id: 'u-alice', name: 'Alice' },
+  category: null,
   contributors: [],
   _count: { votes: 0 },
   votes: [],
@@ -51,5 +53,12 @@ describe('serializeFiche', () => {
   it('conserve le motif d\'abandon', () => {
     const f = { ...base, status: 'ABANDONNEE', abandonReason: 'Redondant avec un autre projet' }
     expect(serializeFiche(f).abandonReason).toBe('Redondant avec un autre projet')
+  })
+
+  it('conserve orgUnitRef et category', () => {
+    const f = { ...base, orgUnitRef: 'ldap:org1', category: { id: 'cat1', label: 'Process' } }
+    const s = serializeFiche(f)
+    expect(s.orgUnitRef).toBe('ldap:org1')
+    expect(s.category).toEqual({ id: 'cat1', label: 'Process' })
   })
 })

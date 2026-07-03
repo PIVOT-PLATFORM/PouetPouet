@@ -1233,17 +1233,20 @@ model InnovationFiche {
   status        InnovationStatus @default(IDEE)
   abandonReason String?
   authorId      String
-  orgUnitRef    String? // "ldap:<id>" | "int:<id>" — branché en PR3 (ADR-0012)
+  orgUnitRef    String? // "ldap:<id>" | "int:<id>" (ADR-0012)
+  categoryId    String?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
   author       User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category     InnovationCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   contributors InnovationContributor[]
   votes        InnovationVote[]
   entries      ChallengeEntry[]
 
   @@index([authorId])
   @@index([status])
+  @@index([categoryId])
 }
 
 model InnovationContributor {
@@ -1269,6 +1272,46 @@ model InnovationVote {
 
   @@unique([ficheId, userId])
   @@index([userId])
+}
+
+// Hiérarchie organisationnelle INTERNE, administrée dans l'app — cohabite avec le
+// référentiel LDAP externe (ldapClient) sans jamais le dupliquer. Cf. ADR-0012 :
+// toute référence croisant les deux référentiels utilise un ref préfixé opaque
+// ("ldap:<id>" | "int:<id>"), résolu par resolveOrgUnits() (innovation-org.ts).
+enum InnovationOrgNiveau {
+  COMEX
+  DIRECTION
+  DIVISION
+  DEPARTEMENT
+  EQUIPE
+}
+
+model InnovationOrgUnit {
+  id        String              @id @default(cuid())
+  nom       String
+  niveau    InnovationOrgNiveau
+  parentId  String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  parent   InnovationOrgUnit?  @relation("InnovationOrgTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children InnovationOrgUnit[] @relation("InnovationOrgTree")
+
+  @@index([parentId])
+}
+
+model InnovationCategory {
+  id         String   @id @default(cuid())
+  label      String
+  orgUnitRef String? // null = catégorie globale ; sinon scopée à un périmètre ("ldap:<id>" | "int:<id>"), héritée vers le bas de l'arbre
+  actif      Boolean  @default(true)
+  ordre      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  fiches InnovationFiche[]
+
+  @@unique([label, orgUnitRef])
 }
 
 enum ChallengeStatus {

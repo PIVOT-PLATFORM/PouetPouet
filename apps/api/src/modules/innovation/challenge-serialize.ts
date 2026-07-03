@@ -10,6 +10,7 @@ export type ChallengeRow = {
   opensAt: Date | null
   closesAt: Date | null
   ownerId: string
+  orgUnitRef: string | null
   createdAt: Date
   updatedAt: Date
   _count: { entries: number }
@@ -25,6 +26,7 @@ export function serializeChallenge(c: ChallengeRow) {
     opensAt: c.opensAt,
     closesAt: c.closesAt,
     ownerId: c.ownerId,
+    orgUnitRef: c.orgUnitRef,
     entryCount: c._count.entries,
     createdAt: c.createdAt,
     updatedAt: c.updatedAt,

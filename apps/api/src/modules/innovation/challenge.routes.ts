@@ -4,6 +4,7 @@ import { prisma } from '../../lib/prisma.js'
 import { isAdminEmail } from '../../lib/feature-flags.js'
 import { resolveRole, canManage, deleteResourceShares } from '../../lib/module-share.js'
 import { serializeChallenge } from './challenge-serialize.js'
+import { resolveOrgUnits, isInSubtree } from './innovation-org.js'
 
 const STATUSES = ['DRAFT', 'OPEN', 'EVALUATION', 'CLOSED'] as const
 const STATUS_RANK: Record<(typeof STATUSES)[number], number> = { DRAFT: 0, OPEN: 1, EVALUATION: 2, CLOSED: 3 }
@@ -14,6 +15,7 @@ const createSchema = z.object({
   theme: z.string().max(120).optional(),
   opensAt: z.string().datetime().optional(),
   closesAt: z.string().datetime().optional(),
+  orgUnitRef: z.string().min(1).optional(),
 })
 
 const editSchema = z.object({
@@ -23,7 +25,16 @@ const editSchema = z.object({
   status: z.enum(STATUSES).optional(),
   opensAt: z.string().datetime().nullable().optional(),
   closesAt: z.string().datetime().nullable().optional(),
+  orgUnitRef: z.string().min(1).nullable().optional(),
 })
+
+// Valide qu'un ref organisationnel existe dans le référentiel fusionné (LDAP + interne).
+async function validateOrgUnitRef(orgUnitRef: string | null | undefined): Promise<string | null> {
+  if (!orgUnitRef) return null
+  const { units } = await resolveOrgUnits()
+  if (!units.some((u) => u.ref === orgUnitRef)) return 'Périmètre organisationnel introuvable.'
+  return null
+}
 
 const entrySchema = z.object({ ficheId: z.string().min(1) })
 const winnersSchema = z.object({ ficheIds: z.array(z.string().min(1)) })
@@ -57,6 +68,9 @@ export const challengeRoutes: FastifyPluginAsync = async (app) => {
     if (!isAdminEmail(email)) return reply.status(403).send({ error: 'Réservé aux administrateurs.' })
 
     const body = createSchema.parse(request.body)
+    const orgError = await validateOrgUnitRef(body.orgUnitRef)
+    if (orgError) return reply.status(400).send({ error: orgError })
+
     const challenge = await prisma.innovationChallenge.create({
       data: {
         nom: body.nom,
@@ -64,6 +78,7 @@ export const challengeRoutes: FastifyPluginAsync = async (app) => {
         theme: body.theme,
         opensAt: body.opensAt ? new Date(body.opensAt) : undefined,
         closesAt: body.closesAt ? new Date(body.closesAt) : undefined,
+        orgUnitRef: body.orgUnitRef,
         ownerId: userId,
       },
       include: CHALLENGE_INCLUDE,
@@ -113,6 +128,8 @@ export const challengeRoutes: FastifyPluginAsync = async (app) => {
         return reply.status(400).send({ error: 'Retour à un statut précédent réservé aux administrateurs.' })
       }
     }
+    const orgError = await validateOrgUnitRef(data.orgUnitRef)
+    if (orgError) return reply.status(400).send({ error: orgError })
 
     const challenge = await prisma.innovationChallenge.update({
       where: { id },
@@ -166,6 +183,14 @@ export const challengeRoutes: FastifyPluginAsync = async (app) => {
     if (!fiche) return reply.status(404).send({ error: 'Fiche introuvable.' })
     const isContributor = fiche.authorId === userId || !!(await prisma.innovationContributor.findUnique({ where: { ficheId_userId: { ficheId, userId } } }))
     if (!isContributor) return reply.status(403).send({ error: 'Vous devez être auteur ou contributeur de la fiche pour l\'inscrire.' })
+
+    if (challenge.orgUnitRef) {
+      if (!fiche.orgUnitRef) return reply.status(400).send({ error: 'Cette fiche n\'a pas de périmètre organisationnel compatible avec ce challenge.' })
+      const { units } = await resolveOrgUnits()
+      if (!isInSubtree(fiche.orgUnitRef, challenge.orgUnitRef, units)) {
+        return reply.status(400).send({ error: 'Cette fiche est hors du périmètre organisationnel éligible pour ce challenge.' })
+      }
+    }
 
     const existingEntry = await prisma.challengeEntry.findUnique({ where: { challengeId_ficheId: { challengeId, ficheId } } })
     if (existingEntry) return reply.status(400).send({ error: 'Cette fiche est déjà inscrite à ce challenge.' })
