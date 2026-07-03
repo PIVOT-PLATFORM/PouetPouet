@@ -109,6 +109,7 @@ export default function ChallengesListPage() {
       <div className="flex items-center gap-4 border-b border-gray-100 dark:border-gray-800 -mt-2">
         <Link href="/innovation" className="text-sm font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 pb-2">Fiches</Link>
         <span className="text-sm font-semibold text-gray-900 dark:text-white border-b-2 border-amber-500 pb-2">Challenges</span>
+        <Link href="/innovation/dashboard" className="text-sm font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 pb-2">Dashboard</Link>
       </div>
 
       {isLoading ? (

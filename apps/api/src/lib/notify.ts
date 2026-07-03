@@ -19,6 +19,9 @@ export type NotificationType =
   | 'SIGN_COMPLETED'
   | 'SIGN_DECLINED'
   | 'SIGN_EXPIRED'
+  | 'INNOVATION_CONTRIBUTOR_ADDED'
+  | 'INNOVATION_FICHE_SUBMITTED'
+  | 'INNOVATION_FICHE_WINNER'
 
 interface NotifyInput {
   userId: string
