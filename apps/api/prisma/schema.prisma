@@ -80,6 +80,9 @@ model User {
   delegationsDonnees    DelegationValidation[] @relation("DelegationDelegant")
   delegationsRecues     DelegationValidation[] @relation("DelegationDelegue")
   governanceConfigs     GovernanceConfig[]
+  innovationFiches        InnovationFiche[]
+  innovationContributions InnovationContributor[]
+  innovationVotes         InnovationVote[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1203,6 +1206,65 @@ model FeedbackVote {
   user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([ticketId, userId])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Innovation — fiches visibles par tous (modèle publication, à l'inverse des
+// modules owner/partage), challenges administrés (PR2), rattachement
+// organisationnel hybride LDAP externe + hiérarchie interne (PR3, cf. ADR-0012).
+
+enum InnovationStatus {
+  IDEE
+  EXPLORATION
+  ADOPTEE
+  ABANDONNEE
+}
+
+model InnovationFiche {
+  id            String           @id @default(cuid())
+  title         String
+  pitch         String
+  probleme      String?
+  solution      String?
+  benefices     String?
+  status        InnovationStatus @default(IDEE)
+  abandonReason String?
+  authorId      String
+  orgUnitRef    String? // "ldap:<id>" | "int:<id>" — branché en PR3 (ADR-0012)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  author       User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  contributors InnovationContributor[]
+  votes        InnovationVote[]
+
+  @@index([authorId])
+  @@index([status])
+}
+
+model InnovationContributor {
+  id        String   @id @default(cuid())
+  ficheId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  fiche InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([ficheId, userId])
+  @@index([userId])
+}
+
+model InnovationVote {
+  id      String @id @default(cuid())
+  ficheId String
+  userId  String
+
+  fiche InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([ficheId, userId])
   @@index([userId])
 }
 

@@ -64,6 +64,12 @@ const DOMAINS: { id: string; label: string; color: string; moduleIds: string[] }
     color: '#64748b',
     moduleIds: ['pdf', 'testbooks', 'signdoc'],
   },
+  {
+    id: 'innovation',
+    label: 'Innovation',
+    color: '#eab308',
+    moduleIds: ['innovation'],
+  },
 ]
 
 // Liens user-centric (pas vue admin) — séparés des cartes modules

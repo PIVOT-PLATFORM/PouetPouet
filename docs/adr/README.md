@@ -62,3 +62,4 @@ Pas besoin d'ADR pour un choix local, réversible ou évident.
 | [0009](./0009-migration-prisma-7.md) | Migration vers Prisma 7 (driver adapter + `prisma.config.ts`) | Accepté |
 | [0010](./0010-stockage-fichiers-gcs.md) | Stockage de fichiers sur GCS (cron parcours différé) | Accepté |
 | [0011](./0011-commande-publique-pods-externes.md) | Commande publique : workflow interne, données via pods mock externes (PGI/LDAP) | Accepté |
+| [0012](./0012-innovation-referentiel-org-hybride.md) | Innovation : référentiel organisationnel hybride (LDAP externe + hiérarchie interne) | Accepté |

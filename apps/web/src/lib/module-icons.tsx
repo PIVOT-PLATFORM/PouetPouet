@@ -45,6 +45,7 @@ export const MODULE_ICONS: Record<string, LucideIcon> = {
   pdf:         FileText,
   feedback:    MessageSquare,
   signdoc:     PenLine,
+  innovation:  Lightbulb,
 }
 
 // Icônes pour les activités de board (activity-launcher et boards).

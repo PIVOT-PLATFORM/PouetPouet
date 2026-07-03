@@ -257,6 +257,11 @@
 - [x] Référentiels configurables par les admins, scopés à un OrgUnit et hérités vers le bas de l'arbre (`GovernanceConfig` : types de ligne budgétaire, types de jalon, types d'activité) — standardisable globalement, adaptable par override à un niveau plus bas
 - [ ] Pod référentiel Produit/taxonomie externe (différé — l'abstraction `mock-service-kit`/`external-client` le permet sans réécriture)
 
+### Module Innovation (en cours) — épique #222
+- [x] PR1 (#223) : socle du module, fiches innovation visibles par tous les utilisateurs connectés (titre, pitch, problème/solution/bénéfices, statut de maturation, co-contributeurs, votes)
+- [ ] PR2 (#224) : challenges administrés — cycle de statut, inscription de fiches, désignation de lauréats
+- [ ] PR3 (#225) : rattachement organisationnel hybride — réutilisation du référentiel LDAP externe de Commande publique **et** hiérarchie interne saisie dans l'app (cf. [ADR-0012](docs/adr/0012-innovation-referentiel-org-hybride.md)), catégories scopées
+
 ### Assistant IA Pouet — #163 (PR ouverte)
 - [x] F0 : Ollama docker + LLMProvider/OllamaProvider + route SSE `/api/pouet/chat`
 - [x] F1 : auth, rate-limit Redis, audit, base de connaissances rédigée
