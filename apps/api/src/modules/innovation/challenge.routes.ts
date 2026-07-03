@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../../lib/prisma.js'
 import { isAdminEmail } from '../../lib/feature-flags.js'
+import { notify } from '../../lib/notify.js'
 import { resolveRole, canManage, deleteResourceShares } from '../../lib/module-share.js'
 import { serializeChallenge } from './challenge-serialize.js'
 import { resolveOrgUnits, isInSubtree } from './innovation-org.js'
@@ -196,6 +197,28 @@ export const challengeRoutes: FastifyPluginAsync = async (app) => {
     if (existingEntry) return reply.status(400).send({ error: 'Cette fiche est déjà inscrite à ce challenge.' })
 
     const entry = await prisma.challengeEntry.create({ data: { challengeId, ficheId, submittedById: userId } })
+
+    // Notifie l'auteur (si l'inscription vient d'un co-contributeur) et l'owner du
+    // challenge (si ce n'est pas lui qui inscrit) — jamais l'acteur lui-même.
+    if (fiche.authorId !== userId) {
+      await notify({
+        userId: fiche.authorId,
+        type: 'INNOVATION_FICHE_SUBMITTED',
+        title: 'Fiche inscrite à un challenge',
+        body: `Votre fiche « ${fiche.title} » a été inscrite au challenge « ${challenge.nom} ».`,
+        link: `/innovation/challenges/${challengeId}`,
+      })
+    }
+    if (challenge.ownerId !== userId) {
+      await notify({
+        userId: challenge.ownerId,
+        type: 'INNOVATION_FICHE_SUBMITTED',
+        title: 'Nouvelle inscription à votre challenge',
+        body: `« ${fiche.title} » vient de s'inscrire au challenge « ${challenge.nom} ».`,
+        link: `/innovation/challenges/${challengeId}`,
+      })
+    }
+
     return reply.status(201).send(entry)
   })
 
@@ -232,10 +255,39 @@ export const challengeRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(400).send({ error: 'Les lauréats ne peuvent être désignés qu\'en évaluation ou après clôture.' })
     }
 
+    // Notifier uniquement les NOUVEAUX lauréats (pas ceux qui l'étaient déjà avant
+    // ce remplacement — re-sauvegarder la même liste ne re-notifie personne).
+    const previousWinners = await prisma.challengeEntry.findMany({
+      where: { challengeId, isWinner: true },
+      select: { ficheId: true },
+    })
+    const previousWinnerIds = new Set(previousWinners.map((e) => e.ficheId))
+
     await prisma.$transaction([
       prisma.challengeEntry.updateMany({ where: { challengeId }, data: { isWinner: false } }),
       prisma.challengeEntry.updateMany({ where: { challengeId, ficheId: { in: ficheIds } }, data: { isWinner: true } }),
     ])
+
+    const newWinnerIds = ficheIds.filter((id) => !previousWinnerIds.has(id))
+    if (newWinnerIds.length > 0) {
+      const winningFiches = await prisma.innovationFiche.findMany({
+        where: { id: { in: newWinnerIds } },
+        include: { contributors: { select: { userId: true } } },
+      })
+      for (const fiche of winningFiches) {
+        const recipients = new Set([fiche.authorId, ...fiche.contributors.map((c) => c.userId)])
+        recipients.delete(userId) // jamais l'acteur lui-même
+        for (const recipientId of recipients) {
+          await notify({
+            userId: recipientId,
+            type: 'INNOVATION_FICHE_WINNER',
+            title: '🏆 Fiche lauréate !',
+            body: `« ${fiche.title} » est lauréate du challenge « ${challenge.nom} ».`,
+            link: `/innovation/challenges/${challengeId}`,
+          })
+        }
+      }
+    }
 
     const entries = await prisma.challengeEntry.findMany({
       where: { challengeId },

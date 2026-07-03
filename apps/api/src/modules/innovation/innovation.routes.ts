@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../../lib/prisma.js'
 import { isAdminEmail } from '../../lib/feature-flags.js'
+import { notify } from '../../lib/notify.js'
 import { serializeFiche } from './innovation-serialize.js'
 import { resolveOrgUnits, isInSubtree } from './innovation-org.js'
 
@@ -229,6 +230,13 @@ export const innovationRoutes: FastifyPluginAsync = async (app) => {
       where: { ficheId_userId: { ficheId, userId: contributor.id } },
       create: { ficheId, userId: contributor.id },
       update: {},
+    })
+    await notify({
+      userId: contributor.id,
+      type: 'INNOVATION_CONTRIBUTOR_ADDED',
+      title: 'Ajouté comme contributeur',
+      body: `Vous êtes désormais co-contributeur de la fiche « ${fiche.title} ».`,
+      link: `/innovation/${ficheId}`,
     })
 
     const updated = await prisma.innovationFiche.findUnique({ where: { id: ficheId }, include: ficheInclude(userId) })
