@@ -233,6 +233,20 @@ export const PROCUREMENT_MODULE: ModuleManifest = {
   listensTo: [],
 }
 
+export const INNOVATION_MODULE: ModuleManifest = {
+  id: 'innovation',
+  name: 'Innovation',
+  description: 'Fiches innovation visibles par tous, avec challenges administrés',
+  icon: '💡',
+  color: '#eab308',
+  nav: [{ label: 'Innovation', href: '/innovation', match: '/innovation' }],
+  apiPrefix: '/api/innovation',
+  ownedEntities: ['InnovationFiche', 'InnovationContributor', 'InnovationVote'],
+  referencedPivots: ['User'],
+  emits: [],
+  listensTo: [],
+}
+
 export const PIVOT_MODULES: ModuleManifest[] = [
   POUETPOUET_MODULE,
   DAILY_MODULE,

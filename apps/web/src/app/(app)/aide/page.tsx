@@ -193,6 +193,18 @@ const MODULES = [
     ],
   },
   {
+    icon: '💡',
+    title: 'Innovation',
+    href: '/innovation',
+    desc: 'Publiez des fiches innovation visibles par toute l\'équipe et suivez leur maturation.',
+    features: [
+      'Fiches innovation visibles par tous les utilisateurs connectés (titre, pitch, problème/solution/bénéfices)',
+      'Votes 👍 et statut de maturation (Idée / En exploration / Adoptée / Abandonnée avec motif)',
+      'Co-contributeurs ajoutés par email, en plus de l\'auteur',
+      'Édition réservée à l\'auteur, aux contributeurs et aux administrateurs',
+    ],
+  },
+  {
     icon: '👤',
     title: 'Compte & Profil',
     href: '/profile',
