@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ChevronLeft, ThumbsUp, User, X } from 'lucide-react'
+import { ChevronLeft, ThumbsUp, Trophy, User, X } from 'lucide-react'
 import { useInnovationFiche, type InnovationStatus } from '@/hooks/useInnovation'
+import { useChallenges, useFicheChallengeEntries, submitFicheToChallenge } from '@/hooks/useChallenges'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useAuthStore } from '@/store/auth'
 
@@ -36,12 +37,15 @@ export default function InnovationDetailPage() {
   const { id } = useParams<{ id: string }>()
   const user = useAuthStore((s) => s.user)
   const { fiche, isLoading, notFound, updateFiche, toggleVote, addContributor, removeContributor } = useInnovationFiche(id)
+  const { entries: challengeEntries, reload: reloadChallengeEntries } = useFicheChallengeEntries(id)
+  const { challenges } = useChallenges()
 
   const [editing, setEditing] = useState(false)
   const [contributorEmail, setContributorEmail] = useState('')
   const [contributorError, setContributorError] = useState<string | null>(null)
   const [abandonReason, setAbandonReason] = useState('')
   const [showAbandon, setShowAbandon] = useState(false)
+  const [showChallengePicker, setShowChallengePicker] = useState(false)
 
   if (isLoading) {
     return <div className="flex justify-center py-20"><div className="w-7 h-7 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" /></div>
@@ -68,6 +72,15 @@ export default function InnovationDetailPage() {
     await updateFiche({ status: 'ABANDONNEE', abandonReason: abandonReason.trim() })
     setShowAbandon(false)
     setAbandonReason('')
+  }
+
+  const registeredChallengeIds = new Set(challengeEntries.map((e) => e.challenge.id))
+  const availableChallenges = challenges.filter((c) => c.status === 'OPEN' && !registeredChallengeIds.has(c.id))
+
+  async function handleSubmitToChallenge(challengeId: string) {
+    await submitFicheToChallenge(challengeId, fiche!.id)
+    await reloadChallengeEntries()
+    setShowChallengePicker(false)
   }
 
   async function handleAddContributor(e: React.FormEvent) {
@@ -163,6 +176,48 @@ export default function InnovationDetailPage() {
         )}
         {contributorError && <p className="text-sm text-red-500">{contributorError}</p>}
       </div>
+
+      {/* Challenges */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Challenges</h3>
+          {canEdit && availableChallenges.length > 0 && (
+            <button onClick={() => setShowChallengePicker(true)} className="text-sm font-medium text-amber-600 hover:text-amber-700">+ Inscrire à un challenge</button>
+          )}
+        </div>
+        {challengeEntries.length === 0 ? (
+          <p className="text-xs text-gray-400">Cette fiche n'est inscrite à aucun challenge.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {challengeEntries.map((e) => (
+              <Link key={e.challenge.id} href={`/innovation/challenges/${e.challenge.id}`} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30">
+                {e.isWinner && '🏆 '}{e.challenge.nom}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showChallengePicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowChallengePicker(false)}>
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-100 dark:border-gray-800">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Trophy size={18} style={{ color: '#eab308' }} />Inscrire à un challenge</h2>
+            </div>
+            <div className="p-4 flex flex-col gap-1.5 max-h-[50vh] overflow-y-auto">
+              {availableChallenges.map((c) => (
+                <button key={c.id} onClick={() => handleSubmitToChallenge(c.id)} className="text-left rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 hover:border-amber-300 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition-colors">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{c.nom}</p>
+                  {c.theme && <p className="text-xs text-amber-600 dark:text-amber-400">{c.theme}</p>}
+                </button>
+              ))}
+            </div>
+            <div className="p-4 border-t border-gray-100 dark:border-gray-800">
+              <button onClick={() => setShowChallengePicker(false)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showAbandon && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowAbandon(false)}>

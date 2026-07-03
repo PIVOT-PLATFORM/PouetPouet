@@ -116,6 +116,11 @@ export default function InnovationListPage() {
         </button>
       </div>
 
+      <div className="flex items-center gap-4 border-b border-gray-100 dark:border-gray-800 -mt-2">
+        <span className="text-sm font-semibold text-gray-900 dark:text-white border-b-2 border-amber-500 pb-2">Fiches</span>
+        <Link href="/innovation/challenges" className="text-sm font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 pb-2">Challenges</Link>
+      </div>
+
       <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => setStatus(null)}

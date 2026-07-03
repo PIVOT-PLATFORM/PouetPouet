@@ -83,6 +83,8 @@ model User {
   innovationFiches        InnovationFiche[]
   innovationContributions InnovationContributor[]
   innovationVotes         InnovationVote[]
+  innovationChallenges    InnovationChallenge[]
+  challengeEntriesSubmitted ChallengeEntry[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1238,6 +1240,7 @@ model InnovationFiche {
   author       User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   contributors InnovationContributor[]
   votes        InnovationVote[]
+  entries      ChallengeEntry[]
 
   @@index([authorId])
   @@index([status])
@@ -1266,6 +1269,49 @@ model InnovationVote {
 
   @@unique([ficheId, userId])
   @@index([userId])
+}
+
+enum ChallengeStatus {
+  DRAFT
+  OPEN
+  EVALUATION
+  CLOSED
+}
+
+model InnovationChallenge {
+  id          String          @id @default(cuid())
+  nom         String
+  description String
+  theme       String?
+  status      ChallengeStatus @default(DRAFT)
+  opensAt     DateTime?
+  closesAt    DateTime?
+  ownerId     String
+  orgUnitRef  String? // "ldap:<id>" | "int:<id>" — périmètre d'éligibilité, branché en PR3
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  owner   User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  entries ChallengeEntry[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model ChallengeEntry {
+  id            String   @id @default(cuid())
+  challengeId   String
+  ficheId       String
+  submittedById String
+  isWinner      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  challenge   InnovationChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  fiche       InnovationFiche     @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  submittedBy User                @relation(fields: [submittedById], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, ficheId])
+  @@index([ficheId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
