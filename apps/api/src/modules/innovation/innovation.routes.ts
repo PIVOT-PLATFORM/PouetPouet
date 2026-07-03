@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../../lib/prisma.js'
 import { isAdminEmail } from '../../lib/feature-flags.js'
 import { serializeFiche } from './innovation-serialize.js'
+import { resolveOrgUnits, isInSubtree } from './innovation-org.js'
 
 const STATUSES = ['IDEE', 'EXPLORATION', 'ADOPTEE', 'ABANDONNEE'] as const
 
@@ -12,6 +13,8 @@ const createSchema = z.object({
   probleme: z.string().max(3000).optional(),
   solution: z.string().max(3000).optional(),
   benefices: z.string().max(3000).optional(),
+  orgUnitRef: z.string().min(1).optional(),
+  categoryId: z.string().min(1).optional(),
 })
 
 const editSchema = z
@@ -23,17 +26,42 @@ const editSchema = z
     benefices: z.string().max(3000).nullable().optional(),
     status: z.enum(STATUSES).optional(),
     abandonReason: z.string().max(500).nullable().optional(),
+    orgUnitRef: z.string().min(1).nullable().optional(),
+    categoryId: z.string().min(1).nullable().optional(),
   })
   .refine((data) => data.status !== 'ABANDONNEE' || !!data.abandonReason, {
     message: 'Un motif est requis pour abandonner une fiche.',
     path: ['abandonReason'],
   })
 
+// Valide orgUnitRef (existe dans le référentiel fusionné) et categoryId (existe et
+// applicable au périmètre effectif — globale, ou dont le périmètre est un ancêtre de
+// `effectiveOrgUnitRef`, qui vaut la valeur fournie ou, à défaut, celle déjà persistée
+// sur la fiche — pour qu'un PATCH ne modifiant que la catégorie reste cohérent).
+async function validateOrgAndCategory(
+  orgUnitRef: string | null | undefined,
+  categoryId: string | null | undefined,
+  effectiveOrgUnitRef: string | null,
+): Promise<string | null> {
+  if (orgUnitRef === undefined && categoryId === undefined) return null
+  const { units } = await resolveOrgUnits()
+  if (orgUnitRef && !units.some((u) => u.ref === orgUnitRef)) return 'Périmètre organisationnel introuvable.'
+  if (categoryId) {
+    const category = await prisma.innovationCategory.findUnique({ where: { id: categoryId } })
+    if (!category) return 'Catégorie introuvable.'
+    if (category.orgUnitRef && (!effectiveOrgUnitRef || !isInSubtree(effectiveOrgUnitRef, category.orgUnitRef, units))) {
+      return 'Cette catégorie n\'est pas applicable à ce périmètre organisationnel.'
+    }
+  }
+  return null
+}
+
 const contributorSchema = z.object({ email: z.string().email() })
 
 function ficheInclude(userId: string) {
   return {
     author: { select: { id: true, name: true } },
+    category: { select: { id: true, label: true } },
     contributors: { include: { user: { select: { id: true, name: true } } } },
     _count: { select: { votes: true } },
     votes: { where: { userId }, select: { id: true } },
@@ -59,7 +87,7 @@ export const innovationRoutes: FastifyPluginAsync = async (app) => {
   // GET /fiches — toutes les fiches (visibilité globale), filtres statut / mine / recherche.
   app.get('/fiches', async (request) => {
     const { id: userId } = request.user as { id: string }
-    const query = request.query as { status?: string; mine?: string; q?: string }
+    const query = request.query as { status?: string; mine?: string; q?: string; categoryId?: string; orgUnitRef?: string }
 
     const AND: Record<string, unknown>[] = []
     if (query.status && (STATUSES as readonly string[]).includes(query.status)) {
@@ -76,12 +104,22 @@ export const innovationRoutes: FastifyPluginAsync = async (app) => {
         ],
       })
     }
+    if (query.categoryId) AND.push({ categoryId: query.categoryId })
 
-    const fiches = await prisma.innovationFiche.findMany({
+    let fiches = await prisma.innovationFiche.findMany({
       where: AND.length ? { AND } : undefined,
       orderBy: { createdAt: 'desc' },
       include: ficheInclude(userId),
     })
+
+    // Filtre périmètre organisationnel : la fiche doit être dans le sous-arbre du ref
+    // demandé (LDAP + interne fusionnés) — appliqué en mémoire, hors requête Prisma,
+    // car orgUnitRef n'est pas une FK (référentiel hybride, cf. ADR-0012).
+    if (query.orgUnitRef) {
+      const { units } = await resolveOrgUnits()
+      fiches = fiches.filter((f) => f.orgUnitRef && isInSubtree(f.orgUnitRef, query.orgUnitRef!, units))
+    }
+
     return fiches.map((f) => serializeFiche(f))
   })
 
@@ -89,6 +127,9 @@ export const innovationRoutes: FastifyPluginAsync = async (app) => {
   app.post('/fiches', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const body = createSchema.parse(request.body)
+
+    const orgError = await validateOrgAndCategory(body.orgUnitRef, body.categoryId, body.orgUnitRef ?? null)
+    if (orgError) return reply.status(400).send({ error: orgError })
 
     const fiche = await prisma.innovationFiche.create({
       data: { ...body, authorId: userId },
@@ -118,6 +159,10 @@ export const innovationRoutes: FastifyPluginAsync = async (app) => {
     if (!(await canEditFiche(existing, userId, email))) {
       return reply.status(403).send({ error: 'Vous ne pouvez pas modifier cette fiche.' })
     }
+
+    const effectiveOrgUnitRef = data.orgUnitRef !== undefined ? data.orgUnitRef : existing.orgUnitRef
+    const orgError = await validateOrgAndCategory(data.orgUnitRef, data.categoryId, effectiveOrgUnitRef)
+    if (orgError) return reply.status(400).send({ error: orgError })
 
     const fiche = await prisma.innovationFiche.update({ where: { id }, data, include: ficheInclude(userId) })
     return serializeFiche(fiche)

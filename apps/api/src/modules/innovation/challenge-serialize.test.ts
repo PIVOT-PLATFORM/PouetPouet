@@ -10,6 +10,7 @@ const base: ChallengeRow = {
   opensAt: null,
   closesAt: null,
   ownerId: 'u-alice',
+  orgUnitRef: null,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-02'),
   _count: { entries: 0 },

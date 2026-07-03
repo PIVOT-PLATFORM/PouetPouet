@@ -10,6 +10,11 @@ export interface InnovationContributorUser {
   name: string
 }
 
+export interface InnovationCategoryRef {
+  id: string
+  label: string
+}
+
 export interface InnovationFiche {
   id: string
   title: string
@@ -20,7 +25,9 @@ export interface InnovationFiche {
   status: InnovationStatus
   abandonReason: string | null
   authorId: string
+  orgUnitRef: string | null
   author: InnovationContributorUser
+  category: InnovationCategoryRef | null
   contributors: InnovationContributorUser[]
   votes: number
   hasVoted: boolean
@@ -34,12 +41,16 @@ export interface FicheInput {
   probleme?: string
   solution?: string
   benefices?: string
+  orgUnitRef?: string
+  categoryId?: string
 }
 
 export interface FicheFilters {
   status?: InnovationStatus
   mine?: boolean
   q?: string
+  categoryId?: string
+  orgUnitRef?: string
 }
 
 // ── Liste des fiches (page /innovation) ─────────────────────────────────────────
@@ -54,6 +65,8 @@ export function useInnovationFiches(filters: FicheFilters = {}) {
       if (filters.status) params.set('status', filters.status)
       if (filters.mine) params.set('mine', 'true')
       if (filters.q) params.set('q', filters.q)
+      if (filters.categoryId) params.set('categoryId', filters.categoryId)
+      if (filters.orgUnitRef) params.set('orgUnitRef', filters.orgUnitRef)
       const qs = params.toString()
       const data = await api.get<InnovationFiche[]>(`/api/innovation/fiches${qs ? `?${qs}` : ''}`)
       setFiches(data)
@@ -61,7 +74,7 @@ export function useInnovationFiches(filters: FicheFilters = {}) {
       setIsLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.status, filters.mine, filters.q])
+  }, [filters.status, filters.mine, filters.q, filters.categoryId, filters.orgUnitRef])
 
   useEffect(() => { load() }, [load])
 
@@ -100,7 +113,7 @@ export function useInnovationFiche(id: string) {
 
   useEffect(() => { load() }, [load])
 
-  const updateFiche = useCallback(async (patch: Partial<FicheInput & { status: InnovationStatus; abandonReason: string | null }>) => {
+  const updateFiche = useCallback(async (patch: Partial<Omit<FicheInput, 'orgUnitRef' | 'categoryId'> & { status: InnovationStatus; abandonReason: string | null; orgUnitRef: string | null; categoryId: string | null }>) => {
     const updated = await api.patch<InnovationFiche>(`/api/innovation/fiches/${id}`, patch)
     setFiche(updated)
     return updated

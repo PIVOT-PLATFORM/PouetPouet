@@ -4,6 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, Plus, Trophy } from 'lucide-react'
 import { useChallenges, type ChallengeStatus, type ChallengeInput } from '@/hooks/useChallenges'
+import { useOrgUnits } from '@/hooks/useInnovationOrg'
+import { OrgUnitPicker } from '@/components/innovation/org-unit-picker'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useAuthStore } from '@/store/auth'
 
@@ -25,8 +27,10 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (input:
   const [nom, setNom] = useState('')
   const [description, setDescription] = useState('')
   const [theme, setTheme] = useState('')
+  const [orgUnitRef, setOrgUnitRef] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { units } = useOrgUnits()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -34,7 +38,7 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (input:
     setSaving(true)
     setError(null)
     try {
-      await onSave({ nom: nom.trim(), description: description.trim(), theme: theme.trim() || undefined })
+      await onSave({ nom: nom.trim(), description: description.trim(), theme: theme.trim() || undefined, orgUnitRef: orgUnitRef ?? undefined })
       onClose()
     } catch {
       setError('Erreur lors de la création.')
@@ -62,6 +66,10 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (input:
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Description</label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className={`${inputCls} resize-none`} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Périmètre d'éligibilité (optionnel)</label>
+            <OrgUnitPicker units={units} value={orgUnitRef} onChange={setOrgUnitRef} placeholder="Ouvert à tous" className={inputCls} />
           </div>
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
           <div className="flex gap-3 pt-1">
