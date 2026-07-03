@@ -241,7 +241,7 @@ export const INNOVATION_MODULE: ModuleManifest = {
   color: '#eab308',
   nav: [{ label: 'Innovation', href: '/innovation', match: '/innovation' }],
   apiPrefix: '/api/innovation',
-  ownedEntities: ['InnovationFiche', 'InnovationContributor', 'InnovationVote'],
+  ownedEntities: ['InnovationFiche', 'InnovationContributor', 'InnovationVote', 'InnovationChallenge', 'ChallengeEntry'],
   referencedPivots: ['User'],
   emits: [],
   listensTo: [],

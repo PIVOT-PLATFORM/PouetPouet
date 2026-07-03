@@ -2,11 +2,18 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { buildTestApp, createTestUser, cleanupUsers } from '../../test/build-app.js'
 import { innovationRoutes } from './innovation.routes.js'
+import { prisma } from '../../lib/prisma.js'
 
 const SUFFIX = '@innovation.int.test'
 // ADMIN_EMAILS (vitest.integration.config.ts) est une valeur globale unique pour
 // toute la suite d'intégration — même email littéral que feedback.routes.integration.test.ts.
+// Son suffixe ne correspond à AUCUN des SUFFIX de test (dont le nôtre) : cleanupUsers(SUFFIX)
+// ne le supprime jamais — il faut le nettoyer explicitement par email exact pour éviter
+// qu'il ne fuite d'un fichier de test à l'autre (contrainte unique sur User.email).
 const ADMIN_EMAIL = 'admin@feedback.int.test'
+async function cleanupAdmin() {
+  await prisma.user.deleteMany({ where: { email: ADMIN_EMAIL } })
+}
 
 function auth(token: string) {
   return { authorization: `Bearer ${token}` }
@@ -21,6 +28,7 @@ describe('Innovation — visibilité globale & permissions d\'édition', () => {
 
   beforeAll(async () => {
     await cleanupUsers(SUFFIX)
+    await cleanupAdmin()
     app = await buildTestApp([{ plugin: innovationRoutes, prefix: '/api/innovation' }])
     alice = await createTestUser(app, `alice${SUFFIX}`)
     bob = await createTestUser(app, `bob${SUFFIX}`)
@@ -35,6 +43,7 @@ describe('Innovation — visibilité globale & permissions d\'édition', () => {
 
   afterAll(async () => {
     await cleanupUsers(SUFFIX)
+    await cleanupAdmin()
     await app.close()
   })
 

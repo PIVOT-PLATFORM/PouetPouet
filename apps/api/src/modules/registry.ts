@@ -30,6 +30,7 @@ import { feedbackSocketHandlers } from './feedback/feedback.sockets.js'
 import { signdocRoutes } from './signdoc/signdoc.routes.js'
 import { signdocPublicRoutes } from './signdoc/signdoc.public.routes.js'
 import { innovationRoutes } from './innovation/innovation.routes.js'
+import { challengeRoutes } from './innovation/challenge.routes.js'
 
 // FORGE F0 — registre des modules côté API.
 // Le socle (index.ts) monte routes et handlers socket en itérant ce registre :
@@ -139,7 +140,10 @@ export const API_MODULES: ApiModule[] = [
   },
   {
     manifest: INNOVATION_MODULE,
-    routes: [{ plugin: innovationRoutes, prefix: '/api/innovation' }],
+    routes: [
+      { plugin: innovationRoutes, prefix: '/api/innovation' },
+      { plugin: challengeRoutes, prefix: '/api/innovation' },
+    ],
     socketHandlers: [],
   },
 ]
