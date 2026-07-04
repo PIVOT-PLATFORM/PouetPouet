@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { ChevronDown } from 'lucide-react'
 import type { ResolvedOrgUnit } from '@/hooks/useInnovationOrg'
 
 interface Props {
@@ -42,18 +43,28 @@ function flattenTree(units: ResolvedOrgUnit[]): FlatEntry[] {
 
 // Sélecteur arborescent pour le référentiel organisationnel hybride (ADR-0012) :
 // indentation par profondeur + badge d'origine (LDAP externe / unité interne).
-export function OrgUnitPicker({ units, value, onChange, placeholder = 'Aucun périmètre', className }: Props) {
+// `appearance-none` + chevron positionné à la main : la flèche native du <select>
+// rend mal/se désaligne selon navigateur/OS, on la remplace entièrement.
+// `className` ne dimensionne que le conteneur (ex. "w-56") — le style du champ
+// lui-même est fixe pour garder le chevron toujours bien placé.
+export function OrgUnitPicker({ units, value, onChange, placeholder = 'Aucun périmètre', className = 'w-full' }: Props) {
   const flat = useMemo(() => flattenTree(units), [units])
-  const defaultCls = 'w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400'
 
   return (
-    <select value={value ?? ''} onChange={(e) => onChange(e.target.value || null)} className={className ?? defaultCls}>
-      <option value="">{placeholder}</option>
-      {flat.map(({ unit, depth }) => (
-        <option key={unit.ref} value={unit.ref}>
-          {'  '.repeat(depth)}{unit.nom} · {unit.source === 'ldap' ? 'LDAP' : 'Interne'}
-        </option>
-      ))}
-    </select>
+    <div className={`relative ${className}`}>
+      <select
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value || null)}
+        className="w-full appearance-none border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl pl-3 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+      >
+        <option value="">{placeholder}</option>
+        {flat.map(({ unit, depth }) => (
+          <option key={unit.ref} value={unit.ref}>
+            {'  '.repeat(depth)}{unit.nom} · {unit.source === 'ldap' ? 'LDAP' : 'Interne'}
+          </option>
+        ))}
+      </select>
+      <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+    </div>
   )
 }

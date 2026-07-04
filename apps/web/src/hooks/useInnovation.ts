@@ -113,7 +113,15 @@ export function useInnovationFiche(id: string) {
 
   useEffect(() => { load() }, [load])
 
-  const updateFiche = useCallback(async (patch: Partial<Omit<FicheInput, 'orgUnitRef' | 'categoryId'> & { status: InnovationStatus; abandonReason: string | null; orgUnitRef: string | null; categoryId: string | null }>) => {
+  const updateFiche = useCallback(async (patch: Partial<Omit<FicheInput, 'orgUnitRef' | 'categoryId' | 'probleme' | 'solution' | 'benefices'> & {
+    status: InnovationStatus
+    abandonReason: string | null
+    orgUnitRef: string | null
+    categoryId: string | null
+    probleme: string | null
+    solution: string | null
+    benefices: string | null
+  }>) => {
     const updated = await api.patch<InnovationFiche>(`/api/innovation/fiches/${id}`, patch)
     setFiche(updated)
     return updated

@@ -8,6 +8,7 @@ import { useInnovationFiche, type InnovationStatus } from '@/hooks/useInnovation
 import { useChallenges, useFicheChallengeEntries, submitFicheToChallenge } from '@/hooks/useChallenges'
 import { useOrgUnits, useInnovationCategories } from '@/hooks/useInnovationOrg'
 import { OrgUnitPicker } from '@/components/innovation/org-unit-picker'
+import { CategoryPicker } from '@/components/innovation/category-picker'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useAuthStore } from '@/store/auth'
 
@@ -30,6 +31,44 @@ function Section({ title, body }: { title: string; body: string | null }) {
     <div>
       <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1.5">{title}</h3>
       <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{body}</p>
+    </div>
+  )
+}
+
+// Section éditable inline (clic → textarea → sauvegarde au blur), même geste que le
+// titre de la fiche. Les champs problème/solution/bénéfices sont optionnels à la
+// création mais doivent rester ajoutables ensuite — required=true (pitch) refuse
+// de sauvegarder une valeur vide plutôt que de casser la contrainte serveur.
+function EditableSection({ title, value, placeholder, canEdit, required, onSave }: {
+  title: string
+  value: string | null
+  placeholder: string
+  canEdit: boolean
+  required?: boolean
+  onSave: (v: string | null) => void
+}) {
+  const [draft, setDraft] = useState(value ?? '')
+
+  if (!canEdit) return <Section title={title} body={value} />
+
+  function handleBlur() {
+    const trimmed = draft.trim()
+    if (required && !trimmed) { setDraft(value ?? ''); return }
+    if (trimmed === (value ?? '')) return
+    onSave(trimmed || null)
+  }
+
+  return (
+    <div>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1.5">{title}</h3>
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        rows={3}
+        className="w-full bg-transparent border border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-amber-400 rounded-lg px-2 py-1.5 -mx-2 text-sm text-gray-700 dark:text-gray-300 leading-relaxed resize-none focus:outline-none"
+      />
     </div>
   )
 }
@@ -100,7 +139,7 @@ export default function InnovationDetailPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-3xl mx-auto">
+    <div className="flex flex-col gap-6">
       <Link href="/innovation" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"><ChevronLeft size={16} />Innovation</Link>
 
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -153,11 +192,8 @@ export default function InnovationDetailPage() {
       {/* Périmètre & catégorie */}
       {canEdit ? (
         <div className="grid grid-cols-2 gap-3">
-          <OrgUnitPicker units={units} value={fiche.orgUnitRef} onChange={(v) => updateFiche({ orgUnitRef: v, categoryId: null })} placeholder="Aucun périmètre" className={inputCls} />
-          <select value={fiche.category?.id ?? ''} onChange={(e) => updateFiche({ categoryId: e.target.value || null })} className={inputCls}>
-            <option value="">Aucune catégorie</option>
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
+          <OrgUnitPicker units={units} value={fiche.orgUnitRef} onChange={(v) => updateFiche({ orgUnitRef: v, categoryId: null })} placeholder="Aucun périmètre" />
+          <CategoryPicker categories={categories} value={fiche.category?.id ?? null} onChange={(v) => updateFiche({ categoryId: v })} placeholder="Aucune catégorie" />
         </div>
       ) : (fiche.orgUnitRef || fiche.category) && (
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
@@ -168,10 +204,10 @@ export default function InnovationDetailPage() {
 
       {/* Contenu */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex flex-col gap-5">
-        <Section title="Pitch" body={fiche.pitch} />
-        <Section title="Problème" body={fiche.probleme} />
-        <Section title="Solution" body={fiche.solution} />
-        <Section title="Bénéfices" body={fiche.benefices} />
+        <EditableSection title="Pitch" value={fiche.pitch} placeholder="En 2-3 phrases, de quoi s'agit-il ?" canEdit={canEdit} required onSave={(v) => v && updateFiche({ pitch: v })} />
+        <EditableSection title="Problème" value={fiche.probleme} placeholder="Quel problème cette idée résout-elle ?" canEdit={canEdit} onSave={(v) => updateFiche({ probleme: v })} />
+        <EditableSection title="Solution" value={fiche.solution} placeholder="Quelle est la solution envisagée ?" canEdit={canEdit} onSave={(v) => updateFiche({ solution: v })} />
+        <EditableSection title="Bénéfices" value={fiche.benefices} placeholder="Quels bénéfices attendus ?" canEdit={canEdit} onSave={(v) => updateFiche({ benefices: v })} />
       </div>
 
       {/* Contributeurs */}
