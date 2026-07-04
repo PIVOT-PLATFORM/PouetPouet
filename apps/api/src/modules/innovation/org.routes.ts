@@ -154,7 +154,7 @@ export const innovationOrgRoutes: FastifyPluginAsync = async (app) => {
     return category
   })
 
-  // DELETE /categories/:id — admin app uniquement (les fiches rattachées perdent juste leur catégorie).
+  // DELETE /categories/:id — admin app uniquement (les fiches rattachées perdent juste ce tag, cascade sur la table de jointure).
   app.delete('/categories/:id', async (request, reply) => {
     const { email } = request.user as { email: string }
     if (!isAdminEmail(email)) return reply.status(403).send({ error: 'Réservé aux administrateurs.' })

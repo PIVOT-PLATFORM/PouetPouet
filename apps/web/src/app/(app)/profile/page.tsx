@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
+import { resizeImage } from '@/lib/image-resize'
 
 interface ApiKeyMeta {
   id: string
@@ -70,23 +71,6 @@ interface AuditEntry {
   resource: string | null
   ip: string | null
   createdAt: string
-}
-
-function resizeImage(file: File, maxPx: number): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const scale = Math.min(maxPx / img.width, maxPx / img.height, 1)
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-      resolve(canvas.toDataURL('image/jpeg', 0.85))
-    }
-    img.src = url
-  })
 }
 
 // Export RGPD : la route API exige le Bearer, un simple <a href> n'est pas

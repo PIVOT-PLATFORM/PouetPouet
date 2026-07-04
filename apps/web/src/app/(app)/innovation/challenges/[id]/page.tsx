@@ -3,12 +3,27 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ChevronLeft, Star, Trash2, Trophy, User } from 'lucide-react'
+import { ChevronLeft, Download, Star, Trash2, Trophy, User } from 'lucide-react'
 import { useChallenge, type ChallengeStatus } from '@/hooks/useChallenges'
 import { useOrgUnits } from '@/hooks/useInnovationOrg'
 import { useCriteria, useJurors, useMyScores, useRanking, type Criterion } from '@/hooks/useScoring'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
+
+async function authedDownload(url: string, filename: string) {
+  const token = localStorage.getItem('token')
+  const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (!res.ok) return
+  const blob = await res.blob()
+  const objUrl = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = objUrl
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(objUrl)
+}
 
 const STATUSES: { key: ChallengeStatus; label: string; color: string }[] = [
   { key: 'DRAFT', label: 'Brouillon', color: '#6b7280' },
@@ -170,7 +185,18 @@ function RankingPanel({ challengeId, enabled }: { challengeId: string; enabled: 
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex flex-col gap-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Classement</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Classement</h2>
+        {ranking.length > 0 && (
+          <button
+            onClick={() => authedDownload(`${API_URL}/api/innovation/challenges/${challengeId}/ranking.csv`, `classement-${challengeId}.csv`)}
+            title="Exporter en CSV"
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <Download size={12} /> CSV
+          </button>
+        )}
+      </div>
       {ranking.length === 0 ? (
         <p className="text-sm text-gray-400">Aucune fiche inscrite.</p>
       ) : (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { BarChart2, Lightbulb, ThumbsUp, Trophy, Users } from 'lucide-react'
+import { Award, BarChart2, Lightbulb, ThumbsUp, Trophy, Users } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 
@@ -14,6 +14,15 @@ interface InnovationStats {
   challenges: Record<string, number>
   contributorCount: number
   topFiches: { id: string; title: string; status: string; author: { id: string; name: string }; votes: number }[]
+  topContributors: { userId: string; name: string; points: number; ficheCount: number; votesReceived: number; challengesWon: number }[]
+}
+
+interface MyGamification {
+  points: number
+  ficheCount: number
+  votesReceived: number
+  challengesWon: number
+  badges: { id: string; label: string; icon: string; description: string; earned: boolean }[]
 }
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
@@ -42,9 +51,11 @@ function Tile({ label, value, icon }: { label: string; value: number | string; i
 export default function InnovationDashboardPage() {
   useFlagGuard('module.innovation')
   const [stats, setStats] = useState<InnovationStats | null>(null)
+  const [mine, setMine] = useState<MyGamification | null>(null)
 
   useEffect(() => {
     api.get<InnovationStats>('/api/innovation/stats').then(setStats).catch(() => {})
+    api.get<MyGamification>('/api/innovation/stats/me').then(setMine).catch(() => {})
   }, [])
 
   return (
@@ -143,6 +154,46 @@ export default function InnovationDashboardPage() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Top contributeurs */}
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col gap-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Top contributeurs</h2>
+              {stats.topContributors.length === 0 ? (
+                <p className="text-sm text-gray-400">Aucun contributeur pour l'instant.</p>
+              ) : (
+                <ol className="flex flex-col gap-2">
+                  {stats.topContributors.map((c, i) => (
+                    <li key={c.userId} className="flex items-center gap-3 rounded-xl px-2 py-1.5 -mx-2">
+                      <span className="w-5 text-sm font-bold text-gray-300 dark:text-gray-600 shrink-0">{i + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{c.name}</p>
+                        <p className="text-xs text-gray-400">{c.ficheCount} fiche{c.ficheCount !== 1 ? 's' : ''} · {c.votesReceived} vote{c.votesReceived !== 1 ? 's' : ''} reçu{c.votesReceived !== 1 ? 's' : ''}</p>
+                      </div>
+                      <span className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400 shrink-0"><Award size={11} />{c.points} pts</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+
+            {/* Mes badges */}
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col gap-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Mes badges {mine && <span className="text-amber-600 dark:text-amber-400 normal-case font-bold">· {mine.points} pts</span>}</h2>
+              {!mine ? (
+                <p className="text-sm text-gray-400">…</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {mine.badges.map((b) => (
+                    <div key={b.id} title={b.description} className={`flex items-center gap-2 rounded-xl px-3 py-2 ${b.earned ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-gray-50 dark:bg-gray-800 opacity-50'}`}>
+                      <span className="text-lg">{b.icon}</span>
+                      <span className={`text-xs font-medium ${b.earned ? 'text-amber-700 dark:text-amber-300' : 'text-gray-400'}`}>{b.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </>

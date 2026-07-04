@@ -214,4 +214,49 @@ export const scoringRoutes: FastifyPluginAsync = async (app) => {
     const ficheById = new Map(entries.map((e) => [e.id, e.fiche]))
     return ranking.map((r) => ({ ...r, fiche: ficheById.get(r.entryId) }))
   })
+
+  // GET /challenges/:id/ranking.csv — export du classement (PR F, lot pré-release).
+  // Même garde de visibilité que GET /ranking : admin pendant EVALUATION, tous une fois CLOSED.
+  app.get('/challenges/:id/ranking.csv', async (request, reply) => {
+    const { id: userId, email } = request.user as { id: string; email: string }
+    const { id: challengeId } = request.params as { id: string }
+    const challenge = await prisma.innovationChallenge.findUnique({ where: { id: challengeId } })
+    if (!challenge) return reply.status(404).send({ error: 'Challenge introuvable.' })
+    if (challenge.status !== 'CLOSED' && !(await canManageChallenge(challenge, userId, email))) {
+      return reply.status(403).send({ error: 'Le classement n\'est visible qu\'après clôture (ou pour les administrateurs du challenge).' })
+    }
+
+    const [entries, criteria, scores] = await Promise.all([
+      prisma.challengeEntry.findMany({
+        where: { challengeId },
+        include: { fiche: { select: { id: true, title: true, authorId: true, author: { select: { id: true, name: true } } } } },
+      }),
+      prisma.challengeCriterion.findMany({ where: { challengeId } }),
+      prisma.challengeScore.findMany({ where: { entry: { challengeId } } }),
+    ])
+    const ranking = computeRanking(entries, criteria, scores)
+    const ficheById = new Map(entries.map((e) => [e.id, e.fiche]))
+
+    const esc = (s: string) => `"${s.replace(/"/g, '""')}"`
+    const header = ['Rang', 'Fiche', 'Auteur', 'Score pondéré', ...criteria.map((c) => `${c.label} (poids ${c.poids})`)]
+    const rows = ranking.map((r, i) => {
+      const fiche = ficheById.get(r.entryId)
+      const perCriterion = criteria.map((c) => {
+        const avg = r.criteriaAverages.find((ca) => ca.criterionId === c.id)?.average
+        return avg == null ? '' : avg.toFixed(1)
+      })
+      return [
+        String(i + 1),
+        fiche?.title ?? '',
+        fiche?.author.name ?? '',
+        r.weightedAverage == null ? '' : r.weightedAverage.toFixed(2),
+        ...perCriterion,
+      ].map(esc).join(',')
+    })
+    const csv = [header.map(esc).join(','), ...rows].join('\r\n')
+
+    reply.header('Content-Type', 'text/csv; charset=utf-8')
+    reply.header('Content-Disposition', `attachment; filename="classement-${challengeId}.csv"`)
+    return reply.send('﻿' + csv)
+  })
 }

@@ -14,13 +14,17 @@ export type InnovationFicheRow = {
   abandonReason: string | null
   authorId: string
   orgUnitRef: string | null
+  coverImage: string | null
+  bannerImage: string | null
+  visibility: string
   createdAt: Date
   updatedAt: Date
   author: { id: string; name: string }
-  category: { id: string; label: string } | null
+  categories: { category: { id: string; label: string } }[]
   contributors: { user: { id: string; name: string } }[]
   _count: { votes: number }
   votes: { id: string }[]
+  favorites: { id: string }[]
 }
 
 export function serializeFiche(f: InnovationFicheRow) {
@@ -35,11 +39,15 @@ export function serializeFiche(f: InnovationFicheRow) {
     abandonReason: f.abandonReason,
     authorId: f.authorId,
     orgUnitRef: f.orgUnitRef,
+    coverImage: f.coverImage,
+    bannerImage: f.bannerImage,
+    visibility: f.visibility,
     author: f.author,
-    category: f.category,
+    categories: f.categories.map((c) => c.category),
     contributors: f.contributors.map((c) => c.user),
     votes: f._count.votes,
     hasVoted: f.votes.length > 0,
+    isFavorite: f.favorites.length > 0,
     createdAt: f.createdAt,
     updatedAt: f.updatedAt,
   }

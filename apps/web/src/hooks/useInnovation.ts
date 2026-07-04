@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 
 export type InnovationStatus = 'IDEE' | 'EXPLORATION' | 'ADOPTEE' | 'ABANDONNEE'
+export type InnovationVisibility = 'PUBLIC' | 'PRIVATE'
 
 export interface InnovationContributorUser {
   id: string
@@ -26,11 +27,15 @@ export interface InnovationFiche {
   abandonReason: string | null
   authorId: string
   orgUnitRef: string | null
+  coverImage: string | null
+  bannerImage: string | null
+  visibility: InnovationVisibility
   author: InnovationContributorUser
-  category: InnovationCategoryRef | null
+  categories: InnovationCategoryRef[]
   contributors: InnovationContributorUser[]
   votes: number
   hasVoted: boolean
+  isFavorite: boolean
   createdAt: string
   updatedAt: string
 }
@@ -42,15 +47,17 @@ export interface FicheInput {
   solution?: string
   benefices?: string
   orgUnitRef?: string
-  categoryId?: string
+  categoryIds?: string[]
+  visibility?: InnovationVisibility
 }
 
 export interface FicheFilters {
   status?: InnovationStatus
   mine?: boolean
   q?: string
-  categoryId?: string
+  categoryIds?: string[]
   orgUnitRef?: string
+  favorite?: boolean
 }
 
 // ── Liste des fiches (page /innovation) ─────────────────────────────────────────
@@ -65,8 +72,9 @@ export function useInnovationFiches(filters: FicheFilters = {}) {
       if (filters.status) params.set('status', filters.status)
       if (filters.mine) params.set('mine', 'true')
       if (filters.q) params.set('q', filters.q)
-      if (filters.categoryId) params.set('categoryId', filters.categoryId)
+      if (filters.categoryIds?.length) params.set('categoryIds', filters.categoryIds.join(','))
       if (filters.orgUnitRef) params.set('orgUnitRef', filters.orgUnitRef)
+      if (filters.favorite) params.set('favorite', 'true')
       const qs = params.toString()
       const data = await api.get<InnovationFiche[]>(`/api/innovation/fiches${qs ? `?${qs}` : ''}`)
       setFiches(data)
@@ -74,7 +82,7 @@ export function useInnovationFiches(filters: FicheFilters = {}) {
       setIsLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.status, filters.mine, filters.q, filters.categoryId, filters.orgUnitRef])
+  }, [filters.status, filters.mine, filters.q, filters.categoryIds, filters.orgUnitRef, filters.favorite])
 
   useEffect(() => { load() }, [load])
 
@@ -89,7 +97,12 @@ export function useInnovationFiches(filters: FicheFilters = {}) {
     setFiches((prev) => prev.map((f) => f.id === id ? { ...f, votes: result.votes, hasVoted: result.hasVoted } : f))
   }, [])
 
-  return { fiches, isLoading, load, createFiche, toggleVote }
+  const toggleFavorite = useCallback(async (id: string) => {
+    const result = await api.post<{ isFavorite: boolean }>(`/api/innovation/fiches/${id}/favorite`, {})
+    setFiches((prev) => prev.map((f) => f.id === id ? { ...f, isFavorite: result.isFavorite } : f))
+  }, [])
+
+  return { fiches, isLoading, load, createFiche, toggleVote, toggleFavorite }
 }
 
 // ── Détail d'une fiche (page /innovation/[id]) ──────────────────────────────────
@@ -113,14 +126,16 @@ export function useInnovationFiche(id: string) {
 
   useEffect(() => { load() }, [load])
 
-  const updateFiche = useCallback(async (patch: Partial<Omit<FicheInput, 'orgUnitRef' | 'categoryId' | 'probleme' | 'solution' | 'benefices'> & {
+  const updateFiche = useCallback(async (patch: Partial<Omit<FicheInput, 'orgUnitRef' | 'categoryIds' | 'probleme' | 'solution' | 'benefices'> & {
     status: InnovationStatus
     abandonReason: string | null
     orgUnitRef: string | null
-    categoryId: string | null
+    categoryIds: string[]
     probleme: string | null
     solution: string | null
     benefices: string | null
+    coverImage: string | null
+    bannerImage: string | null
   }>) => {
     const updated = await api.patch<InnovationFiche>(`/api/innovation/fiches/${id}`, patch)
     setFiche(updated)
@@ -130,6 +145,11 @@ export function useInnovationFiche(id: string) {
   const toggleVote = useCallback(async () => {
     const result = await api.post<{ hasVoted: boolean; votes: number }>(`/api/innovation/fiches/${id}/vote`, {})
     setFiche((prev) => prev ? { ...prev, votes: result.votes, hasVoted: result.hasVoted } : prev)
+  }, [id])
+
+  const toggleFavorite = useCallback(async () => {
+    const result = await api.post<{ isFavorite: boolean }>(`/api/innovation/fiches/${id}/favorite`, {})
+    setFiche((prev) => prev ? { ...prev, isFavorite: result.isFavorite } : prev)
   }, [id])
 
   const addContributor = useCallback(async (email: string) => {
@@ -143,5 +163,5 @@ export function useInnovationFiche(id: string) {
     setFiche((prev) => prev ? { ...prev, contributors: prev.contributors.filter((c) => c.id !== userId) } : prev)
   }, [id])
 
-  return { fiche, isLoading, notFound, updateFiche, toggleVote, addContributor, removeContributor }
+  return { fiche, isLoading, notFound, updateFiche, toggleVote, toggleFavorite, addContributor, removeContributor }
 }

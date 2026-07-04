@@ -252,3 +252,41 @@ describe('Innovation — filtres (statut, mine, recherche)', () => {
     expect(res.json().every((f: { status: string }) => f.status === 'IDEE')).toBe(true)
   })
 })
+
+describe('Innovation — export CSV (PR F)', () => {
+  let app: FastifyInstance
+  let alice: { user: { id: string }; token: string }
+
+  beforeAll(async () => {
+    await cleanupUsers(SUFFIX)
+    app = await buildTestApp([{ plugin: innovationRoutes, prefix: '/api/innovation' }])
+    alice = await createTestUser(app, `alice-csv${SUFFIX}`)
+    await app.inject({ method: 'POST', url: '/api/innovation/fiches', headers: auth(alice.token), payload: { title: 'Fiche exportable', pitch: 'x' } })
+  })
+
+  afterAll(async () => {
+    await cleanupUsers(SUFFIX)
+    await app.close()
+  })
+
+  it('GET /fiches.csv — colonnes attendues, BOM Excel, contenu de la fiche', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/innovation/fiches.csv', headers: auth(alice.token) })
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['content-type']).toContain('text/csv')
+    expect(res.body.startsWith('﻿')).toBe(true)
+    expect(res.body).toContain('"Titre","Statut","Visibilité","Auteur","Périmètre","Catégories","Votes","Créée le"')
+    expect(res.body).toContain('"Fiche exportable"')
+  })
+
+  it('GET /fiches.csv — respecte le filtre ?q=', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/innovation/fiches.csv?q=exportable', headers: auth(alice.token) })
+    expect(res.body).toContain('Fiche exportable')
+    const other = await app.inject({ method: 'GET', url: '/api/innovation/fiches.csv?q=zzz-inexistant-zzz', headers: auth(alice.token) })
+    expect(other.body).not.toContain('Fiche exportable')
+  })
+
+  it('GET /fiches.csv — sans token → 401', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/innovation/fiches.csv' })
+    expect(res.statusCode).toBe(401)
+  })
+})

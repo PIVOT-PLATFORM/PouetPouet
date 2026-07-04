@@ -87,6 +87,9 @@ model User {
   challengeEntriesSubmitted ChallengeEntry[]
   challengeJuryMemberships ChallengeJuror[]
   challengeScoresGiven     ChallengeScore[]
+  innovationComments       InnovationComment[]
+  innovationAttachments    InnovationAttachment[]
+  innovationFavorites      InnovationFavorite[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1225,30 +1228,73 @@ enum InnovationStatus {
   ABANDONNEE
 }
 
+// Écarte, pour cette seule fiche, le modèle de publication par défaut (visible par
+// tous) au profit d'une visibilité restreinte auteur/contributeurs/admin — même
+// périmètre que canEditFiche(). PRIVATE bascule la fiche sur le 404 anti-énumération
+// (comme les autres modules) puisque son existence n'est alors plus publique.
+enum InnovationVisibility {
+  PUBLIC
+  PRIVATE
+}
+
 model InnovationFiche {
-  id            String           @id @default(cuid())
+  id            String               @id @default(cuid())
   title         String
   pitch         String
   probleme      String?
   solution      String?
   benefices     String?
-  status        InnovationStatus @default(IDEE)
+  status        InnovationStatus     @default(IDEE)
   abandonReason String?
   authorId      String
   orgUnitRef    String? // "ldap:<id>" | "int:<id>" (ADR-0012)
-  categoryId    String?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  coverImage    String? // data-URL base64 (même convention que User.avatar), miniature affichée sur la carte
+  bannerImage   String? // data-URL base64, bandeau affiché en haut de la fiche
+  visibility    InnovationVisibility @default(PUBLIC)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
 
   author       User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  category     InnovationCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categories   InnovationFicheCategory[]
   contributors InnovationContributor[]
   votes        InnovationVote[]
+  favorites    InnovationFavorite[]
   entries      ChallengeEntry[]
+  comments     InnovationComment[]
+  attachments  InnovationAttachment[]
+  links        InnovationLink[]
 
   @@index([authorId])
   @@index([status])
-  @@index([categoryId])
+}
+
+// Mise en favori — même convention que InnovationVote (toggle, unique par utilisateur),
+// mais sémantiquement distincte : un vote est un signal collectif, un favori est un
+// marque-page personnel qui alimente le filtre "Mes favoris".
+model InnovationFavorite {
+  id      String @id @default(cuid())
+  ficheId String
+  userId  String
+
+  fiche InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([ficheId, userId])
+  @@index([userId])
+}
+
+// Liens externes rattachés à une fiche (ex. document partagé, prototype, article de
+// référence) — distincts des pièces jointes : pas de fichier, juste un intitulé + une URL.
+model InnovationLink {
+  id        String   @id @default(cuid())
+  ficheId   String
+  label     String
+  url       String
+  createdAt DateTime @default(now())
+
+  fiche InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+
+  @@index([ficheId])
 }
 
 model InnovationContributor {
@@ -1274,6 +1320,42 @@ model InnovationVote {
 
   @@unique([ficheId, userId])
   @@index([userId])
+}
+
+// Fil de discussion à plat (pas de réponses imbriquées — aucun module de l'app n'a de
+// threading, décision de simplicité assumée). Visible par tous (fiches publiques),
+// postable par tout utilisateur connecté ; suppression réservée à l'auteur du
+// commentaire ou à un admin (modération).
+model InnovationComment {
+  id        String   @id @default(cuid())
+  ficheId   String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fiche  InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  author User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([ficheId])
+}
+
+// Pièces jointes (texte/image/vidéo) — métadonnées seules, octets sur GCS (ou
+// .uploads/ en local), cf. storage.ts et le pattern ParcourDocument.
+model InnovationAttachment {
+  id         String   @id @default(cuid())
+  ficheId    String
+  filename   String
+  mimeType   String
+  storageKey String
+  sizeBytes  Int
+  uploadedBy String
+  createdAt  DateTime @default(now())
+
+  fiche    InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  uploader User            @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([ficheId])
 }
 
 // Hiérarchie organisationnelle INTERNE, administrée dans l'app — cohabite avec le
@@ -1311,9 +1393,22 @@ model InnovationCategory {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  fiches InnovationFiche[]
+  fiches InnovationFicheCategory[]
 
   @@unique([label, orgUnitRef])
+}
+
+// Table de jointure tags multi-valeurs (PR C, lot pré-release) — une fiche remplace sa
+// catégorie unique par plusieurs tags ; même convention que InnovationContributor/Vote.
+model InnovationFicheCategory {
+  ficheId    String
+  categoryId String
+
+  fiche    InnovationFiche    @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  category InnovationCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([ficheId, categoryId])
+  @@index([categoryId])
 }
 
 enum ChallengeStatus {

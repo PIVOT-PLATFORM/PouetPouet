@@ -1,16 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ChevronLeft, ThumbsUp, Trophy, User, X } from 'lucide-react'
+import { Camera, ChevronLeft, Image as ImageIcon, Lock, Star, ThumbsUp, Trophy, User, X } from 'lucide-react'
 import { useInnovationFiche, type InnovationStatus } from '@/hooks/useInnovation'
 import { useChallenges, useFicheChallengeEntries, submitFicheToChallenge } from '@/hooks/useChallenges'
 import { useOrgUnits, useInnovationCategories } from '@/hooks/useInnovationOrg'
+import { useInnovationComments } from '@/hooks/useInnovationComments'
+import { useInnovationAttachments } from '@/hooks/useInnovationAttachments'
+import { useInnovationLinks } from '@/hooks/useInnovationLinks'
 import { OrgUnitPicker } from '@/components/innovation/org-unit-picker'
 import { CategoryPicker } from '@/components/innovation/category-picker'
+import { CommentThread } from '@/components/innovation/comment-thread'
+import { AttachmentGallery } from '@/components/innovation/attachment-gallery'
+import { LinkList } from '@/components/innovation/link-list'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useAuthStore } from '@/store/auth'
+import { resizeImage } from '@/lib/image-resize'
 
 const STATUSES: { key: InnovationStatus; label: string; color: string }[] = [
   { key: 'IDEE', label: 'Idée', color: '#eab308' },
@@ -77,11 +84,14 @@ export default function InnovationDetailPage() {
   useFlagGuard('module.innovation')
   const { id } = useParams<{ id: string }>()
   const user = useAuthStore((s) => s.user)
-  const { fiche, isLoading, notFound, updateFiche, toggleVote, addContributor, removeContributor } = useInnovationFiche(id)
+  const { fiche, isLoading, notFound, updateFiche, toggleVote, toggleFavorite, addContributor, removeContributor } = useInnovationFiche(id)
   const { entries: challengeEntries, reload: reloadChallengeEntries } = useFicheChallengeEntries(id)
   const { challenges } = useChallenges()
   const { units } = useOrgUnits()
   const { categories } = useInnovationCategories(fiche?.orgUnitRef ?? null)
+  const { comments, addComment, editComment, deleteComment } = useInnovationComments(id)
+  const { attachments, uploadFile, getDownloadUrl, deleteAttachment } = useInnovationAttachments(id)
+  const { links, addLink, deleteLink } = useInnovationLinks(id)
 
   const [editing, setEditing] = useState(false)
   const [contributorEmail, setContributorEmail] = useState('')
@@ -89,6 +99,24 @@ export default function InnovationDetailPage() {
   const [abandonReason, setAbandonReason] = useState('')
   const [showAbandon, setShowAbandon] = useState(false)
   const [showChallengePicker, setShowChallengePicker] = useState(false)
+  const bannerInputRef = useRef<HTMLInputElement>(null)
+  const coverInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleBannerFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const dataUrl = await resizeImage(file, 1600)
+    await updateFiche({ bannerImage: dataUrl })
+    if (bannerInputRef.current) bannerInputRef.current.value = ''
+  }
+
+  async function handleCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const dataUrl = await resizeImage(file, 400)
+    await updateFiche({ coverImage: dataUrl })
+    if (coverInputRef.current) coverInputRef.current.value = ''
+  }
 
   if (isLoading) {
     return <div className="flex justify-center py-20"><div className="w-7 h-7 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" /></div>
@@ -142,6 +170,28 @@ export default function InnovationDetailPage() {
     <div className="flex flex-col gap-6">
       <Link href="/innovation" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"><ChevronLeft size={16} />Innovation</Link>
 
+      {/* Bannière */}
+      {(fiche.bannerImage || canEdit) && (
+        <div className="relative w-full h-40 rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 group">
+          {fiche.bannerImage ? (
+            <img src={fiche.bannerImage} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600"><ImageIcon size={28} /></div>
+          )}
+          {canEdit && (
+            <>
+              <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerFile} />
+              <button
+                onClick={() => bannerInputRef.current?.click()}
+                className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-lg bg-black/50 px-3 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Camera size={13} /> {fiche.bannerImage ? 'Changer' : 'Ajouter une bannière'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex-1 min-w-0">
           {editing ? (
@@ -154,8 +204,9 @@ export default function InnovationDetailPage() {
           ) : (
             <h1
               onClick={() => canEdit && setEditing(true)}
-              className={`text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight ${canEdit ? 'cursor-text hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-2 py-1 -ml-2' : ''}`}
+              className={`text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2 ${canEdit ? 'cursor-text hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-2 py-1 -ml-2' : ''}`}
             >
+              {fiche.visibility === 'PRIVATE' && <Lock size={20} className="text-gray-400 shrink-0" />}
               {fiche.title}
             </h1>
           )}
@@ -163,12 +214,21 @@ export default function InnovationDetailPage() {
             <User size={14} />{fiche.author.name} · {frDate(fiche.createdAt)}
           </p>
         </div>
-        <button
-          onClick={() => toggleVote()}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shrink-0 ${fiche.hasVoted ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'}`}
-        >
-          <ThumbsUp size={16} /> {fiche.votes}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => toggleFavorite()}
+            title="Favori"
+            className={`p-2.5 rounded-xl transition-all ${fiche.isFavorite ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-amber-500'}`}
+          >
+            <Star size={16} fill={fiche.isFavorite ? 'currentColor' : 'none'} />
+          </button>
+          <button
+            onClick={() => toggleVote()}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${fiche.hasVoted ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'}`}
+          >
+            <ThumbsUp size={16} /> {fiche.votes}
+          </button>
+        </div>
       </div>
 
       {/* Statut */}
@@ -189,16 +249,29 @@ export default function InnovationDetailPage() {
         <p className="text-sm text-gray-500 dark:text-gray-400 italic">Motif d'abandon : {fiche.abandonReason}</p>
       )}
 
-      {/* Périmètre & catégorie */}
+      {/* Visibilité */}
+      {canEdit && (
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-fit">
+            <button onClick={() => updateFiche({ visibility: 'PUBLIC' })} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${fiche.visibility === 'PUBLIC' ? 'bg-amber-500 text-white' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}>Publique</button>
+            <button onClick={() => updateFiche({ visibility: 'PRIVATE' })} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${fiche.visibility === 'PRIVATE' ? 'bg-amber-500 text-white' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}><Lock size={11} />Privée</button>
+          </div>
+          {fiche.visibility === 'PRIVATE' && <span className="text-xs text-gray-400">Visible seulement de vous et des contributeurs.</span>}
+        </div>
+      )}
+
+      {/* Périmètre & catégories */}
       {canEdit ? (
         <div className="grid grid-cols-2 gap-3">
-          <OrgUnitPicker units={units} value={fiche.orgUnitRef} onChange={(v) => updateFiche({ orgUnitRef: v, categoryId: null })} placeholder="Aucun périmètre" />
-          <CategoryPicker categories={categories} value={fiche.category?.id ?? null} onChange={(v) => updateFiche({ categoryId: v })} placeholder="Aucune catégorie" />
+          <OrgUnitPicker units={units} value={fiche.orgUnitRef} onChange={(v) => updateFiche({ orgUnitRef: v, categoryIds: [] })} placeholder="Aucun périmètre" />
+          <CategoryPicker categories={categories} value={fiche.categories.map((c) => c.id)} onChange={(ids) => updateFiche({ categoryIds: ids })} placeholder="Aucune catégorie" />
         </div>
-      ) : (fiche.orgUnitRef || fiche.category) && (
-        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+      ) : (fiche.orgUnitRef || fiche.categories.length > 0) && (
+        <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500 dark:text-gray-400">
           {fiche.orgUnitRef && <span>{units.find((u) => u.ref === fiche.orgUnitRef)?.nom ?? fiche.orgUnitRef}</span>}
-          {fiche.category && <span className="font-medium text-amber-600 dark:text-amber-400">{fiche.category.label}</span>}
+          {fiche.categories.map((c) => (
+            <span key={c.id} className="font-medium text-amber-600 dark:text-amber-400">{c.label}</span>
+          ))}
         </div>
       )}
 
@@ -208,6 +281,46 @@ export default function InnovationDetailPage() {
         <EditableSection title="Problème" value={fiche.probleme} placeholder="Quel problème cette idée résout-elle ?" canEdit={canEdit} onSave={(v) => updateFiche({ probleme: v })} />
         <EditableSection title="Solution" value={fiche.solution} placeholder="Quelle est la solution envisagée ?" canEdit={canEdit} onSave={(v) => updateFiche({ solution: v })} />
         <EditableSection title="Bénéfices" value={fiche.benefices} placeholder="Quels bénéfices attendus ?" canEdit={canEdit} onSave={(v) => updateFiche({ benefices: v })} />
+      </div>
+
+      {/* Image de couverture (affichée sur la carte de la liste) */}
+      {(fiche.coverImage || canEdit) && (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex items-center gap-4">
+          <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            {fiche.coverImage ? <img src={fiche.coverImage} alt="" className="w-full h-full object-cover" /> : <ImageIcon size={20} className="text-gray-300 dark:text-gray-600" />}
+          </div>
+          <div className="flex flex-col gap-1">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Image de couverture</h3>
+            <p className="text-xs text-gray-400">Affichée sur la carte de la fiche dans la liste.</p>
+            {canEdit && (
+              <div className="flex items-center gap-2 pt-1">
+                <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverFile} />
+                <button onClick={() => coverInputRef.current?.click()} className="text-xs font-medium text-amber-600 hover:text-amber-700">{fiche.coverImage ? 'Changer' : 'Ajouter une image'}</button>
+                {fiche.coverImage && (
+                  <button onClick={() => updateFiche({ coverImage: null })} className="text-xs text-gray-400 hover:text-red-500">Retirer</button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Pièces jointes */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex flex-col gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Pièces jointes</h3>
+        <AttachmentGallery
+          attachments={attachments}
+          canEdit={canEdit}
+          onUpload={uploadFile}
+          onOpen={getDownloadUrl}
+          onDelete={deleteAttachment}
+        />
+      </div>
+
+      {/* Liens */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex flex-col gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Liens</h3>
+        <LinkList links={links} canEdit={canEdit} onAdd={addLink} onDelete={deleteLink} />
       </div>
 
       {/* Contributeurs */}
@@ -252,6 +365,19 @@ export default function InnovationDetailPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Commentaires */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex flex-col gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Commentaires</h3>
+        <CommentThread
+          comments={comments}
+          currentUserId={user?.id ?? ''}
+          isAdmin={!!user?.isAdmin}
+          onAdd={addComment}
+          onEdit={editComment}
+          onDelete={deleteComment}
+        />
       </div>
 
       {showChallengePicker && (

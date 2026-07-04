@@ -157,3 +157,56 @@ describe('Innovation v2-A — stats du dashboard', () => {
     expect(res.statusCode).toBe(401)
   })
 })
+
+describe('Innovation PR E — gamification (points, badges, leaderboard)', () => {
+  let app: FastifyInstance
+  let alice: { user: { id: string }; token: string } // 2 fiches, 1 votée deux fois
+  let bob: { user: { id: string }; token: string } // 0 fiche, juste votant
+
+  beforeAll(async () => {
+    await cleanupUsers(SUFFIX)
+    await cleanupAdmin()
+    app = await buildTestApp(PLUGINS)
+    alice = await createTestUser(app, `alice-gami${SUFFIX}`)
+    bob = await createTestUser(app, `bob-gami${SUFFIX}`)
+
+    const f1 = await app.inject({ method: 'POST', url: '/api/innovation/fiches', headers: auth(alice.token), payload: { title: 'Gamif 1', pitch: 'x' } })
+    await app.inject({ method: 'POST', url: `/api/innovation/fiches/${f1.json().id}/vote`, headers: auth(alice.token) })
+    await app.inject({ method: 'POST', url: `/api/innovation/fiches/${f1.json().id}/vote`, headers: auth(bob.token) })
+    await app.inject({ method: 'POST', url: '/api/innovation/fiches', headers: auth(alice.token), payload: { title: 'Gamif 2', pitch: 'x' } })
+  })
+
+  afterAll(async () => {
+    await cleanupUsers(SUFFIX)
+    await cleanupAdmin()
+    await app.close()
+  })
+
+  it('GET /stats/me — alice a 2 fiches et 2 votes reçus → points = 2×1 + 2×2 = 6, badge first-fiche obtenu', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/innovation/stats/me', headers: auth(alice.token) })
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body.ficheCount).toBe(2)
+    expect(body.votesReceived).toBe(2)
+    expect(body.points).toBe(6)
+    expect(body.badges.find((b: { id: string }) => b.id === 'first-fiche').earned).toBe(true)
+    expect(body.badges.find((b: { id: string }) => b.id === 'five-fiches').earned).toBe(false)
+  })
+
+  it('GET /stats/me — bob n\'a publié aucune fiche → 0 point, aucun badge', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/innovation/stats/me', headers: auth(bob.token) })
+    const body = res.json()
+    expect(body.ficheCount).toBe(0)
+    expect(body.points).toBe(0)
+    expect(body.badges.every((b: { earned: boolean }) => !b.earned)).toBe(true)
+  })
+
+  it('GET /stats — topContributors inclut alice avec ses points', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/innovation/stats', headers: auth(alice.token) })
+    const top = res.json().topContributors
+    const aliceEntry = top.find((c: { userId: string }) => c.userId === alice.user.id)
+    expect(aliceEntry).toBeDefined()
+    expect(aliceEntry.points).toBe(6)
+    expect(aliceEntry.name).toBeTruthy()
+  })
+})
