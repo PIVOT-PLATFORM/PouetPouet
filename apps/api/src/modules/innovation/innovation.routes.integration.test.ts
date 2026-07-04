@@ -274,7 +274,7 @@ describe('Innovation — export CSV (PR F)', () => {
     expect(res.statusCode).toBe(200)
     expect(res.headers['content-type']).toContain('text/csv')
     expect(res.body.startsWith('﻿')).toBe(true)
-    expect(res.body).toContain('"Titre","Statut","Auteur","Périmètre","Catégories","Votes","Créée le"')
+    expect(res.body).toContain('"Titre","Statut","Visibilité","Auteur","Périmètre","Catégories","Votes","Créée le"')
     expect(res.body).toContain('"Fiche exportable"')
   })
 

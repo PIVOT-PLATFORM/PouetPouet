@@ -7,6 +7,7 @@ import { serializeFiche } from './innovation-serialize.js'
 import { resolveOrgUnits, isInSubtree } from './innovation-org.js'
 
 const STATUSES = ['IDEE', 'EXPLORATION', 'ADOPTEE', 'ABANDONNEE'] as const
+const VISIBILITIES = ['PUBLIC', 'PRIVATE'] as const
 
 const createSchema = z.object({
   title: z.string().min(1).max(120),
@@ -16,6 +17,7 @@ const createSchema = z.object({
   benefices: z.string().max(3000).optional(),
   orgUnitRef: z.string().min(1).optional(),
   categoryIds: z.array(z.string().min(1)).max(10).optional(),
+  visibility: z.enum(VISIBILITIES).optional(),
 })
 
 const editSchema = z
@@ -33,6 +35,7 @@ const editSchema = z
     // avant envoi, cf. resizeImage (image-resize.ts).
     coverImage: z.string().max(2_000_000).nullable().optional(),
     bannerImage: z.string().max(3_000_000).nullable().optional(),
+    visibility: z.enum(VISIBILITIES).optional(),
   })
   .refine((data) => data.status !== 'ABANDONNEE' || !!data.abandonReason, {
     message: 'Un motif est requis pour abandonner une fiche.',
@@ -72,13 +75,14 @@ function ficheInclude(userId: string) {
     contributors: { include: { user: { select: { id: true, name: true } } } },
     _count: { select: { votes: true } },
     votes: { where: { userId }, select: { id: true } },
+    favorites: { where: { userId }, select: { id: true } },
   } as const
 }
 
 // Auteur, co-contributeur ou admin de l'app : seuls habilités à éditer/gérer une fiche.
-// Les fiches sont visibles par tous les connectés (GET), mais éditables par ce périmètre
-// restreint uniquement — 403 explicite pour le reste (pattern Feedback, pas d'anti-
-// énumération ici puisque l'existence de la fiche est déjà publique).
+// Par défaut (visibility PUBLIC), les fiches sont visibles par tous les connectés (GET),
+// mais éditables par ce périmètre restreint uniquement — 403 explicite pour le reste
+// (pattern Feedback, pas d'anti-énumération puisque l'existence de la fiche est publique).
 async function canEditFiche(fiche: { id: string; authorId: string }, userId: string, email: string): Promise<boolean> {
   if (isAdminEmail(email)) return true
   if (fiche.authorId === userId) return true
@@ -88,11 +92,21 @@ async function canEditFiche(fiche: { id: string; authorId: string }, userId: str
   return !!contributor
 }
 
-type FicheQuery = { status?: string; mine?: string; q?: string; categoryIds?: string; orgUnitRef?: string }
+// Une fiche PRIVATE n'est visible que par ce même périmètre (auteur/contributeur/admin) —
+// dans ce cas, contrairement au reste du module, l'existence de la fiche n'est plus
+// publique : 404 anti-énumération pour tout le monde d'autre (cf. GET /fiches/:id).
+async function canSeeFiche(fiche: { id: string; authorId: string; visibility: string }, userId: string, email: string): Promise<boolean> {
+  if (fiche.visibility === 'PUBLIC') return true
+  return canEditFiche(fiche, userId, email)
+}
 
-// Filtres statut/mine/recherche/tags/périmètre partagés par GET /fiches et
+type FicheQuery = { status?: string; mine?: string; q?: string; categoryIds?: string; orgUnitRef?: string; favorite?: string }
+
+// Filtres statut/mine/recherche/tags/périmètre/favoris partagés par GET /fiches et
 // GET /fiches.csv (PR F, export) — extrait pour ne pas dupliquer la logique de filtrage.
-async function queryFiches(userId: string, query: FicheQuery) {
+// email requis pour l'exception admin sur la visibilité PRIVATE (voit tout, comme partout
+// ailleurs dans le module).
+async function queryFiches(userId: string, email: string, query: FicheQuery) {
   const AND: Record<string, unknown>[] = []
   if (query.status && (STATUSES as readonly string[]).includes(query.status)) {
     AND.push({ status: query.status })
@@ -113,6 +127,15 @@ async function queryFiches(userId: string, query: FicheQuery) {
   if (query.categoryIds) {
     const ids = query.categoryIds.split(',').filter(Boolean)
     if (ids.length) AND.push({ categories: { some: { categoryId: { in: ids } } } })
+  }
+  if (query.favorite === 'true') {
+    AND.push({ favorites: { some: { userId } } })
+  }
+  // Une fiche PRIVATE n'apparaît que pour son auteur/contributeur (admin voit tout, cf.
+  // canSeeFiche) — filtré en base plutôt qu'en mémoire pour ne pas fuiter son existence
+  // ailleurs que dans la réponse elle-même.
+  if (!isAdminEmail(email)) {
+    AND.push({ OR: [{ visibility: 'PUBLIC' }, { authorId: userId }, { contributors: { some: { userId } } }] })
   }
 
   let fiches = await prisma.innovationFiche.findMany({
@@ -139,24 +162,26 @@ function csvEscape(s: string): string {
 export const innovationRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate)
 
-  // GET /fiches — toutes les fiches (visibilité globale), filtres statut / mine / recherche.
+  // GET /fiches — visibilité globale par défaut (PUBLIC), sauf fiches PRIVATE réservées
+  // à leur auteur/contributeurs/admin ; filtres statut / mine / recherche / favoris.
   app.get('/fiches', async (request) => {
-    const { id: userId } = request.user as { id: string }
+    const { id: userId, email } = request.user as { id: string; email: string }
     const query = request.query as FicheQuery
-    const fiches = await queryFiches(userId, query)
+    const fiches = await queryFiches(userId, email, query)
     return fiches.map((f) => serializeFiche(f))
   })
 
   // GET /fiches.csv — export CSV (mêmes filtres que GET /fiches), PR F du lot pré-release.
   app.get('/fiches.csv', async (request, reply) => {
-    const { id: userId } = request.user as { id: string }
+    const { id: userId, email } = request.user as { id: string; email: string }
     const query = request.query as FicheQuery
-    const fiches = await queryFiches(userId, query)
+    const fiches = await queryFiches(userId, email, query)
 
-    const header = ['Titre', 'Statut', 'Auteur', 'Périmètre', 'Catégories', 'Votes', 'Créée le']
+    const header = ['Titre', 'Statut', 'Visibilité', 'Auteur', 'Périmètre', 'Catégories', 'Votes', 'Créée le']
     const rows = fiches.map((f) => [
       f.title,
       f.status,
+      f.visibility,
       f.author.name,
       f.orgUnitRef ?? '',
       f.categories.map((c) => c.category.label).join('; '),
@@ -189,13 +214,15 @@ export const innovationRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(201).send(serializeFiche(fiche))
   })
 
-  // GET /fiches/:id — visibilité globale.
+  // GET /fiches/:id — visibilité globale par défaut ; 404 anti-énumération si PRIVATE
+  // et appelant hors auteur/contributeur/admin (son existence n'est alors plus publique).
   app.get('/fiches/:id', async (request, reply) => {
-    const { id: userId } = request.user as { id: string }
+    const { id: userId, email } = request.user as { id: string; email: string }
     const { id } = request.params as { id: string }
 
     const fiche = await prisma.innovationFiche.findUnique({ where: { id }, include: ficheInclude(userId) })
     if (!fiche) return reply.status(404).send({ error: 'Fiche introuvable.' })
+    if (!(await canSeeFiche(fiche, userId, email))) return reply.status(404).send({ error: 'Fiche introuvable.' })
     return serializeFiche(fiche)
   })
 
@@ -208,6 +235,8 @@ export const innovationRoutes: FastifyPluginAsync = async (app) => {
     const existing = await prisma.innovationFiche.findUnique({ where: { id } })
     if (!existing) return reply.status(404).send({ error: 'Fiche introuvable.' })
     if (!(await canEditFiche(existing, userId, email))) {
+      // PRIVATE + hors périmètre : 404 anti-énumération (son existence n'est pas publique).
+      if (existing.visibility === 'PRIVATE') return reply.status(404).send({ error: 'Fiche introuvable.' })
       return reply.status(403).send({ error: 'Vous ne pouvez pas modifier cette fiche.' })
     }
 
@@ -240,6 +269,9 @@ export const innovationRoutes: FastifyPluginAsync = async (app) => {
 
     const existing = await prisma.innovationFiche.findUnique({ where: { id } })
     if (!existing) return reply.status(404).send({ error: 'Fiche introuvable.' })
+    // PRIVATE + hors auteur/contributeur/admin : 404 anti-énumération avant même la
+    // vérification (plus étroite) de qui a le droit de supprimer.
+    if (!(await canSeeFiche(existing, userId, email))) return reply.status(404).send({ error: 'Fiche introuvable.' })
     if (existing.authorId !== userId && !isAdminEmail(email)) {
       return reply.status(403).send({ error: 'Vous ne pouvez pas supprimer cette fiche.' })
     }
@@ -248,13 +280,14 @@ export const innovationRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(204).send()
   })
 
-  // POST /fiches/:id/vote — toggle (tout utilisateur connecté).
+  // POST /fiches/:id/vote — toggle (tout utilisateur connecté qui peut voir la fiche).
   app.post('/fiches/:id/vote', async (request, reply) => {
-    const { id: userId } = request.user as { id: string }
+    const { id: userId, email } = request.user as { id: string; email: string }
     const { id: ficheId } = request.params as { id: string }
 
     const existing = await prisma.innovationFiche.findUnique({ where: { id: ficheId } })
     if (!existing) return reply.status(404).send({ error: 'Fiche introuvable.' })
+    if (!(await canSeeFiche(existing, userId, email))) return reply.status(404).send({ error: 'Fiche introuvable.' })
 
     const alreadyVoted = await prisma.innovationVote.findUnique({
       where: { ficheId_userId: { ficheId, userId } },
@@ -271,6 +304,31 @@ export const innovationRoutes: FastifyPluginAsync = async (app) => {
     return reply.send(result)
   })
 
+  // POST /fiches/:id/favorite — toggle (tout utilisateur connecté, sous réserve de
+  // pouvoir voir la fiche — 404 anti-énumération sur une fiche PRIVATE hors périmètre).
+  app.post('/fiches/:id/favorite', async (request, reply) => {
+    const { id: userId, email } = request.user as { id: string; email: string }
+    const { id: ficheId } = request.params as { id: string }
+
+    const existing = await prisma.innovationFiche.findUnique({ where: { id: ficheId } })
+    if (!existing) return reply.status(404).send({ error: 'Fiche introuvable.' })
+    if (!(await canSeeFiche(existing, userId, email))) return reply.status(404).send({ error: 'Fiche introuvable.' })
+
+    const alreadyFavorite = await prisma.innovationFavorite.findUnique({
+      where: { ficheId_userId: { ficheId, userId } },
+    })
+
+    let isFavorite: boolean
+    if (alreadyFavorite) {
+      await prisma.innovationFavorite.delete({ where: { ficheId_userId: { ficheId, userId } } })
+      isFavorite = false
+    } else {
+      await prisma.innovationFavorite.create({ data: { ficheId, userId } })
+      isFavorite = true
+    }
+    return reply.send({ isFavorite })
+  })
+
   // POST /fiches/:id/contributors — ajouter un co-contributeur par email (auteur/contributeur/admin).
   app.post('/fiches/:id/contributors', async (request, reply) => {
     const { id: userId, email } = request.user as { id: string; email: string }
@@ -280,6 +338,7 @@ export const innovationRoutes: FastifyPluginAsync = async (app) => {
     const fiche = await prisma.innovationFiche.findUnique({ where: { id: ficheId } })
     if (!fiche) return reply.status(404).send({ error: 'Fiche introuvable.' })
     if (!(await canEditFiche(fiche, userId, email))) {
+      if (fiche.visibility === 'PRIVATE') return reply.status(404).send({ error: 'Fiche introuvable.' })
       return reply.status(403).send({ error: 'Vous ne pouvez pas gérer les contributeurs de cette fiche.' })
     }
 
@@ -315,6 +374,7 @@ export const innovationRoutes: FastifyPluginAsync = async (app) => {
     const fiche = await prisma.innovationFiche.findUnique({ where: { id: ficheId } })
     if (!fiche) return reply.status(404).send({ error: 'Fiche introuvable.' })
     if (!(await canEditFiche(fiche, userId, email))) {
+      if (fiche.visibility === 'PRIVATE') return reply.status(404).send({ error: 'Fiche introuvable.' })
       return reply.status(403).send({ error: 'Vous ne pouvez pas gérer les contributeurs de cette fiche.' })
     }
 

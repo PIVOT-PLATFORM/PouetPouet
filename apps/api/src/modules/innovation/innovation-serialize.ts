@@ -16,6 +16,7 @@ export type InnovationFicheRow = {
   orgUnitRef: string | null
   coverImage: string | null
   bannerImage: string | null
+  visibility: string
   createdAt: Date
   updatedAt: Date
   author: { id: string; name: string }
@@ -23,6 +24,7 @@ export type InnovationFicheRow = {
   contributors: { user: { id: string; name: string } }[]
   _count: { votes: number }
   votes: { id: string }[]
+  favorites: { id: string }[]
 }
 
 export function serializeFiche(f: InnovationFicheRow) {
@@ -39,11 +41,13 @@ export function serializeFiche(f: InnovationFicheRow) {
     orgUnitRef: f.orgUnitRef,
     coverImage: f.coverImage,
     bannerImage: f.bannerImage,
+    visibility: f.visibility,
     author: f.author,
     categories: f.categories.map((c) => c.category),
     contributors: f.contributors.map((c) => c.user),
     votes: f._count.votes,
     hasVoted: f.votes.length > 0,
+    isFavorite: f.favorites.length > 0,
     createdAt: f.createdAt,
     updatedAt: f.updatedAt,
   }

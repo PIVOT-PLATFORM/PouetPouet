@@ -14,6 +14,7 @@ const base: InnovationFicheRow = {
   orgUnitRef: null,
   coverImage: null,
   bannerImage: null,
+  visibility: 'PUBLIC',
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-02'),
   author: { id: 'u-alice', name: 'Alice' },
@@ -21,6 +22,7 @@ const base: InnovationFicheRow = {
   contributors: [],
   _count: { votes: 0 },
   votes: [],
+  favorites: [],
 }
 
 describe('serializeFiche', () => {
@@ -62,5 +64,14 @@ describe('serializeFiche', () => {
     const s = serializeFiche(f)
     expect(s.orgUnitRef).toBe('ldap:org1')
     expect(s.categories).toEqual([{ id: 'cat1', label: 'Process' }, { id: 'cat2', label: 'RH' }])
+  })
+
+  it('isFavorite vrai quand la relation favorites (filtrée par appelant) contient une entrée', () => {
+    expect(serializeFiche(base).isFavorite).toBe(false)
+    expect(serializeFiche({ ...base, favorites: [{ id: 'fav1' }] }).isFavorite).toBe(true)
+  })
+
+  it('conserve visibility', () => {
+    expect(serializeFiche({ ...base, visibility: 'PRIVATE' }).visibility).toBe('PRIVATE')
   })
 })

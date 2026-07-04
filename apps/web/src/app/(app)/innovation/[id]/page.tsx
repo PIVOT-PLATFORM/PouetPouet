@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Camera, ChevronLeft, Image as ImageIcon, ThumbsUp, Trophy, User, X } from 'lucide-react'
+import { Camera, ChevronLeft, Image as ImageIcon, Lock, Star, ThumbsUp, Trophy, User, X } from 'lucide-react'
 import { useInnovationFiche, type InnovationStatus } from '@/hooks/useInnovation'
 import { useChallenges, useFicheChallengeEntries, submitFicheToChallenge } from '@/hooks/useChallenges'
 import { useOrgUnits, useInnovationCategories } from '@/hooks/useInnovationOrg'
@@ -84,7 +84,7 @@ export default function InnovationDetailPage() {
   useFlagGuard('module.innovation')
   const { id } = useParams<{ id: string }>()
   const user = useAuthStore((s) => s.user)
-  const { fiche, isLoading, notFound, updateFiche, toggleVote, addContributor, removeContributor } = useInnovationFiche(id)
+  const { fiche, isLoading, notFound, updateFiche, toggleVote, toggleFavorite, addContributor, removeContributor } = useInnovationFiche(id)
   const { entries: challengeEntries, reload: reloadChallengeEntries } = useFicheChallengeEntries(id)
   const { challenges } = useChallenges()
   const { units } = useOrgUnits()
@@ -204,8 +204,9 @@ export default function InnovationDetailPage() {
           ) : (
             <h1
               onClick={() => canEdit && setEditing(true)}
-              className={`text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight ${canEdit ? 'cursor-text hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-2 py-1 -ml-2' : ''}`}
+              className={`text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2 ${canEdit ? 'cursor-text hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-2 py-1 -ml-2' : ''}`}
             >
+              {fiche.visibility === 'PRIVATE' && <Lock size={20} className="text-gray-400 shrink-0" />}
               {fiche.title}
             </h1>
           )}
@@ -213,12 +214,21 @@ export default function InnovationDetailPage() {
             <User size={14} />{fiche.author.name} · {frDate(fiche.createdAt)}
           </p>
         </div>
-        <button
-          onClick={() => toggleVote()}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shrink-0 ${fiche.hasVoted ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'}`}
-        >
-          <ThumbsUp size={16} /> {fiche.votes}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => toggleFavorite()}
+            title="Favori"
+            className={`p-2.5 rounded-xl transition-all ${fiche.isFavorite ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-amber-500'}`}
+          >
+            <Star size={16} fill={fiche.isFavorite ? 'currentColor' : 'none'} />
+          </button>
+          <button
+            onClick={() => toggleVote()}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${fiche.hasVoted ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'}`}
+          >
+            <ThumbsUp size={16} /> {fiche.votes}
+          </button>
+        </div>
       </div>
 
       {/* Statut */}
@@ -237,6 +247,17 @@ export default function InnovationDetailPage() {
       </div>
       {fiche.status === 'ABANDONNEE' && fiche.abandonReason && (
         <p className="text-sm text-gray-500 dark:text-gray-400 italic">Motif d'abandon : {fiche.abandonReason}</p>
+      )}
+
+      {/* Visibilité */}
+      {canEdit && (
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-fit">
+            <button onClick={() => updateFiche({ visibility: 'PUBLIC' })} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${fiche.visibility === 'PUBLIC' ? 'bg-amber-500 text-white' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}>Publique</button>
+            <button onClick={() => updateFiche({ visibility: 'PRIVATE' })} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${fiche.visibility === 'PRIVATE' ? 'bg-amber-500 text-white' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}><Lock size={11} />Privée</button>
+          </div>
+          {fiche.visibility === 'PRIVATE' && <span className="text-xs text-gray-400">Visible seulement de vous et des contributeurs.</span>}
+        </div>
       )}
 
       {/* Périmètre & catégories */}

@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Download, Lightbulb, Plus, ThumbsUp, User, Info } from 'lucide-react'
-import { useInnovationFiches, type InnovationStatus, type FicheInput, type InnovationFiche } from '@/hooks/useInnovation'
+import { Download, Lightbulb, Lock, Plus, Star, ThumbsUp, User, Info } from 'lucide-react'
+import { useInnovationFiches, type InnovationStatus, type InnovationVisibility, type FicheInput, type InnovationFiche } from '@/hooks/useInnovation'
 import { useOrgUnits, useInnovationCategories } from '@/hooks/useInnovationOrg'
 import { OrgUnitPicker } from '@/components/innovation/org-unit-picker'
 import { CategoryPicker } from '@/components/innovation/category-picker'
@@ -48,6 +48,7 @@ function CreateModal({ onClose, onSave, existingFiches }: { onClose: () => void;
   const [benefices, setBenefices] = useState('')
   const [orgUnitRef, setOrgUnitRef] = useState<string | null>(null)
   const [categoryIds, setCategoryIds] = useState<string[]>([])
+  const [visibility, setVisibility] = useState<InnovationVisibility>('PUBLIC')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { units } = useOrgUnits()
@@ -69,6 +70,7 @@ function CreateModal({ onClose, onSave, existingFiches }: { onClose: () => void;
         benefices: benefices.trim() || undefined,
         orgUnitRef: orgUnitRef ?? undefined,
         categoryIds: categoryIds.length ? categoryIds : undefined,
+        visibility,
       })
       onClose()
     } catch {
@@ -128,6 +130,14 @@ function CreateModal({ onClose, onSave, existingFiches }: { onClose: () => void;
               <CategoryPicker categories={categories} value={categoryIds} onChange={setCategoryIds} placeholder="Aucune" />
             </div>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Visibilité</label>
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-fit">
+              <button type="button" onClick={() => setVisibility('PUBLIC')} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${visibility === 'PUBLIC' ? 'bg-amber-500 text-white' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}>Publique</button>
+              <button type="button" onClick={() => setVisibility('PRIVATE')} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${visibility === 'PRIVATE' ? 'bg-amber-500 text-white' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}><Lock size={11} />Privée</button>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">{visibility === 'PRIVATE' ? "Visible seulement de vous et des contributeurs que vous ajoutez." : 'Visible par toute l\'équipe.'}</p>
+          </div>
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
           <div className="flex gap-3 pt-1 shrink-0">
             <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Annuler</button>
@@ -149,15 +159,17 @@ export default function InnovationListPage() {
   const [search, setSearch] = useState('')
   const [orgUnitRef, setOrgUnitRef] = useState<string | null>(null)
   const [categoryIds, setCategoryIds] = useState<string[]>([])
+  const [favoriteOnly, setFavoriteOnly] = useState(false)
   const debouncedSearch = useDebouncedValue(search)
   const { units } = useOrgUnits()
   const { categories } = useInnovationCategories(orgUnitRef)
-  const { fiches, isLoading, createFiche, toggleVote } = useInnovationFiches({
+  const { fiches, isLoading, createFiche, toggleVote, toggleFavorite } = useInnovationFiches({
     status: status ?? undefined,
     mine,
     q: debouncedSearch || undefined,
     orgUnitRef: orgUnitRef ?? undefined,
     categoryIds: categoryIds.length ? categoryIds : undefined,
+    favorite: favoriteOnly,
   })
   const [creating, setCreating] = useState(false)
 
@@ -168,6 +180,7 @@ export default function InnovationListPage() {
     if (debouncedSearch) params.set('q', debouncedSearch)
     if (orgUnitRef) params.set('orgUnitRef', orgUnitRef)
     if (categoryIds.length) params.set('categoryIds', categoryIds.join(','))
+    if (favoriteOnly) params.set('favorite', 'true')
     const qs = params.toString()
     await authedDownload(`${API_URL}/api/innovation/fiches.csv${qs ? `?${qs}` : ''}`, 'fiches-innovation.csv')
   }
@@ -221,6 +234,12 @@ export default function InnovationListPage() {
         >
           Mes fiches
         </button>
+        <button
+          onClick={() => setFavoriteOnly((v) => !v)}
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${favoriteOnly ? 'bg-amber-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+        >
+          <Star size={11} /> Mes favoris
+        </button>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -257,7 +276,10 @@ export default function InnovationListPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
                     {f.coverImage && <img src={f.coverImage} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
-                    <h2 className="text-base font-bold text-gray-900 dark:text-white line-clamp-2">{f.title}</h2>
+                    <h2 className="text-base font-bold text-gray-900 dark:text-white line-clamp-2 flex items-center gap-1.5">
+                      {f.visibility === 'PRIVATE' && <Lock size={13} className="text-gray-400 shrink-0" />}
+                      {f.title}
+                    </h2>
                   </div>
                   <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0" style={{ background: meta.color + '1a', color: meta.color }}>{meta.label}</span>
                 </div>
@@ -271,12 +293,21 @@ export default function InnovationListPage() {
                 )}
                 <div className="flex items-center justify-between gap-2 pt-2 mt-auto border-t border-gray-50 dark:border-gray-800">
                   <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 truncate"><User size={12} />{f.author.name}</span>
-                  <button
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleVote(f.id) }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all shrink-0 ${f.hasVoted ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'}`}
-                  >
-                    <ThumbsUp size={11} /> {f.votes}
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(f.id) }}
+                      title="Favori"
+                      className={`p-1.5 rounded-full transition-all ${f.isFavorite ? 'text-amber-500' : 'text-gray-300 dark:text-gray-600 hover:text-amber-400'}`}
+                    >
+                      <Star size={14} fill={f.isFavorite ? 'currentColor' : 'none'} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleVote(f.id) }}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${f.hasVoted ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'}`}
+                    >
+                      <ThumbsUp size={11} /> {f.votes}
+                    </button>
+                  </div>
                 </div>
               </Link>
             )

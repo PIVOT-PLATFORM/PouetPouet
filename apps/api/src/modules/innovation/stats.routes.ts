@@ -7,9 +7,12 @@ import { INNOVATION_BADGES, computePoints, type InnovationContributionStats } fr
 // profil individuel (/stats/me). Pas de jointure groupBy multi-table possible côté
 // Prisma pour les votes reçus (ils portent sur InnovationVote, pas InnovationFiche
 // directement) : agrégé en mémoire, volume attendu faible (outil interne).
+// N'agrège que les fiches PUBLIC : une fiche privée ne rapporte pas de points (règle
+// simple — "publier pour être crédité"), et évite de fuiter indirectement son existence
+// via le leaderboard public (topContributors).
 async function computeContributionStatsByUser(): Promise<Map<string, InnovationContributionStats>> {
   const [fiches, winningEntries] = await Promise.all([
-    prisma.innovationFiche.findMany({ select: { authorId: true, _count: { select: { votes: true } } } }),
+    prisma.innovationFiche.findMany({ where: { visibility: 'PUBLIC' }, select: { authorId: true, _count: { select: { votes: true } } } }),
     prisma.challengeEntry.findMany({ where: { isWinner: true }, select: { fiche: { select: { authorId: true } } } }),
   ])
 
@@ -39,18 +42,22 @@ export const innovationStatsRoutes: FastifyPluginAsync = async (app) => {
     const { id: userId } = request.user as { id: string }
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
 
+    // Toutes les agrégations sont scopées aux fiches PUBLIC — une fiche privée ne doit
+    // apparaître dans aucun total/classement visible par d'autres que son périmètre
+    // auteur/contributeur/admin (cf. canSeeFiche, innovation.routes.ts).
     const [totalFiches, byStatus, byCategoryRaw, fichesSansTag, recentFiches, challengesByStatus, contributorCount, topFichesRaw] =
       await Promise.all([
-        prisma.innovationFiche.count(),
-        prisma.innovationFiche.groupBy({ by: ['status'], _count: { _all: true } }),
+        prisma.innovationFiche.count({ where: { visibility: 'PUBLIC' } }),
+        prisma.innovationFiche.groupBy({ by: ['status'], where: { visibility: 'PUBLIC' }, _count: { _all: true } }),
         // Compte des associations fiche↔tag (PR C, tags multi-valeurs) : une fiche à
         // 2 tags compte dans les deux — cohérent avec un nuage de tags, pas un histogramme de fiches.
-        prisma.innovationFicheCategory.groupBy({ by: ['categoryId'], _count: { _all: true } }),
-        prisma.innovationFiche.count({ where: { categories: { none: {} } } }),
-        prisma.innovationFiche.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+        prisma.innovationFicheCategory.groupBy({ by: ['categoryId'], where: { fiche: { visibility: 'PUBLIC' } }, _count: { _all: true } }),
+        prisma.innovationFiche.count({ where: { visibility: 'PUBLIC', categories: { none: {} } } }),
+        prisma.innovationFiche.count({ where: { visibility: 'PUBLIC', createdAt: { gte: thirtyDaysAgo } } }),
         prisma.innovationChallenge.groupBy({ by: ['status'], _count: { _all: true } }),
         prisma.innovationContributor.findMany({ select: { userId: true }, distinct: ['userId'] }),
         prisma.innovationFiche.findMany({
+          where: { visibility: 'PUBLIC' },
           orderBy: { votes: { _count: 'desc' } },
           take: 5,
           include: {
