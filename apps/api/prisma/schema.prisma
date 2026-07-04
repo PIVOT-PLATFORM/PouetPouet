@@ -80,6 +80,16 @@ model User {
   delegationsDonnees    DelegationValidation[] @relation("DelegationDelegant")
   delegationsRecues     DelegationValidation[] @relation("DelegationDelegue")
   governanceConfigs     GovernanceConfig[]
+  innovationFiches        InnovationFiche[]
+  innovationContributions InnovationContributor[]
+  innovationVotes         InnovationVote[]
+  innovationChallenges    InnovationChallenge[]
+  challengeEntriesSubmitted ChallengeEntry[]
+  challengeJuryMemberships ChallengeJuror[]
+  challengeScoresGiven     ChallengeScore[]
+  innovationComments       InnovationComment[]
+  innovationAttachments    InnovationAttachment[]
+  innovationFavorites      InnovationFavorite[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1204,6 +1214,296 @@ model FeedbackVote {
 
   @@unique([ticketId, userId])
   @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Innovation — fiches visibles par tous (modèle publication, à l'inverse des
+// modules owner/partage), challenges administrés (PR2), rattachement
+// organisationnel hybride LDAP externe + hiérarchie interne (PR3, cf. ADR-0012).
+
+enum InnovationStatus {
+  IDEE
+  EXPLORATION
+  ADOPTEE
+  ABANDONNEE
+}
+
+// Écarte, pour cette seule fiche, le modèle de publication par défaut (visible par
+// tous) au profit d'une visibilité restreinte auteur/contributeurs/admin — même
+// périmètre que canEditFiche(). PRIVATE bascule la fiche sur le 404 anti-énumération
+// (comme les autres modules) puisque son existence n'est alors plus publique.
+enum InnovationVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+model InnovationFiche {
+  id            String               @id @default(cuid())
+  title         String
+  pitch         String
+  probleme      String?
+  solution      String?
+  benefices     String?
+  status        InnovationStatus     @default(IDEE)
+  abandonReason String?
+  authorId      String
+  orgUnitRef    String? // "ldap:<id>" | "int:<id>" (ADR-0012)
+  coverImage    String? // data-URL base64 (même convention que User.avatar), miniature affichée sur la carte
+  bannerImage   String? // data-URL base64, bandeau affiché en haut de la fiche
+  visibility    InnovationVisibility @default(PUBLIC)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  author       User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  categories   InnovationFicheCategory[]
+  contributors InnovationContributor[]
+  votes        InnovationVote[]
+  favorites    InnovationFavorite[]
+  entries      ChallengeEntry[]
+  comments     InnovationComment[]
+  attachments  InnovationAttachment[]
+  links        InnovationLink[]
+
+  @@index([authorId])
+  @@index([status])
+}
+
+// Mise en favori — même convention que InnovationVote (toggle, unique par utilisateur),
+// mais sémantiquement distincte : un vote est un signal collectif, un favori est un
+// marque-page personnel qui alimente le filtre "Mes favoris".
+model InnovationFavorite {
+  id      String @id @default(cuid())
+  ficheId String
+  userId  String
+
+  fiche InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([ficheId, userId])
+  @@index([userId])
+}
+
+// Liens externes rattachés à une fiche (ex. document partagé, prototype, article de
+// référence) — distincts des pièces jointes : pas de fichier, juste un intitulé + une URL.
+model InnovationLink {
+  id        String   @id @default(cuid())
+  ficheId   String
+  label     String
+  url       String
+  createdAt DateTime @default(now())
+
+  fiche InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+
+  @@index([ficheId])
+}
+
+model InnovationContributor {
+  id        String   @id @default(cuid())
+  ficheId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  fiche InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([ficheId, userId])
+  @@index([userId])
+}
+
+model InnovationVote {
+  id      String @id @default(cuid())
+  ficheId String
+  userId  String
+
+  fiche InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([ficheId, userId])
+  @@index([userId])
+}
+
+// Fil de discussion à plat (pas de réponses imbriquées — aucun module de l'app n'a de
+// threading, décision de simplicité assumée). Visible par tous (fiches publiques),
+// postable par tout utilisateur connecté ; suppression réservée à l'auteur du
+// commentaire ou à un admin (modération).
+model InnovationComment {
+  id        String   @id @default(cuid())
+  ficheId   String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fiche  InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  author User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([ficheId])
+}
+
+// Pièces jointes (texte/image/vidéo) — métadonnées seules, octets sur GCS (ou
+// .uploads/ en local), cf. storage.ts et le pattern ParcourDocument.
+model InnovationAttachment {
+  id         String   @id @default(cuid())
+  ficheId    String
+  filename   String
+  mimeType   String
+  storageKey String
+  sizeBytes  Int
+  uploadedBy String
+  createdAt  DateTime @default(now())
+
+  fiche    InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  uploader User            @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([ficheId])
+}
+
+// Hiérarchie organisationnelle INTERNE, administrée dans l'app — cohabite avec le
+// référentiel LDAP externe (ldapClient) sans jamais le dupliquer. Cf. ADR-0012 :
+// toute référence croisant les deux référentiels utilise un ref préfixé opaque
+// ("ldap:<id>" | "int:<id>"), résolu par resolveOrgUnits() (innovation-org.ts).
+enum InnovationOrgNiveau {
+  COMEX
+  DIRECTION
+  DIVISION
+  DEPARTEMENT
+  EQUIPE
+}
+
+model InnovationOrgUnit {
+  id        String              @id @default(cuid())
+  nom       String
+  niveau    InnovationOrgNiveau
+  parentId  String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  parent   InnovationOrgUnit?  @relation("InnovationOrgTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children InnovationOrgUnit[] @relation("InnovationOrgTree")
+
+  @@index([parentId])
+}
+
+model InnovationCategory {
+  id         String   @id @default(cuid())
+  label      String
+  orgUnitRef String? // null = catégorie globale ; sinon scopée à un périmètre ("ldap:<id>" | "int:<id>"), héritée vers le bas de l'arbre
+  actif      Boolean  @default(true)
+  ordre      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  fiches InnovationFicheCategory[]
+
+  @@unique([label, orgUnitRef])
+}
+
+// Table de jointure tags multi-valeurs (PR C, lot pré-release) — une fiche remplace sa
+// catégorie unique par plusieurs tags ; même convention que InnovationContributor/Vote.
+model InnovationFicheCategory {
+  ficheId    String
+  categoryId String
+
+  fiche    InnovationFiche    @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  category InnovationCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([ficheId, categoryId])
+  @@index([categoryId])
+}
+
+enum ChallengeStatus {
+  DRAFT
+  OPEN
+  EVALUATION
+  CLOSED
+}
+
+model InnovationChallenge {
+  id          String          @id @default(cuid())
+  nom         String
+  description String
+  theme       String?
+  status      ChallengeStatus @default(DRAFT)
+  opensAt     DateTime?
+  closesAt    DateTime?
+  ownerId     String
+  orgUnitRef  String? // "ldap:<id>" | "int:<id>" — périmètre d'éligibilité, branché en PR3
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  owner    User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  entries  ChallengeEntry[]
+  criteria ChallengeCriterion[]
+  jurors   ChallengeJuror[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model ChallengeEntry {
+  id            String   @id @default(cuid())
+  challengeId   String
+  ficheId       String
+  submittedById String
+  isWinner      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  challenge   InnovationChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  fiche       InnovationFiche     @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  submittedBy User                @relation(fields: [submittedById], references: [id], onDelete: Cascade)
+  scores      ChallengeScore[]
+
+  @@unique([challengeId, ficheId])
+  @@index([ficheId])
+}
+
+// Scoring multi-critères & jurys (v2-B, #231). Un critère est défini par l'admin du
+// challenge, pondéré (poids 1-5) ; verrouillé (plus de création/édition/suppression)
+// une fois le challenge passé en EVALUATION pour garder un référentiel de notation
+// stable pendant que les jurés notent.
+model ChallengeCriterion {
+  id          String   @id @default(cuid())
+  challengeId String
+  label       String
+  poids       Int      @default(1)
+  ordre       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  challenge InnovationChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  scores    ChallengeScore[]
+
+  @@index([challengeId])
+}
+
+model ChallengeJuror {
+  id          String   @id @default(cuid())
+  challengeId String
+  userId      String
+  createdAt   DateTime @default(now())
+
+  challenge InnovationChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+}
+
+model ChallengeScore {
+  id          String   @id @default(cuid())
+  entryId     String
+  criterionId String
+  jurorId     String
+  note        Int
+  commentaire String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  entry     ChallengeEntry     @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  criterion ChallengeCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+  juror     User               @relation(fields: [jurorId], references: [id], onDelete: Cascade)
+
+  @@unique([entryId, criterionId, jurorId])
+  @@index([entryId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

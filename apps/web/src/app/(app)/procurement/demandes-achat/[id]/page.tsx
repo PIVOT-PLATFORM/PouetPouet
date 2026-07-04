@@ -11,6 +11,7 @@ import {
 } from '@/lib/procurement'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
 import { useAuthStore } from '@/store/auth'
+import { Select } from '@/components/ui/select'
 
 const COMMANDE_STATUSES: CommandeStatut[] = ['EN_COURS', 'LIVREE', 'SOLDEE']
 
@@ -48,19 +49,23 @@ function EngagerPanel({
       <div className="flex flex-wrap items-end gap-2">
         <div>
           <label className="block text-[11px] text-gray-500 mb-1">Équipe demandeuse</label>
-          <select value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)}
-            className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm bg-white min-w-[14rem]">
-            <option value="">— Sélectionner —</option>
-            {orgUnits.map((u) => <option key={u.id} value={u.id}>{ORG_UNIT_NIVEAU_LABELS[u.niveau]} · {u.nom}</option>)}
-          </select>
+          <Select
+            className="w-auto min-w-[14rem]"
+            triggerClassName="w-full flex items-center justify-between gap-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm bg-white"
+            value={orgUnitId}
+            onChange={setOrgUnitId}
+            options={[{ value: '', label: '— Sélectionner —' }, ...orgUnits.map((u) => ({ value: u.id, label: `${ORG_UNIT_NIVEAU_LABELS[u.niveau]} · ${u.nom}` }))]}
+          />
         </div>
         <div>
           <label className="block text-[11px] text-gray-500 mb-1">Activité (optionnel)</label>
-          <select value={activiteId} onChange={(e) => setActiviteId(e.target.value)}
-            className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm bg-white min-w-[14rem]">
-            <option value="">— Aucune —</option>
-            {activites.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}
-          </select>
+          <Select
+            className="w-auto min-w-[14rem]"
+            triggerClassName="w-full flex items-center justify-between gap-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm bg-white"
+            value={activiteId}
+            onChange={setActiviteId}
+            options={[{ value: '', label: '— Aucune —' }, ...activites.map((a) => ({ value: a.id, label: a.nom }))]}
+          />
         </div>
         <button onClick={handleEngager} disabled={saving || !orgUnitId} className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50">
           {saving ? 'Engagement…' : 'Engager dans le circuit de validation'}
@@ -144,14 +149,12 @@ export default function DemandeAchatPage({ params }: { params: Promise<{ id: str
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
           <p className="text-xs text-gray-400 mb-1">Activité</p>
           {canEdit && demandeAchat.validationStatut ? (
-            <select
+            <Select
               value={demandeAchat.activiteId ?? ''}
-              onChange={(e) => updateDemandeAchat({ activiteId: e.target.value || null })}
-              className="w-full text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
-            >
-              <option value="">— Aucune —</option>
-              {activites.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}
-            </select>
+              onChange={(v) => updateDemandeAchat({ activiteId: v || null })}
+              triggerClassName="w-full flex items-center justify-between gap-2 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
+              options={[{ value: '', label: '— Aucune —' }, ...activites.map((a) => ({ value: a.id, label: a.nom }))]}
+            />
           ) : (
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{demandeAchat.activite?.nom ?? '—'}</p>
           )}

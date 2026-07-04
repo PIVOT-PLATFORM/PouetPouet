@@ -17,6 +17,7 @@ import {
 import type { PouvoirDelegation, TypeActivite, ContratStatut, ValidationStatut, ActiviteStatut } from '@/lib/procurement'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useAuthStore } from '@/store/auth'
+import { Select } from '@/components/ui/select'
 
 type Tab = 'contrats' | 'demandes' | 'commandes' | 'activites' | 'produits' | 'validations' | 'budget'
 
@@ -92,12 +93,11 @@ function CreateActiviteModal({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Type</label>
-            <select value={type} onChange={(e) => setType(e.target.value as TypeActivite)}
-              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white">
-              {Array.from(new Set([...typesDisponibles.map((v) => v.valeur), type])).map((t) => (
-                <option key={t} value={t}>{TYPE_ACTIVITE_LABELS[t as TypeActivite]}</option>
-              ))}
-            </select>
+            <Select
+              value={type}
+              onChange={(v) => setType(v as TypeActivite)}
+              options={Array.from(new Set([...typesDisponibles.map((v) => v.valeur), type])).map((t) => ({ value: t, label: TYPE_ACTIVITE_LABELS[t as TypeActivite] }))}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Description (optionnel)</label>
@@ -158,11 +158,12 @@ function DelegationForm({ orgUnitId, onCreate }: { orgUnitId: string; onCreate: 
       </div>
       <div>
         <label className="block text-[11px] text-gray-500 mb-1">Pouvoir</label>
-        <select value={pouvoir} onChange={(e) => setPouvoir(e.target.value as PouvoirDelegation)}
-          className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm bg-white">
-          <option value="COMPLET">Complet</option>
-          <option value="PARTIEL">Partiel</option>
-        </select>
+        <Select
+          value={pouvoir}
+          onChange={(v) => setPouvoir(v as PouvoirDelegation)}
+          options={[{ value: 'COMPLET', label: 'Complet' }, { value: 'PARTIEL', label: 'Partiel' }]}
+          triggerClassName="flex items-center justify-between gap-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm bg-white"
+        />
       </div>
       {pouvoir === 'PARTIEL' && (
         <>
@@ -310,11 +311,12 @@ export default function ProcurementPage() {
               placeholder="Rechercher par numéro ou objet…"
               className="flex-1 min-w-[220px] border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
             />
-            <select value={contratStatutFilter} onChange={(e) => setContratStatutFilter(e.target.value as ContratStatut | '')}
-              className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white">
-              <option value="">Tous statuts</option>
-              {CONTRAT_STATUTS.map((s) => <option key={s} value={s}>{CONTRAT_STATUT_LABELS[s].label}</option>)}
-            </select>
+            <Select
+              className="w-auto"
+              value={contratStatutFilter}
+              onChange={(v) => setContratStatutFilter(v as ContratStatut | '')}
+              options={[{ value: '', label: 'Tous statuts' }, ...CONTRAT_STATUTS.map((s) => ({ value: s, label: CONTRAT_STATUT_LABELS[s].label }))]}
+            />
           </div>
 
           {contratsLoading ? (
@@ -377,11 +379,12 @@ export default function ProcurementPage() {
               placeholder="Rechercher par numéro ou objet…"
               className="flex-1 min-w-[220px] border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
             />
-            <select value={demandeStatutFilter} onChange={(e) => setDemandeStatutFilter(e.target.value as ValidationStatut | '')}
-              className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white">
-              <option value="">Tous statuts</option>
-              {VALIDATION_STATUTS.map((s) => <option key={s} value={s}>{s === 'NON_ENGAGEE' ? NON_ENGAGEE_LABEL.label : VALIDATION_STATUT_LABELS[s].label}</option>)}
-            </select>
+            <Select
+              className="w-auto"
+              value={demandeStatutFilter}
+              onChange={(v) => setDemandeStatutFilter(v as ValidationStatut | '')}
+              options={[{ value: '', label: 'Tous statuts' }, ...VALIDATION_STATUTS.map((s) => ({ value: s, label: s === 'NON_ENGAGEE' ? NON_ENGAGEE_LABEL.label : VALIDATION_STATUT_LABELS[s].label }))]}
+            />
           </div>
 
           {demandesLoading ? (
@@ -485,16 +488,18 @@ export default function ProcurementPage() {
               placeholder="Rechercher par nom…"
               className="flex-1 min-w-[220px] border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
             />
-            <select value={activiteTypeFilter} onChange={(e) => setActiviteTypeFilter(e.target.value as TypeActivite | '')}
-              className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white">
-              <option value="">Tous types</option>
-              {TYPES_ACTIVITE.map((t) => <option key={t} value={t}>{TYPE_ACTIVITE_LABELS[t]}</option>)}
-            </select>
-            <select value={activiteStatutFilter} onChange={(e) => setActiviteStatutFilter(e.target.value as ActiviteStatut | '')}
-              className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white">
-              <option value="">Tous statuts</option>
-              {ACTIVITE_STATUTS.map((s) => <option key={s} value={s}>{ACTIVITE_STATUT_LABELS[s].label}</option>)}
-            </select>
+            <Select
+              className="w-auto"
+              value={activiteTypeFilter}
+              onChange={(v) => setActiviteTypeFilter(v as TypeActivite | '')}
+              options={[{ value: '', label: 'Tous types' }, ...TYPES_ACTIVITE.map((t) => ({ value: t, label: TYPE_ACTIVITE_LABELS[t] }))]}
+            />
+            <Select
+              className="w-auto"
+              value={activiteStatutFilter}
+              onChange={(v) => setActiviteStatutFilter(v as ActiviteStatut | '')}
+              options={[{ value: '', label: 'Tous statuts' }, ...ACTIVITE_STATUTS.map((s) => ({ value: s, label: ACTIVITE_STATUT_LABELS[s].label }))]}
+            />
           </div>
 
           {activitesLoading ? (

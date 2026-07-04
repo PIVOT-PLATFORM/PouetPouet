@@ -26,6 +26,7 @@ export const FLAG_DEFINITIONS: FlagDefinition[] = [
   { key: 'module.feedback', label: 'Module Feedback', description: 'Active le module Feedback Kanban (Hub + accès direct /feedback).', defaultEnabled: true },
   { key: 'module.signdoc', label: 'Module SignDoc', description: 'Active le module SignDoc (Hub + accès direct /signdoc).', defaultEnabled: false },
   { key: 'module.procurement', label: 'Module Commande publique', description: 'Active le module Commande publique (Hub + accès direct /procurement).', defaultEnabled: true },
+  { key: 'module.innovation', label: 'Module Innovation', description: 'Active le module Innovation — fiches innovation et challenges (Hub + accès direct /innovation).', defaultEnabled: true },
 ]
 
 export const FLAG_KEYS: string[] = FLAG_DEFINITIONS.map((f) => f.key)

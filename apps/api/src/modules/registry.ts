@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify'
 import type { Server, Socket } from 'socket.io'
 import type { ModuleManifest } from '@pouetpouet/shared'
-import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE, MEETOPS_MODULE, TESTBOOKS_MODULE, QUIZ_MODULE, ROADMAP_MODULE, PORTFOLIO_MODULE, PARCOURS_MODULE, FORMS_MODULE, PDF_MODULE, FEEDBACK_MODULE, SIGNDOC_MODULE, PROCUREMENT_MODULE } from '@pouetpouet/shared'
+import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE, MEETOPS_MODULE, TESTBOOKS_MODULE, QUIZ_MODULE, ROADMAP_MODULE, PORTFOLIO_MODULE, PARCOURS_MODULE, FORMS_MODULE, PDF_MODULE, FEEDBACK_MODULE, SIGNDOC_MODULE, PROCUREMENT_MODULE, INNOVATION_MODULE } from '@pouetpouet/shared'
 
 import { boardRoutes } from './pouetpouet/boards.routes.js'
 import { templateRoutes } from './pouetpouet/templates.routes.js'
@@ -29,6 +29,14 @@ import { feedbackRoutes } from './feedback/feedback.routes.js'
 import { feedbackSocketHandlers } from './feedback/feedback.sockets.js'
 import { signdocRoutes } from './signdoc/signdoc.routes.js'
 import { signdocPublicRoutes } from './signdoc/signdoc.public.routes.js'
+import { innovationRoutes } from './innovation/innovation.routes.js'
+import { challengeRoutes } from './innovation/challenge.routes.js'
+import { innovationOrgRoutes } from './innovation/org.routes.js'
+import { innovationStatsRoutes } from './innovation/stats.routes.js'
+import { scoringRoutes } from './innovation/scoring.routes.js'
+import { innovationCommentsRoutes } from './innovation/innovation-comments.routes.js'
+import { innovationAttachmentsRoutes } from './innovation/innovation-attachments.routes.js'
+import { innovationLinksRoutes } from './innovation/innovation-links.routes.js'
 
 // FORGE F0 — registre des modules côté API.
 // Le socle (index.ts) monte routes et handlers socket en itérant ce registre :
@@ -133,6 +141,20 @@ export const API_MODULES: ApiModule[] = [
       { plugin: procurementRoutes, prefix: '/api/procurement' },
       { plugin: activiteRoutes, prefix: '/api/procurement' },
       { plugin: governanceConfigRoutes, prefix: '/api/procurement' },
+    ],
+    socketHandlers: [],
+  },
+  {
+    manifest: INNOVATION_MODULE,
+    routes: [
+      { plugin: innovationRoutes, prefix: '/api/innovation' },
+      { plugin: challengeRoutes, prefix: '/api/innovation' },
+      { plugin: innovationOrgRoutes, prefix: '/api/innovation' },
+      { plugin: innovationStatsRoutes, prefix: '/api/innovation' },
+      { plugin: scoringRoutes, prefix: '/api/innovation' },
+      { plugin: innovationCommentsRoutes, prefix: '/api/innovation' },
+      { plugin: innovationAttachmentsRoutes, prefix: '/api/innovation' },
+      { plugin: innovationLinksRoutes, prefix: '/api/innovation' },
     ],
     socketHandlers: [],
   },

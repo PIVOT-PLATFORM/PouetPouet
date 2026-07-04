@@ -20,6 +20,38 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.29.0',
+    date: '2026-07-04',
+    title: 'Module Innovation',
+    summary: 'Nouveau module Innovation : boîte à idées collaborative avec challenges, jurys, gamification et rattachement organisationnel. Fiches innovation publiques ou privées, favoris, commentaires, pièces jointes, liens, tags et export CSV.',
+    sections: [
+      {
+        heading: '💡 Fiches innovation',
+        items: [
+          'Publier une idée (pitch, problème, solution, bénéfices), visible par toute l\'équipe ou restreinte en privé',
+          'Voter, mettre en favori, commenter, ajouter des pièces jointes et des liens externes',
+          'Image de couverture (carte) et bannière (fiche), tags multi-valeurs, rattachement à un périmètre organisationnel (LDAP ou interne)',
+          'Suivi du statut (Idée → Exploration → Adoptée / Abandonnée), co-contributeurs',
+        ],
+      },
+      {
+        heading: '🏆 Challenges',
+        items: [
+          'Challenges administrés avec fenêtre d\'ouverture, inscriptions et éligibilité par périmètre',
+          'Notation multi-critères pondérée par un jury dédié, classement automatique',
+          'Désignation des lauréats et export CSV du classement',
+        ],
+      },
+      {
+        heading: '📊 Dashboard & gamification',
+        items: [
+          'Vue d\'ensemble : maturation des fiches, top idées, répartition par catégorie',
+          'Badges et classement des contributeurs',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.28.1',
     date: '2026-07-02',
     title: 'Colonne Refusé & harmonisation de l\'interface',

@@ -14,12 +14,17 @@ import type { TypeActivite, ActiviteStatut, Meteo, ContratRecherche } from '@/li
 import { ModuleShareModal } from '@/components/share/module-share-modal'
 import { ContratPicker } from '@/components/procurement/contrat-picker'
 import { useAuthStore } from '@/store/auth'
+import { Select } from '@/components/ui/select'
 
 const STATUTS: ActiviteStatut[] = ['ACTIF', 'SUSPENDU', 'CLOTURE']
 const METEOS: Meteo[] = ['VERT', 'ORANGE', 'ROUGE', 'GRIS']
 
 function fieldClass() {
   return 'w-full text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white'
+}
+
+function selectTriggerClass() {
+  return `flex items-center justify-between gap-2 ${fieldClass()}`
 }
 
 // ── Gain modal ─────────────────────────────────────────────────────────────────
@@ -111,12 +116,13 @@ function BudgetLigneModal({
             <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Année</label>
               <input autoFocus type="number" value={annee} onChange={(e) => setAnnee(e.target.value)} className={fieldClass()} /></div>
             <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Type</label>
-              <select value={type} onChange={(e) => setType(e.target.value as TypeLigneBudget)} className={fieldClass()}>
-                {/* La valeur déjà choisie reste affichée même si elle a été retirée de la config depuis. */}
-                {Array.from(new Set([...typesLigneDisponibles.map((v) => v.valeur), type])).map((t) => (
-                  <option key={t} value={t}>{TYPE_LIGNE_BUDGET_LABELS[t as TypeLigneBudget]}</option>
-                ))}
-              </select></div>
+              {/* La valeur déjà choisie reste affichée même si elle a été retirée de la config depuis. */}
+              <Select
+                value={type}
+                onChange={(v) => setType(v as TypeLigneBudget)}
+                triggerClassName={selectTriggerClass()}
+                options={Array.from(new Set([...typesLigneDisponibles.map((v) => v.valeur), type])).map((t) => ({ value: t, label: TYPE_LIGNE_BUDGET_LABELS[t as TypeLigneBudget] }))}
+              /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Montant MO (€)</label>
@@ -130,10 +136,12 @@ function BudgetLigneModal({
             <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Priorité</label>
               <input value={priorite} onChange={(e) => setPriorite(e.target.value)} className={fieldClass()} /></div>
             <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Phase (jalon PMPG)</label>
-              <select value={jalonPhase} onChange={(e) => setJalonPhase(e.target.value as JalonType)} className={fieldClass()}>
-                <option value="">— Aucune —</option>
-                {jalonsPhaseDisponibles.map((j) => <option key={j} value={j}>{JALON_TYPE_LABELS[j]}</option>)}
-              </select></div>
+              <Select
+                value={jalonPhase}
+                onChange={(v) => setJalonPhase(v as JalonType)}
+                triggerClassName={selectTriggerClass()}
+                options={[{ value: '', label: '— Aucune —' }, ...jalonsPhaseDisponibles.map((j) => ({ value: j, label: JALON_TYPE_LABELS[j] }))]}
+              /></div>
           </div>
           <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Objet de gestion</label>
             <input value={objetGestion} onChange={(e) => setObjetGestion(e.target.value)} className={fieldClass()} /></div>
@@ -298,11 +306,13 @@ export default function ActivitePage({ params }: { params: Promise<{ id: string 
               <input type="checkbox" checked={activite.enjeux} onChange={(e) => updateActivite({ enjeux: e.target.checked })} className="accent-primary-600" />
               Projet à enjeux
             </label>
-            <select value={activite.type} onChange={(e) => updateActivite({ type: e.target.value as TypeActivite })} className="text-xs rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white px-2 py-1.5 bg-white">
-              {Array.from(new Set([...typesActiviteDisponibles.map((v) => v.valeur), activite.type])).map((t) => (
-                <option key={t} value={t}>{TYPE_ACTIVITE_LABELS[t as TypeActivite]}</option>
-              ))}
-            </select>
+            <Select
+              className="w-auto"
+              value={activite.type}
+              onChange={(v) => updateActivite({ type: v as TypeActivite })}
+              triggerClassName="flex items-center justify-between gap-2 text-xs rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white px-2 py-1.5 bg-white"
+              options={Array.from(new Set([...typesActiviteDisponibles.map((v) => v.valeur), activite.type])).map((t) => ({ value: t, label: TYPE_ACTIVITE_LABELS[t as TypeActivite] }))}
+            />
             <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
               {METEOS.map((m) => (
                 <button key={m} onClick={() => updateActivite({ meteo: m })} title={METEO_LABELS[m].label}
@@ -403,20 +413,24 @@ export default function ActivitePage({ params }: { params: Promise<{ id: string 
 
           <div>
             <label className="block text-xs text-gray-400 mb-1">Produit associé</label>
-            <select value={activite.produitId ?? ''} onChange={(e) => updateActivite({ produitId: e.target.value || null })} className={fieldClass()}>
-              <option value="">N/A</option>
-              {produits.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
-            </select>
+            <Select
+              value={activite.produitId ?? ''}
+              onChange={(v) => updateActivite({ produitId: v || null })}
+              triggerClassName={selectTriggerClass()}
+              options={[{ value: '', label: 'N/A' }, ...produits.map((p) => ({ value: p.id, label: p.nom }))]}
+            />
             <div className="flex gap-1.5 mt-1.5">
               <input value={newProduitNom} onChange={(e) => setNewProduitNom(e.target.value)} placeholder="Nouveau produit…" className="flex-1 text-xs border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1" />
               <button type="button" onClick={handleAddProduit} className="text-xs text-primary-600 hover:text-primary-800 font-semibold dark:text-primary-400 shrink-0">+ Créer</button>
             </div>
           </div>
           <div><label className="block text-xs text-gray-400 mb-1">Département</label>
-            <select value={activite.departementId ?? ''} onChange={(e) => updateActivite({ departementId: e.target.value || null })} className={fieldClass()}>
-              <option value="">— Aucun —</option>
-              {departements.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}
-            </select></div>
+            <Select
+              value={activite.departementId ?? ''}
+              onChange={(v) => updateActivite({ departementId: v || null })}
+              triggerClassName={selectTriggerClass()}
+              options={[{ value: '', label: '— Aucun —' }, ...departements.map((d) => ({ value: d.id, label: d.nom }))]}
+            /></div>
           <div><label className="block text-xs text-gray-400 mb-1">Pôle</label>
             <input defaultValue={activite.pole ?? ''} onBlur={(e) => updateActivite({ pole: e.target.value || null })} className={fieldClass()} /></div>
 
@@ -517,13 +531,17 @@ export default function ActivitePage({ params }: { params: Promise<{ id: string 
             onSubmit={async (e) => { e.preventDefault(); await addJalon({ type: newJalonType, libelle: newJalonType === 'AUTRE' ? newJalonLibelle.trim() || null : null }); setNewJalonLibelle('') }}
             className="flex items-center gap-2 p-3 border-t border-gray-100 dark:border-gray-800"
           >
-            <select value={newJalonType} onChange={(e) => setNewJalonType(e.target.value as JalonType)} className="text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5">
-              {/* Tout type de jalon non marqué obligatoire pour cette activité (les
-                  obligatoires sont résolus par la config de gouvernance à la création
-                  et déjà présents, cf. POST /activites) — les autres restent ajoutables
-                  librement, y compris plusieurs fois (ex: plusieurs comités). */}
-              {jalonsLibresDisponibles.map((t) => <option key={t} value={t}>{JALON_TYPE_LABELS[t]}</option>)}
-            </select>
+            {/* Tout type de jalon non marqué obligatoire pour cette activité (les
+                obligatoires sont résolus par la config de gouvernance à la création
+                et déjà présents, cf. POST /activites) — les autres restent ajoutables
+                librement, y compris plusieurs fois (ex: plusieurs comités). */}
+            <Select
+              className="w-auto"
+              value={newJalonType}
+              onChange={(v) => setNewJalonType(v as JalonType)}
+              triggerClassName="flex items-center justify-between gap-2 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5"
+              options={jalonsLibresDisponibles.map((t) => ({ value: t, label: JALON_TYPE_LABELS[t] }))}
+            />
             {newJalonType === 'AUTRE' && (
               <input value={newJalonLibelle} onChange={(e) => setNewJalonLibelle(e.target.value)} placeholder="Intitulé du jalon…" className="flex-1 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5" />
             )}
@@ -561,11 +579,17 @@ export default function ActivitePage({ params }: { params: Promise<{ id: string 
                       </td>
                       <td className="px-4 py-2.5"><span className={`text-xs font-medium px-2.5 py-1 rounded-lg ${criticiteClass(criticite)}`}>{criticite} ({r.probabilite}×{r.impact})</span></td>
                       <td className="px-4 py-2.5">
-                        <select value={r.statut} onChange={(e) => updateRisque(r.id, { statut: e.target.value })} className={`text-xs font-medium px-2 py-1 rounded-lg border-0 ${RISQUE_STATUT_LABELS[r.statut].cls}`}>
-                          <option value="OUVERT">{RISQUE_STATUT_LABELS.OUVERT.label}</option>
-                          <option value="EN_COURS">{RISQUE_STATUT_LABELS.EN_COURS.label}</option>
-                          <option value="CLOS">{RISQUE_STATUT_LABELS.CLOS.label}</option>
-                        </select>
+                        <Select
+                          className="w-auto"
+                          value={r.statut}
+                          onChange={(v) => updateRisque(r.id, { statut: v })}
+                          triggerClassName={`flex items-center justify-between gap-1.5 text-xs font-medium px-2 py-1 rounded-lg border-0 ${RISQUE_STATUT_LABELS[r.statut].cls}`}
+                          options={[
+                            { value: 'OUVERT', label: RISQUE_STATUT_LABELS.OUVERT.label },
+                            { value: 'EN_COURS', label: RISQUE_STATUT_LABELS.EN_COURS.label },
+                            { value: 'CLOS', label: RISQUE_STATUT_LABELS.CLOS.label },
+                          ]}
+                        />
                       </td>
                       <td className="px-4 py-2.5 text-sm">{r.jiraLien ? <a href={r.jiraLien} target="_blank" rel="noreferrer" className="text-primary-600 hover:underline dark:text-primary-400">Ticket →</a> : '—'}</td>
                       <td className="px-4 py-2.5">
