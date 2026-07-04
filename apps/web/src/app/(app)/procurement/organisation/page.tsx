@@ -8,6 +8,7 @@ import type { OrgUnit, RoleAchat, ChampConfigurable, GovernanceValue } from '@/h
 import { ORG_UNIT_NIVEAU_LABELS, ROLE_ACHAT_LABELS, TYPE_LIGNE_BUDGET_LABELS, JALON_TYPE_LABELS, TYPE_ACTIVITE_LABELS } from '@/lib/procurement'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useAuthStore } from '@/store/auth'
+import { Select } from '@/components/ui/select'
 
 const ROLES: RoleAchat[] = ['CHEF_DE_PROJET', 'VALIDEUR', 'FINANCE', 'CONTRACT_MANAGER']
 
@@ -72,10 +73,13 @@ function GovernanceConfigPanel({ orgUnits }: { orgUnits: OrgUnit[] }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <select value={selectedOrgUnitId} onChange={(e) => { setSelectedOrgUnitId(e.target.value); setDraft(null) }}
-          className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm bg-white">
-          {orgUnits.map((u) => <option key={u.id} value={u.id}>{ORG_UNIT_NIVEAU_LABELS[u.niveau]} · {u.nom}</option>)}
-        </select>
+        <Select
+          className="w-auto"
+          triggerClassName="flex items-center justify-between gap-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm bg-white"
+          value={selectedOrgUnitId}
+          onChange={(v) => { setSelectedOrgUnitId(v); setDraft(null) }}
+          options={orgUnits.map((u) => ({ value: u.id, label: `${ORG_UNIT_NIVEAU_LABELS[u.niveau]} · ${u.nom}` }))}
+        />
         <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
           {CHAMPS.map((c) => (
             <button key={c.champ} onClick={() => { setChamp(c.champ); setDraft(null) }}
@@ -159,19 +163,24 @@ function ProfilForm({ orgUnits, onAdd }: { orgUnits: OrgUnit[]; onAdd: (input: {
       </div>
       <div>
         <label className="block text-[11px] text-gray-500 mb-1">Profil</label>
-        <select value={role} onChange={(e) => setRole(e.target.value as RoleAchat)}
-          className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm bg-white">
-          {ROLES.map((r) => <option key={r} value={r}>{ROLE_ACHAT_LABELS[r]}</option>)}
-        </select>
+        <Select
+          className="w-auto"
+          triggerClassName="flex items-center justify-between gap-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm bg-white"
+          value={role}
+          onChange={(v) => setRole(v as RoleAchat)}
+          options={ROLES.map((r) => ({ value: r, label: ROLE_ACHAT_LABELS[r] }))}
+        />
       </div>
       {needsOrgUnit && (
         <div>
           <label className="block text-[11px] text-gray-500 mb-1">Périmètre</label>
-          <select value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)}
-            className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm bg-white">
-            <option value="">— Sélectionner —</option>
-            {orgUnits.map((u) => <option key={u.id} value={u.id}>{ORG_UNIT_NIVEAU_LABELS[u.niveau]} · {u.nom}</option>)}
-          </select>
+          <Select
+            className="w-auto"
+            triggerClassName="flex items-center justify-between gap-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-2 py-1.5 text-sm bg-white"
+            value={orgUnitId}
+            onChange={setOrgUnitId}
+            options={[{ value: '', label: '— Sélectionner —' }, ...orgUnits.map((u) => ({ value: u.id, label: `${ORG_UNIT_NIVEAU_LABELS[u.niveau]} · ${u.nom}` }))]}
+          />
         </div>
       )}
       <button type="submit" disabled={saving || !email.trim()} className="rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50">
