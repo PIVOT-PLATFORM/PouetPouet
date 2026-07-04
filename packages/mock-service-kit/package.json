@@ -9,6 +9,6 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "fastify": "^5.3.2"
+    "fastify": "^5.9.0"
   }
 }
