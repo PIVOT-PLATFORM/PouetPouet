@@ -255,7 +255,10 @@ export default function InnovationListPage() {
             return (
               <Link key={f.id} href={`/innovation/${f.id}`} className="group flex flex-col gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 hover:shadow-md transition-all">
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="text-base font-bold text-gray-900 dark:text-white line-clamp-2">{f.title}</h2>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {f.coverImage && <img src={f.coverImage} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
+                    <h2 className="text-base font-bold text-gray-900 dark:text-white line-clamp-2">{f.title}</h2>
+                  </div>
                   <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0" style={{ background: meta.color + '1a', color: meta.color }}>{meta.label}</span>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3">{f.pitch}</p>

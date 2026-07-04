@@ -1,20 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ChevronLeft, ThumbsUp, Trophy, User, X } from 'lucide-react'
+import { Camera, ChevronLeft, Image as ImageIcon, ThumbsUp, Trophy, User, X } from 'lucide-react'
 import { useInnovationFiche, type InnovationStatus } from '@/hooks/useInnovation'
 import { useChallenges, useFicheChallengeEntries, submitFicheToChallenge } from '@/hooks/useChallenges'
 import { useOrgUnits, useInnovationCategories } from '@/hooks/useInnovationOrg'
 import { useInnovationComments } from '@/hooks/useInnovationComments'
 import { useInnovationAttachments } from '@/hooks/useInnovationAttachments'
+import { useInnovationLinks } from '@/hooks/useInnovationLinks'
 import { OrgUnitPicker } from '@/components/innovation/org-unit-picker'
 import { CategoryPicker } from '@/components/innovation/category-picker'
 import { CommentThread } from '@/components/innovation/comment-thread'
 import { AttachmentGallery } from '@/components/innovation/attachment-gallery'
+import { LinkList } from '@/components/innovation/link-list'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useAuthStore } from '@/store/auth'
+import { resizeImage } from '@/lib/image-resize'
 
 const STATUSES: { key: InnovationStatus; label: string; color: string }[] = [
   { key: 'IDEE', label: 'Idée', color: '#eab308' },
@@ -88,6 +91,7 @@ export default function InnovationDetailPage() {
   const { categories } = useInnovationCategories(fiche?.orgUnitRef ?? null)
   const { comments, addComment, editComment, deleteComment } = useInnovationComments(id)
   const { attachments, uploadFile, getDownloadUrl, deleteAttachment } = useInnovationAttachments(id)
+  const { links, addLink, deleteLink } = useInnovationLinks(id)
 
   const [editing, setEditing] = useState(false)
   const [contributorEmail, setContributorEmail] = useState('')
@@ -95,6 +99,24 @@ export default function InnovationDetailPage() {
   const [abandonReason, setAbandonReason] = useState('')
   const [showAbandon, setShowAbandon] = useState(false)
   const [showChallengePicker, setShowChallengePicker] = useState(false)
+  const bannerInputRef = useRef<HTMLInputElement>(null)
+  const coverInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleBannerFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const dataUrl = await resizeImage(file, 1600)
+    await updateFiche({ bannerImage: dataUrl })
+    if (bannerInputRef.current) bannerInputRef.current.value = ''
+  }
+
+  async function handleCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const dataUrl = await resizeImage(file, 400)
+    await updateFiche({ coverImage: dataUrl })
+    if (coverInputRef.current) coverInputRef.current.value = ''
+  }
 
   if (isLoading) {
     return <div className="flex justify-center py-20"><div className="w-7 h-7 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" /></div>
@@ -147,6 +169,28 @@ export default function InnovationDetailPage() {
   return (
     <div className="flex flex-col gap-6">
       <Link href="/innovation" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"><ChevronLeft size={16} />Innovation</Link>
+
+      {/* Bannière */}
+      {(fiche.bannerImage || canEdit) && (
+        <div className="relative w-full h-40 rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 group">
+          {fiche.bannerImage ? (
+            <img src={fiche.bannerImage} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600"><ImageIcon size={28} /></div>
+          )}
+          {canEdit && (
+            <>
+              <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerFile} />
+              <button
+                onClick={() => bannerInputRef.current?.click()}
+                className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-lg bg-black/50 px-3 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Camera size={13} /> {fiche.bannerImage ? 'Changer' : 'Ajouter une bannière'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex-1 min-w-0">
@@ -218,6 +262,28 @@ export default function InnovationDetailPage() {
         <EditableSection title="Bénéfices" value={fiche.benefices} placeholder="Quels bénéfices attendus ?" canEdit={canEdit} onSave={(v) => updateFiche({ benefices: v })} />
       </div>
 
+      {/* Image de couverture (affichée sur la carte de la liste) */}
+      {(fiche.coverImage || canEdit) && (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex items-center gap-4">
+          <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            {fiche.coverImage ? <img src={fiche.coverImage} alt="" className="w-full h-full object-cover" /> : <ImageIcon size={20} className="text-gray-300 dark:text-gray-600" />}
+          </div>
+          <div className="flex flex-col gap-1">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Image de couverture</h3>
+            <p className="text-xs text-gray-400">Affichée sur la carte de la fiche dans la liste.</p>
+            {canEdit && (
+              <div className="flex items-center gap-2 pt-1">
+                <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverFile} />
+                <button onClick={() => coverInputRef.current?.click()} className="text-xs font-medium text-amber-600 hover:text-amber-700">{fiche.coverImage ? 'Changer' : 'Ajouter une image'}</button>
+                {fiche.coverImage && (
+                  <button onClick={() => updateFiche({ coverImage: null })} className="text-xs text-gray-400 hover:text-red-500">Retirer</button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Pièces jointes */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex flex-col gap-3">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Pièces jointes</h3>
@@ -228,6 +294,12 @@ export default function InnovationDetailPage() {
           onOpen={getDownloadUrl}
           onDelete={deleteAttachment}
         />
+      </div>
+
+      {/* Liens */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex flex-col gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Liens</h3>
+        <LinkList links={links} canEdit={canEdit} onAdd={addLink} onDelete={deleteLink} />
       </div>
 
       {/* Contributeurs */}

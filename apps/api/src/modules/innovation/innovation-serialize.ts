@@ -14,6 +14,8 @@ export type InnovationFicheRow = {
   abandonReason: string | null
   authorId: string
   orgUnitRef: string | null
+  coverImage: string | null
+  bannerImage: string | null
   createdAt: Date
   updatedAt: Date
   author: { id: string; name: string }
@@ -35,6 +37,8 @@ export function serializeFiche(f: InnovationFicheRow) {
     abandonReason: f.abandonReason,
     authorId: f.authorId,
     orgUnitRef: f.orgUnitRef,
+    coverImage: f.coverImage,
+    bannerImage: f.bannerImage,
     author: f.author,
     categories: f.categories.map((c) => c.category),
     contributors: f.contributors.map((c) => c.user),

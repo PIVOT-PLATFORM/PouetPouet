@@ -26,6 +26,8 @@ export interface InnovationFiche {
   abandonReason: string | null
   authorId: string
   orgUnitRef: string | null
+  coverImage: string | null
+  bannerImage: string | null
   author: InnovationContributorUser
   categories: InnovationCategoryRef[]
   contributors: InnovationContributorUser[]
@@ -121,6 +123,8 @@ export function useInnovationFiche(id: string) {
     probleme: string | null
     solution: string | null
     benefices: string | null
+    coverImage: string | null
+    bannerImage: string | null
   }>) => {
     const updated = await api.patch<InnovationFiche>(`/api/innovation/fiches/${id}`, patch)
     setFiche(updated)

@@ -29,6 +29,10 @@ const editSchema = z
     abandonReason: z.string().max(500).nullable().optional(),
     orgUnitRef: z.string().min(1).nullable().optional(),
     categoryIds: z.array(z.string().min(1)).max(10).optional(),
+    // data-URL base64 (même convention que User.avatar) — redimensionnée côté client
+    // avant envoi, cf. resizeImage (image-resize.ts).
+    coverImage: z.string().max(2_000_000).nullable().optional(),
+    bannerImage: z.string().max(3_000_000).nullable().optional(),
   })
   .refine((data) => data.status !== 'ABANDONNEE' || !!data.abandonReason, {
     message: 'Un motif est requis pour abandonner une fiche.',

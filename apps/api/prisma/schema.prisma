@@ -1238,6 +1238,8 @@ model InnovationFiche {
   abandonReason String?
   authorId      String
   orgUnitRef    String? // "ldap:<id>" | "int:<id>" (ADR-0012)
+  coverImage    String? // data-URL base64 (même convention que User.avatar), miniature affichée sur la carte
+  bannerImage   String? // data-URL base64, bandeau affiché en haut de la fiche
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
@@ -1248,9 +1250,24 @@ model InnovationFiche {
   entries      ChallengeEntry[]
   comments     InnovationComment[]
   attachments  InnovationAttachment[]
+  links        InnovationLink[]
 
   @@index([authorId])
   @@index([status])
+}
+
+// Liens externes rattachés à une fiche (ex. document partagé, prototype, article de
+// référence) — distincts des pièces jointes : pas de fichier, juste un intitulé + une URL.
+model InnovationLink {
+  id        String   @id @default(cuid())
+  ficheId   String
+  label     String
+  url       String
+  createdAt DateTime @default(now())
+
+  fiche InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+
+  @@index([ficheId])
 }
 
 model InnovationContributor {

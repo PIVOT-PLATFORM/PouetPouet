@@ -12,6 +12,8 @@ const base: InnovationFicheRow = {
   abandonReason: null,
   authorId: 'u-alice',
   orgUnitRef: null,
+  coverImage: null,
+  bannerImage: null,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-02'),
   author: { id: 'u-alice', name: 'Alice' },
