@@ -238,7 +238,7 @@ export default function ChallengeDetailPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-3xl mx-auto">
+    <div className="flex flex-col gap-6">
       <Link href="/innovation/challenges" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors w-fit"><ChevronLeft size={16} />Challenges</Link>
 
       <div className="flex items-start justify-between gap-3 flex-wrap">

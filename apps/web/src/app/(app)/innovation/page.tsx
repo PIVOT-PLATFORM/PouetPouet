@@ -6,6 +6,7 @@ import { Lightbulb, Plus, ThumbsUp, User } from 'lucide-react'
 import { useInnovationFiches, type InnovationStatus, type FicheInput } from '@/hooks/useInnovation'
 import { useOrgUnits, useInnovationCategories } from '@/hooks/useInnovationOrg'
 import { OrgUnitPicker } from '@/components/innovation/org-unit-picker'
+import { CategoryPicker } from '@/components/innovation/category-picker'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useAuthStore } from '@/store/auth'
@@ -90,14 +91,11 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (input:
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Périmètre (optionnel)</label>
-              <OrgUnitPicker units={units} value={orgUnitRef} onChange={(v) => { setOrgUnitRef(v); setCategoryId(null) }} className={inputCls} />
+              <OrgUnitPicker units={units} value={orgUnitRef} onChange={(v) => { setOrgUnitRef(v); setCategoryId(null) }} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Catégorie (optionnel)</label>
-              <select value={categoryId ?? ''} onChange={(e) => setCategoryId(e.target.value || null)} className={inputCls}>
-                <option value="">Aucune</option>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-              </select>
+              <CategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} placeholder="Aucune" />
             </div>
           </div>
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
@@ -193,16 +191,9 @@ export default function InnovationListPage() {
           value={orgUnitRef}
           onChange={(v) => { setOrgUnitRef(v); setCategoryId(null) }}
           placeholder="Tous les périmètres"
-          className="w-56 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          className="w-56"
         />
-        <select
-          value={categoryId ?? ''}
-          onChange={(e) => setCategoryId(e.target.value || null)}
-          className="w-48 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-        >
-          <option value="">Toutes les catégories</option>
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-        </select>
+        <CategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} placeholder="Toutes les catégories" className="w-48" />
       </div>
 
       {isLoading ? (

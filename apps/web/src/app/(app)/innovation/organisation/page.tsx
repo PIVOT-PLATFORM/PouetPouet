@@ -118,7 +118,7 @@ export default function InnovationOrganisationPage() {
             {NIVEAUX.map((n) => <option key={n.key} value={n.key}>{n.label}</option>)}
           </select>
           <div className="flex gap-2">
-            <OrgUnitPicker units={units} value={unitParentRef} onChange={setUnitParentRef} placeholder="Sans parent" className={inputCls} />
+            <OrgUnitPicker units={units} value={unitParentRef} onChange={setUnitParentRef} placeholder="Sans parent" />
             <button type="submit" className="shrink-0 flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-600"><Plus size={14} /></button>
           </div>
         </form>
@@ -142,7 +142,7 @@ export default function InnovationOrganisationPage() {
         )}
         <form onSubmit={handleCreateCategory} className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
           <input value={catLabel} onChange={(e) => setCatLabel(e.target.value)} placeholder="Nom de la catégorie" className={inputCls} />
-          <OrgUnitPicker units={units} value={catOrgUnitRef} onChange={setCatOrgUnitRef} placeholder="Globale (tous périmètres)" className={inputCls} />
+          <OrgUnitPicker units={units} value={catOrgUnitRef} onChange={setCatOrgUnitRef} placeholder="Globale (tous périmètres)" />
           <button type="submit" className="flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-600"><Plus size={14} />Ajouter</button>
         </form>
         {catError && <p className="text-sm text-red-500">{catError}</p>}

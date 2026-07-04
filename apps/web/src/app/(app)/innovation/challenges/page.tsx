@@ -69,7 +69,7 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (input:
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Périmètre d'éligibilité (optionnel)</label>
-            <OrgUnitPicker units={units} value={orgUnitRef} onChange={setOrgUnitRef} placeholder="Ouvert à tous" className={inputCls} />
+            <OrgUnitPicker units={units} value={orgUnitRef} onChange={setOrgUnitRef} placeholder="Ouvert à tous" />
           </div>
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
           <div className="flex gap-3 pt-1">
