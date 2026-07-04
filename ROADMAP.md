@@ -257,11 +257,16 @@
 - [x] Référentiels configurables par les admins, scopés à un OrgUnit et hérités vers le bas de l'arbre (`GovernanceConfig` : types de ligne budgétaire, types de jalon, types d'activité) — standardisable globalement, adaptable par override à un niveau plus bas
 - [ ] Pod référentiel Produit/taxonomie externe (différé — l'abstraction `mock-service-kit`/`external-client` le permet sans réécriture)
 
-### Module Innovation (en cours) — épique #222
+### Module Innovation — livré v0.29.0 — épique #222
 - [x] PR1 (#223) : socle du module, fiches innovation visibles par tous les utilisateurs connectés (titre, pitch, problème/solution/bénéfices, statut de maturation, co-contributeurs, votes)
 - [x] PR2 (#224) : challenges administrés — cycle de statut, inscription de fiches, désignation de lauréats
 - [x] PR3 (#225) : rattachement organisationnel hybride — réutilisation du référentiel LDAP externe de Commande publique **et** hiérarchie interne saisie dans l'app (cf. [ADR-0012](docs/adr/0012-innovation-referentiel-org-hybride.md)), catégories scopées et héritées, éligibilité des challenges par sous-arbre
-- [ ] Activation du flag `module.innovation` + release mineure — après merge des 3 PRs
+- [x] v2-A (#232) : dashboard de reporting (maturation, top idées, répartition par catégorie), notifications
+- [x] v2-B (#233) : scoring multi-critères pondéré par un jury dédié, classement automatique
+- [x] Lot pré-release (#235, après benchmark marché Brightidea/HYPE/IdeaScale/Yumana) : commentaires, détection de doublons à la saisie, pièces jointes, gamification (badges/points/leaderboard), export CSV, tags multi-valeurs (remplace la catégorie unique), liens externes, image de couverture + bannière, favoris, visibilité publique/privée des fiches
+- [x] Activation du flag `module.innovation` + release — v0.29.0
+- [ ] Liaison idée → projet (Roadmap/Portefeuille) — ADR-0013 écrite, implémentation différée (attend un traitement plus large du bus d'événements inter-modules)
+- [ ] Détection de doublon sémantique par IA, auto-catégorisation — différées, liées à l'avancement de l'assistant Pouet
 
 ### Assistant IA Pouet — #163 (PR ouverte)
 - [x] F0 : Ollama docker + LLMProvider/OllamaProvider + route SSE `/api/pouet/chat`

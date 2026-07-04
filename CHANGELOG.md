@@ -6,6 +6,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 > Les notes de version **détaillées** (groupées par thème, orientées utilisateur) sont la source de vérité in-app : [`apps/api/src/lib/patch-notes.ts`](apps/api/src/lib/patch-notes.ts), affichées dans le panneau de notifications. Ce fichier en est l'index public condensé.
 
+## [0.29.0] — 2026-07-04
+Nouveau module **Innovation** : boîte à idées collaborative. Fiches innovation (pitch, problème/solution/bénéfices) publiques ou privées, votes, favoris, commentaires, pièces jointes, liens externes, image de couverture et bannière, tags multi-valeurs, rattachement organisationnel (LDAP ou hiérarchie interne). **Challenges** administrés avec éligibilité par périmètre, jurys et notation multi-critères pondérée, classement automatique et export CSV, désignation des lauréats. **Dashboard** de reporting (maturation des fiches, top idées, répartition par catégorie) et **gamification** (badges, classement des contributeurs). Cf. [ADR-0012](docs/adr/0012-innovation-referentiel-org-hybride.md) (référentiel organisationnel hybride) et [ADR-0013](docs/adr/0013-innovation-liaison-idee-projet.md) (liaison idée→projet, décision documentée, implémentation différée).
+
 ## [0.28.1] — 2026-07-02
 **Feedback** : colonne « Refusé » ajoutée au kanban, colonnes en largeur flexible (les 6 tiennent dans la page), icône navbar d'origine restaurée. **Interface harmonisée** sur tous les modules : titres (taille/style/icône), boutons de création, chevrons à la place des flèches « ← », page Feature flags en pleine largeur sur 2 colonnes, fix du titre Scrum invisible en dark. **Commande publique** : 503 explicite quand le service externe (PGI/LDAP) est indisponible, bandeau d'erreur dans la page Organisation.
 
