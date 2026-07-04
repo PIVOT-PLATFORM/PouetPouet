@@ -87,6 +87,8 @@ model User {
   challengeEntriesSubmitted ChallengeEntry[]
   challengeJuryMemberships ChallengeJuror[]
   challengeScoresGiven     ChallengeScore[]
+  innovationComments       InnovationComment[]
+  innovationAttachments    InnovationAttachment[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1236,19 +1238,19 @@ model InnovationFiche {
   abandonReason String?
   authorId      String
   orgUnitRef    String? // "ldap:<id>" | "int:<id>" (ADR-0012)
-  categoryId    String?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
   author       User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  category     InnovationCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categories   InnovationFicheCategory[]
   contributors InnovationContributor[]
   votes        InnovationVote[]
   entries      ChallengeEntry[]
+  comments     InnovationComment[]
+  attachments  InnovationAttachment[]
 
   @@index([authorId])
   @@index([status])
-  @@index([categoryId])
 }
 
 model InnovationContributor {
@@ -1274,6 +1276,42 @@ model InnovationVote {
 
   @@unique([ficheId, userId])
   @@index([userId])
+}
+
+// Fil de discussion à plat (pas de réponses imbriquées — aucun module de l'app n'a de
+// threading, décision de simplicité assumée). Visible par tous (fiches publiques),
+// postable par tout utilisateur connecté ; suppression réservée à l'auteur du
+// commentaire ou à un admin (modération).
+model InnovationComment {
+  id        String   @id @default(cuid())
+  ficheId   String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fiche  InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  author User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([ficheId])
+}
+
+// Pièces jointes (texte/image/vidéo) — métadonnées seules, octets sur GCS (ou
+// .uploads/ en local), cf. storage.ts et le pattern ParcourDocument.
+model InnovationAttachment {
+  id         String   @id @default(cuid())
+  ficheId    String
+  filename   String
+  mimeType   String
+  storageKey String
+  sizeBytes  Int
+  uploadedBy String
+  createdAt  DateTime @default(now())
+
+  fiche    InnovationFiche @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  uploader User            @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([ficheId])
 }
 
 // Hiérarchie organisationnelle INTERNE, administrée dans l'app — cohabite avec le
@@ -1311,9 +1349,22 @@ model InnovationCategory {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  fiches InnovationFiche[]
+  fiches InnovationFicheCategory[]
 
   @@unique([label, orgUnitRef])
+}
+
+// Table de jointure tags multi-valeurs (PR C, lot pré-release) — une fiche remplace sa
+// catégorie unique par plusieurs tags ; même convention que InnovationContributor/Vote.
+model InnovationFicheCategory {
+  ficheId    String
+  categoryId String
+
+  fiche    InnovationFiche    @relation(fields: [ficheId], references: [id], onDelete: Cascade)
+  category InnovationCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([ficheId, categoryId])
+  @@index([categoryId])
 }
 
 enum ChallengeStatus {

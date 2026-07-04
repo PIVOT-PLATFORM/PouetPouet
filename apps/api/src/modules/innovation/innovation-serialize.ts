@@ -17,7 +17,7 @@ export type InnovationFicheRow = {
   createdAt: Date
   updatedAt: Date
   author: { id: string; name: string }
-  category: { id: string; label: string } | null
+  categories: { category: { id: string; label: string } }[]
   contributors: { user: { id: string; name: string } }[]
   _count: { votes: number }
   votes: { id: string }[]
@@ -36,7 +36,7 @@ export function serializeFiche(f: InnovationFicheRow) {
     authorId: f.authorId,
     orgUnitRef: f.orgUnitRef,
     author: f.author,
-    category: f.category,
+    categories: f.categories.map((c) => c.category),
     contributors: f.contributors.map((c) => c.user),
     votes: f._count.votes,
     hasVoted: f.votes.length > 0,

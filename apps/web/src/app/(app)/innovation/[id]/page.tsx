@@ -7,8 +7,12 @@ import { ChevronLeft, ThumbsUp, Trophy, User, X } from 'lucide-react'
 import { useInnovationFiche, type InnovationStatus } from '@/hooks/useInnovation'
 import { useChallenges, useFicheChallengeEntries, submitFicheToChallenge } from '@/hooks/useChallenges'
 import { useOrgUnits, useInnovationCategories } from '@/hooks/useInnovationOrg'
+import { useInnovationComments } from '@/hooks/useInnovationComments'
+import { useInnovationAttachments } from '@/hooks/useInnovationAttachments'
 import { OrgUnitPicker } from '@/components/innovation/org-unit-picker'
 import { CategoryPicker } from '@/components/innovation/category-picker'
+import { CommentThread } from '@/components/innovation/comment-thread'
+import { AttachmentGallery } from '@/components/innovation/attachment-gallery'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { useAuthStore } from '@/store/auth'
 
@@ -82,6 +86,8 @@ export default function InnovationDetailPage() {
   const { challenges } = useChallenges()
   const { units } = useOrgUnits()
   const { categories } = useInnovationCategories(fiche?.orgUnitRef ?? null)
+  const { comments, addComment, editComment, deleteComment } = useInnovationComments(id)
+  const { attachments, uploadFile, getDownloadUrl, deleteAttachment } = useInnovationAttachments(id)
 
   const [editing, setEditing] = useState(false)
   const [contributorEmail, setContributorEmail] = useState('')
@@ -189,16 +195,18 @@ export default function InnovationDetailPage() {
         <p className="text-sm text-gray-500 dark:text-gray-400 italic">Motif d'abandon : {fiche.abandonReason}</p>
       )}
 
-      {/* Périmètre & catégorie */}
+      {/* Périmètre & catégories */}
       {canEdit ? (
         <div className="grid grid-cols-2 gap-3">
-          <OrgUnitPicker units={units} value={fiche.orgUnitRef} onChange={(v) => updateFiche({ orgUnitRef: v, categoryId: null })} placeholder="Aucun périmètre" />
-          <CategoryPicker categories={categories} value={fiche.category?.id ?? null} onChange={(v) => updateFiche({ categoryId: v })} placeholder="Aucune catégorie" />
+          <OrgUnitPicker units={units} value={fiche.orgUnitRef} onChange={(v) => updateFiche({ orgUnitRef: v, categoryIds: [] })} placeholder="Aucun périmètre" />
+          <CategoryPicker categories={categories} value={fiche.categories.map((c) => c.id)} onChange={(ids) => updateFiche({ categoryIds: ids })} placeholder="Aucune catégorie" />
         </div>
-      ) : (fiche.orgUnitRef || fiche.category) && (
-        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+      ) : (fiche.orgUnitRef || fiche.categories.length > 0) && (
+        <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500 dark:text-gray-400">
           {fiche.orgUnitRef && <span>{units.find((u) => u.ref === fiche.orgUnitRef)?.nom ?? fiche.orgUnitRef}</span>}
-          {fiche.category && <span className="font-medium text-amber-600 dark:text-amber-400">{fiche.category.label}</span>}
+          {fiche.categories.map((c) => (
+            <span key={c.id} className="font-medium text-amber-600 dark:text-amber-400">{c.label}</span>
+          ))}
         </div>
       )}
 
@@ -208,6 +216,18 @@ export default function InnovationDetailPage() {
         <EditableSection title="Problème" value={fiche.probleme} placeholder="Quel problème cette idée résout-elle ?" canEdit={canEdit} onSave={(v) => updateFiche({ probleme: v })} />
         <EditableSection title="Solution" value={fiche.solution} placeholder="Quelle est la solution envisagée ?" canEdit={canEdit} onSave={(v) => updateFiche({ solution: v })} />
         <EditableSection title="Bénéfices" value={fiche.benefices} placeholder="Quels bénéfices attendus ?" canEdit={canEdit} onSave={(v) => updateFiche({ benefices: v })} />
+      </div>
+
+      {/* Pièces jointes */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex flex-col gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Pièces jointes</h3>
+        <AttachmentGallery
+          attachments={attachments}
+          canEdit={canEdit}
+          onUpload={uploadFile}
+          onOpen={getDownloadUrl}
+          onDelete={deleteAttachment}
+        />
       </div>
 
       {/* Contributeurs */}
@@ -252,6 +272,19 @@ export default function InnovationDetailPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Commentaires */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex flex-col gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Commentaires</h3>
+        <CommentThread
+          comments={comments}
+          currentUserId={user?.id ?? ''}
+          isAdmin={!!user?.isAdmin}
+          onAdd={addComment}
+          onEdit={editComment}
+          onDelete={deleteComment}
+        />
       </div>
 
       {showChallengePicker && (

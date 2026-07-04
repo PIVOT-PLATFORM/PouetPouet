@@ -27,7 +27,7 @@ export interface InnovationFiche {
   authorId: string
   orgUnitRef: string | null
   author: InnovationContributorUser
-  category: InnovationCategoryRef | null
+  categories: InnovationCategoryRef[]
   contributors: InnovationContributorUser[]
   votes: number
   hasVoted: boolean
@@ -42,14 +42,14 @@ export interface FicheInput {
   solution?: string
   benefices?: string
   orgUnitRef?: string
-  categoryId?: string
+  categoryIds?: string[]
 }
 
 export interface FicheFilters {
   status?: InnovationStatus
   mine?: boolean
   q?: string
-  categoryId?: string
+  categoryIds?: string[]
   orgUnitRef?: string
 }
 
@@ -65,7 +65,7 @@ export function useInnovationFiches(filters: FicheFilters = {}) {
       if (filters.status) params.set('status', filters.status)
       if (filters.mine) params.set('mine', 'true')
       if (filters.q) params.set('q', filters.q)
-      if (filters.categoryId) params.set('categoryId', filters.categoryId)
+      if (filters.categoryIds?.length) params.set('categoryIds', filters.categoryIds.join(','))
       if (filters.orgUnitRef) params.set('orgUnitRef', filters.orgUnitRef)
       const qs = params.toString()
       const data = await api.get<InnovationFiche[]>(`/api/innovation/fiches${qs ? `?${qs}` : ''}`)
@@ -74,7 +74,7 @@ export function useInnovationFiches(filters: FicheFilters = {}) {
       setIsLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.status, filters.mine, filters.q, filters.categoryId, filters.orgUnitRef])
+  }, [filters.status, filters.mine, filters.q, filters.categoryIds, filters.orgUnitRef])
 
   useEffect(() => { load() }, [load])
 
@@ -113,11 +113,11 @@ export function useInnovationFiche(id: string) {
 
   useEffect(() => { load() }, [load])
 
-  const updateFiche = useCallback(async (patch: Partial<Omit<FicheInput, 'orgUnitRef' | 'categoryId' | 'probleme' | 'solution' | 'benefices'> & {
+  const updateFiche = useCallback(async (patch: Partial<Omit<FicheInput, 'orgUnitRef' | 'categoryIds' | 'probleme' | 'solution' | 'benefices'> & {
     status: InnovationStatus
     abandonReason: string | null
     orgUnitRef: string | null
-    categoryId: string | null
+    categoryIds: string[]
     probleme: string | null
     solution: string | null
     benefices: string | null

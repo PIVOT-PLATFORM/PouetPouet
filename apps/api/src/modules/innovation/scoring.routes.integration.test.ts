@@ -241,9 +241,24 @@ describe('Innovation Scoring — notation et classement', () => {
     expect(res.statusCode).toBe(403)
   })
 
+  it('GET /ranking.csv — 403 pour un étranger tant que le challenge n\'est pas CLOSED', async () => {
+    const res = await app.inject({ method: 'GET', url: `/api/innovation/challenges/${challengeId}/ranking.csv`, headers: auth(stranger.token) })
+    expect(res.statusCode).toBe(403)
+  })
+
   it('GET /ranking — visible par tous une fois CLOSED', async () => {
     await app.inject({ method: 'PATCH', url: `/api/innovation/challenges/${challengeId}`, headers: auth(admin.token), payload: { status: 'CLOSED' } })
     const res = await app.inject({ method: 'GET', url: `/api/innovation/challenges/${challengeId}/ranking`, headers: auth(stranger.token) })
     expect(res.statusCode).toBe(200)
+  })
+
+  it('GET /ranking.csv — visible par tous une fois CLOSED, colonnes et BOM Excel', async () => {
+    const res = await app.inject({ method: 'GET', url: `/api/innovation/challenges/${challengeId}/ranking.csv`, headers: auth(stranger.token) })
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['content-type']).toContain('text/csv')
+    expect(res.body.startsWith('﻿')).toBe(true)
+    expect(res.body).toContain('"Rang","Fiche","Auteur","Score pondéré"')
+    expect(res.body).toContain('"À noter"')
+    expect(res.body).toContain('"7.75"')
   })
 })

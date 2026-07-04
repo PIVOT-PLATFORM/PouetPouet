@@ -189,23 +189,23 @@ describe('Innovation Org — catégories (globales, scopées, héritage)', () =>
     expect(labels).toContain('Scopée Direction') // toujours héritée du parent commun
   })
 
-  it('POST /fiches — categoryId scopé à un périmètre hors du orgUnitRef fourni → 400', async () => {
+  it('POST /fiches — categoryIds scopé à un périmètre hors du orgUnitRef fourni → 400', async () => {
     const scoped = await prisma.innovationCategory.findFirstOrThrow({ where: { label: 'Scopée Équipe A' } })
     const res = await app.inject({
       method: 'POST', url: '/api/innovation/fiches', headers: auth(admin.token),
-      payload: { title: 'x', pitch: 'x', orgUnitRef: `int:${siblingUnitId}`, categoryId: scoped.id },
+      payload: { title: 'x', pitch: 'x', orgUnitRef: `int:${siblingUnitId}`, categoryIds: [scoped.id] },
     })
     expect(res.statusCode).toBe(400)
   })
 
-  it('POST /fiches — categoryId applicable (héritée) au orgUnitRef fourni → 201', async () => {
+  it('POST /fiches — categoryIds applicable (héritée) au orgUnitRef fourni → 201', async () => {
     const scoped = await prisma.innovationCategory.findFirstOrThrow({ where: { label: 'Scopée Direction' } })
     const res = await app.inject({
       method: 'POST', url: '/api/innovation/fiches', headers: auth(admin.token),
-      payload: { title: 'x', pitch: 'x', orgUnitRef: `int:${childUnitId}`, categoryId: scoped.id },
+      payload: { title: 'x', pitch: 'x', orgUnitRef: `int:${childUnitId}`, categoryIds: [scoped.id] },
     })
     expect(res.statusCode).toBe(201)
-    expect(res.json().category.label).toBe('Scopée Direction')
+    expect(res.json().categories.map((c: { label: string }) => c.label)).toContain('Scopée Direction')
   })
 
   it('GET /fiches?orgUnitRef=<parent> — la fiche du sous-périmètre child apparaît (sous-arbre inclus)', async () => {
@@ -216,6 +216,28 @@ describe('Innovation Org — catégories (globales, scopées, héritage)', () =>
   it('GET /fiches?orgUnitRef=<frère> — la fiche du cousin n\'apparaît pas', async () => {
     const res = await app.inject({ method: 'GET', url: `/api/innovation/fiches?orgUnitRef=int:${siblingUnitId}`, headers: auth(admin.token) })
     expect(res.json().some((f: { orgUnitRef: string | null }) => f.orgUnitRef === `int:${childUnitId}`)).toBe(false)
+  })
+
+  it('tags multi-valeurs (PR C) : une fiche avec 2 tags apparaît dans le filtre de chacun (OR)', async () => {
+    const globale = await prisma.innovationCategory.findFirstOrThrow({ where: { label: 'Globale' } })
+    const scopee = await prisma.innovationCategory.findFirstOrThrow({ where: { label: 'Scopée Direction' } })
+    const created = await app.inject({
+      method: 'POST', url: '/api/innovation/fiches', headers: auth(admin.token),
+      payload: { title: 'Fiche multi-tags', pitch: 'x', orgUnitRef: `int:${childUnitId}`, categoryIds: [globale.id, scopee.id] },
+    })
+    expect(created.statusCode).toBe(201)
+    const ficheId = created.json().id
+    expect(created.json().categories.map((c: { label: string }) => c.label).sort()).toEqual(['Globale', 'Scopée Direction'])
+
+    const byGlobale = await app.inject({ method: 'GET', url: `/api/innovation/fiches?categoryIds=${globale.id}`, headers: auth(admin.token) })
+    expect(byGlobale.json().some((f: { id: string }) => f.id === ficheId)).toBe(true)
+
+    const byScopee = await app.inject({ method: 'GET', url: `/api/innovation/fiches?categoryIds=${scopee.id}`, headers: auth(admin.token) })
+    expect(byScopee.json().some((f: { id: string }) => f.id === ficheId)).toBe(true)
+
+    // PATCH avec categoryIds: [] retire tous les tags.
+    const patched = await app.inject({ method: 'PATCH', url: `/api/innovation/fiches/${ficheId}`, headers: auth(admin.token), payload: { categoryIds: [] } })
+    expect(patched.json().categories).toEqual([])
   })
 })
 

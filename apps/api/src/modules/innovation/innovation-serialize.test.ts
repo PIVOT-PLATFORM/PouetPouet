@@ -15,7 +15,7 @@ const base: InnovationFicheRow = {
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-02'),
   author: { id: 'u-alice', name: 'Alice' },
-  category: null,
+  categories: [],
   contributors: [],
   _count: { votes: 0 },
   votes: [],
@@ -55,10 +55,10 @@ describe('serializeFiche', () => {
     expect(serializeFiche(f).abandonReason).toBe('Redondant avec un autre projet')
   })
 
-  it('conserve orgUnitRef et category', () => {
-    const f = { ...base, orgUnitRef: 'ldap:org1', category: { id: 'cat1', label: 'Process' } }
+  it('conserve orgUnitRef et mappe les tags (categories)', () => {
+    const f = { ...base, orgUnitRef: 'ldap:org1', categories: [{ category: { id: 'cat1', label: 'Process' } }, { category: { id: 'cat2', label: 'RH' } }] }
     const s = serializeFiche(f)
     expect(s.orgUnitRef).toBe('ldap:org1')
-    expect(s.category).toEqual({ id: 'cat1', label: 'Process' })
+    expect(s.categories).toEqual([{ id: 'cat1', label: 'Process' }, { id: 'cat2', label: 'RH' }])
   })
 })
