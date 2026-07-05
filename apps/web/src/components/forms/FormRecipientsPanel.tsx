@@ -27,6 +27,11 @@ function StatusBadge({ r }: { r: FormRecipientEntry }) {
   return <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs font-medium">Non envoyé</span>
 }
 
+function formatDateTime(iso: string | null): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
+}
+
 interface Props {
   formId: string
   remindersEnabled: boolean
@@ -104,21 +109,22 @@ export function FormRecipientsPanel({ formId, remindersEnabled, reminderFrequenc
             />
             Activer les relances automatiques
           </label>
-          {remindersEnabled && (
-            <label className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              Tous les
-              <input
-                type="number"
-                min={1}
-                max={30}
-                value={reminderFrequencyDays}
-                onChange={(e) => onUpdateReminders({ reminderFrequencyDays: Math.min(30, Math.max(1, Number(e.target.value) || 1)) })}
-                className="w-16 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-center"
-              />
-              jours, aux non-répondants
-            </label>
-          )}
+          <label className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            Délai minimum entre 2 relances :
+            <input
+              type="number"
+              min={1}
+              max={30}
+              value={reminderFrequencyDays}
+              onChange={(e) => onUpdateReminders({ reminderFrequencyDays: Math.min(30, Math.max(1, Number(e.target.value) || 1)) })}
+              className="w-16 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-center"
+            />
+            jours
+          </label>
         </div>
+        <p className="text-xs text-gray-400">
+          Ce délai s&apos;applique aux relances automatiques (si activées) et aux relances manuelles — y compris déclenchées par un autre éditeur ayant accès au formulaire.
+        </p>
       </div>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -178,7 +184,8 @@ export function FormRecipientsPanel({ formId, remindersEnabled, reminderFrequenc
               <tr className="bg-gray-50 dark:bg-gray-800/50 text-left">
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-300">Nom</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-300">Email</th>
-                <th className="px-4 py-3 font-medium text-gray-400">Statut</th>
+                <th className="px-4 py-3 font-medium text-gray-400 text-center">Statut</th>
+                <th className="px-4 py-3 font-medium text-gray-400 whitespace-nowrap">Dernière relance</th>
                 <th className="px-4 py-3 font-medium text-gray-400">Relances</th>
                 <th className="px-4 py-3 w-40" />
               </tr>
@@ -188,7 +195,8 @@ export function FormRecipientsPanel({ formId, remindersEnabled, reminderFrequenc
                 <tr key={r.id} className="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
                   <td className="px-4 py-3 dark:text-gray-200">{r.name}</td>
                   <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{r.email}</td>
-                  <td className="px-4 py-3"><StatusBadge r={r} /></td>
+                  <td className="px-4 py-3 text-center"><StatusBadge r={r} /></td>
+                  <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{formatDateTime(r.lastRemindedAt)}</td>
                   <td className="px-4 py-3 text-gray-400">{r.remindersSent || '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">

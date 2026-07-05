@@ -448,23 +448,25 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
     return { sent }
   })
 
-  const REMIND_COOLDOWN_MS = 20 * 60 * 60 * 1000 // pas plus d'une relance manuelle toutes les 20 h
-
-  // Relance manuelle d'un destinataire n'ayant pas répondu.
+  // Relance manuelle d'un destinataire n'ayant pas répondu. Le délai minimum
+  // (reminderFrequencyDays, paramétrable) s'applique ici aussi — pas seulement
+  // aux relances automatiques — pour qu'un formulaire partagé avec plusieurs
+  // éditeurs ne permette pas de spammer un destinataire à plusieurs mains.
   auth.post('/:id/recipients/:rid/remind', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id, rid } = request.params as { id: string; rid: string }
     const { role } = await roleFor(id, userId)
     if (!role || role === 'VIEWER') return reply.status(403).send({ error: 'Accès refusé' })
 
-    const form = await prisma.form.findUnique({ where: { id }, select: { title: true } })
+    const form = await prisma.form.findUnique({ where: { id }, select: { title: true, reminderFrequencyDays: true } })
     if (!form) return reply.status(404).send({ error: 'Formulaire introuvable' })
     const rec = await prisma.formRecipient.findUnique({ where: { id: rid } })
     if (!rec || rec.formId !== id) return reply.status(404).send({ error: 'Destinataire introuvable' })
     if (rec.respondedAt) return reply.status(400).send({ error: 'Ce destinataire a déjà répondu' })
+    const cooldownMs = form.reminderFrequencyDays * 24 * 60 * 60 * 1000
     const last = rec.lastRemindedAt ?? rec.invitedAt
-    if (last && Date.now() - last.getTime() < REMIND_COOLDOWN_MS) {
-      return reply.status(429).send({ error: 'Une relance a déjà été envoyée récemment' })
+    if (last && Date.now() - last.getTime() < cooldownMs) {
+      return reply.status(429).send({ error: `Une relance a déjà été envoyée à ce destinataire il y a moins de ${form.reminderFrequencyDays} jour(s)` })
     }
 
     const link = `${FRONTEND_URL}/f/${rec.token}`
@@ -498,17 +500,24 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
     }))
   })
 
-  // Export CSV des réponses.
+  // Export CSV des réponses. `?fields=` : liste ordonnée de colonnes à inclure
+  // (id de champ, ou pseudo-colonnes __name/__email) — toutes par défaut.
   auth.get('/:id/responses.csv', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
+    const { fields: fieldsParam } = z.object({ fields: z.string().optional() }).parse(request.query)
     const form = await prisma.form.findUnique({ where: { id } })
     if (!form) return reply.status(404).send({ error: 'Formulaire introuvable' })
     const role = await resolveRole('form', id, userId, form.ownerId)
     if (!role) return reply.status(403).send({ error: 'Accès refusé' })
 
     // Les sections ne sont pas des champs de données → exclues des colonnes.
-    const fields = asFields(form.fields).filter((f) => f.type !== 'section')
+    const allFields = asFields(form.fields).filter((f) => f.type !== 'section')
+    const fieldById = new Map(allFields.map((f) => [f.id, f]))
+    const allColumnKeys = ['__name', '__email', ...allFields.map((f) => f.id)]
+    const requested = fieldsParam ? fieldsParam.split(',').filter((k) => allColumnKeys.includes(k)) : allColumnKeys
+    const columns = requested.length > 0 ? requested : allColumnKeys
+
     const responses = await prisma.formResponse.findMany({
       where: { formId: id },
       orderBy: { createdAt: 'asc' },
@@ -526,10 +535,16 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
       return v == null ? '' : String(v)
     }
     const esc = (s: string) => `"${s.replace(/"/g, '""')}"`
-    const header = ['Date', 'Nom', 'Email', ...fields.map((f) => f.label)]
+    const columnLabel = (k: string) => (k === '__name' ? 'Nom' : k === '__email' ? 'Email' : fieldById.get(k)?.label || 'Sans titre')
+    const header = ['Date', ...columns.map(columnLabel)]
     const rows = responses.map((r) => {
       const data = (r.data ?? {}) as Record<string, unknown>
-      return [r.createdAt.toISOString(), r.recipient?.name ?? '', r.recipient?.email ?? '', ...fields.map((f) => cell(f, data[f.id]))].map(esc).join(',')
+      const cells = columns.map((k) => {
+        if (k === '__name') return r.recipient?.name ?? ''
+        if (k === '__email') return r.recipient?.email ?? ''
+        return cell(fieldById.get(k)!, data[k])
+      })
+      return [r.createdAt.toISOString(), ...cells].map(esc).join(',')
     })
     const csv = [header.map(esc).join(','), ...rows].join('\r\n')
 
