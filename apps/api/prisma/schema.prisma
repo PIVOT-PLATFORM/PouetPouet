@@ -93,6 +93,7 @@ model User {
   todoLists                TodoList[]
   todoListFavorites        TodoListFavorite[]
   todoDashboards           TodoDashboard[]
+  piCycles                 PiCycle[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -2243,4 +2244,69 @@ enum StatutApprobation {
   EN_ATTENTE
   APPROUVEE
   REJETEE
+}
+
+// ── Module PI Planning ───────────────────────────────────────────────────────
+// Socle : PiCycle (le PI) + ses itérations (IT1…ITn, IP Sprint) + les équipes
+// du Train (snapshot du pivot Team). logisticsFormId/todoDashboardId sont des
+// références LÂCHES (pas de FK) vers des entités d'autres modules (Form,
+// TodoDashboard) — composition inter-modules sans couplage de schéma.
+
+enum PiCycleStatus {
+  PREPARATION
+  ACTIVE
+  CLOSED
+}
+
+model PiCycle {
+  id              String        @id @default(cuid())
+  ownerId         String
+  name            String
+  artName         String?
+  startDate       DateTime
+  endDate         DateTime
+  status          PiCycleStatus @default(PREPARATION)
+  eventDay1       DateTime?
+  eventDay2       DateTime?
+  eventLocation   String?
+  logisticsFormId String? // Form créé via le template logistique (module Formulaires)
+  todoDashboardId String? // TodoDashboard des tâches du Train (module To-Do)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  owner      User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  iterations PiIteration[]
+  teams      PiCycleTeam[]
+
+  @@index([ownerId])
+}
+
+model PiIteration {
+  id        String   @id @default(cuid())
+  cycleId   String
+  number    Int // 1..N puis IP Sprint (N+1)
+  label     String // "IT1"…"IP Sprint"
+  startDate DateTime
+  endDate   DateTime
+
+  cycle PiCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@unique([cycleId, number])
+  @@index([cycleId])
+}
+
+// Snapshot d'une équipe du Train : copie de nom/couleur depuis le pivot Team
+// (sourceTeamId = référence informative, sans FK) — un PI historique survit à
+// la suppression de l'équipe pivot d'origine.
+model PiCycleTeam {
+  id           String  @id @default(cuid())
+  cycleId      String
+  name         String
+  color        String  @default("#6366f1")
+  order        Int     @default(0)
+  sourceTeamId String?
+
+  cycle PiCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@index([cycleId])
 }
