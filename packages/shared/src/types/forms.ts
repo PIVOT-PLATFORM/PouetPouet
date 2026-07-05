@@ -67,6 +67,8 @@ export interface FormSummary {
   closesAt: string | null
   maxResponses: number | null
   publicToken: string
+  remindersEnabled: boolean
+  reminderFrequencyDays: number
   fieldCount: number
   responseCount: number
   role: FormRole
@@ -90,12 +92,29 @@ export interface PublicForm {
   redirectUrl: string | null
   // raison de fermeture éventuelle, pour message dédié côté public
   closedReason?: 'manual' | 'date' | 'max' | null
+  // présent quand le lien est celui d'un destinataire nommé : la réponse
+  // existante (si déjà soumise) est renvoyée pour être pré-remplie/modifiable.
+  recipient?: { name: string; existingData: Record<string, unknown> | null } | null
 }
 
 export interface FormResponseEntry {
   id: string
   formId: string
   respondentId: string | null
+  recipient: { id: string; name: string; email: string } | null
   data: Record<string, unknown>
   createdAt: string
+}
+
+// Destinataire nommé d'un formulaire : lien personnel + suivi de réponse/relances.
+export interface FormRecipientEntry {
+  id: string
+  formId: string
+  name: string
+  email: string
+  token: string
+  invitedAt: string | null
+  respondedAt: string | null
+  lastRemindedAt: string | null
+  remindersSent: number
 }

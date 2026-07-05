@@ -1720,25 +1720,28 @@ enum SignFieldType {
 // ── Module Formulaires ───────────────────────────────────────────────────────
 
 model Form {
-  id                  String    @id @default(cuid())
-  ownerId             String
-  title               String
-  description         String?
-  fields              Json      @default("[]") // FormFieldDef[]
-  isPublished         Boolean   @default(false)
-  acceptingResponses  Boolean   @default(true)
-  limitOneResponse    Boolean   @default(false)
-  notifyOnResponse    Boolean   @default(false)
-  confirmationMessage String?
-  redirectUrl         String?
-  closesAt            DateTime?
-  maxResponses        Int?
-  publicToken         String    @unique
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  ownerId               String
+  title                 String
+  description           String?
+  fields                Json      @default("[]") // FormFieldDef[]
+  isPublished           Boolean   @default(false)
+  acceptingResponses    Boolean   @default(true)
+  limitOneResponse      Boolean   @default(false)
+  notifyOnResponse      Boolean   @default(false)
+  confirmationMessage   String?
+  redirectUrl           String?
+  closesAt              DateTime?
+  maxResponses          Int?
+  publicToken           String    @unique
+  remindersEnabled      Boolean   @default(false)
+  reminderFrequencyDays Int       @default(7)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  owner     User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  responses FormResponse[]
+  owner      User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  responses  FormResponse[]
+  recipients FormRecipient[]
 
   @@index([ownerId])
 }
@@ -1747,13 +1750,38 @@ model FormResponse {
   id           String   @id @default(cuid())
   formId       String
   respondentId String? // null = réponse anonyme
+  recipientId  String? // destinataire nommé (FormRecipient), si soumis via son lien personnel
   data         Json     @default("{}") // { fieldId: value }
   createdAt    DateTime @default(now())
 
-  form       Form  @relation(fields: [formId], references: [id], onDelete: Cascade)
-  respondent User? @relation(fields: [respondentId], references: [id], onDelete: SetNull)
+  form       Form           @relation(fields: [formId], references: [id], onDelete: Cascade)
+  respondent User?          @relation(fields: [respondentId], references: [id], onDelete: SetNull)
+  recipient  FormRecipient? @relation(fields: [recipientId], references: [id], onDelete: SetNull)
 
+  @@unique([formId, recipientId])
   @@index([formId, createdAt])
+}
+
+// Destinataire nommé d'un formulaire (sans compte) : lien personnel, suivi de
+// réponse et relances. Coexiste avec les réponses anonymes via publicToken.
+model FormRecipient {
+  id             String    @id @default(cuid())
+  formId         String
+  name           String
+  email          String
+  token          String    @unique
+  invitedAt      DateTime?
+  respondedAt    DateTime?
+  lastRemindedAt DateTime?
+  remindersSent  Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  form      Form           @relation(fields: [formId], references: [id], onDelete: Cascade)
+  responses FormResponse[]
+
+  @@unique([formId, email])
+  @@index([formId, respondedAt])
 }
 
 // ── Module Parcours ──────────────────────────────────────────────────────────

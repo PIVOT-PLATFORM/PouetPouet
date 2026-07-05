@@ -296,6 +296,84 @@ export async function sendFormResponseEmail(to: string, formTitle: string, link:
   return true
 }
 
+// Invitation / rappel adressés à un destinataire nommé d'un formulaire (lien personnel).
+function formInviteHtml(name: string, formTitle: string, link: string) {
+  return `<!doctype html>
+<html lang="fr">
+  <body style="margin:0;background:#f9fafb;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;color:#111827;">
+    <div style="max-width:480px;margin:0 auto;padding:40px 24px;">
+      <div style="background:#ffffff;border:1px solid #f3f4f6;border-radius:16px;padding:32px;">
+        <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;">Un formulaire vous attend</h1>
+        <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#4b5563;">
+          Bonjour ${name},<br/>Merci de répondre au formulaire <strong>${formTitle}</strong>.
+        </p>
+        <div style="text-align:center;margin:28px 0;">
+          <a href="${link}" style="display:inline-block;background:#7c3aed;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 28px;border-radius:12px;">
+            Répondre au formulaire
+          </a>
+        </div>
+        <p style="margin:0 0 8px;font-size:12px;line-height:1.6;color:#9ca3af;">Ou copiez ce lien dans votre navigateur :</p>
+        <p style="margin:0;font-size:12px;line-height:1.6;word-break:break-all;"><a href="${link}" style="color:#7c3aed;">${link}</a></p>
+        <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;">Ce lien est personnel, vous pourrez revenir modifier votre réponse.</p>
+      </div>
+    </div>
+  </body>
+</html>`
+}
+
+function formReminderHtml(name: string, formTitle: string, link: string) {
+  return `<!doctype html>
+<html lang="fr">
+  <body style="margin:0;background:#f9fafb;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;color:#111827;">
+    <div style="max-width:480px;margin:0 auto;padding:40px 24px;">
+      <div style="background:#ffffff;border:1px solid #f3f4f6;border-radius:16px;padding:32px;">
+        <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;">Rappel</h1>
+        <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#4b5563;">
+          Bonjour ${name},<br/>Vous n'avez pas encore répondu au formulaire <strong>${formTitle}</strong>.
+        </p>
+        <div style="text-align:center;margin:28px 0;">
+          <a href="${link}" style="display:inline-block;background:#7c3aed;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 28px;border-radius:12px;">
+            Répondre au formulaire
+          </a>
+        </div>
+        <p style="margin:0 0 8px;font-size:12px;line-height:1.6;color:#9ca3af;">Ou copiez ce lien dans votre navigateur :</p>
+        <p style="margin:0;font-size:12px;line-height:1.6;word-break:break-all;"><a href="${link}" style="color:#7c3aed;">${link}</a></p>
+      </div>
+    </div>
+  </body>
+</html>`
+}
+
+export async function sendFormInviteEmail(to: string, name: string, formTitle: string, link: string): Promise<boolean> {
+  const tx = getTransporter()
+  if (!tx) {
+    console.log(`\n📧 [mailer] Invitation formulaire pour ${to} : ${formTitle}\n   ${link}\n`)
+    return false
+  }
+  await tx.sendMail({
+    from: MAIL_FROM,
+    to,
+    subject: `Formulaire à compléter : "${formTitle}"`,
+    html: formInviteHtml(name, formTitle, link),
+  })
+  return true
+}
+
+export async function sendFormReminderEmail(to: string, name: string, formTitle: string, link: string): Promise<boolean> {
+  const tx = getTransporter()
+  if (!tx) {
+    console.log(`\n📧 [mailer] Rappel formulaire pour ${to} : ${formTitle}\n   ${link}\n`)
+    return false
+  }
+  await tx.sendMail({
+    from: MAIL_FROM,
+    to,
+    subject: `Rappel : formulaire "${formTitle}" en attente`,
+    html: formReminderHtml(name, formTitle, link),
+  })
+  return true
+}
+
 export async function sendVerificationEmail(to: string, name: string, link: string): Promise<boolean> {
   const tx = getTransporter()
   if (!tx) {
