@@ -23,6 +23,7 @@ import {
   GitBranch,
   FileText as FileTextIcon,
   FolderKanban,
+  ListChecks,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -46,6 +47,7 @@ export const MODULE_ICONS: Record<string, LucideIcon> = {
   feedback:    MessageSquare,
   signdoc:     PenLine,
   innovation:  Lightbulb,
+  todo:        ListChecks,
 }
 
 // Icônes pour les activités de board (activity-launcher et boards).

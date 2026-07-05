@@ -24,10 +24,12 @@ const RESOLVERS: Record<string, (id: string) => Promise<ResourceInfo | null>> = 
   pdf: (id) => prisma.pdfDocument.findUnique({ where: { id }, select: { ownerId: true, name: true } }),
   signdoc: (id) => prisma.signEnvelope.findUnique({ where: { id }, select: { ownerId: true, name: true } }),
   challenge: (id) => prisma.innovationChallenge.findUnique({ where: { id }, select: { ownerId: true, nom: true } }).then((c) => c ? { ownerId: c.ownerId, name: c.nom } : null),
+  todolist: (id) => prisma.todoList.findUnique({ where: { id }, select: { ownerId: true, name: true } }),
+  tododashboard: (id) => prisma.todoDashboard.findUnique({ where: { id }, select: { ownerId: true, name: true } }),
 }
 
-const MODULE_LABEL: Record<string, string> = { scrum: 'Scrum Poker', daily: 'Daily', team: 'Équipe', wheel: 'La Roue', capacity: 'Capacité', meetops: 'MeetOps', quiz: 'Quiz', roadmap: 'Roadmap', portfolio: 'Portefeuille', parcourTemplate: 'Template Parcours', parcourInstance: 'Instance Parcours', form: 'Formulaire', pdf: 'PDF Manager', signdoc: 'SignDoc', challenge: 'Challenge innovation' }
-const MODULE_LINK: Record<string, string> = { scrum: '/scrum', daily: '/daily', team: '/equipes', wheel: '/wheel', capacity: '/capacity', meetops: '/meetops', quiz: '/quiz', roadmap: '/roadmap', portfolio: '/portfolio', parcourTemplate: '/parcours/templates', parcourInstance: '/parcours/run', form: '/forms', pdf: '/pdf', signdoc: '/signdoc', challenge: '/innovation/challenges' }
+const MODULE_LABEL: Record<string, string> = { scrum: 'Scrum Poker', daily: 'Daily', team: 'Équipe', wheel: 'La Roue', capacity: 'Capacité', meetops: 'MeetOps', quiz: 'Quiz', roadmap: 'Roadmap', portfolio: 'Portefeuille', parcourTemplate: 'Template Parcours', parcourInstance: 'Instance Parcours', form: 'Formulaire', pdf: 'PDF Manager', signdoc: 'SignDoc', challenge: 'Challenge innovation', todolist: 'Liste de tâches', tododashboard: 'Tableau de bord To-Do' }
+const MODULE_LINK: Record<string, string> = { scrum: '/scrum', daily: '/daily', team: '/equipes', wheel: '/wheel', capacity: '/capacity', meetops: '/meetops', quiz: '/quiz', roadmap: '/roadmap', portfolio: '/portfolio', parcourTemplate: '/parcours/templates', parcourInstance: '/parcours/run', form: '/forms', pdf: '/pdf', signdoc: '/signdoc', challenge: '/innovation/challenges', todolist: '/todo', tododashboard: '/todo/dashboards' }
 
 const inviteSchema = z.object({ email: z.string().email(), role: z.enum(['VIEWER', 'EDITOR']) })
 const inviteTeamSchema = z.object({ teamId: z.string().min(1), role: z.enum(['VIEWER', 'EDITOR']) })

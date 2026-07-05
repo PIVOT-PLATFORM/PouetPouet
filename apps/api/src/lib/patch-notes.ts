@@ -20,6 +20,30 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.30.0',
+    date: '2026-07-05',
+    title: 'Module To-Do',
+    summary: 'Nouveau module To-Do : listes de tâches personnelles ou partagées, mise en favori, et tableaux de bord combinant plusieurs listes avec rapports et statistiques de complétion.',
+    sections: [
+      {
+        heading: '✅ Listes de tâches',
+        items: [
+          'Créer des listes personnelles, les partager (Lecteur/Éditeur) et les mettre en favori',
+          'Tâches avec priorité, échéance et statut à faire / fait / annulé',
+          'Une tâche annulée sort du calcul de complétion et passe en fin de liste',
+        ],
+      },
+      {
+        heading: '📊 Tableaux de bord',
+        items: [
+          'Combiner plusieurs listes de tâches dans un tableau de bord consolidé',
+          'Accès transitif : un partage sur le tableau de bord donne accès aux listes rattachées',
+          'Complétion globale et par liste, répartition par priorité, tâches en retard, flux « récemment terminé »',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.29.0',
     date: '2026-07-04',
     title: 'Module Innovation',

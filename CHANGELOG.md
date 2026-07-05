@@ -6,6 +6,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 > Les notes de version **détaillées** (groupées par thème, orientées utilisateur) sont la source de vérité in-app : [`apps/api/src/lib/patch-notes.ts`](apps/api/src/lib/patch-notes.ts), affichées dans le panneau de notifications. Ce fichier en est l'index public condensé.
 
+## [0.30.0] — 2026-07-05
+Nouveau module **To-Do** : listes de tâches personnelles ou partagées (Lecteur/Éditeur), mise en favori, tâches avec priorité, échéance et statut à faire / fait / **annulé** (exclu du calcul de complétion). **Tableaux de bord** combinant plusieurs listes en une vue consolidée — accès transitif via le partage du tableau de bord (même pattern que Portefeuille→Roadmap), rapports (complétion globale et par liste, répartition par priorité, tâches en retard, flux « récemment terminé »).
+
 ## [0.29.0] — 2026-07-04
 Nouveau module **Innovation** : boîte à idées collaborative. Fiches innovation (pitch, problème/solution/bénéfices) publiques ou privées, votes, favoris, commentaires, pièces jointes, liens externes, image de couverture et bannière, tags multi-valeurs, rattachement organisationnel (LDAP ou hiérarchie interne). **Challenges** administrés avec éligibilité par périmètre, jurys et notation multi-critères pondérée, classement automatique et export CSV, désignation des lauréats. **Dashboard** de reporting (maturation des fiches, top idées, répartition par catégorie) et **gamification** (badges, classement des contributeurs). Cf. [ADR-0012](docs/adr/0012-innovation-referentiel-org-hybride.md) (référentiel organisationnel hybride) et [ADR-0013](docs/adr/0013-innovation-liaison-idee-projet.md) (liaison idée→projet, décision documentée, implémentation différée).
 

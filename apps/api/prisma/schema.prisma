@@ -90,6 +90,9 @@ model User {
   innovationComments       InnovationComment[]
   innovationAttachments    InnovationAttachment[]
   innovationFavorites      InnovationFavorite[]
+  todoLists                TodoList[]
+  todoListFavorites        TodoListFavorite[]
+  todoDashboards           TodoDashboard[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -1132,6 +1135,82 @@ model Portfolio {
 
   owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   roadmaps Roadmap[]
+
+  @@index([ownerId])
+}
+
+enum TodoPriority {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TodoItemStatus {
+  TODO
+  DONE
+  CANCELLED
+}
+
+model TodoList {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  dashboardId String? // rattachement optionnel à un TodoDashboard (accès transitif, même pattern que Roadmap→Portfolio)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner     User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  dashboard TodoDashboard?  @relation(fields: [dashboardId], references: [id], onDelete: SetNull)
+  items     TodoItem[]
+  favorites TodoListFavorite[]
+
+  @@index([ownerId])
+  @@index([dashboardId])
+}
+
+model TodoItem {
+  id        String         @id @default(cuid())
+  listId    String
+  title     String
+  notes     String?
+  status    TodoItemStatus @default(TODO)
+  priority  TodoPriority   @default(NONE)
+  dueDate   String? // yyyy-mm-dd
+  order     Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  list TodoList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+}
+
+model TodoListFavorite {
+  id     String @id @default(cuid())
+  listId String
+  userId String
+
+  list TodoList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, userId])
+  @@index([userId])
+}
+
+// Combine plusieurs TodoList pour une vue consolidée + rapports — même rôle que
+// Portfolio pour les Roadmaps (ligne 1120 ci-dessus).
+model TodoDashboard {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  lists TodoList[]
 
   @@index([ownerId])
 }
