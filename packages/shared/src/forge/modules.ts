@@ -247,6 +247,20 @@ export const INNOVATION_MODULE: ModuleManifest = {
   listensTo: [],
 }
 
+export const TODO_MODULE: ModuleManifest = {
+  id: 'todo',
+  name: 'To-Do',
+  description: 'Listes de tâches personnelles, partageables, avec favoris et tableaux de bord combinant plusieurs listes',
+  icon: '✅',
+  color: '#f97316',
+  nav: [{ label: 'To-Do', href: '/todo', match: '/todo' }],
+  apiPrefix: '/api/todo',
+  ownedEntities: ['TodoList', 'TodoItem', 'TodoListFavorite', 'TodoDashboard'],
+  referencedPivots: ['User'],
+  emits: [],
+  listensTo: [],
+}
+
 export const PIVOT_MODULES: ModuleManifest[] = [
   POUETPOUET_MODULE,
   DAILY_MODULE,
@@ -265,4 +279,5 @@ export const PIVOT_MODULES: ModuleManifest[] = [
   SIGNDOC_MODULE,
   PROCUREMENT_MODULE,
   INNOVATION_MODULE,
+  TODO_MODULE,
 ]

@@ -44,7 +44,7 @@ const DOMAINS: { id: string; label: string; color: string; moduleIds: string[] }
     id: 'collaboration',
     label: 'Collaboration',
     color: '#6366f1',
-    moduleIds: ['pouetpouet', 'meetops', 'quiz', 'parcours', 'forms'],
+    moduleIds: ['pouetpouet', 'meetops', 'quiz', 'parcours', 'forms', 'todo'],
   },
   {
     id: 'agile',

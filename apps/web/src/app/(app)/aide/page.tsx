@@ -205,6 +205,18 @@ const MODULES = [
     ],
   },
   {
+    icon: '✅',
+    title: 'To-Do',
+    href: '/todo',
+    desc: 'Listes de tâches personnelles, partageables, avec favoris et tableaux de bord combinant plusieurs listes.',
+    features: [
+      'Listes personnelles avec tâches (priorité, échéance), triées automatiquement',
+      'Partage par rôle (Lecteur / Éditeur) — une liste appartient à son créateur',
+      'Mise en favori pour retrouver rapidement ses listes prioritaires',
+      'Tableaux de bord combinant plusieurs listes avec rapports et statistiques de complétion',
+    ],
+  },
+  {
     icon: '👤',
     title: 'Compte & Profil',
     href: '/profile',
