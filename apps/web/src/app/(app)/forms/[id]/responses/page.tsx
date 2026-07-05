@@ -254,12 +254,12 @@ export default function FormResponsesPage() {
         <FormSummaryView fields={form.fields} responses={responses} />
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-gray-800">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-800/50 text-left">
-                <th className="px-4 py-3 font-medium text-gray-400 whitespace-nowrap">Date</th>
+                <th className="px-4 py-3 font-medium text-gray-400 whitespace-nowrap w-40">Date</th>
                 {dataFields.map((f) => (
-                  <th key={f.id} className="px-4 py-3 font-medium text-gray-500 dark:text-gray-300 whitespace-nowrap">{f.label || 'Sans titre'}</th>
+                  <th key={f.id} className="px-4 py-3 font-medium text-gray-500 dark:text-gray-300 truncate">{f.label || 'Sans titre'}</th>
                 ))}
                 <th className="px-4 py-3 w-20" />
               </tr>
@@ -271,7 +271,7 @@ export default function FormResponsesPage() {
                   <tr key={r.id} className="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
                     <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{new Date(r.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</td>
                     {dataFields.map((f) => (
-                      <td key={f.id} className="px-4 py-3 dark:text-gray-200 max-w-xs truncate"><CellValue field={f} value={data[f.id]} formId={id} /></td>
+                      <td key={f.id} className="px-4 py-3 dark:text-gray-200 truncate"><CellValue field={f} value={data[f.id]} formId={id} /></td>
                     ))}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
