@@ -5,13 +5,15 @@
 
 export interface SortableTodoItem {
   id: string
-  status: 'TODO' | 'DONE' | 'CANCELLED'
+  status: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'CANCELLED'
   priority: 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH'
   dueDate: string | null
   order: number
 }
 
-const STATUS_RANK: Record<SortableTodoItem['status'], number> = { TODO: 0, DONE: 1, CANCELLED: 2 }
+// TODO/IN_PROGRESS/BLOCKED forment un seul palier « ouvert » (la distinction
+// visuelle se fait dans la vue Kanban, pas dans le tri de la vue liste).
+const STATUS_RANK: Record<SortableTodoItem['status'], number> = { TODO: 0, IN_PROGRESS: 0, BLOCKED: 0, DONE: 1, CANCELLED: 2 }
 const PRIORITY_RANK: Record<SortableTodoItem['priority'], number> = { HIGH: 3, MEDIUM: 2, LOW: 1, NONE: 0 }
 
 export function sortTodoItems<T extends SortableTodoItem>(items: T[]): T[] {

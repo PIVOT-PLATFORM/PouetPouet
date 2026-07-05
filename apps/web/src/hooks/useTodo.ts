@@ -4,8 +4,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 
 export type TodoPriority = 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH'
-export type TodoItemStatus = 'TODO' | 'DONE' | 'CANCELLED'
+export type TodoItemStatus = 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'CANCELLED'
 export type TodoRole = 'OWNER' | 'EDITOR' | 'VIEWER'
+
+export interface TodoCollaborator {
+  id: string
+  name: string
+  email: string
+}
 
 export interface TodoListSummary {
   id: string
@@ -30,6 +36,7 @@ export interface TodoItem {
   priority: TodoPriority
   dueDate: string | null
   order: number
+  assigneeIds: string[]
   createdAt: string
   updatedAt: string
 }
@@ -57,6 +64,7 @@ export interface TodoItemInput {
   notes?: string | null
   priority?: TodoPriority
   dueDate?: string | null
+  assigneeIds?: string[]
 }
 
 export interface TodoListFilters {
@@ -150,4 +158,25 @@ export function useTodoList(id: string) {
   }, [id])
 
   return { list, isLoading, notFound, updateList, toggleFavorite, addItem, updateItem, deleteItem }
+}
+
+// ── Collaborateurs assignables (propriétaire + partagés) ────────────────────
+export function useTodoListCollaborators(listId: string, currentUser: TodoCollaborator | null, isOwner: boolean, enabled: boolean) {
+  const [collaborators, setCollaborators] = useState<TodoCollaborator[]>([])
+
+  useEffect(() => {
+    if (!enabled) return
+    let cancelled = false
+    api.get<{ user: TodoCollaborator }[]>(`/api/shares/todolist/${listId}`)
+      .then((shares) => {
+        if (cancelled) return
+        const list = shares.map((s) => s.user)
+        if (isOwner && currentUser && !list.some((u) => u.id === currentUser.id)) list.unshift(currentUser)
+        setCollaborators(list)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [listId, currentUser, isOwner, enabled])
+
+  return collaborators
 }

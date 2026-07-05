@@ -11,7 +11,7 @@ import { sortTodoItems } from './todo-sort.js'
 // que Portfolio → Roadmap).
 
 const PRIORITIES = ['NONE', 'LOW', 'MEDIUM', 'HIGH'] as const
-const ITEM_STATUSES = ['TODO', 'DONE', 'CANCELLED'] as const
+const ITEM_STATUSES = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE', 'CANCELLED'] as const
 const ISO_DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format yyyy-mm-dd')
 
 const listCreateSchema = z.object({
@@ -25,6 +25,7 @@ const itemCreateSchema = z.object({
   notes: z.string().max(3000).nullable().optional(),
   priority: z.enum(PRIORITIES).optional(),
   dueDate: ISO_DATE.nullable().optional(),
+  assigneeIds: z.array(z.string().min(1)).max(20).optional(),
 })
 const itemUpdateSchema = itemCreateSchema.partial().extend({
   status: z.enum(ITEM_STATUSES).optional(),
@@ -45,6 +46,24 @@ export const todoRoutes: FastifyPluginAsync = async (app) => {
       if (dashboard) via = await resolveRole('tododashboard', list.dashboardId, userId, dashboard.ownerId)
     }
     return { role: bestRole(direct, via), ownerId: list.ownerId, dashboardId: list.dashboardId }
+  }
+
+  // Chaque assigné doit avoir accès à la liste (direct ou transitif via le
+  // dashboard parent) — même garde que validateAssignee() de roadmap.routes.ts.
+  async function validateAssignees(assigneeIds: string[] | undefined, listId: string, listOwnerId: string, dashboardId: string | null): Promise<string | null> {
+    if (!assigneeIds || assigneeIds.length === 0) return null
+    let dashboardOwnerId: string | null = null
+    if (dashboardId) {
+      const dashboard = await prisma.todoDashboard.findUnique({ where: { id: dashboardId }, select: { ownerId: true } })
+      dashboardOwnerId = dashboard?.ownerId ?? null
+    }
+    for (const uid of assigneeIds) {
+      const direct = await resolveRole('todolist', listId, uid, listOwnerId)
+      let via: ModuleRole | null = null
+      if (dashboardId && dashboardOwnerId) via = await resolveRole('tododashboard', dashboardId, uid, dashboardOwnerId)
+      if (!bestRole(direct, via)) return "Un des assignés n'a pas accès à cette liste (partagez-la lui d'abord)."
+    }
+    return null
   }
 
   // GET /lists — possédées, partagées directement, ou accessibles via un
@@ -192,9 +211,12 @@ export const todoRoutes: FastifyPluginAsync = async (app) => {
   app.post('/lists/:id/items', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
-    const { role } = await roleFor(id, userId)
+    const { role, ownerId, dashboardId } = await roleFor(id, userId)
     if (role !== 'OWNER' && role !== 'EDITOR') return reply.status(role ? 403 : 404).send({ error: role ? 'Accès refusé.' : 'Liste introuvable.' })
     const body = itemCreateSchema.parse(request.body)
+    const assigneeIds = body.assigneeIds ? [...new Set(body.assigneeIds)] : undefined
+    const assigneeError = await validateAssignees(assigneeIds, id, ownerId!, dashboardId)
+    if (assigneeError) return reply.status(400).send({ error: assigneeError })
 
     const max = await prisma.todoItem.aggregate({ where: { listId: id }, _max: { order: true } })
     const item = await prisma.todoItem.create({
@@ -204,6 +226,7 @@ export const todoRoutes: FastifyPluginAsync = async (app) => {
         notes: body.notes?.trim() || null,
         priority: body.priority ?? 'NONE',
         dueDate: body.dueDate || null,
+        assigneeIds: assigneeIds ?? [],
         order: (max._max.order ?? -1) + 1,
       },
     })
@@ -214,11 +237,14 @@ export const todoRoutes: FastifyPluginAsync = async (app) => {
   app.patch('/lists/:id/items/:itemId', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id, itemId } = request.params as { id: string; itemId: string }
-    const { role } = await roleFor(id, userId)
+    const { role, ownerId, dashboardId } = await roleFor(id, userId)
     if (role !== 'OWNER' && role !== 'EDITOR') return reply.status(role ? 403 : 404).send({ error: role ? 'Accès refusé.' : 'Liste introuvable.' })
     const existing = await prisma.todoItem.findFirst({ where: { id: itemId, listId: id } })
     if (!existing) return reply.status(404).send({ error: 'Tâche introuvable.' })
     const body = itemUpdateSchema.parse(request.body)
+    const assigneeIds = body.assigneeIds ? [...new Set(body.assigneeIds)] : undefined
+    const assigneeError = await validateAssignees(assigneeIds, id, ownerId!, dashboardId)
+    if (assigneeError) return reply.status(400).send({ error: assigneeError })
 
     const item = await prisma.todoItem.update({
       where: { id: itemId },
@@ -228,6 +254,7 @@ export const todoRoutes: FastifyPluginAsync = async (app) => {
         ...(body.priority !== undefined && { priority: body.priority }),
         ...(body.dueDate !== undefined && { dueDate: body.dueDate || null }),
         ...(body.status !== undefined && { status: body.status }),
+        ...(assigneeIds !== undefined && { assigneeIds }),
       },
     })
     await prisma.todoList.update({ where: { id }, data: { updatedAt: new Date() } })
