@@ -15,6 +15,9 @@ const dashboardCreateSchema = z.object({
 const dashboardUpdateSchema = dashboardCreateSchema.partial()
 
 const PRIORITIES = ['NONE', 'LOW', 'MEDIUM', 'HIGH'] as const
+// Statuts « ouverts » (ni faits, ni annulés) — comptent dans les retards et la
+// répartition par priorité, que la tâche soit à faire, en cours ou bloquée.
+const OPEN_STATUSES = new Set(['TODO', 'IN_PROGRESS', 'BLOCKED'])
 
 export const todoDashboardRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate)
@@ -172,7 +175,7 @@ export const todoDashboardRoutes: FastifyPluginAsync = async (app) => {
       const activeItems = l.items.filter((i) => i.status !== 'CANCELLED')
       const itemCount = activeItems.length
       const doneCount = activeItems.filter((i) => i.status === 'DONE').length
-      const overdueCount = activeItems.filter((i) => i.status === 'TODO' && i.dueDate && i.dueDate < today).length
+      const overdueCount = activeItems.filter((i) => OPEN_STATUSES.has(i.status) && i.dueDate && i.dueDate < today).length
       return {
         id: l.id,
         name: l.name,
@@ -186,10 +189,10 @@ export const todoDashboardRoutes: FastifyPluginAsync = async (app) => {
     const allItems = lists.flatMap((l) => l.items.map((i) => ({ ...i, listName: l.name })).filter((i) => i.status !== 'CANCELLED'))
     const totalItems = allItems.length
     const totalDone = allItems.filter((i) => i.status === 'DONE').length
-    const totalOverdue = allItems.filter((i) => i.status === 'TODO' && i.dueDate && i.dueDate < today).length
+    const totalOverdue = allItems.filter((i) => OPEN_STATUSES.has(i.status) && i.dueDate && i.dueDate < today).length
 
     const byPriority = Object.fromEntries(
-      PRIORITIES.map((p) => [p, allItems.filter((i) => i.status === 'TODO' && i.priority === p).length]),
+      PRIORITIES.map((p) => [p, allItems.filter((i) => OPEN_STATUSES.has(i.status) && i.priority === p).length]),
     ) as Record<(typeof PRIORITIES)[number], number>
 
     const recentlyCompleted = allItems

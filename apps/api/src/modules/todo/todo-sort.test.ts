@@ -16,6 +16,22 @@ describe('sortTodoItems', () => {
     expect(sortTodoItems(items).map((i) => i.id)).toEqual(['b', 'a', 'c'])
   })
 
+  it('traite TODO/IN_PROGRESS/BLOCKED comme un seul palier « ouvert » avant DONE/CANCELLED', () => {
+    const items = [
+      item({ id: 'done', status: 'DONE' }),
+      item({ id: 'blocked', status: 'BLOCKED' }),
+      item({ id: 'cancelled', status: 'CANCELLED' }),
+      item({ id: 'in_progress', status: 'IN_PROGRESS' }),
+      item({ id: 'todo', status: 'TODO' }),
+    ]
+    const sorted = sortTodoItems(items)
+    // Les 3 statuts ouverts précèdent DONE puis CANCELLED (l'ordre entre eux
+    // est départagé par order, à égalité de priorité/échéance).
+    expect(sorted.slice(0, 3).map((i) => i.id).sort()).toEqual(['blocked', 'in_progress', 'todo'])
+    expect(sorted[3].id).toBe('done')
+    expect(sorted[4].id).toBe('cancelled')
+  })
+
   it('trie par priorité décroissante à statut égal', () => {
     const items = [item({ id: 'low', priority: 'LOW' }), item({ id: 'high', priority: 'HIGH' }), item({ id: 'medium', priority: 'MEDIUM' })]
     expect(sortTodoItems(items).map((i) => i.id)).toEqual(['high', 'medium', 'low'])

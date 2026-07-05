@@ -1148,6 +1148,8 @@ enum TodoPriority {
 
 enum TodoItemStatus {
   TODO
+  IN_PROGRESS
+  BLOCKED
   DONE
   CANCELLED
 }
@@ -1171,16 +1173,17 @@ model TodoList {
 }
 
 model TodoItem {
-  id        String         @id @default(cuid())
-  listId    String
-  title     String
-  notes     String?
-  status    TodoItemStatus @default(TODO)
-  priority  TodoPriority   @default(NONE)
-  dueDate   String? // yyyy-mm-dd
-  order     Int            @default(0)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id          String         @id @default(cuid())
+  listId      String
+  title       String
+  notes       String?
+  status      TodoItemStatus @default(TODO)
+  priority    TodoPriority   @default(NONE)
+  dueDate     String? // yyyy-mm-dd
+  order       Int            @default(0)
+  assigneeIds String[]       @default([]) // userIds — validés à l'écriture (accès à la liste requis)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   list TodoList @relation(fields: [listId], references: [id], onDelete: Cascade)
 

@@ -169,3 +169,70 @@ describe('Todo — listes, permissions, partage', () => {
     expect(res.json().some((l: { id: string }) => l.id === listId)).toBe(false)
   })
 })
+
+// ── Statuts En cours/Bloqué + assignation multiple ──────────────────────────
+
+describe('Todo — statuts étendus et assignation', () => {
+  let app: FastifyInstance
+  let owner: { user: { id: string }; token: string }
+  let editor: { user: { id: string }; token: string }
+  let stranger: { user: { id: string }; token: string }
+  let listId: string
+  let itemId: string
+
+  beforeAll(async () => {
+    await cleanupUsers(SUFFIX)
+    app = await buildTestApp([{ plugin: todoRoutes, prefix: '/api/todo' }])
+    owner = await createTestUser(app, `owner2${SUFFIX}`)
+    editor = await createTestUser(app, `editor2${SUFFIX}`)
+    stranger = await createTestUser(app, `stranger2${SUFFIX}`)
+
+    const created = await app.inject({ method: 'POST', url: '/api/todo/lists', headers: auth(owner.token), payload: { name: 'Sprint' } })
+    listId = created.json().id
+    await prisma.moduleShare.create({ data: { module: 'todolist', resourceId: listId, userId: editor.user.id, role: 'EDITOR' } })
+
+    const item = await app.inject({ method: 'POST', url: `/api/todo/lists/${listId}/items`, headers: auth(owner.token), payload: { title: 'Tâche' } })
+    itemId = item.json().id
+  })
+
+  afterAll(async () => {
+    await cleanupUsers(SUFFIX)
+    await app.close()
+  })
+
+  it('PATCH /items/:id — accepte les statuts IN_PROGRESS et BLOCKED', async () => {
+    const inProgress = await app.inject({ method: 'PATCH', url: `/api/todo/lists/${listId}/items/${itemId}`, headers: auth(owner.token), payload: { status: 'IN_PROGRESS' } })
+    expect(inProgress.statusCode).toBe(200)
+    expect(inProgress.json().status).toBe('IN_PROGRESS')
+
+    const blocked = await app.inject({ method: 'PATCH', url: `/api/todo/lists/${listId}/items/${itemId}`, headers: auth(owner.token), payload: { status: 'BLOCKED' } })
+    expect(blocked.statusCode).toBe(200)
+    expect(blocked.json().status).toBe('BLOCKED')
+  })
+
+  it('PATCH /items/:id — assigner un utilisateur ayant accès à la liste → 200', async () => {
+    const res = await app.inject({ method: 'PATCH', url: `/api/todo/lists/${listId}/items/${itemId}`, headers: auth(owner.token), payload: { assigneeIds: [editor.user.id] } })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().assigneeIds).toEqual([editor.user.id])
+  })
+
+  it('PATCH /items/:id — assigner un utilisateur SANS accès à la liste → 400', async () => {
+    const res = await app.inject({ method: 'PATCH', url: `/api/todo/lists/${listId}/items/${itemId}`, headers: auth(owner.token), payload: { assigneeIds: [stranger.user.id] } })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('PATCH /items/:id — dédoublonne les assigneeIds', async () => {
+    const res = await app.inject({ method: 'PATCH', url: `/api/todo/lists/${listId}/items/${itemId}`, headers: auth(owner.token), payload: { assigneeIds: [editor.user.id, editor.user.id] } })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().assigneeIds).toEqual([editor.user.id])
+  })
+
+  it('POST /lists/:id/items — assigner à la création, validé de la même façon', async () => {
+    const ok = await app.inject({ method: 'POST', url: `/api/todo/lists/${listId}/items`, headers: auth(owner.token), payload: { title: 'Nouvelle', assigneeIds: [editor.user.id] } })
+    expect(ok.statusCode).toBe(201)
+    expect(ok.json().assigneeIds).toEqual([editor.user.id])
+
+    const refused = await app.inject({ method: 'POST', url: `/api/todo/lists/${listId}/items`, headers: auth(owner.token), payload: { title: 'Refusée', assigneeIds: [stranger.user.id] } })
+    expect(refused.statusCode).toBe(400)
+  })
+})
