@@ -38,6 +38,7 @@ import { innovationCommentsRoutes } from './innovation/innovation-comments.route
 import { innovationAttachmentsRoutes } from './innovation/innovation-attachments.routes.js'
 import { innovationLinksRoutes } from './innovation/innovation-links.routes.js'
 import { todoRoutes } from './todo/todo.routes.js'
+import { todoDashboardRoutes } from './todo/todo-dashboard.routes.js'
 
 // FORGE F0 — registre des modules côté API.
 // Le socle (index.ts) monte routes et handlers socket en itérant ce registre :
@@ -163,6 +164,7 @@ export const API_MODULES: ApiModule[] = [
     manifest: TODO_MODULE,
     routes: [
       { plugin: todoRoutes, prefix: '/api/todo' },
+      { plugin: todoDashboardRoutes, prefix: '/api/todo' },
     ],
     socketHandlers: [],
   },
