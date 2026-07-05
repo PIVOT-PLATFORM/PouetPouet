@@ -144,7 +144,7 @@ export default function FormEditPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-4">
         <Link href="/forms" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 inline-flex items-center gap-1"><ChevronLeft size={16} />Formulaires</Link>
         <div className="flex items-center gap-3">
