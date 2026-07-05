@@ -268,6 +268,12 @@
 - [ ] Liaison idée → projet (Roadmap/Portefeuille) — ADR-0013 écrite, implémentation différée (attend un traitement plus large du bus d'événements inter-modules)
 - [ ] Détection de doublon sémantique par IA, auto-catégorisation — différées, liées à l'avancement de l'assistant Pouet
 
+### Module To-Do — livré v0.30.0
+- [x] PR1 (#237) : socle du module — listes de tâches personnelles ou partagées (Lecteur/Éditeur), tâches avec priorité/échéance, mise en favori
+- [x] PR2 (#238) : TodoDashboard — combine plusieurs listes en une vue consolidée (accès transitif via le partage du dashboard, même pattern que Portefeuille→Roadmap), rapports (complétion, répartition par priorité, retard, récemment terminé)
+- [x] Statut « annulé » sur les tâches (en plus de à faire / fait), exclu de toutes les statistiques
+- [x] Activation du flag `module.todo` + release — v0.30.0
+
 ### Assistant IA Pouet — #163 (PR ouverte)
 - [x] F0 : Ollama docker + LLMProvider/OllamaProvider + route SSE `/api/pouet/chat`
 - [x] F1 : auth, rate-limit Redis, audit, base de connaissances rédigée
