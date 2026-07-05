@@ -1146,6 +1146,12 @@ enum TodoPriority {
   HIGH
 }
 
+enum TodoItemStatus {
+  TODO
+  DONE
+  CANCELLED
+}
+
 model TodoList {
   id          String   @id @default(cuid())
   name        String
@@ -1165,16 +1171,16 @@ model TodoList {
 }
 
 model TodoItem {
-  id        String       @id @default(cuid())
+  id        String         @id @default(cuid())
   listId    String
   title     String
   notes     String?
-  done      Boolean      @default(false)
-  priority  TodoPriority @default(NONE)
+  status    TodoItemStatus @default(TODO)
+  priority  TodoPriority   @default(NONE)
   dueDate   String? // yyyy-mm-dd
-  order     Int          @default(0)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  order     Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
   list TodoList @relation(fields: [listId], references: [id], onDelete: Cascade)
 

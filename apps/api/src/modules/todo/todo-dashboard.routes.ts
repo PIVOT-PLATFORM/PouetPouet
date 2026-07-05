@@ -57,7 +57,7 @@ export const todoDashboardRoutes: FastifyPluginAsync = async (app) => {
       include: {
         lists: {
           orderBy: { updatedAt: 'desc' },
-          include: { items: { select: { done: true } } },
+          include: { items: { select: { status: true } } },
         },
       },
     })
@@ -70,9 +70,11 @@ export const todoDashboardRoutes: FastifyPluginAsync = async (app) => {
       description: dashboard.description,
       ownerId: dashboard.ownerId,
       role,
-      lists: dashboard.lists.map((l) => ({
-        id: l.id, name: l.name, itemCount: l.items.length, doneCount: l.items.filter((i) => i.done).length,
-      })),
+      lists: dashboard.lists.map((l) => {
+        // Les tâches annulées sont exclues du décompte (ni à faire, ni faites).
+        const activeItems = l.items.filter((i) => i.status !== 'CANCELLED')
+        return { id: l.id, name: l.name, itemCount: activeItems.length, doneCount: activeItems.filter((i) => i.status === 'DONE').length }
+      }),
       createdAt: dashboard.createdAt,
       updatedAt: dashboard.updatedAt,
     }
@@ -163,11 +165,14 @@ export const todoDashboardRoutes: FastifyPluginAsync = async (app) => {
       include: { items: true },
     })
 
+    // Les tâches annulées sont exclues des statistiques : ni à faire, ni faites,
+    // elles ne comptent ni dans les totaux ni dans la répartition par priorité.
     const today = new Date().toISOString().slice(0, 10)
     const byList = lists.map((l) => {
-      const itemCount = l.items.length
-      const doneCount = l.items.filter((i) => i.done).length
-      const overdueCount = l.items.filter((i) => !i.done && i.dueDate && i.dueDate < today).length
+      const activeItems = l.items.filter((i) => i.status !== 'CANCELLED')
+      const itemCount = activeItems.length
+      const doneCount = activeItems.filter((i) => i.status === 'DONE').length
+      const overdueCount = activeItems.filter((i) => i.status === 'TODO' && i.dueDate && i.dueDate < today).length
       return {
         id: l.id,
         name: l.name,
@@ -178,17 +183,17 @@ export const todoDashboardRoutes: FastifyPluginAsync = async (app) => {
       }
     })
 
-    const allItems = lists.flatMap((l) => l.items.map((i) => ({ ...i, listName: l.name })))
+    const allItems = lists.flatMap((l) => l.items.map((i) => ({ ...i, listName: l.name })).filter((i) => i.status !== 'CANCELLED'))
     const totalItems = allItems.length
-    const totalDone = allItems.filter((i) => i.done).length
-    const totalOverdue = allItems.filter((i) => !i.done && i.dueDate && i.dueDate < today).length
+    const totalDone = allItems.filter((i) => i.status === 'DONE').length
+    const totalOverdue = allItems.filter((i) => i.status === 'TODO' && i.dueDate && i.dueDate < today).length
 
     const byPriority = Object.fromEntries(
-      PRIORITIES.map((p) => [p, allItems.filter((i) => !i.done && i.priority === p).length]),
+      PRIORITIES.map((p) => [p, allItems.filter((i) => i.status === 'TODO' && i.priority === p).length]),
     ) as Record<(typeof PRIORITIES)[number], number>
 
     const recentlyCompleted = allItems
-      .filter((i) => i.done)
+      .filter((i) => i.status === 'DONE')
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
       .slice(0, 5)
       .map((i) => ({ id: i.id, title: i.title, listName: i.listName, completedAt: i.updatedAt }))

@@ -11,6 +11,7 @@ import { sortTodoItems } from './todo-sort.js'
 // que Portfolio → Roadmap).
 
 const PRIORITIES = ['NONE', 'LOW', 'MEDIUM', 'HIGH'] as const
+const ITEM_STATUSES = ['TODO', 'DONE', 'CANCELLED'] as const
 const ISO_DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format yyyy-mm-dd')
 
 const listCreateSchema = z.object({
@@ -26,7 +27,7 @@ const itemCreateSchema = z.object({
   dueDate: ISO_DATE.nullable().optional(),
 })
 const itemUpdateSchema = itemCreateSchema.partial().extend({
-  done: z.boolean().optional(),
+  status: z.enum(ITEM_STATUSES).optional(),
 })
 
 export const todoRoutes: FastifyPluginAsync = async (app) => {
@@ -74,7 +75,7 @@ export const todoRoutes: FastifyPluginAsync = async (app) => {
     const lists = await prisma.todoList.findMany({
       where: { AND },
       include: {
-        items: { select: { done: true } },
+        items: { select: { status: true } },
         favorites: { where: { userId }, select: { id: true } },
       },
       orderBy: { updatedAt: 'desc' },
@@ -84,14 +85,16 @@ export const todoRoutes: FastifyPluginAsync = async (app) => {
     return lists.map((l) => {
       const direct: ModuleRole | null = l.ownerId === userId ? 'OWNER' : (sharedListRole.get(l.id) ?? null)
       const via: ModuleRole | null = l.dashboardId ? (myDashboardIds.has(l.dashboardId) ? 'OWNER' : (sharedDashboardRole.get(l.dashboardId) ?? null)) : null
+      // Les tâches annulées sont exclues du décompte (ni à faire, ni faites).
+      const activeItems = l.items.filter((i) => i.status !== 'CANCELLED')
       return {
         id: l.id,
         name: l.name,
         description: l.description,
         ownerId: l.ownerId,
         dashboardId: l.dashboardId,
-        itemCount: l.items.length,
-        doneCount: l.items.filter((i) => i.done).length,
+        itemCount: activeItems.length,
+        doneCount: activeItems.filter((i) => i.status === 'DONE').length,
         isFavorite: l.favorites.length > 0,
         role: bestRole(direct, via) ?? 'VIEWER',
         createdAt: l.createdAt,
@@ -100,7 +103,7 @@ export const todoRoutes: FastifyPluginAsync = async (app) => {
     })
   })
 
-  // GET /lists/:id — détail + items triés (non faits d'abord, priorité, échéance).
+  // GET /lists/:id — détail + items triés (à faire d'abord, puis faits, puis annulés).
   app.get('/lists/:id', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
@@ -224,7 +227,7 @@ export const todoRoutes: FastifyPluginAsync = async (app) => {
         ...(body.notes !== undefined && { notes: body.notes?.trim() || null }),
         ...(body.priority !== undefined && { priority: body.priority }),
         ...(body.dueDate !== undefined && { dueDate: body.dueDate || null }),
-        ...(body.done !== undefined && { done: body.done }),
+        ...(body.status !== undefined && { status: body.status }),
       },
     })
     await prisma.todoList.update({ where: { id }, data: { updatedAt: new Date() } })

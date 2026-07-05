@@ -2,13 +2,18 @@ import { describe, it, expect } from 'vitest'
 import { sortTodoItems, type SortableTodoItem } from './todo-sort.js'
 
 function item(overrides: Partial<SortableTodoItem> & { id: string }): SortableTodoItem {
-  return { done: false, priority: 'NONE', dueDate: null, order: 0, ...overrides }
+  return { status: 'TODO', priority: 'NONE', dueDate: null, order: 0, ...overrides }
 }
 
 describe('sortTodoItems', () => {
-  it('place les tâches non faites avant les tâches faites', () => {
-    const items = [item({ id: 'a', done: true }), item({ id: 'b', done: false })]
+  it('place les tâches à faire avant les tâches faites', () => {
+    const items = [item({ id: 'a', status: 'DONE' }), item({ id: 'b', status: 'TODO' })]
     expect(sortTodoItems(items).map((i) => i.id)).toEqual(['b', 'a'])
+  })
+
+  it('place les tâches annulées après les tâches faites', () => {
+    const items = [item({ id: 'c', status: 'CANCELLED' }), item({ id: 'a', status: 'DONE' }), item({ id: 'b', status: 'TODO' })]
+    expect(sortTodoItems(items).map((i) => i.id)).toEqual(['b', 'a', 'c'])
   })
 
   it('trie par priorité décroissante à statut égal', () => {

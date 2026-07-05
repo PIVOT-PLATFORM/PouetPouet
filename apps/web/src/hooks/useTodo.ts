@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 
 export type TodoPriority = 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH'
+export type TodoItemStatus = 'TODO' | 'DONE' | 'CANCELLED'
 export type TodoRole = 'OWNER' | 'EDITOR' | 'VIEWER'
 
 export interface TodoListSummary {
@@ -25,7 +26,7 @@ export interface TodoItem {
   listId: string
   title: string
   notes: string | null
-  done: boolean
+  status: TodoItemStatus
   priority: TodoPriority
   dueDate: string | null
   order: number
@@ -137,7 +138,7 @@ export function useTodoList(id: string) {
     return item
   }, [id])
 
-  const updateItem = useCallback(async (itemId: string, patch: Partial<TodoItemInput & { done: boolean }>) => {
+  const updateItem = useCallback(async (itemId: string, patch: Partial<TodoItemInput & { status: TodoItemStatus }>) => {
     const updated = await api.patch<TodoItem>(`/api/todo/lists/${id}/items/${itemId}`, patch)
     setList((prev) => prev ? { ...prev, items: prev.items.map((i) => i.id === itemId ? updated : i) } : prev)
     return updated

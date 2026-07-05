@@ -106,13 +106,33 @@ describe('Todo — listes, permissions, partage', () => {
   it('PATCH /items/:id — coche une tâche comme faite, elle passe en fin de tri', async () => {
     const list = await app.inject({ method: 'GET', url: `/api/todo/lists/${listId}`, headers: auth(owner.token) })
     const highPrio = list.json().items.find((i: { title: string }) => i.title === 'Haute priorité')
-    const res = await app.inject({ method: 'PATCH', url: `/api/todo/lists/${listId}/items/${highPrio.id}`, headers: auth(owner.token), payload: { done: true } })
+    const res = await app.inject({ method: 'PATCH', url: `/api/todo/lists/${listId}/items/${highPrio.id}`, headers: auth(owner.token), payload: { status: 'DONE' } })
     expect(res.statusCode).toBe(200)
-    expect(res.json().done).toBe(true)
+    expect(res.json().status).toBe('DONE')
 
     const after = await app.inject({ method: 'GET', url: `/api/todo/lists/${listId}`, headers: auth(owner.token) })
     const titles = after.json().items.map((i: { title: string }) => i.title)
     expect(titles[titles.length - 1]).toBe('Haute priorité')
+  })
+
+  it('PATCH /items/:id — annule une tâche, elle passe en toute fin de tri (après les faites)', async () => {
+    const created = await app.inject({ method: 'POST', url: `/api/todo/lists/${listId}/items`, headers: auth(editor.token), payload: { title: 'À annuler' } })
+    const itemId = created.json().id
+    const res = await app.inject({ method: 'PATCH', url: `/api/todo/lists/${listId}/items/${itemId}`, headers: auth(owner.token), payload: { status: 'CANCELLED' } })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().status).toBe('CANCELLED')
+
+    const after = await app.inject({ method: 'GET', url: `/api/todo/lists/${listId}`, headers: auth(owner.token) })
+    const titles = after.json().items.map((i: { title: string }) => i.title)
+    expect(titles[titles.length - 1]).toBe('À annuler')
+  })
+
+  it('GET /lists — les tâches annulées ne comptent ni dans itemCount ni dans doneCount', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/todo/lists', headers: auth(owner.token) })
+    const list = res.json().find((l: { id: string }) => l.id === listId)
+    // 3 items créés (Basse priorité, Haute priorité, À annuler), 1 fait (Haute priorité), 1 annulé (À annuler).
+    expect(list.itemCount).toBe(2)
+    expect(list.doneCount).toBe(1)
   })
 
   it('DELETE /items/:id — le VIEWER ne peut pas supprimer une tâche → 403', async () => {

@@ -19,7 +19,7 @@ export default function TodoDashboardDetailPage() {
   useFlagGuard('module.todo')
   const { id } = useParams<{ id: string }>()
   const { dashboard, stats, isLoading, accessDenied, updateMeta, attachList, detachList } = useTodoDashboard(id)
-  const { lists: myLists } = useTodoLists({ mine: true })
+  const { lists: myLists, load: reloadMyLists } = useTodoLists({ mine: true })
 
   const [showShare, setShowShare] = useState(false)
   const [showAttach, setShowAttach] = useState(false)
@@ -48,10 +48,14 @@ export default function TodoDashboardDetailPage() {
 
   async function handleAttach(listId: string) {
     await attachList(listId)
+    await reloadMyLists()
     setShowAttach(false)
   }
   async function handleDetach(listId: string, name: string) {
-    if (confirm(`Détacher « ${name} » de ce tableau de bord ? La liste ne sera pas supprimée.`)) await detachList(listId)
+    if (confirm(`Détacher « ${name} » de ce tableau de bord ? La liste ne sera pas supprimée.`)) {
+      await detachList(listId)
+      await reloadMyLists()
+    }
   }
 
   return (

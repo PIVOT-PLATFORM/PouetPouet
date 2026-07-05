@@ -145,12 +145,14 @@ describe('TodoDashboard — rapports / statistiques', () => {
 
     // Liste A : 2 tâches, 1 faite.
     const listA = await prisma.todoList.create({ data: { name: 'Liste A', ownerId: owner.user.id, dashboardId } })
-    await prisma.todoItem.create({ data: { listId: listA.id, title: 'A1', done: true, priority: 'HIGH' } })
-    await prisma.todoItem.create({ data: { listId: listA.id, title: 'A2', done: false, priority: 'LOW' } })
+    await prisma.todoItem.create({ data: { listId: listA.id, title: 'A1', status: 'DONE', priority: 'HIGH' } })
+    await prisma.todoItem.create({ data: { listId: listA.id, title: 'A2', status: 'TODO', priority: 'LOW' } })
 
-    // Liste B : 1 tâche en retard.
+    // Liste B : 1 tâche en retard + 1 tâche annulée (en retard et priorité haute,
+    // pour vérifier qu'elle n'est comptée nulle part malgré ces attributs).
     const listB = await prisma.todoList.create({ data: { name: 'Liste B', ownerId: owner.user.id, dashboardId } })
-    await prisma.todoItem.create({ data: { listId: listB.id, title: 'B1', done: false, priority: 'MEDIUM', dueDate: '2020-01-01' } })
+    await prisma.todoItem.create({ data: { listId: listB.id, title: 'B1', status: 'TODO', priority: 'MEDIUM', dueDate: '2020-01-01' } })
+    await prisma.todoItem.create({ data: { listId: listB.id, title: 'C1', status: 'CANCELLED', priority: 'HIGH', dueDate: '2020-01-01' } })
   })
 
   afterAll(async () => {
@@ -193,5 +195,17 @@ describe('TodoDashboard — rapports / statistiques', () => {
   it('GET /dashboards/:id/stats — récemment terminé inclut la tâche faite', async () => {
     const res = await app.inject({ method: 'GET', url: `/api/todo/dashboards/${dashboardId}/stats`, headers: auth(owner.token) })
     expect(res.json().recentlyCompleted.some((i: { title: string }) => i.title === 'A1')).toBe(true)
+  })
+
+  it('GET /dashboards/:id/stats — une tâche annulée n\'est comptée nulle part, même en retard et priorité haute', async () => {
+    const res = await app.inject({ method: 'GET', url: `/api/todo/dashboards/${dashboardId}/stats`, headers: auth(owner.token) })
+    const stats = res.json()
+    // C1 est CANCELLED, en retard (2020-01-01) et HIGH — ne doit apparaître nulle part.
+    expect(stats.totalItems).toBe(3) // A1, A2, B1 — C1 exclu
+    expect(stats.totalOverdue).toBe(1) // B1 uniquement
+    expect(stats.byPriority.HIGH).toBe(0)
+    const listB = stats.byList.find((l: { name: string }) => l.name === 'Liste B')
+    expect(listB.itemCount).toBe(1)
+    expect(listB.overdueCount).toBe(1)
   })
 })

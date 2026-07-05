@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ChevronLeft, Plus, Share2, Star, Trash2 } from 'lucide-react'
+import { ChevronLeft, Plus, RotateCcw, Share2, Star, Trash2, XCircle } from 'lucide-react'
 import { useTodoList, type TodoPriority } from '@/hooks/useTodo'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { Select } from '@/components/ui/select'
@@ -103,17 +103,21 @@ export default function TodoListDetailPage() {
           <ul className="flex flex-col gap-1.5">
             {list.items.map((item) => {
               const meta = priorityMeta(item.priority)
-              const overdue = !item.done && item.dueDate && item.dueDate < new Date().toISOString().slice(0, 10)
+              const cancelled = item.status === 'CANCELLED'
+              const overdue = item.status === 'TODO' && item.dueDate && item.dueDate < new Date().toISOString().slice(0, 10)
               return (
-                <li key={item.id} className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 group">
+                <li key={item.id} className={`flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 group ${cancelled ? 'opacity-60' : ''}`}>
                   <input
                     type="checkbox"
-                    checked={item.done}
-                    disabled={!canEdit}
-                    onChange={(e) => updateItem(item.id, { done: e.target.checked })}
+                    checked={item.status === 'DONE'}
+                    disabled={!canEdit || cancelled}
+                    onChange={(e) => updateItem(item.id, { status: e.target.checked ? 'DONE' : 'TODO' })}
                     className="w-4 h-4 accent-orange-500 shrink-0"
                   />
-                  <span className={`flex-1 text-sm ${item.done ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'}`}>{item.title}</span>
+                  <span className={`flex-1 text-sm ${item.status !== 'TODO' ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'}`}>{item.title}</span>
+                  {cancelled && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0 bg-gray-100 dark:bg-gray-800 text-gray-400">Annulé</span>
+                  )}
                   {item.priority !== 'NONE' && (
                     <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0" style={{ background: meta.color + '1a', color: meta.color }}>{meta.label}</span>
                   )}
@@ -121,7 +125,14 @@ export default function TodoListDetailPage() {
                     <span className={`text-xs shrink-0 ${overdue ? 'text-red-500 font-medium' : 'text-gray-400'}`}>{item.dueDate}</span>
                   )}
                   {canEdit && (
-                    <button onClick={() => deleteItem(item.id)} className="shrink-0 p-1 rounded text-gray-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity"><Trash2 size={13} /></button>
+                    <>
+                      {cancelled ? (
+                        <button onClick={() => updateItem(item.id, { status: 'TODO' })} title="Réactiver" className="shrink-0 p-1 rounded text-gray-300 opacity-0 group-hover:opacity-100 hover:text-orange-500 transition-opacity"><RotateCcw size={13} /></button>
+                      ) : (
+                        <button onClick={() => updateItem(item.id, { status: 'CANCELLED' })} title="Annuler" className="shrink-0 p-1 rounded text-gray-300 opacity-0 group-hover:opacity-100 hover:text-orange-500 transition-opacity"><XCircle size={13} /></button>
+                      )}
+                      <button onClick={() => deleteItem(item.id)} title="Supprimer" className="shrink-0 p-1 rounded text-gray-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity"><Trash2 size={13} /></button>
+                    </>
                   )}
                 </li>
               )
