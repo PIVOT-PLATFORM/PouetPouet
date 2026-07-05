@@ -498,17 +498,24 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
     }))
   })
 
-  // Export CSV des réponses.
+  // Export CSV des réponses. `?fields=` : liste ordonnée de colonnes à inclure
+  // (id de champ, ou pseudo-colonnes __name/__email) — toutes par défaut.
   auth.get('/:id/responses.csv', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
+    const { fields: fieldsParam } = z.object({ fields: z.string().optional() }).parse(request.query)
     const form = await prisma.form.findUnique({ where: { id } })
     if (!form) return reply.status(404).send({ error: 'Formulaire introuvable' })
     const role = await resolveRole('form', id, userId, form.ownerId)
     if (!role) return reply.status(403).send({ error: 'Accès refusé' })
 
     // Les sections ne sont pas des champs de données → exclues des colonnes.
-    const fields = asFields(form.fields).filter((f) => f.type !== 'section')
+    const allFields = asFields(form.fields).filter((f) => f.type !== 'section')
+    const fieldById = new Map(allFields.map((f) => [f.id, f]))
+    const allColumnKeys = ['__name', '__email', ...allFields.map((f) => f.id)]
+    const requested = fieldsParam ? fieldsParam.split(',').filter((k) => allColumnKeys.includes(k)) : allColumnKeys
+    const columns = requested.length > 0 ? requested : allColumnKeys
+
     const responses = await prisma.formResponse.findMany({
       where: { formId: id },
       orderBy: { createdAt: 'asc' },
@@ -526,10 +533,16 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
       return v == null ? '' : String(v)
     }
     const esc = (s: string) => `"${s.replace(/"/g, '""')}"`
-    const header = ['Date', 'Nom', 'Email', ...fields.map((f) => f.label)]
+    const columnLabel = (k: string) => (k === '__name' ? 'Nom' : k === '__email' ? 'Email' : fieldById.get(k)?.label || 'Sans titre')
+    const header = ['Date', ...columns.map(columnLabel)]
     const rows = responses.map((r) => {
       const data = (r.data ?? {}) as Record<string, unknown>
-      return [r.createdAt.toISOString(), r.recipient?.name ?? '', r.recipient?.email ?? '', ...fields.map((f) => cell(f, data[f.id]))].map(esc).join(',')
+      const cells = columns.map((k) => {
+        if (k === '__name') return r.recipient?.name ?? ''
+        if (k === '__email') return r.recipient?.email ?? ''
+        return cell(fieldById.get(k)!, data[k])
+      })
+      return [r.createdAt.toISOString(), ...cells].map(esc).join(',')
     })
     const csv = [header.map(esc).join(','), ...rows].join('\r\n')
 

@@ -59,12 +59,26 @@ export default function FormResponsesPage() {
   const [individualIdx, setIndividualIdx] = useState(0)
   const [detail, setDetail] = useState<FormResponseEntry | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [showExportPicker, setShowExportPicker] = useState(false)
+  const [exportFields, setExportFields] = useState<Set<string> | null>(null)
 
   // Colonnes = champs de saisie (les sections ne stockent pas de donnée).
   const dataFields = (form?.fields ?? []).filter((f) => f.type !== 'section')
+  const allExportKeys = ['__name', '__email', ...dataFields.map((f) => f.id)]
+  const exportKeys = exportFields ?? new Set(allExportKeys)
+
+  function toggleExportField(key: string) {
+    setExportFields((prev) => {
+      const next = new Set(prev ?? allExportKeys)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   async function exportCsv() {
-    await authedDownload(`${API_URL}/api/forms/${id}/responses.csv`, `reponses-${form?.title ?? id}.csv`)
+    const qs = new URLSearchParams({ fields: Array.from(exportKeys).join(',') })
+    await authedDownload(`${API_URL}/api/forms/${id}/responses.csv?${qs.toString()}`, `reponses-${form?.title ?? id}.csv`)
   }
 
   async function handleDelete(responseId: string) {
@@ -113,10 +127,41 @@ export default function FormResponsesPage() {
               <Users className="w-4 h-4" /> Destinataires
             </button>
           </div>
-          {responses.length > 0 && view !== 'recipients' && (
-            <button onClick={exportCsv} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium transition-colors">
-              <Download className="w-4 h-4" /> CSV
-            </button>
+          {responses.length > 0 && (
+            <div className="relative">
+              <button onClick={() => setShowExportPicker((v) => !v)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium transition-colors">
+                <Download className="w-4 h-4" /> CSV
+              </button>
+              {showExportPicker && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowExportPicker(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-64 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl z-20 flex flex-col gap-2">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide px-1">Colonnes à exporter</p>
+                    <div className="flex flex-col gap-0.5 max-h-56 overflow-y-auto">
+                      <label className="flex items-center gap-2 text-sm dark:text-gray-200 px-1 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                        <input type="checkbox" checked={exportKeys.has('__name')} onChange={() => toggleExportField('__name')} className="w-4 h-4 rounded accent-violet-500" /> Nom
+                      </label>
+                      <label className="flex items-center gap-2 text-sm dark:text-gray-200 px-1 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                        <input type="checkbox" checked={exportKeys.has('__email')} onChange={() => toggleExportField('__email')} className="w-4 h-4 rounded accent-violet-500" /> Email
+                      </label>
+                      {dataFields.map((f) => (
+                        <label key={f.id} className="flex items-center gap-2 text-sm dark:text-gray-200 px-1 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                          <input type="checkbox" checked={exportKeys.has(f.id)} onChange={() => toggleExportField(f.id)} className="w-4 h-4 rounded accent-violet-500" />
+                          {f.label || 'Sans titre'}
+                        </label>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => { exportCsv(); setShowExportPicker(false) }}
+                      disabled={exportKeys.size === 0}
+                      className="mt-1 px-3 py-1.5 rounded-lg bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+                    >
+                      Exporter
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -139,7 +184,7 @@ export default function FormResponsesPage() {
         const data = (r.data ?? {}) as Record<string, unknown>
         const isEmpty = (v: unknown) => v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
         return (
-          <div className="flex flex-col gap-4 max-w-2xl mx-auto w-full">
+          <div className="flex flex-col gap-4">
             {/* Barre de navigation */}
             <div className="flex items-center justify-between gap-4">
               <button
