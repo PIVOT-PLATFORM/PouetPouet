@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
-import type { FormSummary, FormDetail, FormFieldDef, FormResponseEntry } from '@pouetpouet/shared'
+import type { FormSummary, FormDetail, FormFieldDef, FormResponseEntry, FormRecipientEntry } from '@pouetpouet/shared'
 
-export type { FormSummary, FormDetail, FormFieldDef, FormResponseEntry }
+export type { FormSummary, FormDetail, FormFieldDef, FormResponseEntry, FormRecipientEntry }
 
 // ── Liste ──────────────────────────────────────────────────────────────────────
 
@@ -64,6 +64,8 @@ export function useForm(id: string) {
     redirectUrl: string | null
     closesAt: string | null
     maxResponses: number | null
+    remindersEnabled: boolean
+    reminderFrequencyDays: number
   }>) => {
     const updated = await api.patch<FormDetail>(`/api/forms/${id}`, patch)
     setForm(updated)
@@ -92,4 +94,41 @@ export function useFormResponses(id: string) {
   }, [id])
 
   return { responses, isLoading, deleteResponse }
+}
+
+// ── Destinataires nommés (sans compte) ──────────────────────────────────────────
+
+export function useFormRecipients(id: string) {
+  const [recipients, setRecipients] = useState<FormRecipientEntry[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const load = useCallback(() => {
+    return api.get<FormRecipientEntry[]>(`/api/forms/${id}/recipients`).then(setRecipients).catch(() => {})
+  }, [id])
+
+  useEffect(() => { load().finally(() => setIsLoading(false)) }, [load])
+
+  const addRecipients = useCallback(async (list: { name: string; email: string }[]) => {
+    const result = await api.post<{ created: number; skipped: number }>(`/api/forms/${id}/recipients`, { recipients: list })
+    await load()
+    return result
+  }, [id, load])
+
+  const removeRecipient = useCallback(async (rid: string) => {
+    await api.delete(`/api/forms/${id}/recipients/${rid}`)
+    setRecipients((prev) => prev.filter((r) => r.id !== rid))
+  }, [id])
+
+  const sendInvites = useCallback(async (recipientIds?: string[]) => {
+    const result = await api.post<{ sent: number }>(`/api/forms/${id}/recipients/send`, recipientIds ? { recipientIds } : {})
+    await load()
+    return result
+  }, [id, load])
+
+  const remind = useCallback(async (rid: string) => {
+    await api.post(`/api/forms/${id}/recipients/${rid}/remind`, {})
+    await load()
+  }, [id, load])
+
+  return { recipients, isLoading, addRecipients, removeRecipient, sendInvites, remind }
 }

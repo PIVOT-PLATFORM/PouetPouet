@@ -34,6 +34,7 @@ import { scheduleRetention } from './lib/retention.js'
 import { scheduleParcoursSla } from './lib/parcoursSla.js'
 import { startScheduler } from './lib/parcours-scheduler.js'
 import { scheduleSigndocMaintenance } from './modules/signdoc/signdoc.scheduler.js'
+import { scheduleFormReminders } from './modules/forms/forms.scheduler.js'
 
 const PORT = Number(process.env.PORT ?? 4000)
 
@@ -337,5 +338,7 @@ startScheduler()
 
 // Maintenance SignDoc : expiration des enveloppes en retard + relances des signataires
 scheduleSigndocMaintenance(app.log)
+// Relances automatiques des destinataires de formulaires n'ayant pas répondu
+scheduleFormReminders(app.log)
 
 await app.listen({ port: PORT, host: '0.0.0.0' })

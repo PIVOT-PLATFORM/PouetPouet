@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Download, Inbox, Table, BarChart3, Eye, Trash2, X, FileText, ChevronLeft, ChevronRight, User } from 'lucide-react'
+import { Download, Inbox, Table, BarChart3, Eye, Trash2, X, FileText, ChevronLeft, ChevronRight, User, Users } from 'lucide-react'
 import { useForm, useFormResponses } from '@/hooks/useForms'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { FormSummaryView } from '@/components/forms/FormSummaryView'
+import { FormRecipientsPanel } from '@/components/forms/FormRecipientsPanel'
 import type { FormFieldDef, FormResponseEntry, FormFileValue } from '@pouetpouet/shared'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
@@ -52,9 +53,9 @@ function CellValue({ field, value, formId }: { field: FormFieldDef; value: unkno
 export default function FormResponsesPage() {
   useFlagGuard('module.forms')
   const { id } = useParams<{ id: string }>()
-  const { form, isLoading: formLoading } = useForm(id)
+  const { form, isLoading: formLoading, updateForm } = useForm(id)
   const { responses, isLoading, deleteResponse } = useFormResponses(id)
-  const [view, setView] = useState<'individual' | 'summary' | 'table'>('individual')
+  const [view, setView] = useState<'individual' | 'summary' | 'table' | 'recipients'>('individual')
   const [individualIdx, setIndividualIdx] = useState(0)
   const [detail, setDetail] = useState<FormResponseEntry | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -93,27 +94,41 @@ export default function FormResponsesPage() {
           <Link href={`/forms/${id}/edit`} className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-1 inline-flex items-center gap-1"><ChevronLeft size={16} />{form.title}</Link>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Réponses <span className="text-gray-400 font-normal">({responses.length})</span></h1>
         </div>
-        {responses.length > 0 && (
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <button onClick={() => setView('individual')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'individual' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-                <User className="w-4 h-4" /> Individuel
-              </button>
-              <button onClick={() => setView('summary')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'summary' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-                <BarChart3 className="w-4 h-4" /> Résumé
-              </button>
-              <button onClick={() => setView('table')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'table' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-                <Table className="w-4 h-4" /> Tableau
-              </button>
-            </div>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {responses.length > 0 && (
+              <>
+                <button onClick={() => setView('individual')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'individual' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                  <User className="w-4 h-4" /> Individuel
+                </button>
+                <button onClick={() => setView('summary')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'summary' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                  <BarChart3 className="w-4 h-4" /> Résumé
+                </button>
+                <button onClick={() => setView('table')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'table' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                  <Table className="w-4 h-4" /> Tableau
+                </button>
+              </>
+            )}
+            <button onClick={() => setView('recipients')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'recipients' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+              <Users className="w-4 h-4" /> Destinataires
+            </button>
+          </div>
+          {responses.length > 0 && view !== 'recipients' && (
             <button onClick={exportCsv} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium transition-colors">
               <Download className="w-4 h-4" /> CSV
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {responses.length === 0 ? (
+      {view === 'recipients' ? (
+        <FormRecipientsPanel
+          formId={id}
+          remindersEnabled={form.remindersEnabled}
+          reminderFrequencyDays={form.reminderFrequencyDays}
+          onUpdateReminders={(patch) => { updateForm(patch).catch(() => {}) }}
+        />
+      ) : responses.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
           <Inbox className="w-12 h-12 text-gray-300 dark:text-gray-600" />
           <p className="text-gray-500 dark:text-gray-400">Aucune réponse pour l'instant.</p>
