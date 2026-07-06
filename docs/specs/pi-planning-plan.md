@@ -83,13 +83,13 @@ Implémentées ensemble sur une seule branche (à la demande de Julien) :
 - Web : section « Destinataires » dans `apps/web/src/app/(app)/forms/[id]/responses/` (tableau Répondu/En attente, Relancer, Copier le lien, config relances) ; CSV enrichi Nom/Email ; page publique adaptée (prefill + modification de réponse).
 - Tests : `forms-recipients.integration.test.ts` + `forms.scheduler.integration.test.ts` (14 tests). Typecheck + lint + smoke test manuel OK.
 
-### PR3 — To-Do : statuts + assignation + vue Kanban (M)
+### PR3 — To-Do : statuts + assignation + vue Kanban (M) — ✅ mergé (PR #244)
 - Migration : `IN_PROGRESS`/`BLOCKED` dans `TodoItemStatus` (additif) + `TodoItem.assigneeIds`.
 - API `todo.routes.ts` : PATCH accepte les nouveaux statuts + `assigneeIds` (helper `validateAssignees()` calqué roadmap : chaque assigné doit avoir accès à la liste via `roleFor`) ; `todo-sort.ts` et stats dashboards mis à jour (ouverts = TODO/IN_PROGRESS/BLOCKED).
 - Web `apps/web/src/app/(app)/todo/[id]/page.tsx` : bascule **Liste ⇄ Kanban** ; kanban 4 colonnes (À faire / En cours / Bloqué / Fait) en DnD HTML5 copié de `feedback/page.tsx`, tâches annulées masquées derrière un toggle ; sélecteur d'assignés (owner + comptes partagés) + avatars + **filtre par membre** (chips) dans les deux vues.
 - Tests : extension `todo.routes.integration.test.ts` (nouveaux statuts, assigné sans accès → 400, stats).
 
-### PR4 — Socle module PI + intégrations Forms/To-Do (M/L)
+### PR4 — Socle module PI + intégrations Forms/To-Do (M/L) — ✅ mergé (PR #245)
 - Enregistrement 4 points : `PI_MODULE` (`packages/shared/src/forge/modules.ts`), flag `module.pi` false (`flags.ts`), `registry.ts`, icône + Hub `DOMAINS` (+ retrait « Mes PIP » de INCOMING) + page Aide.
 - Migration : PiCycle/PiIteration/PiCycleTeam.
 - API `apps/api/src/modules/pi/pi.routes.ts` : CRUD cycle (génération auto des itérations : nombre + semaines → dates, dernière = « IP Sprint »), CRUD équipes + import depuis `Team` pivot, résolveur `'pi'` dans `shares.ts`, `deleteResourceShares` au delete.
@@ -98,7 +98,7 @@ Implémentées ensemble sur une seule branche (à la demande de Julien) :
 - Web : `apps/web/src/app/(app)/pi/page.tsx` (liste + création) ; `pi/[id]/page.tsx` (aperçu : itérations, équipes, partage, **carte Logistique** — statut répondants agrégé + liens vers le formulaire Forms — et **carte Tâches** — stats du TodoDashboard lié + lien).
 - Tests : `pi.routes.integration.test.ts` (CRUD, itérations générées, rôles, création formulaire logistique rattaché).
 
-### PR5 — Program Board : données + API (M)
+### PR5 — Program Board : données + API (M) — ✅ mergé (PR #247)
 - Migration : PiTicket/PiDependency.
 - API `apps/api/src/modules/pi/pi-board.routes.ts` : `GET /:id/board` (payload unique : itérations + équipes + tickets + deps), CRUD tickets (teamId/iterationId du même cycle), `PATCH /tickets/:tid/move` (cellule cible + order), CRUD dépendances — anti-cycle (adaptation `validateDeps`), anti-doublon, PATCH statut OK/BLOCKED + note.
 - Tests : `pi-board.routes.integration.test.ts` (cycle refusé, doublon, cross-cycle refusé, cascades équipe/itération).
