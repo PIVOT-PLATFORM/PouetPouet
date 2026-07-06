@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Download, Inbox, Table, BarChart3, Eye, Trash2, X, FileText, ChevronLeft, ChevronRight, User } from 'lucide-react'
+import { Download, Inbox, Table, BarChart3, Eye, Trash2, X, FileText, ChevronLeft, ChevronRight, User, Users } from 'lucide-react'
 import { useForm, useFormResponses } from '@/hooks/useForms'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { FormSummaryView } from '@/components/forms/FormSummaryView'
+import { FormRecipientsPanel } from '@/components/forms/FormRecipientsPanel'
 import type { FormFieldDef, FormResponseEntry, FormFileValue } from '@pouetpouet/shared'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
@@ -52,18 +53,32 @@ function CellValue({ field, value, formId }: { field: FormFieldDef; value: unkno
 export default function FormResponsesPage() {
   useFlagGuard('module.forms')
   const { id } = useParams<{ id: string }>()
-  const { form, isLoading: formLoading } = useForm(id)
+  const { form, isLoading: formLoading, updateForm } = useForm(id)
   const { responses, isLoading, deleteResponse } = useFormResponses(id)
-  const [view, setView] = useState<'individual' | 'summary' | 'table'>('individual')
+  const [view, setView] = useState<'individual' | 'summary' | 'table' | 'recipients'>('individual')
   const [individualIdx, setIndividualIdx] = useState(0)
   const [detail, setDetail] = useState<FormResponseEntry | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [showExportPicker, setShowExportPicker] = useState(false)
+  const [exportFields, setExportFields] = useState<Set<string> | null>(null)
 
   // Colonnes = champs de saisie (les sections ne stockent pas de donnée).
   const dataFields = (form?.fields ?? []).filter((f) => f.type !== 'section')
+  const allExportKeys = ['__name', '__email', ...dataFields.map((f) => f.id)]
+  const exportKeys = exportFields ?? new Set(allExportKeys)
+
+  function toggleExportField(key: string) {
+    setExportFields((prev) => {
+      const next = new Set(prev ?? allExportKeys)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   async function exportCsv() {
-    await authedDownload(`${API_URL}/api/forms/${id}/responses.csv`, `reponses-${form?.title ?? id}.csv`)
+    const qs = new URLSearchParams({ fields: Array.from(exportKeys).join(',') })
+    await authedDownload(`${API_URL}/api/forms/${id}/responses.csv?${qs.toString()}`, `reponses-${form?.title ?? id}.csv`)
   }
 
   async function handleDelete(responseId: string) {
@@ -93,27 +108,72 @@ export default function FormResponsesPage() {
           <Link href={`/forms/${id}/edit`} className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-1 inline-flex items-center gap-1"><ChevronLeft size={16} />{form.title}</Link>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Réponses <span className="text-gray-400 font-normal">({responses.length})</span></h1>
         </div>
-        {responses.length > 0 && (
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <button onClick={() => setView('individual')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'individual' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-                <User className="w-4 h-4" /> Individuel
-              </button>
-              <button onClick={() => setView('summary')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'summary' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-                <BarChart3 className="w-4 h-4" /> Résumé
-              </button>
-              <button onClick={() => setView('table')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'table' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-                <Table className="w-4 h-4" /> Tableau
-              </button>
-            </div>
-            <button onClick={exportCsv} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium transition-colors">
-              <Download className="w-4 h-4" /> CSV
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {responses.length > 0 && (
+              <>
+                <button onClick={() => setView('individual')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'individual' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                  <User className="w-4 h-4" /> Individuel
+                </button>
+                <button onClick={() => setView('summary')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'summary' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                  <BarChart3 className="w-4 h-4" /> Résumé
+                </button>
+                <button onClick={() => setView('table')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'table' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                  <Table className="w-4 h-4" /> Tableau
+                </button>
+              </>
+            )}
+            <button onClick={() => setView('recipients')} className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${view === 'recipients' ? 'bg-violet-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+              <Users className="w-4 h-4" /> Destinataires
             </button>
           </div>
-        )}
+          {responses.length > 0 && (
+            <div className="relative">
+              <button onClick={() => setShowExportPicker((v) => !v)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium transition-colors">
+                <Download className="w-4 h-4" /> CSV
+              </button>
+              {showExportPicker && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowExportPicker(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-64 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl z-20 flex flex-col gap-2">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide px-1">Colonnes à exporter</p>
+                    <div className="flex flex-col gap-0.5 max-h-56 overflow-y-auto">
+                      <label className="flex items-center gap-2 text-sm dark:text-gray-200 px-1 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                        <input type="checkbox" checked={exportKeys.has('__name')} onChange={() => toggleExportField('__name')} className="w-4 h-4 rounded accent-violet-500" /> Nom
+                      </label>
+                      <label className="flex items-center gap-2 text-sm dark:text-gray-200 px-1 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                        <input type="checkbox" checked={exportKeys.has('__email')} onChange={() => toggleExportField('__email')} className="w-4 h-4 rounded accent-violet-500" /> Email
+                      </label>
+                      {dataFields.map((f) => (
+                        <label key={f.id} className="flex items-center gap-2 text-sm dark:text-gray-200 px-1 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                          <input type="checkbox" checked={exportKeys.has(f.id)} onChange={() => toggleExportField(f.id)} className="w-4 h-4 rounded accent-violet-500" />
+                          {f.label || 'Sans titre'}
+                        </label>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => { exportCsv(); setShowExportPicker(false) }}
+                      disabled={exportKeys.size === 0}
+                      className="mt-1 px-3 py-1.5 rounded-lg bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+                    >
+                      Exporter
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {responses.length === 0 ? (
+      {view === 'recipients' ? (
+        <FormRecipientsPanel
+          formId={id}
+          remindersEnabled={form.remindersEnabled}
+          reminderFrequencyDays={form.reminderFrequencyDays}
+          onUpdateReminders={(patch) => { updateForm(patch).catch(() => {}) }}
+        />
+      ) : responses.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
           <Inbox className="w-12 h-12 text-gray-300 dark:text-gray-600" />
           <p className="text-gray-500 dark:text-gray-400">Aucune réponse pour l'instant.</p>
@@ -124,7 +184,7 @@ export default function FormResponsesPage() {
         const data = (r.data ?? {}) as Record<string, unknown>
         const isEmpty = (v: unknown) => v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
         return (
-          <div className="flex flex-col gap-4 max-w-2xl mx-auto w-full">
+          <div className="flex flex-col gap-4">
             {/* Barre de navigation */}
             <div className="flex items-center justify-between gap-4">
               <button
@@ -194,12 +254,12 @@ export default function FormResponsesPage() {
         <FormSummaryView fields={form.fields} responses={responses} />
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-gray-800">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-800/50 text-left">
-                <th className="px-4 py-3 font-medium text-gray-400 whitespace-nowrap">Date</th>
+                <th className="px-4 py-3 font-medium text-gray-400 whitespace-nowrap w-40">Date</th>
                 {dataFields.map((f) => (
-                  <th key={f.id} className="px-4 py-3 font-medium text-gray-500 dark:text-gray-300 whitespace-nowrap">{f.label || 'Sans titre'}</th>
+                  <th key={f.id} className="px-4 py-3 font-medium text-gray-500 dark:text-gray-300 truncate">{f.label || 'Sans titre'}</th>
                 ))}
                 <th className="px-4 py-3 w-20" />
               </tr>
@@ -211,7 +271,7 @@ export default function FormResponsesPage() {
                   <tr key={r.id} className="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
                     <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{new Date(r.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</td>
                     {dataFields.map((f) => (
-                      <td key={f.id} className="px-4 py-3 dark:text-gray-200 max-w-xs truncate"><CellValue field={f} value={data[f.id]} formId={id} /></td>
+                      <td key={f.id} className="px-4 py-3 dark:text-gray-200 truncate"><CellValue field={f} value={data[f.id]} formId={id} /></td>
                     ))}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">

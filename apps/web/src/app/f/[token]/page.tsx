@@ -76,7 +76,10 @@ export default function PublicFormPage() {
     api.get<PublicForm>(`/api/forms/public/${token}`)
       .then((f) => {
         setForm(f)
-        if (f.limitOneResponse && typeof window !== 'undefined' && localStorage.getItem(doneKey)) setAlreadyDone(true)
+        if (f.recipient?.existingData) setData(f.recipient.existingData)
+        // Le lien personnel d'un destinataire nommé reste toujours modifiable ;
+        // seule la limite « une réponse » anonyme est verrouillée par le navigateur.
+        if (!f.recipient && f.limitOneResponse && typeof window !== 'undefined' && localStorage.getItem(doneKey)) setAlreadyDone(true)
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false))
@@ -162,6 +165,9 @@ export default function PublicFormPage() {
       <CheckCircle2 className="w-12 h-12 text-green-500" />
       <h1 className="text-xl font-semibold dark:text-white">Merci !</h1>
       <p className="text-gray-500 dark:text-gray-400 max-w-md whitespace-pre-wrap">{form.confirmationMessage || 'Votre réponse a bien été enregistrée.'}</p>
+      {form.recipient && (
+        <button onClick={() => setSubmitted(false)} className="text-sm text-violet-500 hover:underline mt-2">Modifier ma réponse</button>
+      )}
       {form.redirectUrl && <p className="text-xs text-gray-400">Redirection en cours…</p>}
     </div>
   )
@@ -182,6 +188,7 @@ export default function PublicFormPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-10 px-4">
       <div className="max-w-2xl mx-auto flex flex-col gap-5">
         <div className="p-6 rounded-2xl border-t-4 border-violet-500 border-x border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+          {form.recipient && <p className="text-sm text-violet-500 font-medium mb-1">Bonjour {form.recipient.name},</p>}
           <h1 className="text-2xl font-bold dark:text-white">{form.title}</h1>
           {form.description && <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 whitespace-pre-wrap">{form.description}</p>}
           {multiPage && (

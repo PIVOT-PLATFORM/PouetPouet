@@ -209,3 +209,37 @@ describe('TodoDashboard — rapports / statistiques', () => {
     expect(listB.overdueCount).toBe(1)
   })
 })
+
+describe('TodoDashboard — statuts En cours/Bloqué comptent comme « ouverts »', () => {
+  let app: FastifyInstance
+  let owner: { user: { id: string }; token: string }
+  let dashboardId: string
+
+  beforeAll(async () => {
+    await cleanupUsers(SUFFIX)
+    app = await buildTestApp(PLUGINS)
+    owner = await createTestUser(app, `owner-open${SUFFIX}`)
+
+    const dashboard = await prisma.todoDashboard.create({ data: { name: 'Ouverts', ownerId: owner.user.id } })
+    dashboardId = dashboard.id
+    const list = await prisma.todoList.create({ data: { name: 'Liste', ownerId: owner.user.id, dashboardId } })
+    await prisma.todoItem.create({ data: { listId: list.id, title: 'En cours', status: 'IN_PROGRESS', priority: 'HIGH', dueDate: '2020-01-01' } })
+    await prisma.todoItem.create({ data: { listId: list.id, title: 'Bloquée', status: 'BLOCKED', priority: 'MEDIUM', dueDate: '2020-01-01' } })
+  })
+
+  afterAll(async () => {
+    await cleanupUsers(SUFFIX)
+    await app.close()
+  })
+
+  it('IN_PROGRESS et BLOCKED comptent dans les retards et la répartition par priorité, comme TODO', async () => {
+    const res = await app.inject({ method: 'GET', url: `/api/todo/dashboards/${dashboardId}/stats`, headers: auth(owner.token) })
+    const stats = res.json()
+    expect(stats.totalOverdue).toBe(2)
+    expect(stats.byPriority.HIGH).toBe(1)
+    expect(stats.byPriority.MEDIUM).toBe(1)
+    // Ni faites ni annulées : ne comptent pas dans totalDone.
+    expect(stats.totalDone).toBe(0)
+    expect(stats.totalItems).toBe(2)
+  })
+})

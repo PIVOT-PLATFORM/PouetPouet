@@ -28,6 +28,7 @@ export const FLAG_DEFINITIONS: FlagDefinition[] = [
   { key: 'module.procurement', label: 'Module Commande publique', description: 'Active le module Commande publique (Hub + accès direct /procurement).', defaultEnabled: true },
   { key: 'module.innovation', label: 'Module Innovation', description: 'Active le module Innovation — fiches innovation et challenges (Hub + accès direct /innovation).', defaultEnabled: true },
   { key: 'module.todo', label: 'Module To-Do', description: 'Active le module To-Do — listes de tâches personnelles et partagées (Hub + accès direct /todo).', defaultEnabled: true },
+  { key: 'module.pi', label: 'Module PI Planning', description: 'Active le module PI Planning — cycle SAFe, itérations, logistique et program board (Hub + accès direct /pi).', defaultEnabled: true },
 ]
 
 export const FLAG_KEYS: string[] = FLAG_DEFINITIONS.map((f) => f.key)

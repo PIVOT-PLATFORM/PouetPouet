@@ -5,7 +5,7 @@ import crypto from 'node:crypto'
 import path from 'node:path'
 import { prisma } from '../../lib/prisma.js'
 import { resolveRole, deleteResourceShares } from '../../lib/module-share.js'
-import { sendFormResponseEmail } from '../../lib/mailer.js'
+import { sendFormResponseEmail, sendFormInviteEmail, sendFormReminderEmail } from '../../lib/mailer.js'
 import { saveFile, readFile, deleteStorageFile } from '../../lib/storage.js'
 import { bus } from '../../lib/bus.js'
 import type { FormFieldDef, FormFileValue } from '@pouetpouet/shared'
@@ -57,6 +57,8 @@ const formUpdateSchema = z.object({
   redirectUrl: z.string().max(2000).nullable().optional(),
   closesAt: z.string().datetime().nullable().optional(),
   maxResponses: z.number().int().positive().nullable().optional(),
+  remindersEnabled: z.boolean().optional(),
+  reminderFrequencyDays: z.number().int().min(1).max(30).optional(),
 })
 
 function asFields(json: unknown): FormFieldDef[] {
@@ -68,7 +70,8 @@ type FormRow = {
   isPublished: boolean; acceptingResponses: boolean; limitOneResponse: boolean
   notifyOnResponse: boolean; confirmationMessage: string | null; redirectUrl: string | null
   closesAt: Date | null; maxResponses: number | null
-  publicToken: string; fields: unknown; createdAt: Date; updatedAt: Date
+  publicToken: string; remindersEnabled: boolean; reminderFrequencyDays: number
+  fields: unknown; createdAt: Date; updatedAt: Date
 }
 
 // Mappe une ligne Form vers la réponse détail (sans fieldCount, avec fields).
@@ -79,7 +82,8 @@ function toDetail(f: FormRow, role: string, responseCount: number) {
     limitOneResponse: f.limitOneResponse, notifyOnResponse: f.notifyOnResponse,
     confirmationMessage: f.confirmationMessage, redirectUrl: f.redirectUrl,
     closesAt: f.closesAt, maxResponses: f.maxResponses,
-    publicToken: f.publicToken, fields: asFields(f.fields), responseCount, role,
+    publicToken: f.publicToken, remindersEnabled: f.remindersEnabled, reminderFrequencyDays: f.reminderFrequencyDays,
+    fields: asFields(f.fields), responseCount, role,
     createdAt: f.createdAt, updatedAt: f.updatedAt,
   }
 }
@@ -87,14 +91,33 @@ function toDetail(f: FormRow, role: string, responseCount: number) {
 export const formsRoutes: FastifyPluginAsync = async (app) => {
   // ── Routes publiques (sans auth) : remplissage par lien ──────────────────────
 
+  // owner.email n'est jamais renvoyé dans la réponse publique — utilisé uniquement
+  // côté serveur pour la notification notifyOnResponse à la soumission.
+  const publicFormInclude = { _count: { select: { responses: true } }, owner: { select: { name: true, email: true } } } as const
+
+  // Résout un token public (soit publicToken du formulaire, soit token d'un
+  // destinataire nommé) vers le formulaire + l'identité du destinataire le cas échéant.
+  async function resolvePublicToken(token: string) {
+    const form = await prisma.form.findUnique({ where: { publicToken: token }, include: publicFormInclude })
+    if (form) return { form, recipient: null as { id: string; name: string } | null }
+    const rec = await prisma.formRecipient.findUnique({ where: { token }, include: { form: { include: publicFormInclude } } })
+    if (!rec) return { form: null, recipient: null }
+    return { form: rec.form, recipient: { id: rec.id, name: rec.name } }
+  }
+
   // Récupérer un formulaire publié pour le remplir.
   app.get('/public/:token', async (request, reply) => {
     const { token } = request.params as { token: string }
-    const form = await prisma.form.findUnique({ where: { publicToken: token }, include: { _count: { select: { responses: true } }, owner: { select: { name: true } } } })
+    const { form, recipient } = await resolvePublicToken(token)
     if (!form) return reply.status(404).send({ reason: 'not_found' })
     // Ne pas divulguer l'email du propriétaire à un porteur anonyme du lien (RGPD).
     if (!form.isPublished) return reply.status(404).send({ reason: 'not_published', ownerName: form.owner.name })
     const reason = closedReason(form, form._count.responses)
+    let existingData: Record<string, unknown> | null = null
+    if (recipient) {
+      const existing = await prisma.formResponse.findUnique({ where: { formId_recipientId: { formId: form.id, recipientId: recipient.id } } })
+      existingData = existing ? (existing.data as Record<string, unknown>) : null
+    }
     return {
       id: form.id,
       title: form.title,
@@ -105,6 +128,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
       limitOneResponse: form.limitOneResponse,
       confirmationMessage: form.confirmationMessage,
       redirectUrl: form.redirectUrl,
+      recipient: recipient ? { name: recipient.name, existingData } : null,
     }
   })
 
@@ -117,10 +141,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
       const rawName = request.headers['x-filename'] as string | undefined
       let filename = 'fichier'
       if (rawName) { try { filename = decodeURIComponent(rawName) } catch { filename = rawName } }
-      const form = await prisma.form.findUnique({
-        where: { publicToken: token },
-        select: { id: true, isPublished: true, acceptingResponses: true, closesAt: true, maxResponses: true, _count: { select: { responses: true } } },
-      })
+      const { form } = await resolvePublicToken(token)
       if (!form || !form.isPublished) return reply.status(404).send({ error: 'Formulaire introuvable' })
       // Même gating que la soumission de réponse : pas d'upload sur un formulaire fermé/expiré/plein.
       if (closedReason(form, form._count.responses)) return reply.status(403).send({ error: 'Ce formulaire n\'accepte plus de réponses' })
@@ -133,15 +154,12 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
     })
   })
 
-  // Soumettre une réponse (anonyme).
+  // Soumettre une réponse (anonyme, ou d'un destinataire nommé — modifiable dans ce cas).
   app.post('/public/:token/responses', async (request, reply) => {
     const { token } = request.params as { token: string }
     const { data } = z.object({ data: z.record(z.unknown()) }).parse(request.body)
 
-    const form = await prisma.form.findUnique({
-      where: { publicToken: token },
-      include: { owner: { select: { email: true } }, _count: { select: { responses: true } } },
-    })
+    const { form, recipient } = await resolvePublicToken(token)
     if (!form || !form.isPublished) return reply.status(404).send({ error: 'Formulaire introuvable' })
     const reason = closedReason(form, form._count.responses)
     if (reason) return reply.status(403).send({ error: 'Ce formulaire n\'accepte plus de réponses' })
@@ -153,9 +171,19 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
       if (err) return reply.status(400).send({ error: err })
     }
 
-    const response = await prisma.formResponse.create({
-      data: { formId: form.id, respondentId: null, data: data as Prisma.InputJsonValue },
-    })
+    let response: { id: string }
+    if (recipient) {
+      response = await prisma.formResponse.upsert({
+        where: { formId_recipientId: { formId: form.id, recipientId: recipient.id } },
+        create: { formId: form.id, recipientId: recipient.id, data: data as Prisma.InputJsonValue },
+        update: { data: data as Prisma.InputJsonValue },
+      })
+      await prisma.formRecipient.update({ where: { id: recipient.id }, data: { respondedAt: new Date() } })
+    } else {
+      response = await prisma.formResponse.create({
+        data: { formId: form.id, respondentId: null, data: data as Prisma.InputJsonValue },
+      })
+    }
 
     bus.publish({ type: 'form.response.created', module: 'forms', payload: { formId: form.id, responseId: response.id, data } })
 
@@ -308,6 +336,8 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
         ...(body.redirectUrl !== undefined ? { redirectUrl: body.redirectUrl } : {}),
         ...(body.closesAt !== undefined ? { closesAt: body.closesAt ? new Date(body.closesAt) : null } : {}),
         ...(body.maxResponses !== undefined ? { maxResponses: body.maxResponses } : {}),
+        ...(body.remindersEnabled !== undefined ? { remindersEnabled: body.remindersEnabled } : {}),
+        ...(body.reminderFrequencyDays !== undefined ? { reminderFrequencyDays: body.reminderFrequencyDays } : {}),
       },
       include: { _count: { select: { responses: true } } },
     })
@@ -326,6 +356,128 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(204).send()
   })
 
+  // ── Destinataires nommés (sans compte) : lien personnel + suivi + relances ──
+
+  // Liste des destinataires (avec statut de réponse).
+  auth.get('/:id/recipients', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const { role } = await roleFor(id, userId)
+    if (!role) return reply.status(403).send({ error: 'Accès refusé' })
+    const recipients = await prisma.formRecipient.findMany({ where: { formId: id }, orderBy: { createdAt: 'asc' } })
+    return recipients.map((r) => ({
+      id: r.id,
+      formId: r.formId,
+      name: r.name,
+      email: r.email,
+      token: r.token,
+      invitedAt: r.invitedAt,
+      respondedAt: r.respondedAt,
+      lastRemindedAt: r.lastRemindedAt,
+      remindersSent: r.remindersSent,
+    }))
+  })
+
+  const addRecipientsSchema = z.object({
+    recipients: z.array(z.object({ name: z.string().min(1).max(200), email: z.string().email() })).min(1).max(500),
+  })
+
+  // Ajout en lot (collage « Nom <email> » par ligne, parsé côté client). Les
+  // emails déjà présents pour ce formulaire sont ignorés silencieusement.
+  auth.post('/:id/recipients', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const body = addRecipientsSchema.parse(request.body)
+    const { role } = await roleFor(id, userId)
+    if (!role || role === 'VIEWER') return reply.status(403).send({ error: 'Accès refusé' })
+
+    const existing = await prisma.formRecipient.findMany({ where: { formId: id }, select: { email: true } })
+    const existingEmails = new Set(existing.map((e) => e.email.toLowerCase()))
+    const seen = new Set<string>()
+    const toCreate = body.recipients.filter((r) => {
+      const email = r.email.trim().toLowerCase()
+      if (existingEmails.has(email) || seen.has(email)) return false
+      seen.add(email)
+      return true
+    })
+    const created = await prisma.$transaction(
+      toCreate.map((r) => prisma.formRecipient.create({
+        data: { formId: id, name: r.name.trim(), email: r.email.trim().toLowerCase(), token: crypto.randomBytes(24).toString('base64url') },
+      }))
+    )
+    return reply.status(201).send({ created: created.length, skipped: body.recipients.length - created.length })
+  })
+
+  // Supprimer un destinataire (ses réponses restent, détachées).
+  auth.delete('/:id/recipients/:rid', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id, rid } = request.params as { id: string; rid: string }
+    const { role } = await roleFor(id, userId)
+    if (!role || role === 'VIEWER') return reply.status(403).send({ error: 'Accès refusé' })
+    const rec = await prisma.formRecipient.findUnique({ where: { id: rid }, select: { formId: true } })
+    if (!rec || rec.formId !== id) return reply.status(404).send({ error: 'Destinataire introuvable' })
+    await prisma.formRecipient.delete({ where: { id: rid } })
+    return reply.status(204).send()
+  })
+
+  const sendRecipientsSchema = z.object({ recipientIds: z.array(z.string()).optional() })
+
+  // Envoi initial (destinataires ciblés, ou tous les non-invités par défaut).
+  auth.post('/:id/recipients/send', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const body = sendRecipientsSchema.parse(request.body ?? {})
+    const { role } = await roleFor(id, userId)
+    if (!role || role === 'VIEWER') return reply.status(403).send({ error: 'Accès refusé' })
+
+    const form = await prisma.form.findUnique({ where: { id }, select: { title: true } })
+    if (!form) return reply.status(404).send({ error: 'Formulaire introuvable' })
+
+    const where = body.recipientIds?.length
+      ? { formId: id, id: { in: body.recipientIds } }
+      : { formId: id, invitedAt: null }
+    const recipients = await prisma.formRecipient.findMany({ where })
+
+    let sent = 0
+    for (const r of recipients) {
+      const link = `${FRONTEND_URL}/f/${r.token}`
+      await sendFormInviteEmail(r.email, r.name, form.title, link).catch(() => {})
+      await prisma.formRecipient.update({ where: { id: r.id }, data: { invitedAt: new Date() } })
+      sent++
+    }
+    return { sent }
+  })
+
+  // Relance manuelle d'un destinataire n'ayant pas répondu. Le délai minimum
+  // (reminderFrequencyDays, paramétrable) s'applique ici aussi — pas seulement
+  // aux relances automatiques — pour qu'un formulaire partagé avec plusieurs
+  // éditeurs ne permette pas de spammer un destinataire à plusieurs mains.
+  auth.post('/:id/recipients/:rid/remind', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id, rid } = request.params as { id: string; rid: string }
+    const { role } = await roleFor(id, userId)
+    if (!role || role === 'VIEWER') return reply.status(403).send({ error: 'Accès refusé' })
+
+    const form = await prisma.form.findUnique({ where: { id }, select: { title: true, reminderFrequencyDays: true } })
+    if (!form) return reply.status(404).send({ error: 'Formulaire introuvable' })
+    const rec = await prisma.formRecipient.findUnique({ where: { id: rid } })
+    if (!rec || rec.formId !== id) return reply.status(404).send({ error: 'Destinataire introuvable' })
+    if (rec.respondedAt) return reply.status(400).send({ error: 'Ce destinataire a déjà répondu' })
+    const cooldownMs = form.reminderFrequencyDays * 24 * 60 * 60 * 1000
+    const last = rec.lastRemindedAt ?? rec.invitedAt
+    if (last && Date.now() - last.getTime() < cooldownMs) {
+      return reply.status(429).send({ error: `Une relance a déjà été envoyée à ce destinataire il y a moins de ${form.reminderFrequencyDays} jour(s)` })
+    }
+
+    const link = `${FRONTEND_URL}/f/${rec.token}`
+    await sendFormReminderEmail(rec.email, rec.name, form.title, link).catch(() => {})
+    const updated = await prisma.formRecipient.update({
+      where: { id: rid },
+      data: { invitedAt: rec.invitedAt ?? new Date(), lastRemindedAt: new Date(), remindersSent: { increment: 1 } },
+    })
+    return { id: updated.id, lastRemindedAt: updated.lastRemindedAt, remindersSent: updated.remindersSent }
+  })
+
   // Liste des réponses.
   auth.get('/:id/responses', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
@@ -336,28 +488,41 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
     const responses = await prisma.formResponse.findMany({
       where: { formId: id },
       orderBy: { createdAt: 'desc' },
+      include: { recipient: { select: { id: true, name: true, email: true } } },
     })
     return responses.map((r) => ({
       id: r.id,
       formId: r.formId,
       respondentId: r.respondentId,
+      recipient: r.recipient ? { id: r.recipient.id, name: r.recipient.name, email: r.recipient.email } : null,
       data: r.data,
       createdAt: r.createdAt,
     }))
   })
 
-  // Export CSV des réponses.
+  // Export CSV des réponses. `?fields=` : liste ordonnée de colonnes à inclure
+  // (id de champ, ou pseudo-colonnes __name/__email) — toutes par défaut.
   auth.get('/:id/responses.csv', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
+    const { fields: fieldsParam } = z.object({ fields: z.string().optional() }).parse(request.query)
     const form = await prisma.form.findUnique({ where: { id } })
     if (!form) return reply.status(404).send({ error: 'Formulaire introuvable' })
     const role = await resolveRole('form', id, userId, form.ownerId)
     if (!role) return reply.status(403).send({ error: 'Accès refusé' })
 
     // Les sections ne sont pas des champs de données → exclues des colonnes.
-    const fields = asFields(form.fields).filter((f) => f.type !== 'section')
-    const responses = await prisma.formResponse.findMany({ where: { formId: id }, orderBy: { createdAt: 'asc' } })
+    const allFields = asFields(form.fields).filter((f) => f.type !== 'section')
+    const fieldById = new Map(allFields.map((f) => [f.id, f]))
+    const allColumnKeys = ['__name', '__email', ...allFields.map((f) => f.id)]
+    const requested = fieldsParam ? fieldsParam.split(',').filter((k) => allColumnKeys.includes(k)) : allColumnKeys
+    const columns = requested.length > 0 ? requested : allColumnKeys
+
+    const responses = await prisma.formResponse.findMany({
+      where: { formId: id },
+      orderBy: { createdAt: 'asc' },
+      include: { recipient: { select: { name: true, email: true } } },
+    })
 
     const cell = (f: FormFieldDef, v: unknown): string => {
       if (f.type === 'file' && v && typeof v === 'object') return (v as FormFileValue).filename ?? ''
@@ -370,10 +535,16 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
       return v == null ? '' : String(v)
     }
     const esc = (s: string) => `"${s.replace(/"/g, '""')}"`
-    const header = ['Date', ...fields.map((f) => f.label)]
+    const columnLabel = (k: string) => (k === '__name' ? 'Nom' : k === '__email' ? 'Email' : fieldById.get(k)?.label || 'Sans titre')
+    const header = ['Date', ...columns.map(columnLabel)]
     const rows = responses.map((r) => {
       const data = (r.data ?? {}) as Record<string, unknown>
-      return [r.createdAt.toISOString(), ...fields.map((f) => cell(f, data[f.id]))].map(esc).join(',')
+      const cells = columns.map((k) => {
+        if (k === '__name') return r.recipient?.name ?? ''
+        if (k === '__email') return r.recipient?.email ?? ''
+        return cell(fieldById.get(k)!, data[k])
+      })
+      return [r.createdAt.toISOString(), ...cells].map(esc).join(',')
     })
     const csv = [header.map(esc).join(','), ...rows].join('\r\n')
 
@@ -389,7 +560,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
     const { role } = await roleFor(id, userId)
     if (!role || role === 'VIEWER') return reply.status(403).send({ error: 'Accès refusé' })
 
-    const resp = await prisma.formResponse.findUnique({ where: { id: responseId }, select: { formId: true, data: true } })
+    const resp = await prisma.formResponse.findUnique({ where: { id: responseId }, select: { formId: true, data: true, recipientId: true } })
     if (!resp || resp.formId !== id) return reply.status(404).send({ error: 'Réponse introuvable' })
 
     // Nettoyage des fichiers joints éventuels (best-effort).
@@ -400,6 +571,10 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
       }
     }
     await prisma.formResponse.delete({ where: { id: responseId } })
+    // Redevient « en attente » pour ce destinataire (relances possibles à nouveau).
+    if (resp.recipientId) {
+      await prisma.formRecipient.update({ where: { id: resp.recipientId }, data: { respondedAt: null } }).catch(() => {})
+    }
     return reply.status(204).send()
   })
 

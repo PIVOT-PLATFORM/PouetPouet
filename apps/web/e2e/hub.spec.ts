@@ -6,14 +6,14 @@ test('le hub affiche une tuile par module FORGE', async ({ page }) => {
   await page.goto('/hub')
 
   // Une tuile par module actif du registre
-  for (const name of ['PouetPouet', 'Daily', 'Scrum Poker', 'La Roue']) {
+  for (const name of ['PouetPouet', 'Daily', 'Scrum Poker', 'La Roue', 'PI Planning']) {
     await expect(page.getByRole('heading', { name })).toBeVisible()
   }
 
   // Modules à venir : affichés mais non cliquables
   await expect(page.getByRole('heading', { name: 'Modules à venir' })).toBeVisible()
-  await expect(page.getByText('Mes PIP')).toBeVisible()
-  await expect(page.getByRole('link', { name: /Mes PIP/ })).toHaveCount(0)
+  await expect(page.getByText('OKR & Objectifs')).toBeVisible()
+  await expect(page.getByRole('link', { name: /OKR & Objectifs/ })).toHaveCount(0)
 
   // SignDoc est un vrai module gated par flag (OFF par défaut) : absent du hub.
   await expect(page.getByText('SignDoc')).toHaveCount(0)
