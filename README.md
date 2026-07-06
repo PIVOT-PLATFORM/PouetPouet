@@ -30,7 +30,8 @@ Le projet est actuellement en version **0.30.0**. Le produit historique **PouetP
 - **Formulaires** : création de formulaires type Google Forms, lien public, collecte et analyse des réponses.
 - **Parcours** : workflows structurés — builder visuel d'étapes (formulaires, documents, validations), instances et suivi.
 - **Innovation** : boîte à idées collaborative — fiches publiques ou privées (votes, favoris, commentaires, pièces jointes, liens, tags), challenges administrés avec jurys et notation multi-critères, dashboard et gamification.
-- **To-Do** : listes de tâches personnelles ou partagées avec priorité, échéance et statut (à faire / fait / annulé), mise en favori, tableaux de bord combinant plusieurs listes avec rapports de complétion.
+- **To-Do** : listes de tâches personnelles ou partagées avec priorité, échéance, statut (à faire / en cours / bloqué / fait / annulé), assignation, vue kanban, mise en favori, tableaux de bord combinant plusieurs listes avec rapports de complétion.
+- **PI Planning** : organisation d'un PI SAFe — cycle et itérations du Train, logistique de l'événement via les Formulaires (destinataires nommés, relances automatiques), tâches de préparation via To-Do, et program board multi-équipes avec tickets typés et dépendances.
 
 Le hub agrège les modules, les favoris, les statistiques et l'activité récente.
 

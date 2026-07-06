@@ -6,7 +6,7 @@ test('le hub affiche une tuile par module FORGE', async ({ page }) => {
   await page.goto('/hub')
 
   // Une tuile par module actif du registre
-  for (const name of ['PouetPouet', 'Daily', 'Scrum Poker', 'La Roue']) {
+  for (const name of ['PouetPouet', 'Daily', 'Scrum Poker', 'La Roue', 'PI Planning']) {
     await expect(page.getByRole('heading', { name })).toBeVisible()
   }
 
@@ -15,9 +15,8 @@ test('le hub affiche une tuile par module FORGE', async ({ page }) => {
   await expect(page.getByText('OKR & Objectifs')).toBeVisible()
   await expect(page.getByRole('link', { name: /OKR & Objectifs/ })).toHaveCount(0)
 
-  // SignDoc et PI Planning sont de vrais modules gated par flag (OFF par défaut) : absents du hub.
+  // SignDoc est un vrai module gated par flag (OFF par défaut) : absent du hub.
   await expect(page.getByText('SignDoc')).toHaveCount(0)
-  await expect(page.getByText('PI Planning')).toHaveCount(0)
 
   // La tuile PouetPouet mène au dashboard (scope main : le logo du header
   // porte aussi le nom accessible "PouetPouet")

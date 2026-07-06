@@ -6,6 +6,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 > Les notes de version **détaillées** (groupées par thème, orientées utilisateur) sont la source de vérité in-app : [`apps/api/src/lib/patch-notes.ts`](apps/api/src/lib/patch-notes.ts), affichées dans le panneau de notifications. Ce fichier en est l'index public condensé.
 
+## [0.31.0] — 2026-07-06
+Nouveau module **PI Planning** pour organiser un PI SAFe, construit par **composition des modules existants** (cf. [plan](docs/specs/pi-planning-plan.md)). Cycle avec itérations générées automatiquement (IT1…ITn + IP Sprint), équipes du Train (saisie ou import), partage par rôle (RTE propriétaire, Scrum Masters éditeurs). **Logistique** : formulaire (présence, hôtel, repas, allergies) créé en un clic dans les Formulaires et rattaché au PI. **Tâches de préparation** : tableau To-Do créé en un clic et rattaché. **Program board** multi-équipes : tickets typés (Feature, Milestone, Risque, Objectif, Story, Enabler) placés par équipe × itération en glisser-déposer, ligne Train, colonne Non planifié, dépendances en flèches vert/rouge avec note et détection des boucles. Au passage, features génériques : **Formulaires** — destinataires nommés avec lien personnel, invitations email, relances manuelles et automatiques paramétrables, export CSV à colonnes choisies ; **To-Do** — statuts En cours/Bloqué, vue Kanban, assignation multiple et filtre par membre.
+
 ## [0.30.0] — 2026-07-05
 Nouveau module **To-Do** : listes de tâches personnelles ou partagées (Lecteur/Éditeur), mise en favori, tâches avec priorité, échéance et statut à faire / fait / **annulé** (exclu du calcul de complétion). **Tableaux de bord** combinant plusieurs listes en une vue consolidée — accès transitif via le partage du tableau de bord (même pattern que Portefeuille→Roadmap), rapports (complétion globale et par liste, répartition par priorité, tâches en retard, flux « récemment terminé »).
 

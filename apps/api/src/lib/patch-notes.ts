@@ -20,6 +20,40 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.31.0',
+    date: '2026-07-06',
+    title: 'Module PI Planning',
+    summary: 'Nouveau module PI Planning pour organiser un PI SAFe : cycle et itérations du Train, logistique de l\'événement via les Formulaires (destinataires nommés + relances automatiques), tâches de préparation via To-Do (kanban, assignation), et program board multi-équipes avec dépendances.',
+    sections: [
+      {
+        heading: '🚂 PI Planning',
+        items: [
+          'Créer un PI : itérations générées automatiquement (IT1…ITn + IP Sprint), équipes du Train saisies ou importées depuis vos équipes',
+          'Formulaire logistique (présence, hôtel, repas, allergies) créé en un clic dans les Formulaires et rattaché au PI',
+          'Tableau des tâches de préparation créé en un clic dans To-Do et rattaché au PI',
+          'Program board : tickets typés (Feature, Milestone, Risque, Objectif, Story, Enabler) placés par équipe × itération en glisser-déposer, ligne Train, colonne Non planifié',
+          'Dépendances entre tickets en flèches vert (OK) / rouge (bloquant) avec note, détection des boucles',
+          'Partage par rôle : le RTE propriétaire, les Scrum Masters éditeurs',
+        ],
+      },
+      {
+        heading: '📋 Formulaires — destinataires & relances',
+        items: [
+          'Destinataires nommés avec lien personnel : suivez qui a répondu, chacun peut revoir et modifier sa réponse',
+          'Envoi des invitations par email, relance manuelle ou automatique des non-répondants à la fréquence de votre choix',
+          'Export CSV avec choix des colonnes, nom/email du destinataire inclus',
+        ],
+      },
+      {
+        heading: '✅ To-Do — kanban & assignation',
+        items: [
+          'Nouveaux statuts En cours et Bloqué, vue Kanban en glisser-déposer en plus de la vue Liste',
+          'Assignation multiple des tâches aux membres de la liste, filtre par membre',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.30.0',
     date: '2026-07-05',
     title: 'Module To-Do',
