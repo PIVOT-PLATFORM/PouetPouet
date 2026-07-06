@@ -301,11 +301,12 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
 
     const color = colorMap.get(idea.color?.id) ?? '#FFEB3B'
     const text = idea.content_html ? stripHtml(idea.content_html) : (idea.text ?? '')
-    // format 'square' = fixed square; 'auto' = square that grows with content
-    // (Klaxoon caps postit growth around ×3).
+    // format 'square' = fixed square; 'auto' = height follows the content.
+    // Klaxoon wraps the text at the base width (192px) then scales the whole
+    // postit — so the height is the base content height × scale, capped ×3.
     const height = idea.format === 'square'
       ? width
-      : Math.min(Math.max(width, fitTextHeight(text, width)), width * 3)
+      : Math.min(Math.round(fitTextHeight(text, KLX_POSTIT) * scale), width * 3)
 
     cards.push({
       klxId: idea.uuid,
@@ -402,8 +403,10 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
           type: 'SHAPE',
           content: `rect|${strokeSize}|${hasFill}|${fillOpacity}`,
           color,
-          posX: Math.round((px ?? rect.x) - ox),
-          posY: Math.round((py ?? rect.y) - oy),
+          // coords anchors the path's local origin (0,0) — a shape drawn
+          // bottom-right → top-left has a negative local min to add back.
+          posX: Math.round((px !== undefined ? px + rect.x : rect.x) - ox),
+          posY: Math.round((py !== undefined ? py + rect.y : rect.y) - oy),
           width: Math.max(20, Math.round(rect.w)),
           height: Math.max(20, Math.round(rect.h)),
           zIndex: item.z_index ?? 0,
@@ -418,8 +421,10 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
       const bbox = cmdsBbox(cmds)
       if (!bbox) { stats.skipped++; continue }
 
-      const cardX = Math.round((px ?? bbox.minX) - ox - DRAW_PAD)
-      const cardY = Math.round((py ?? bbox.minY) - oy - DRAW_PAD)
+      // Same anchoring rule: board top-left = coords + local bbox min (the
+      // path may extend into negative local space when drawn right-to-left).
+      const cardX = Math.round((px !== undefined ? px + bbox.minX : bbox.minX) - ox - DRAW_PAD)
+      const cardY = Math.round((py !== undefined ? py + bbox.minY : bbox.minY) - oy - DRAW_PAD)
       const cardW = Math.max(80, Math.round(bbox.maxX - bbox.minX + DRAW_PAD * 2))
       const cardH = Math.max(80, Math.round(bbox.maxY - bbox.minY + DRAW_PAD * 2))
       const tx = DRAW_PAD - bbox.minX, ty = DRAW_PAD - bbox.minY

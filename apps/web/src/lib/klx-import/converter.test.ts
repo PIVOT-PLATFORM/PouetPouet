@@ -296,7 +296,7 @@ describe('convertKlaxoon', () => {
     expect(big.width).toBe(576)   // 192 × 3
   })
 
-  it('square format keeps height = width; auto grows with content (capped ×3)', () => {
+  it('square format keeps height = width; auto follows the content (capped ×3)', () => {
     const longText = 'x'.repeat(2000)
     const data = {
       colors: [],
@@ -314,7 +314,53 @@ describe('convertKlaxoon', () => {
     expect(sq.height).toBe(sq.width)
     expect(auto.height).toBeGreaterThan(auto.width)
     expect(auto.height).toBeLessThanOrEqual(auto.width * 3)
-    expect(short.height).toBe(short.width) // texte court → carré de base
+    expect(short.height).toBeLessThan(short.width) // auto court → rectangle plat, pas un carré
+  })
+
+  it('auto postit height = base content height × scale (Klaxoon wraps before scaling)', () => {
+    // 37 caractères → 2 lignes à la largeur de base (21 chars/ligne)
+    // hauteur = (40 + 2×23) × 2.51 = 216
+    const data = {
+      colors: [],
+      ideas: [makeIdea({
+        format: 'auto',
+        content_html: '<p>Situation backup PO / Appui PO / inno</p>',
+        scale: { scale_x: 2.51, scale_y: 2.51 },
+      })],
+      state: [], links: [], groups: [],
+    }
+    const { cards } = convertKlaxoon(data)
+    expect(cards[0].width).toBe(482) // 192 × 2.51
+    expect(cards[0].height).toBe(216)
+  })
+
+  it('anchors a shape drawn bottom-right → top-left at coords + local bbox min', () => {
+    // Rectangle dessiné à rebours : path local x -100..0, y -50..0,
+    // coords = coin bas-droit → coin haut-gauche board = coords + min local.
+    const path = JSON.stringify([
+      { type: 2, x: 0, y: 0 }, { type: 16, x: -100, y: 0 },
+      { type: 16, x: -100, y: -50 }, { type: 16, x: 0, y: -50 },
+      { type: 16, x: 0, y: 0 }, { type: 1 },
+    ])
+    const data = {
+      colors: [], ideas: [],
+      state: [{
+        uuid: 'reverse-rect', is_active: true, board_object_type: 'pen',
+        path_commands: path, coords: { left: 500, top: 800 }, stroke_width: 4, z_index: 0,
+      }],
+      links: [], groups: [],
+    }
+    const { cards } = convertKlaxoon(data)
+    expect(cards[0].type).toBe('SHAPE')
+    // offset global : minX board = 500-100 = 400… le scan n'inspecte que coords
+    // (500), donc ox = 460 → posX = (500-100) - 460 = -60 + … vérifions la
+    // position RELATIVE plutôt : largeur/hauteur exactes et pas à coords brut.
+    expect(cards[0].width).toBe(100)
+    expect(cards[0].height).toBe(50)
+    // posX = coords.left + rect.x - ox = 500 - 100 - (500-40) = -60
+    expect(cards[0].posX).toBe(-60)
+    // posY = coords.top + rect.y - oy = 800 - 50 - (800-40) = -10
+    expect(cards[0].posY).toBe(-10)
   })
 
   it('converts an IMAGE postit to an IMAGE card via the mediabundle', () => {
