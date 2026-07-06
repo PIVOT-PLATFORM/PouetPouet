@@ -40,13 +40,27 @@ function stripHtml(html: string): string {
 
 // The effective font-size / weight / color of a Klaxoon text live as inline
 // styles in content_html (the font_size field, when present, is stale).
+// Rich titles carry one span per colored letter — take the max size, and the
+// most frequent color (a single white letter must not turn the label white).
 function parseHtmlStyle(html: string): { size: number | null; bold: boolean; color: string | null } {
-  const sizeMatch = html.match(/font-size:\s*(\d+(?:\.\d+)?)px/)
-  const colorMatch = html.match(/color:\s*var\(--(c\d+)\)/)
+  let size: number | null = null
+  for (const m of html.matchAll(/font-size:\s*(\d+(?:\.\d+)?)(px|rem|em)/g)) {
+    const px = parseFloat(m[1]) * (m[2] === 'px' ? 1 : 16)
+    if (size === null || px > size) size = px
+  }
+  const colorVotes = new Map<string, number>()
+  for (const m of html.matchAll(/color:\s*var\(--(c\d+)\)/g)) {
+    colorVotes.set(m[1], (colorVotes.get(m[1]) ?? 0) + 1)
+  }
+  let color: string | null = null
+  let best = 0
+  for (const [code, count] of colorVotes) {
+    if (count > best) { best = count; color = cColor(code) }
+  }
   return {
-    size: sizeMatch ? parseFloat(sizeMatch[1]) : null,
+    size,
     bold: /<strong[\s>]|font-weight:\s*(?:bold|[6-9]00)/.test(html),
-    color: colorMatch ? cColor(colorMatch[1]) : null,
+    color,
   }
 }
 

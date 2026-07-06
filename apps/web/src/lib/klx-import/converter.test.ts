@@ -444,6 +444,22 @@ describe('convertKlaxoon', () => {
     expect(fmt.color).toBe('#ef4444') // var(--c3)
   })
 
+  it('parses rem font-sizes and takes the max across multi-styled spans', () => {
+    // Titre riche façon Klaxoon : une lettre blanche + le reste violet, 3.75rem
+    const data = {
+      colors: [], ideas: [],
+      state: [makeTextItem({
+        content_html: '<div><span style="color:var(--c20);font-size:3.75rem;"><strong>A</strong></span><span style="color:var(--c51);font-size:3.75rem;"><strong>telier</strong></span><span style="color:var(--c51);font-size:16px;">sous-titre</span></div>',
+        scale: { scale_x: 2 },
+      })],
+      links: [], groups: [],
+    }
+    const { cards } = convertKlaxoon(data)
+    const fmt = JSON.parse(cards[0].content)
+    expect(fmt.size).toBe(120) // 3.75rem = 60px × 2, pas les 16px du sous-titre
+    expect(fmt.color).toBe('#6366f1') // c51 majoritaire, pas le c20 blanc isolé
+  })
+
   it('detects bold from <strong> in content_html', () => {
     const data = {
       colors: [], ideas: [],
