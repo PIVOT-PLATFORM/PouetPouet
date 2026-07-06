@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify'
 import type { Server, Socket } from 'socket.io'
 import type { ModuleManifest } from '@pouetpouet/shared'
-import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE, MEETOPS_MODULE, TESTBOOKS_MODULE, QUIZ_MODULE, ROADMAP_MODULE, PORTFOLIO_MODULE, PARCOURS_MODULE, FORMS_MODULE, PDF_MODULE, FEEDBACK_MODULE, SIGNDOC_MODULE, PROCUREMENT_MODULE, INNOVATION_MODULE, TODO_MODULE } from '@pouetpouet/shared'
+import { POUETPOUET_MODULE, SCRUM_MODULE, DAILY_MODULE, WHEEL_MODULE, CAPACITY_MODULE, MEETOPS_MODULE, TESTBOOKS_MODULE, QUIZ_MODULE, ROADMAP_MODULE, PORTFOLIO_MODULE, PARCOURS_MODULE, FORMS_MODULE, PDF_MODULE, FEEDBACK_MODULE, SIGNDOC_MODULE, PROCUREMENT_MODULE, INNOVATION_MODULE, TODO_MODULE, PI_MODULE } from '@pouetpouet/shared'
 
 import { boardRoutes } from './pouetpouet/boards.routes.js'
 import { templateRoutes } from './pouetpouet/templates.routes.js'
@@ -39,6 +39,7 @@ import { innovationAttachmentsRoutes } from './innovation/innovation-attachments
 import { innovationLinksRoutes } from './innovation/innovation-links.routes.js'
 import { todoRoutes } from './todo/todo.routes.js'
 import { todoDashboardRoutes } from './todo/todo-dashboard.routes.js'
+import { piRoutes } from './pi/pi.routes.js'
 
 // FORGE F0 — registre des modules côté API.
 // Le socle (index.ts) monte routes et handlers socket en itérant ce registre :
@@ -166,6 +167,11 @@ export const API_MODULES: ApiModule[] = [
       { plugin: todoRoutes, prefix: '/api/todo' },
       { plugin: todoDashboardRoutes, prefix: '/api/todo' },
     ],
+    socketHandlers: [],
+  },
+  {
+    manifest: PI_MODULE,
+    routes: [{ plugin: piRoutes, prefix: '/api/pi' }],
     socketHandlers: [],
   },
 ]

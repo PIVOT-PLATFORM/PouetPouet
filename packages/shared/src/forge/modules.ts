@@ -261,6 +261,20 @@ export const TODO_MODULE: ModuleManifest = {
   listensTo: [],
 }
 
+export const PI_MODULE: ModuleManifest = {
+  id: 'pi',
+  name: 'PI Planning',
+  description: 'Organisation des PI Planning SAFe — cycle et itérations du Train, logistique de l\'événement, program board multi-équipes',
+  icon: '🚂',
+  color: '#0ea5e9',
+  nav: [{ label: 'PI Planning', href: '/pi', match: '/pi' }],
+  apiPrefix: '/api/pi',
+  ownedEntities: ['PiCycle', 'PiIteration', 'PiCycleTeam'],
+  referencedPivots: ['User', 'Team', 'Form', 'TodoDashboard'],
+  emits: [],
+  listensTo: [],
+}
+
 export const PIVOT_MODULES: ModuleManifest[] = [
   POUETPOUET_MODULE,
   DAILY_MODULE,
@@ -280,4 +294,5 @@ export const PIVOT_MODULES: ModuleManifest[] = [
   PROCUREMENT_MODULE,
   INNOVATION_MODULE,
   TODO_MODULE,
+  PI_MODULE,
 ]

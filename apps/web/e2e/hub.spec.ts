@@ -12,11 +12,12 @@ test('le hub affiche une tuile par module FORGE', async ({ page }) => {
 
   // Modules à venir : affichés mais non cliquables
   await expect(page.getByRole('heading', { name: 'Modules à venir' })).toBeVisible()
-  await expect(page.getByText('Mes PIP')).toBeVisible()
-  await expect(page.getByRole('link', { name: /Mes PIP/ })).toHaveCount(0)
+  await expect(page.getByText('OKR & Objectifs')).toBeVisible()
+  await expect(page.getByRole('link', { name: /OKR & Objectifs/ })).toHaveCount(0)
 
-  // SignDoc est un vrai module gated par flag (OFF par défaut) : absent du hub.
+  // SignDoc et PI Planning sont de vrais modules gated par flag (OFF par défaut) : absents du hub.
   await expect(page.getByText('SignDoc')).toHaveCount(0)
+  await expect(page.getByText('PI Planning')).toHaveCount(0)
 
   // La tuile PouetPouet mène au dashboard (scope main : le logo du header
   // porte aussi le nom accessible "PouetPouet")

@@ -50,7 +50,7 @@ const DOMAINS: { id: string; label: string; color: string; moduleIds: string[] }
     id: 'agile',
     label: 'Agile',
     color: '#f59e0b',
-    moduleIds: ['scrum', 'daily', 'wheel', 'capacity'],
+    moduleIds: ['scrum', 'daily', 'wheel', 'capacity', 'pi'],
   },
   {
     id: 'pilotage',
@@ -92,7 +92,6 @@ const INCOMING: { name: string; domain: string }[] = [
   { name: 'Recherche fédérée',              domain: 'Plateforme'     },
   { name: 'Assistant IA',                   domain: 'Plateforme'     },
   { name: 'Intégration SI',                 domain: 'Plateforme'     },
-  { name: 'Mes PIP',                        domain: 'RH'             },
 ]
 
 function timeAgo(iso: string): string {

@@ -24,6 +24,7 @@ import {
   FileText as FileTextIcon,
   FolderKanban,
   ListChecks,
+  TrainFront,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -48,6 +49,7 @@ export const MODULE_ICONS: Record<string, LucideIcon> = {
   signdoc:     PenLine,
   innovation:  Lightbulb,
   todo:        ListChecks,
+  pi:          TrainFront,
 }
 
 // Icônes pour les activités de board (activity-launcher et boards).
@@ -61,7 +63,6 @@ export const ACTIVITY_ICONS: Record<string, LucideIcon> = {
 // Icônes pour les modules à venir (Hub upcoming section).
 export const UPCOMING_ICONS: Record<string, LucideIcon> = {
   Roadmap:                            Map,
-  'Mes PIP':                          ClipboardList,
   'Mes poses (PV de pose & label)':   Package,
   "Demande d'accès serveur":          KeyRound,
   'Mes FDR':                          Compass,
