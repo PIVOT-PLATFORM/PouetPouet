@@ -168,3 +168,136 @@ export function usePiCycle(id: string) {
 
   return { cycle, isLoading, notFound, load, updateCycle, addTeam, importTeams, updateTeam, removeTeam, updateIteration, createLogisticsForm, createTodoDashboard }
 }
+
+// ── Program Board (page /pi/[id]/board) ──────────────────────────────────────
+
+export type PiTicketType = 'FEATURE' | 'MILESTONE' | 'RISK' | 'OBJECTIVE' | 'STORY' | 'ENABLER'
+export type PiDependencyStatus = 'OK' | 'BLOCKED'
+
+export interface PiTicket {
+  id: string
+  cycleId: string
+  teamId: string | null      // null = ligne Train
+  iterationId: string | null // null = colonne « Non planifié »
+  type: PiTicketType
+  title: string
+  description: string | null
+  order: number
+}
+
+export interface PiDependency {
+  id: string
+  cycleId: string
+  fromTicketId: string // fournisseur
+  toTicketId: string   // demandeur
+  status: PiDependencyStatus
+  note: string | null
+}
+
+export interface PiBoard {
+  id: string
+  name: string
+  status: PiCycleStatus
+  iterations: PiIteration[]
+  teams: PiCycleTeam[]
+  tickets: PiTicket[]
+  dependencies: PiDependency[]
+  role: PiRole
+}
+
+export interface PiTicketInput {
+  type: PiTicketType
+  title: string
+  description?: string | null
+  teamId?: string | null
+  iterationId?: string | null
+}
+
+const BOARD_POLL_MS = 20_000
+
+// Pas de socket.io en v1 : polling + refetch au focus, mutations optimistes.
+export function usePiBoard(id: string) {
+  const [board, setBoard] = useState<PiBoard | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
+
+  const load = useCallback(async () => {
+    try {
+      const data = await api.get<PiBoard>(`/api/pi/cycles/${id}/board`)
+      setBoard(data)
+      setNotFound(false)
+    } catch {
+      setNotFound(true)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [id])
+
+  useEffect(() => {
+    load()
+    const interval = setInterval(load, BOARD_POLL_MS)
+    const onFocus = () => load()
+    window.addEventListener('focus', onFocus)
+    return () => { clearInterval(interval); window.removeEventListener('focus', onFocus) }
+  }, [load])
+
+  const createTicket = useCallback(async (input: PiTicketInput) => {
+    const ticket = await api.post<PiTicket>(`/api/pi/cycles/${id}/tickets`, input)
+    setBoard((b) => b && { ...b, tickets: [...b.tickets, ticket] })
+    return ticket
+  }, [id])
+
+  const updateTicket = useCallback(async (ticketId: string, patch: Partial<PiTicketInput> & { order?: number }) => {
+    // Optimiste : la cellule/le contenu bouge tout de suite, rollback par reload en cas d'erreur.
+    setBoard((b) => b && { ...b, tickets: b.tickets.map((t) => (t.id === ticketId ? { ...t, ...patch } as PiTicket : t)) })
+    try {
+      await api.patch(`/api/pi/cycles/${id}/tickets/${ticketId}`, patch)
+    } catch {
+      await load()
+    }
+  }, [id, load])
+
+  const deleteTicket = useCallback(async (ticketId: string) => {
+    setBoard((b) => b && {
+      ...b,
+      tickets: b.tickets.filter((t) => t.id !== ticketId),
+      dependencies: b.dependencies.filter((d) => d.fromTicketId !== ticketId && d.toTicketId !== ticketId),
+    })
+    try {
+      await api.delete(`/api/pi/cycles/${id}/tickets/${ticketId}`)
+    } catch {
+      await load()
+    }
+  }, [id, load])
+
+  // Retourne le message d'erreur métier (doublon, boucle…) pour l'afficher, null si OK.
+  const createDependency = useCallback(async (fromTicketId: string, toTicketId: string): Promise<string | null> => {
+    try {
+      const dep = await api.post<PiDependency>(`/api/pi/cycles/${id}/dependencies`, { fromTicketId, toTicketId })
+      setBoard((b) => b && { ...b, dependencies: [...b.dependencies, dep] })
+      return null
+    } catch (e) {
+      return e instanceof Error ? e.message : 'Erreur inconnue'
+    }
+  }, [id])
+
+  const updateDependency = useCallback(async (depId: string, patch: { status?: PiDependencyStatus; note?: string | null }) => {
+    setBoard((b) => b && { ...b, dependencies: b.dependencies.map((d) => (d.id === depId ? { ...d, ...patch } as PiDependency : d)) })
+    try {
+      await api.patch(`/api/pi/cycles/${id}/dependencies/${depId}`, patch)
+    } catch {
+      await load()
+    }
+  }, [id, load])
+
+  const deleteDependency = useCallback(async (depId: string) => {
+    setBoard((b) => b && { ...b, dependencies: b.dependencies.filter((d) => d.id !== depId) })
+    try {
+      await api.delete(`/api/pi/cycles/${id}/dependencies/${depId}`)
+    } catch {
+      await load()
+    }
+  }, [id, load])
+
+  return { board, isLoading, notFound, load, createTicket, updateTicket, deleteTicket, createDependency, updateDependency, deleteDependency }
+}
