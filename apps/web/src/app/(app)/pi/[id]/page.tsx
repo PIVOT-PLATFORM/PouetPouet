@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ChevronLeft, ClipboardList, ListChecks, Pencil, Plus, Share2, Trash2, Users, X } from 'lucide-react'
+import { ChevronLeft, ClipboardList, LayoutGrid, ListChecks, Pencil, Plus, Share2, Trash2, Users, X } from 'lucide-react'
 import { usePiCycle, type PiCycleStatus } from '@/hooks/usePi'
 import { useFlagGuard } from '@/hooks/useFlagGuard'
 import { api } from '@/lib/api'
@@ -170,6 +170,9 @@ export default function PiCycleDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <Link href={`/pi/${cycle.id}/board`} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold transition-colors">
+            <LayoutGrid size={15} /> Program board
+          </Link>
           {canEdit ? (
             <Select
               className="w-36"
