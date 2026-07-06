@@ -226,6 +226,8 @@ const MODULES = [
       'Équipes du Train : saisie libre ou import depuis vos équipes existantes',
       'Formulaire logistique (présence, hôtel, repas, allergies) créé en un clic dans le module Formulaires, avec relances automatiques des non-répondants',
       'Tableau des tâches de préparation relié au module To-Do (kanban, assignation)',
+      'Program board multi-équipes : tickets typés (Feature, Milestone, Risque, Objectif, Story, Enabler) placés par équipe et par itération en glisser-déposer, ligne Train et colonne Non planifié',
+      'Dépendances entre tickets dessinées en flèches — vert = OK, rouge = bloquant — avec note et détection des boucles',
       'Partage par rôle : le RTE est propriétaire, les Scrum Masters éditeurs',
     ],
   },

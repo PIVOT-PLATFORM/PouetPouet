@@ -1,6 +1,6 @@
-# Roadmap Pivot — état au 2026-07-02
+# Roadmap Pivot — état au 2026-07-06
 
-> Version courante : **0.27.0** — Modules Formulaires & Parcours + fiabilisation SignDoc
+> Version courante : **0.31.0** — Module PI Planning (composition Formulaires/To-Do + program board)
 >
 > Source unique de suivi : ce fichier centralise la roadmap et les chantiers ouverts.
 
@@ -273,6 +273,16 @@
 - [x] PR2 (#238) : TodoDashboard — combine plusieurs listes en une vue consolidée (accès transitif via le partage du dashboard, même pattern que Portefeuille→Roadmap), rapports (complétion, répartition par priorité, retard, récemment terminé)
 - [x] Statut « annulé » sur les tâches (en plus de à faire / fait), exclu de toutes les statistiques
 - [x] Activation du flag `module.todo` + release — v0.30.0
+- [x] Statuts En cours/Bloqué, vue Kanban, assignation multiple + filtre par membre (#244, pour le module PI Planning) — v0.31.0
+
+### Module PI Planning — livré v0.31.0 (plan : `docs/specs/pi-planning-plan.md`)
+- [x] PR1/2 (#240) : Formulaires génériques — destinataires nommés + liens personnels, invitations email, relances manuelles et automatiques (scheduler advisory lock), export CSV à colonnes choisies
+- [x] PR3 (#244) : To-Do générique — statuts En cours/Bloqué, kanban, assignation multiple
+- [x] PR4 (#245) : socle PI — cycle + itérations générées (IT1…ITn + IP Sprint), équipes du Train (saisie/import), intégrations 1-clic Formulaires (formulaire logistique) et To-Do (tableau des tâches), partage ModuleShare
+- [x] PR5 (#247) : Program Board données + API — tickets typés, dépendances OK/bloquant avec anti-cycle
+- [x] PR6 (#248) : Program Board UI — matrice équipes × itérations, DnD, flèches SVG de dépendances, mode « Lier »
+- [x] PR7 : activation du flag `module.pi` + release — v0.31.0
+- [ ] v2 candidates : temps réel socket.io sur le program board, ROAM des risques, confidence vote, duplication de PI, export PDF/image du board
 
 ### Assistant IA Pouet — #163 (PR ouverte)
 - [x] F0 : Ollama docker + LLMProvider/OllamaProvider + route SSE `/api/pouet/chat`
