@@ -2274,9 +2274,11 @@ model PiCycle {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  owner      User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  iterations PiIteration[]
-  teams      PiCycleTeam[]
+  owner        User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  iterations   PiIteration[]
+  teams        PiCycleTeam[]
+  tickets      PiTicket[]
+  dependencies PiDependency[]
 
   @@index([ownerId])
 }
@@ -2289,7 +2291,8 @@ model PiIteration {
   startDate DateTime
   endDate   DateTime
 
-  cycle PiCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  cycle   PiCycle    @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  tickets PiTicket[]
 
   @@unique([cycleId, number])
   @@index([cycleId])
@@ -2306,7 +2309,70 @@ model PiCycleTeam {
   order        Int     @default(0)
   sourceTeamId String?
 
-  cycle PiCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  cycle   PiCycle    @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  tickets PiTicket[]
 
+  @@index([cycleId])
+}
+
+// ── Program Board ────────────────────────────────────────────────────────────
+// Matrice équipes × itérations : un ticket vit dans la cellule (teamId,
+// iterationId) — teamId null = ligne Train, iterationId null = colonne
+// « Non planifié ». Les dépendances relient deux tickets du même cycle avec
+// un statut visuel (OK = vert, BLOCKED = rouge).
+
+enum PiTicketType {
+  FEATURE
+  MILESTONE
+  RISK
+  OBJECTIVE
+  STORY
+  ENABLER
+}
+
+enum PiDependencyStatus {
+  OK
+  BLOCKED
+}
+
+model PiTicket {
+  id          String       @id @default(cuid())
+  cycleId     String
+  teamId      String? // null = ligne Train (Features/Milestones/risques du Train)
+  iterationId String? // null = colonne « Non planifié »
+  type        PiTicketType
+  title       String
+  description String?
+  order       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  cycle     PiCycle        @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  team      PiCycleTeam?   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  iteration PiIteration?   @relation(fields: [iterationId], references: [id], onDelete: SetNull)
+  depsFrom  PiDependency[] @relation("PiDepFrom")
+  depsTo    PiDependency[] @relation("PiDepTo")
+
+  @@index([cycleId])
+  @@index([teamId])
+  @@index([iterationId])
+}
+
+// fromTicket = le fournisseur, toTicket = le demandeur (la flèche va du
+// fournisseur vers le demandeur sur le board).
+model PiDependency {
+  id           String             @id @default(cuid())
+  cycleId      String
+  fromTicketId String
+  toTicketId   String
+  status       PiDependencyStatus @default(OK)
+  note         String?
+  createdAt    DateTime           @default(now())
+
+  cycle      PiCycle  @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  fromTicket PiTicket @relation("PiDepFrom", fields: [fromTicketId], references: [id], onDelete: Cascade)
+  toTicket   PiTicket @relation("PiDepTo", fields: [toTicketId], references: [id], onDelete: Cascade)
+
+  @@unique([fromTicketId, toTicketId])
   @@index([cycleId])
 }
