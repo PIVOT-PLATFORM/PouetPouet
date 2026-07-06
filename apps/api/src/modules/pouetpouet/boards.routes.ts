@@ -535,6 +535,14 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
         arrow: z.string(),
         label: z.string(),
       })),
+      // Zones Klaxoon → Frames du board (optionnel pour compat ascendante).
+      frames: z.array(z.object({
+        title: z.string(),
+        posX: z.number(),
+        posY: z.number(),
+        width: z.number(),
+        height: z.number(),
+      })).optional(),
     }).parse(request.body)
 
     // Remap each Klaxoon group key to a fresh server-side groupId so repeated
@@ -547,11 +555,21 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const createdCards = await prisma.$transaction(
       body.cards.map((c) =>
         prisma.card.create({
-          data: { boardId: id, type: c.type as never, content: c.content, color: c.color, posX: c.posX, posY: c.posY, width: c.width, height: c.height, groupId: c.groupKey ? groupIdMap.get(c.groupKey) : null },
+          data: { boardId: id, type: c.type as never, content: c.content, color: c.color, posX: c.posX, posY: c.posY, width: c.width, height: c.height, locked: c.locked, groupId: c.groupKey ? groupIdMap.get(c.groupKey) : null },
           include: { fieldValues: true },
         })
       )
     )
+
+    const createdFrames = (body.frames?.length ?? 0) > 0
+      ? await prisma.$transaction(
+          body.frames!.map((f) =>
+            prisma.frame.create({
+              data: { boardId: id, title: f.title, posX: f.posX, posY: f.posY, width: f.width, height: f.height },
+            })
+          )
+        )
+      : []
 
     // Build klxId â†’ real card id map
     const idMap = new Map<string, string>()
@@ -581,16 +599,16 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
       : []
 
     const io = getIO()
-    io?.to(`board:${id}`).emit('board:imported', { cards: createdCards, connections: createdConns })
+    io?.to(`board:${id}`).emit('board:imported', { cards: createdCards, connections: createdConns, frames: createdFrames })
 
     bus.publish({
       type: 'pouetpouet.board.imported',
       module: 'pouetpouet',
       actorId: userId,
-      payload: { boardId: id, source: 'klaxoon', cards: createdCards.length, connections: createdConns.length },
+      payload: { boardId: id, source: 'klaxoon', cards: createdCards.length, connections: createdConns.length, frames: createdFrames.length },
     })
 
-    return reply.status(201).send({ cards: createdCards.length, connections: createdConns.length })
+    return reply.status(201).send({ cards: createdCards.length, connections: createdConns.length, frames: createdFrames.length })
   })
 
   // Last closed vote session (any role)

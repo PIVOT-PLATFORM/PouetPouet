@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import type JSZip from 'jszip'
 import { Upload } from 'lucide-react'
 import { api } from '@/lib/api'
-import { convertKlaxoon, type KlxCard, type KlxConnection, type KlxImportStats } from '@/lib/klx-import/converter'
+import { convertKlaxoon, type KlxCard, type KlxConnection, type KlxFrame, type KlxImportStats } from '@/lib/klx-import/converter'
 import { findKlxActivities, mimeForPath, mediaKey, type KlxActivityEntry } from '@/lib/klx-import/archive'
 
 interface Props {
@@ -17,7 +17,7 @@ type Step = 'pick' | 'reading' | 'choose' | 'preview' | 'importing' | 'done' | '
 export function ImportKlaxoonModal({ boardId, onClose }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const zipRef = useRef<JSZip | null>(null)
-  const pendingRef = useRef<{ cards: KlxCard[]; connections: KlxConnection[] } | null>(null)
+  const pendingRef = useRef<{ cards: KlxCard[]; connections: KlxConnection[]; frames: KlxFrame[] } | null>(null)
 
   const [step, setStep] = useState<Step>('pick')
   const [dragging, setDragging] = useState(false)
@@ -42,8 +42,8 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
         imageMap.set(mediaKey(path), `data:${mimeForPath(path)};base64,${base64}`)
       }))
 
-      const { cards, connections, stats: s } = convertKlaxoon(data, imageMap, process.env.NODE_ENV === 'development')
-      pendingRef.current = { cards, connections }
+      const { cards, connections, frames, stats: s } = convertKlaxoon(data, imageMap, process.env.NODE_ENV === 'development')
+      pendingRef.current = { cards, connections, frames }
       setStats(s)
       setStep('preview')
     } catch {
@@ -191,6 +191,7 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
             <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2.5">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Aperçu de l&apos;import</p>
               <StatRow icon="🗒️" label="Notes (postits)" value={stats.postits} />
+              <StatRow icon="🗺️" label="Cadres (zones)" value={stats.zones} />
               <StatRow icon="🔤" label="Zones de texte" value={stats.texts} />
               <StatRow icon="✏️" label="Dessins" value={stats.draws} />
               <StatRow icon="⬛" label="Formes" value={stats.shapes} />
