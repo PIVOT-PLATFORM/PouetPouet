@@ -40,6 +40,7 @@ import { innovationLinksRoutes } from './innovation/innovation-links.routes.js'
 import { todoRoutes } from './todo/todo.routes.js'
 import { todoDashboardRoutes } from './todo/todo-dashboard.routes.js'
 import { piRoutes } from './pi/pi.routes.js'
+import { piBoardRoutes } from './pi/pi-board.routes.js'
 
 // FORGE F0 — registre des modules côté API.
 // Le socle (index.ts) monte routes et handlers socket en itérant ce registre :
@@ -171,7 +172,10 @@ export const API_MODULES: ApiModule[] = [
   },
   {
     manifest: PI_MODULE,
-    routes: [{ plugin: piRoutes, prefix: '/api/pi' }],
+    routes: [
+      { plugin: piRoutes, prefix: '/api/pi' },
+      { plugin: piBoardRoutes, prefix: '/api/pi' },
+    ],
     socketHandlers: [],
   },
 ]
