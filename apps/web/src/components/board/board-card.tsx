@@ -555,9 +555,15 @@ export const BoardCard = memo(function BoardCard({
   // ── TEXT / IMAGE / LINK card ─────────────────────────────────────────────────
   // TEXT cards get a colored header band derived from the card color.
   const headerBg = card.type === 'TEXT' ? headerTint(card.color) : undefined
+  // Font scales with the card size so text stays proportional to the ticket:
+  // a bigger card shows bigger text (matching Klaxoon postits). REF_W is the
+  // width of a freshly-created TEXT card, at which textFmt.size renders as-is.
+  const REF_W = 192
+  const fontScale = card.type === 'TEXT' ? Math.max(card.width, MIN_W) / REF_W : 1
+  const scaledFontSize = Math.round(Math.max(8, Math.min(240, textFmt.size * fontScale)))
   // TEXT card text styling (configured from the detail modal).
   const textStyle: React.CSSProperties = {
-    fontSize: textFmt.size,
+    fontSize: scaledFontSize,
     fontWeight: textFmt.bold ? 700 : 400,
     fontStyle: textFmt.italic ? 'italic' : 'normal',
     textDecoration: [textFmt.underline ? 'underline' : '', textFmt.strike ? 'line-through' : ''].filter(Boolean).join(' ') || 'none',

@@ -50,17 +50,15 @@ describe('convertKlaxoon', () => {
     expect(stats.postits).toBe(1)
   })
 
-  it('bakes a scaled font into the postit content (Klaxoon scales text with the postit)', () => {
+  it('keeps postit content as plain text; the board scales the font to the card width', () => {
     const data = {
       colors: [],
       ideas: [makeIdea({ content_html: '<p>Titre</p>', scale: { scale_x: 2, scale_y: 2 } })],
       state: [], links: [], groups: [],
     }
     const { cards } = convertKlaxoon(data)
-    const fmt = JSON.parse(cards[0].content)
-    expect(fmt.text).toBe('Titre')
-    expect(fmt.size).toBe(28) // 14 × 2
-    expect(cards[0].width).toBe(384) // 192 × 2 — police et carte grandissent ensemble
+    expect(cards[0].content).toBe('Titre') // pas de JSON de taille : le rendu fait la proportion
+    expect(cards[0].width).toBe(384) // 192 × 2 → le board rendra la police ~2× plus grande
   })
 
   it('strips HTML tags from idea content', () => {

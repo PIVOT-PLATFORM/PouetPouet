@@ -4,7 +4,6 @@
 const DRAW_PAD = 8       // padding inside DRAW card bounding box
 const KLX_POSTIT = 192   // Klaxoon postit base width at scale 1 (confirmed by
                          // grid spacing measured across several real exports)
-const POSTIT_FONT = 14   // board TEXT card default font — postit font at scale 1
 
 // Height a TEXT card needs for its content at the given width. Metrics match
 // the board card: 14px font ≈ 7.8px/char, line-height ≈ 23px, 28px header.
@@ -15,15 +14,6 @@ function fitTextHeight(text: string, width: number): number {
     lines += Math.max(1, Math.ceil(line.length / charsPerLine))
   }
   return 40 + lines * 23
-}
-
-// Serializes a TEXT card's content. Plain text at the board's default 14px
-// (keeps it searchable/exportable); JSON with a size once the font is scaled,
-// matching the TextFmt shape the board reads (lib/card-format.ts).
-function textCardContent(text: string, fontSize: number): string {
-  const size = Math.max(8, Math.min(120, Math.round(fontSize)))
-  if (size === POSTIT_FONT) return text
-  return JSON.stringify({ text, size, bold: false, italic: false, underline: false, strike: false, color: '#1f2937', align: 'left' })
 }
 
 // Best-effort mapping for Klaxoon's c{n} CSS variables (no official source).
@@ -369,11 +359,10 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
     cards.push({
       klxId: idea.uuid,
       type: 'TEXT',
-      // Klaxoon scales the whole postit (text included) — a ×3 postit shows big
-      // text. Our board renders TEXT at a fixed 14px, so we bake the scaled font
-      // into the card content when the postit isn't at natural scale. Left as
-      // plain text at scale ~1 to keep search/export readable.
-      content: textCardContent(text, POSTIT_FONT * scale),
+      // Plain text: the board scales the font to the card width (192px base),
+      // so a ×3 postit (576px) already renders ~3× bigger text — no need to bake
+      // a size here, and baking would double-count against that render scaling.
+      content: text,
       color,
       posX, posY,
       width,

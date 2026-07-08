@@ -88,9 +88,10 @@ function textCardSvg(card: KlxCard, w: number, h: number, mode: Mode): string {
   const fmt = tryJson(card.content)
   const text = fmt?.text ?? card.content
   const header = headerTint(card.color)
-  // faithful reflète le board : il rend textFmt.size stockée (ou 14 par défaut).
-  // ideal : police proportionnelle à la carte, plafonnée pour rester lisible.
-  const font = mode === 'ideal' ? Math.max(9, Math.min(40, Math.round(w / 13))) : (fmt?.size ?? TEXT_FONT)
+  // Reflète le board : police = taille stockée × largeur/192 (REF_W), donc
+  // proportionnelle à la carte. En 'ideal', pas d'en-tête (comparaison épurée).
+  const baseSize = fmt?.size ?? TEXT_FONT
+  const font = Math.round(Math.max(8, Math.min(240, baseSize * w / 192)))
   const headerH = mode === 'ideal' ? 0 : HEADER_H
   const innerW = w - 20
   const lines = wrapText(text, innerW, font)
