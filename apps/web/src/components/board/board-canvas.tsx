@@ -178,6 +178,9 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
 
   // Live viewport — updated every frame via direct DOM manipulation (no React re-render)
   const vpRef = useRef({ x: 0, y: 0, zoom: 1 })
+  // Dynamic lower zoom bound (see computeMinZoom) — read by the wheel handler,
+  // whose listener is bound once and would otherwise capture a stale value.
+  const minZoomRef = useRef(MIN_ZOOM)
   // React state — synced after interactions end so children receive correct zoom
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 })
   // Board content stays hidden until the opening auto-fit has settled, so the user
@@ -349,7 +352,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
       const base = e.ctrlKey || e.metaKey ? 0.01 : 0.0008
       // Above 100% the same ratio feels too fast, so we damp the step the further we zoom in.
       const damp = zoom > 1 ? 1 / Math.sqrt(zoom) : 1
-      const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * Math.exp(-e.deltaY * base * damp)))
+      const newZoom = Math.min(MAX_ZOOM, Math.max(minZoomRef.current, zoom * Math.exp(-e.deltaY * base * damp)))
       const rect = el.getBoundingClientRect()
       const mx = e.clientX - rect.left
       const my = e.clientY - rect.top
@@ -673,7 +676,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     const rect = el.getBoundingClientRect()
     const mx = rect.width / 2
     const my = rect.height / 2
-    const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor))
+    const newZoom = Math.min(MAX_ZOOM, Math.max(computeMinZoom(), zoom * factor))
     applyTransform({
       x: mx - (mx - x) * (newZoom / zoom),
       y: my - (my - y) * (newZoom / zoom),
@@ -711,6 +714,20 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     return { minX, minY, maxX, maxY, w: maxX - minX, h: maxY - minY }
   }
 
+  // Lowest reachable zoom: normally MIN_ZOOM, but never higher than what it takes
+  // to fit all content (×0.6 to leave a little slack) — so a very large board
+  // (huge Klaxoon imports) can always be zoomed out far enough to see in full.
+  function computeMinZoom(): number {
+    const el = containerRef.current
+    const box = boundsOf([...cards, ...frames])
+    if (!el || !box || box.w <= 0 || box.h <= 0) return MIN_ZOOM
+    const rect = el.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) return MIN_ZOOM
+    const pad = 64
+    const fitAll = Math.min((rect.width - pad * 2) / box.w, (rect.height - pad * 2) / box.h)
+    return Math.max(0.01, Math.min(MIN_ZOOM, fitAll * 0.6))
+  }
+
   // Center a canvas-space box in the viewport, scaled to fit with padding.
   function fitBox(box: { minX: number; minY: number; w: number; h: number } | null, maxZoom = 1) {
     const el = containerRef.current
@@ -719,7 +736,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     if (rect.width === 0 || rect.height === 0) return
     const pad = 64
     const fit = Math.min((rect.width - pad * 2) / box.w, (rect.height - pad * 2) / box.h)
-    const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(fit, maxZoom)))
+    const zoom = Math.min(MAX_ZOOM, Math.max(computeMinZoom(), Math.min(fit, maxZoom)))
     const cx = box.minX + box.w / 2
     const cy = box.minY + box.h / 2
     applyTransform({ x: rect.width / 2 - cx * zoom, y: rect.height / 2 - cy * zoom, zoom })
@@ -741,6 +758,13 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     if (selectedIds.size > 0) fitToSelection()
     else fitToContent()
   }
+
+  // Keep the wheel handler's zoom floor in sync with the content size (its
+  // listener is bound once and can't read fresh cards/frames itself).
+  useEffect(() => {
+    minZoomRef.current = computeMinZoom()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cards, frames])
 
   // Disarm auto-fit shortly after mount: if the board is still empty by then, a card the
   // user adds later shouldn't yank the viewport. Only an initial load fits automatically.
