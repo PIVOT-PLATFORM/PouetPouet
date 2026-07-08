@@ -524,6 +524,8 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
         zIndex: z.number(),
         locked: z.boolean(),
         groupKey: z.string().nullish(),
+        // Métadonnées structurées (catégorie, dimensions) → valeurs de champs.
+        fieldValues: z.array(z.object({ field: z.string().min(1).max(120), value: z.string().max(2000) })).optional(),
       })),
       connections: z.array(z.object({
         fromKlxId: z.string(),
@@ -535,7 +537,38 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
         arrow: z.string(),
         label: z.string(),
       })),
+      // Zones Klaxoon → Frames du board (optionnel pour compat ascendante).
+      frames: z.array(z.object({
+        title: z.string(),
+        posX: z.number(),
+        posY: z.number(),
+        width: z.number(),
+        height: z.number(),
+      })).optional(),
+      // Catégories/dimensions Klaxoon → champs personnalisés du board.
+      fields: z.array(z.object({
+        name: z.string().min(1).max(120),
+        type: z.enum(['TEXT', 'SELECT']),
+        options: z.array(z.string().max(200)).nullable(),
+      })).optional(),
     }).parse(request.body)
+
+    // Décalage anti-collision : sur un board déjà rempli, l'import se place
+    // sous le contenu existant au lieu de le recouvrir.
+    const [existingCards, existingFrames] = await Promise.all([
+      prisma.card.findMany({ where: { boardId: id }, select: { posY: true, height: true } }),
+      prisma.frame.findMany({ where: { boardId: id }, select: { posY: true, height: true } }),
+    ])
+    let offsetY = 0
+    const existing = [...existingCards, ...existingFrames]
+    if (existing.length > 0 && (body.cards.length > 0 || (body.frames?.length ?? 0) > 0)) {
+      const bottom = Math.max(...existing.map((e) => e.posY + e.height))
+      const importTop = Math.min(
+        ...body.cards.map((c) => c.posY),
+        ...(body.frames ?? []).map((f) => f.posY),
+      )
+      offsetY = Math.round(bottom + 120 - importTop)
+    }
 
     // Remap each Klaxoon group key to a fresh server-side groupId so repeated
     // imports stay isolated and never collide with existing groups on the board.
@@ -547,11 +580,68 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
     const createdCards = await prisma.$transaction(
       body.cards.map((c) =>
         prisma.card.create({
-          data: { boardId: id, type: c.type as never, content: c.content, color: c.color, posX: c.posX, posY: c.posY, width: c.width, height: c.height, groupId: c.groupKey ? groupIdMap.get(c.groupKey) : null },
+          data: { boardId: id, type: c.type as never, content: c.content, color: c.color, posX: c.posX, posY: c.posY + offsetY, width: c.width, height: c.height, locked: c.locked, groupId: c.groupKey ? groupIdMap.get(c.groupKey) : null },
           include: { fieldValues: true },
         })
       )
     )
+
+    const createdFrames = (body.frames?.length ?? 0) > 0
+      ? await prisma.$transaction(
+          body.frames!.map((f) =>
+            prisma.frame.create({
+              data: { boardId: id, title: f.title, posX: f.posX, posY: f.posY + offsetY, width: f.width, height: f.height },
+            })
+          )
+        )
+      : []
+
+    // Champs personnalisés : réutilise un champ existant de même nom (les
+    // ré-imports n'empilent pas de doublons), crée les manquants à la suite.
+    const fieldIdByName = new Map<string, string>()
+    const createdFields = []
+    if ((body.fields?.length ?? 0) > 0) {
+      const boardFields = await prisma.boardField.findMany({ where: { boardId: id } })
+      for (const f of boardFields) fieldIdByName.set(f.name.toLowerCase(), f.id)
+      let order = boardFields.length
+      for (const f of body.fields!) {
+        const key = f.name.toLowerCase()
+        if (fieldIdByName.has(key)) continue
+        const created = await prisma.boardField.create({
+          data: { boardId: id, name: f.name, type: f.type as never, options: f.options ?? undefined, order: order++ },
+        })
+        fieldIdByName.set(key, created.id)
+        createdFields.push(created)
+      }
+    }
+
+    // Valeurs de champs des cartes importées.
+    const valueRows: { cardId: string; fieldId: string; value: string }[] = []
+    body.cards.forEach((c, i) => {
+      for (const fv of c.fieldValues ?? []) {
+        const fieldId = fieldIdByName.get(fv.field.toLowerCase())
+        if (fieldId) valueRows.push({ cardId: createdCards[i].id, fieldId, value: fv.value })
+      }
+    })
+    if (valueRows.length > 0) {
+      await prisma.cardFieldValue.createMany({ data: valueRows, skipDuplicates: true })
+      const byCard = new Map<string, typeof valueRows>()
+      for (const row of valueRows) {
+        const list = byCard.get(row.cardId) ?? []
+        list.push(row)
+        byCard.set(row.cardId, list)
+      }
+      const values = await prisma.cardFieldValue.findMany({ where: { cardId: { in: [...byCard.keys()] } } })
+      const valuesByCard = new Map<string, typeof values>()
+      for (const v of values) {
+        const list = valuesByCard.get(v.cardId) ?? []
+        list.push(v)
+        valuesByCard.set(v.cardId, list)
+      }
+      for (const card of createdCards) {
+        card.fieldValues = valuesByCard.get(card.id) ?? []
+      }
+    }
 
     // Build klxId â†’ real card id map
     const idMap = new Map<string, string>()
@@ -581,16 +671,51 @@ export const boardRoutes: FastifyPluginAsync = async (app) => {
       : []
 
     const io = getIO()
-    io?.to(`board:${id}`).emit('board:imported', { cards: createdCards, connections: createdConns })
+    io?.to(`board:${id}`).emit('board:imported', { cards: createdCards, connections: createdConns, frames: createdFrames, fields: createdFields })
 
     bus.publish({
       type: 'pouetpouet.board.imported',
       module: 'pouetpouet',
       actorId: userId,
-      payload: { boardId: id, source: 'klaxoon', cards: createdCards.length, connections: createdConns.length },
+      payload: { boardId: id, source: 'klaxoon', cards: createdCards.length, connections: createdConns.length, frames: createdFrames.length },
     })
 
-    return reply.status(201).send({ cards: createdCards.length, connections: createdConns.length })
+    return reply.status(201).send({
+      cards: createdCards.length,
+      connections: createdConns.length,
+      frames: createdFrames.length,
+      // Ids créés — permettent au client d'annuler cet import.
+      cardIds: createdCards.map((c) => c.id),
+      connectionIds: createdConns.map((c) => c.id),
+      frameIds: createdFrames.map((f) => f.id),
+    })
+  })
+
+  // Annule un import : supprime les objets listés s'ils appartiennent bien au
+  // board (les connexions et valeurs de champs des cartes partent en cascade).
+  // Les champs personnalisés créés sont conservés : ils peuvent déjà servir.
+  app.post('/:id/import/undo', async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { id } = request.params as { id: string }
+    const role = await getUserBoardRole(id, userId)
+    if (!role || role === 'VIEWER') return reply.status(403).send({ error: 'Accès refusé' })
+
+    const body = z.object({
+      cardIds: z.array(z.string()).max(10000).default([]),
+      connectionIds: z.array(z.string()).max(10000).default([]),
+      frameIds: z.array(z.string()).max(1000).default([]),
+    }).parse(request.body)
+
+    const [cards, connections, frames] = await prisma.$transaction([
+      prisma.card.deleteMany({ where: { id: { in: body.cardIds }, boardId: id } }),
+      prisma.cardConnection.deleteMany({ where: { id: { in: body.connectionIds }, boardId: id } }),
+      prisma.frame.deleteMany({ where: { id: { in: body.frameIds }, boardId: id } }),
+    ])
+
+    const io = getIO()
+    io?.to(`board:${id}`).emit('board:import-undone', { cardIds: body.cardIds, connectionIds: body.connectionIds, frameIds: body.frameIds })
+
+    return { cards: cards.count, connections: connections.count, frames: frames.count }
   })
 
   // Last closed vote session (any role)

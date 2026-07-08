@@ -47,6 +47,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     updateBoardInfo,
     addCard, consumeAutoEdit, remoteEditors, notifyEditing, moveCard, resizeCard, resizeCardBox, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
+    startResizeSelection, scaleSelection, commitResizeSelection,
     groupSelected, ungroupById, recolorGroup,
     addConnection, deleteConnection, updateConnection,
     addFrame, moveFrame, resizeFrameBox, updateFrame, setFrameActive, deleteFrame,
@@ -982,6 +983,9 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
           onCommitDragCard={commitDragCard}
           onStartResizeCard={startResizeCard}
           onCommitResizeCard={commitResizeCard}
+          onStartResizeSelection={startResizeSelection}
+          onScaleSelection={scaleSelection}
+          onCommitResizeSelection={commitResizeSelection}
           onSelectCards={selectCards}
           onAddConnection={addConnection}
           onDeleteConnection={deleteConnection}

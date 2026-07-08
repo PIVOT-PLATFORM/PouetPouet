@@ -38,6 +38,8 @@ docs/cout-reconstruction.pdf
 !docs/ci-cd.md
 
 apps/web/src/lib/klx-import/samples/
+# Rendus du harnais de prévisualisation Klaxoon (dérivés des samples gitignorés)
+.klx-preview/
 
 # Playwright artifacts
 test-results/

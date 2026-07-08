@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useMemo, useCallback, forwardRef, useImper
 import type { Card, Frame, BoardField, Connection, VoteSession, ClipboardCard } from '@/hooks/useBoard'
 import { groupColor } from '@/hooks/useBoard'
 import { BoardCard } from './board-card'
+import { MIN_W, MIN_H, SHAPE_MIN, MIN_LABEL_W } from './board-card-constants'
 import { CropModal } from './crop-modal'
 import { FrameItem } from './frame-item'
 import { CardDetailModal } from './card-detail-modal'
@@ -32,6 +33,9 @@ interface Props {
   onMoveCard: (id: string, x: number, y: number) => void
   onResizeCard: (id: string, w: number, h: number) => void
   onResizeCardBox: (id: string, box: { posX: number; posY: number; width: number; height: number }) => void
+  onStartResizeSelection: (ids: string[]) => void
+  onScaleSelection: (factor: number, anchorX: number, anchorY: number) => void
+  onCommitResizeSelection: () => void
   onUpdateCard: (id: string, content: string) => void
   onRecolorCard: (id: string, color: string) => void
   onDeleteCard: (id: string) => void
@@ -155,6 +159,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   clipboard, isReadonly,
   onAddCard, onMoveCard, onResizeCard, onResizeCardBox, onUpdateCard, onRecolorCard, onDeleteCard,
   onStartDragCard, onCommitDragCard, onStartResizeCard, onCommitResizeCard,
+  onStartResizeSelection, onScaleSelection, onCommitResizeSelection,
   onSelectCards, onAddConnection, onDeleteConnection, onUpdateConnection,
   onMoveFrame, onStartDragFrame, onCommitDragFrame,
   onResizeFrameBox, onStartResizeFrame, onCommitResizeFrame,
@@ -178,6 +183,9 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
 
   // Live viewport — updated every frame via direct DOM manipulation (no React re-render)
   const vpRef = useRef({ x: 0, y: 0, zoom: 1 })
+  // Dynamic lower zoom bound (see computeMinZoom) — read by the wheel handler,
+  // whose listener is bound once and would otherwise capture a stale value.
+  const minZoomRef = useRef(MIN_ZOOM)
   // React state — synced after interactions end so children receive correct zoom
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 })
   // Board content stays hidden until the opening auto-fit has settled, so the user
@@ -323,16 +331,23 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     window.addEventListener('mouseup', onUp)
   }
 
-  // ── Middle-mouse pan ─────────────────────────────────────────────────────────
+  // ── Pan au clic milieu (molette) ou au clic droit ───────────────────────────
   useEffect(() => {
     const el = containerRef.current!
     function onDown(e: MouseEvent) {
-      if (e.button !== 1) return
+      // bouton 1 = molette, bouton 2 = clic droit — les deux naviguent le board.
+      if (e.button !== 1 && e.button !== 2) return
       e.preventDefault()
       startPan(e.clientX, e.clientY)
     }
+    // Supprime le menu contextuel du navigateur pour que le clic droit serve au pan.
+    function onContextMenu(e: MouseEvent) { e.preventDefault() }
     el.addEventListener('mousedown', onDown)
-    return () => el.removeEventListener('mousedown', onDown)
+    el.addEventListener('contextmenu', onContextMenu)
+    return () => {
+      el.removeEventListener('mousedown', onDown)
+      el.removeEventListener('contextmenu', onContextMenu)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -349,7 +364,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
       const base = e.ctrlKey || e.metaKey ? 0.01 : 0.0008
       // Above 100% the same ratio feels too fast, so we damp the step the further we zoom in.
       const damp = zoom > 1 ? 1 / Math.sqrt(zoom) : 1
-      const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * Math.exp(-e.deltaY * base * damp)))
+      const newZoom = Math.min(MAX_ZOOM, Math.max(minZoomRef.current, zoom * Math.exp(-e.deltaY * base * damp)))
       const rect = el.getBoundingClientRect()
       const mx = e.clientX - rect.left
       const my = e.clientY - rect.top
@@ -579,9 +594,12 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
       if (rb && (rb.w > 5 || rb.h > 5)) {
+        // Sélection par intersection : une carte est prise dès que le lasso la
+        // touche (comme Miro/Klaxoon), pas seulement si elle est entièrement
+        // dedans.
         onSelectCards(new Set(cards.filter((c) =>
-          c.posX >= rb!.x && c.posX + c.width <= rb!.x + rb!.w &&
-          c.posY >= rb!.y && c.posY + c.height <= rb!.y + rb!.h
+          c.posX < rb!.x + rb!.w && c.posX + c.width > rb!.x &&
+          c.posY < rb!.y + rb!.h && c.posY + c.height > rb!.y
         ).map((c) => c.id)))
       } else {
         onSelectCards(new Set())
@@ -673,7 +691,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     const rect = el.getBoundingClientRect()
     const mx = rect.width / 2
     const my = rect.height / 2
-    const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor))
+    const newZoom = Math.min(MAX_ZOOM, Math.max(computeMinZoom(), zoom * factor))
     applyTransform({
       x: mx - (mx - x) * (newZoom / zoom),
       y: my - (my - y) * (newZoom / zoom),
@@ -711,6 +729,30 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     return { minX, minY, maxX, maxY, w: maxX - minX, h: maxY - minY }
   }
 
+  // Bounding box using each card's *rendered* size (min-clamped like BoardCard),
+  // so the selection frame encloses cards whose stored size is below the minimum.
+  function renderedBoundsOf(items: Card[]) {
+    return boundsOf(items.map((c) => {
+      const minW = c.type === 'SHAPE' || c.type === 'DRAW' ? SHAPE_MIN : c.type === 'LABEL' ? MIN_LABEL_W : MIN_W
+      const minH = c.type === 'SHAPE' || c.type === 'DRAW' ? SHAPE_MIN : c.type === 'LABEL' ? 20 : MIN_H
+      return { posX: c.posX, posY: c.posY, width: Math.max(c.width, minW), height: Math.max(c.height, minH) }
+    }))
+  }
+
+  // Lowest reachable zoom: normally MIN_ZOOM, but never higher than what it takes
+  // to fit all content (×0.6 to leave a little slack) — so a very large board
+  // (huge Klaxoon imports) can always be zoomed out far enough to see in full.
+  function computeMinZoom(): number {
+    const el = containerRef.current
+    const box = boundsOf([...cards, ...frames])
+    if (!el || !box || box.w <= 0 || box.h <= 0) return MIN_ZOOM
+    const rect = el.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) return MIN_ZOOM
+    const pad = 64
+    const fitAll = Math.min((rect.width - pad * 2) / box.w, (rect.height - pad * 2) / box.h)
+    return Math.max(0.01, Math.min(MIN_ZOOM, fitAll * 0.6))
+  }
+
   // Center a canvas-space box in the viewport, scaled to fit with padding.
   function fitBox(box: { minX: number; minY: number; w: number; h: number } | null, maxZoom = 1) {
     const el = containerRef.current
@@ -719,7 +761,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     if (rect.width === 0 || rect.height === 0) return
     const pad = 64
     const fit = Math.min((rect.width - pad * 2) / box.w, (rect.height - pad * 2) / box.h)
-    const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(fit, maxZoom)))
+    const zoom = Math.min(MAX_ZOOM, Math.max(computeMinZoom(), Math.min(fit, maxZoom)))
     const cx = box.minX + box.w / 2
     const cy = box.minY + box.h / 2
     applyTransform({ x: rect.width / 2 - cx * zoom, y: rect.height / 2 - cy * zoom, zoom })
@@ -741,6 +783,71 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     if (selectedIds.size > 0) fitToSelection()
     else fitToContent()
   }
+
+  // ── Redimensionnement d'une sélection multiple / d'un groupe (cadre englobant) ──
+  // Ensemble redimensionnable = cartes sélectionnées + tous les membres de leur
+  // groupe (comme le déplacement, qui entraîne le groupe entier même si une seule
+  // carte est sélectionnée), hors cartes verrouillées.
+  const resizableIds = new Set<string>()
+  for (const c of cards) {
+    if (!selectedIds.has(c.id)) continue
+    resizableIds.add(c.id)
+    if (c.groupId) for (const o of cards) if (o.groupId === c.groupId) resizableIds.add(o.id)
+  }
+  const resizableSelected = cards.filter((c) => resizableIds.has(c.id) && !c.locked)
+  // Bornes basées sur la taille RÉELLEMENT affichée : une carte dont les
+  // dimensions stockées passent sous le minimum s'affiche plus grande
+  // (max(w, MIN_W)…) et dépasserait sinon du cadre.
+  const selectionBounds = (toolMode === 'select' && !isReadonly && resizableSelected.length >= 2)
+    ? renderedBoundsOf(resizableSelected)
+    : null
+  // Petite marge esthétique (constante à l'écran) pour que le cadre ne colle pas
+  // aux cartes. Gonfle la boîte utilisée à la fois par le rendu et l'interaction.
+  const selectionBox = selectionBounds && (() => {
+    const pad = 10 / viewport.zoom
+    return {
+      minX: selectionBounds.minX - pad, minY: selectionBounds.minY - pad,
+      maxX: selectionBounds.maxX + pad, maxY: selectionBounds.maxY + pad,
+      w: selectionBounds.w + pad * 2, h: selectionBounds.h + pad * 2,
+    }
+  })()
+
+  // Tirer une poignée de coin met à l'échelle toute la sélection autour du coin
+  // opposé (ancre fixe) : mise à l'échelle uniforme, disposition relative conservée.
+  function handleSelectionResizeStart(e: React.MouseEvent, corner: 'nw' | 'ne' | 'sw' | 'se') {
+    if (e.button !== 0 || !selectionBox) return
+    e.preventDefault(); e.stopPropagation()
+    const box = selectionBox
+    const anchorX = corner === 'se' || corner === 'ne' ? box.minX : box.maxX
+    const anchorY = corner === 'se' || corner === 'sw' ? box.minY : box.maxY
+    const handleX = corner === 'se' || corner === 'ne' ? box.maxX : box.minX
+    const handleY = corner === 'se' || corner === 'sw' ? box.maxY : box.minY
+    const diag = Math.hypot(handleX - anchorX, handleY - anchorY) || 1
+    // Le plus petit côté de la sélection ne doit pas passer sous ~24px.
+    const smallestDim = Math.max(1, Math.min(...resizableSelected.map((c) => Math.min(c.width, c.height))))
+    const minFactor = Math.min(1, 24 / smallestDim)
+    // Source unique : on scale exactement les cartes que le cadre englobe.
+    onStartResizeSelection(resizableSelected.map((c) => c.id))
+    function onMove(ev: MouseEvent) {
+      const p = toCanvas(ev.clientX, ev.clientY)
+      const factor = Math.max(minFactor, Math.min(20, Math.hypot(p.x - anchorX, p.y - anchorY) / diag))
+      onScaleSelection(factor, anchorX, anchorY)
+    }
+    function onUp() {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      onCommitResizeSelection()
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  // Keep the wheel handler's zoom floor in sync with the content size (its
+  // listener is bound once and can't read fresh cards/frames itself).
+  useEffect(() => {
+    minZoomRef.current = computeMinZoom()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cards, frames])
 
   // Disarm auto-fit shortly after mount: if the board is still empty by then, a card the
   // user adds later shouldn't yank the viewport. Only an initial load fits automatically.
@@ -1221,6 +1328,33 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
           {/* ── Layer 2: Foreground ── */}
           {renderFramesForLayer(2)}
           {renderCardsForLayer(2)}
+
+          {/* ── Cadre de redimensionnement d'une sélection multiple ── */}
+          {selectionBox && (
+            <div
+              className="absolute pointer-events-none"
+              style={{ left: selectionBox.minX, top: selectionBox.minY, width: selectionBox.w, height: selectionBox.h, zIndex: 55 }}
+            >
+              <div className="absolute inset-0 rounded" style={{ border: `${1.5 / zoom}px dashed #6366f1` }} />
+              {(['nw', 'ne', 'sw', 'se'] as const).map((corner) => {
+                const hs = 12 / zoom
+                const off = -hs / 2
+                const pos: React.CSSProperties =
+                  corner === 'nw' ? { left: off, top: off, cursor: 'nwse-resize' }
+                  : corner === 'ne' ? { right: off, top: off, cursor: 'nesw-resize' }
+                  : corner === 'sw' ? { left: off, bottom: off, cursor: 'nesw-resize' }
+                  : { right: off, bottom: off, cursor: 'nwse-resize' }
+                return (
+                  <div
+                    key={corner}
+                    onMouseDown={(e) => handleSelectionResizeStart(e, corner)}
+                    className="absolute bg-white pointer-events-auto"
+                    style={{ width: hs, height: hs, border: `${1.5 / zoom}px solid #6366f1`, borderRadius: 2 / zoom, ...pos }}
+                  />
+                )
+              })}
+            </div>
+          )}
 
           {/* Guides d'alignement (pendant le drag d'une carte) — rose, fins quel que soit le zoom */}
           {guides.map((g, i) => (

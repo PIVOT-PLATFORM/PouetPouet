@@ -1,90 +1,132 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
+import type JSZip from 'jszip'
+import { Upload } from 'lucide-react'
 import { api } from '@/lib/api'
-import { convertKlaxoon, type KlxImportStats } from '@/lib/klx-import/converter'
+import { convertKlaxoon, type KlxCard, type KlxConnection, type KlxField, type KlxFrame, type KlxImportStats } from '@/lib/klx-import/converter'
+import { findKlxActivities, mimeForPath, mediaKey, type KlxActivityEntry } from '@/lib/klx-import/archive'
 
 interface Props {
   boardId: string
   onClose: () => void
 }
 
-type Step = 'pick' | 'reading' | 'preview' | 'importing' | 'done' | 'error'
-
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
+type Step = 'pick' | 'reading' | 'choose' | 'preview' | 'importing' | 'done' | 'error'
 
 export function ImportKlaxoonModal({ boardId, onClose }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const zipRef = useRef<JSZip | null>(null)
+  const pendingRef = useRef<{ cards: KlxCard[]; connections: KlxConnection[]; frames: KlxFrame[]; fields: KlxField[] } | null>(null)
+
   const [step, setStep] = useState<Step>('pick')
+  const [dragging, setDragging] = useState(false)
+  const [activities, setActivities] = useState<KlxActivityEntry[]>([])
   const [stats, setStats] = useState<KlxImportStats | null>(null)
-  const [result, setResult] = useState<{ cards: number; connections: number } | null>(null)
+  const [result, setResult] = useState<{
+    cards: number
+    connections: number
+    frames: number
+    cardIds: string[]
+    connectionIds: string[]
+    frameIds: string[]
+  } | null>(null)
+  const [undoing, setUndoing] = useState(false)
   const [error, setError] = useState('')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pendingRef = useRef<{ cards: any[]; connections: any[] } | null>(null)
 
-  // webkitdirectory is not in standard typings — set via ref after mount
-  useEffect(() => {
-    if (fileRef.current) fileRef.current.setAttribute('webkitdirectory', '')
-  }, [])
-
-  async function handleFolder(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files
-    if (!files || files.length === 0) return
-    setStep('reading')
-
+  // Lit un tableau localisé dans l'archive : son _brainstorm_data.json + les
+  // images de son mediabundle/ (encodées en data URL pour convertKlaxoon).
+  async function readActivity(activity: KlxActivityEntry) {
+    const zip = zipRef.current
+    if (!zip) return
     try {
-      const fileList = Array.from(files)
-
-      // Find _brainstorm_data.json anywhere in the selected folder
-      const jsonFile = fileList.find(f => f.name === '_brainstorm_data.json')
-      if (!jsonFile) {
-        setError("Fichier _brainstorm_data.json introuvable. Sélectionnez le dossier Activity/<id>/ ou le dossier racine de l'export.")
-        setStep('error')
-        return
-      }
-
-      const jsonText = await jsonFile.text()
+      const jsonText = await zip.files[activity.brainstormPath].async('text')
       const data = JSON.parse(jsonText)
 
-      // Read all images from mediabundle/ in parallel
-      const imageFiles = fileList.filter(f => f.webkitRelativePath.includes('/mediabundle/'))
+      const imagePaths = Object.keys(zip.files).filter((p) => p.startsWith(activity.mediaPrefix) && !zip.files[p].dir)
       const imageMap = new Map<string, string>()
-      await Promise.all(imageFiles.map(async (f) => {
-        const rel = f.webkitRelativePath
-        const mbIdx = rel.indexOf('mediabundle/')
-        if (mbIdx < 0) return
-        const path = rel.slice(mbIdx) // e.g. "mediabundle/9bf/abc.png"
-        const dataUrl = await readFileAsDataUrl(f)
-        imageMap.set(path, dataUrl)
+      await Promise.all(imagePaths.map(async (path) => {
+        const base64 = await zip.files[path].async('base64')
+        imageMap.set(mediaKey(path), `data:${mimeForPath(path)};base64,${base64}`)
       }))
 
-      const { cards, connections, stats: s } = convertKlaxoon(data, imageMap, process.env.NODE_ENV === 'development')
-      pendingRef.current = { cards, connections }
+      const { cards, connections, frames, fields, stats: s } = convertKlaxoon(data, imageMap, process.env.NODE_ENV === 'development')
+      pendingRef.current = { cards, connections, frames, fields }
       setStats(s)
       setStep('preview')
     } catch {
-      setError("Impossible de lire le dossier. Vérifiez que c'est bien un export Klaxoon décompressé.")
+      setError("Impossible de lire ce tableau. Le fichier _brainstorm_data.json semble corrompu.")
       setStep('error')
     }
+  }
+
+  async function handleFile(file: File) {
+    if (!file.name.toLowerCase().endsWith('.klx')) {
+      setError("Ce fichier n'est pas une archive .klx.")
+      setStep('error')
+      return
+    }
+    setStep('reading')
+    try {
+      const JSZip = (await import('jszip')).default
+      const buffer = await file.arrayBuffer()
+      const zip = await JSZip.loadAsync(buffer)
+      zipRef.current = zip
+
+      const entryPaths = Object.keys(zip.files).filter((p) => !zip.files[p].dir)
+      const found = findKlxActivities(entryPaths)
+
+      if (found.length === 0) {
+        setError("Archive .klx invalide : _brainstorm_data.json introuvable à l'intérieur.")
+        setStep('error')
+        return
+      }
+      if (found.length === 1) {
+        await readActivity(found[0])
+        return
+      }
+      setActivities(found)
+      setStep('choose')
+    } catch {
+      setError("Impossible de lire l'archive .klx. Vérifiez que le fichier n'est pas corrompu.")
+      setStep('error')
+    }
+  }
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) handleFile(file)
   }
 
   async function runImport() {
     if (!pendingRef.current) return
     setStep('importing')
     try {
-      const res = await api.post(`/api/boards/${boardId}/import/klaxoon`, pendingRef.current) as { cards: number; connections: number }
+      const res = await api.post(`/api/boards/${boardId}/import/klaxoon`, pendingRef.current) as NonNullable<typeof result>
       setResult(res)
       setStep('done')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erreur lors de l'import.")
       setStep('error')
+    }
+  }
+
+  // Supprime tout ce que cet import vient de créer (cartes, liaisons, cadres).
+  async function undoImport() {
+    if (!result || undoing) return
+    setUndoing(true)
+    try {
+      await api.post(`/api/boards/${boardId}/import/undo`, {
+        cardIds: result.cardIds,
+        connectionIds: result.connectionIds,
+        frameIds: result.frameIds,
+      })
+      onClose()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Impossible d'annuler l'import.")
+      setStep('error')
+    } finally {
+      setUndoing(false)
     }
   }
 
@@ -104,7 +146,7 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
             </div>
             <div>
               <h2 className="text-sm font-semibold text-gray-900">Importer depuis Klaxoon</h2>
-              <p className="text-xs text-gray-500">Dossier Activity/&lt;id&gt;/</p>
+              <p className="text-xs text-gray-500">Archive .klx</p>
             </div>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
@@ -118,21 +160,26 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
         {step === 'pick' && (
           <>
             <p className="text-sm text-gray-600">
-              Décompressez votre export Klaxoon (.klx), puis sélectionnez le dossier&nbsp;
-              <code className="bg-gray-100 rounded px-1 text-xs">Activity/&lt;id&gt;/</code>.
-              Les images seront importées automatiquement depuis le sous-dossier&nbsp;
-              <code className="bg-gray-100 rounded px-1 text-xs">mediabundle/</code>.
+              Déposez votre export Klaxoon (<code className="bg-gray-100 rounded px-1 text-xs">.klx</code>) tel quel — il est décompressé automatiquement et les bons fichiers sont retrouvés pour vous.
             </p>
-            <input ref={fileRef} type="file" className="hidden" onChange={handleFolder} />
-            <button
+            <input ref={fileRef} type="file" accept=".klx" className="hidden" onChange={handleInputChange} />
+            <div
               onClick={() => fileRef.current?.click()}
-              className="w-full rounded-xl border-2 border-dashed border-gray-200 hover:border-primary-300 hover:bg-primary-50/50 py-8 flex flex-col items-center gap-2 transition-colors text-gray-500 hover:text-primary-600"
+              onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault()
+                setDragging(false)
+                const file = e.dataTransfer.files[0]
+                if (file) handleFile(file)
+              }}
+              className={`w-full rounded-xl border-2 border-dashed py-8 flex flex-col items-center gap-2 transition-colors cursor-pointer ${
+                dragging ? 'border-primary-400 bg-primary-50/50 text-primary-600' : 'border-gray-200 hover:border-primary-300 hover:bg-primary-50/50 text-gray-500 hover:text-primary-600'
+              }`}
             >
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-              </svg>
-              <span className="text-sm font-medium">Choisir le dossier</span>
-            </button>
+              <Upload size={28} />
+              <span className="text-sm font-medium">Glissez le fichier .klx ici, ou cliquez pour le choisir</span>
+            </div>
           </>
         )}
 
@@ -140,8 +187,29 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
         {step === 'reading' && (
           <div className="flex flex-col items-center gap-3 py-6">
             <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-gray-600">Lecture des fichiers…</p>
+            <p className="text-sm text-gray-600">Décompression et lecture des fichiers…</p>
           </div>
+        )}
+
+        {/* Step: choose — l'archive contient plusieurs tableaux */}
+        {step === 'choose' && (
+          <>
+            <p className="text-sm text-gray-600">Cette archive contient plusieurs tableaux. Lequel importer ?</p>
+            <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto">
+              {activities.map((a) => (
+                <button
+                  key={a.brainstormPath}
+                  onClick={() => { setStep('reading'); readActivity(a) }}
+                  className="text-left px-3 py-2 rounded-xl border border-gray-100 hover:border-primary-300 hover:bg-primary-50/50 text-sm text-gray-700 transition-colors"
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end">
+              <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">Annuler</button>
+            </div>
+          </>
         )}
 
         {/* Step: preview */}
@@ -150,12 +218,16 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
             <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2.5">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Aperçu de l&apos;import</p>
               <StatRow icon="🗒️" label="Notes (postits)" value={stats.postits} />
+              <StatRow icon="🗺️" label="Cadres (zones)" value={stats.zones} />
               <StatRow icon="🔤" label="Zones de texte" value={stats.texts} />
               <StatRow icon="✏️" label="Dessins" value={stats.draws} />
               <StatRow icon="⬛" label="Formes" value={stats.shapes} />
               <StatRow icon="🖼️" label="Images" value={stats.images} />
               <StatRow icon="🔗" label="Liaisons" value={stats.links} />
               <StatRow icon="🗂️" label="Groupes" value={stats.groups} />
+              {stats.fields > 0 && (
+                <StatRow icon="🏷️" label="Champs (catégorie, dimensions)" value={stats.fields} />
+              )}
               {stats.skipped > 0 && (
                 <StatRow icon="⏭️" label="Ignorés (inactifs…)" value={stats.skipped} muted />
               )}
@@ -194,11 +266,18 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
               </div>
               <p className="text-sm font-medium text-gray-900">Import réussi</p>
               <p className="text-xs text-gray-500 text-center">
-                {result.cards} carte{result.cards > 1 ? 's' : ''} et {result.connections} liaison{result.connections > 1 ? 's' : ''} ajoutée{result.connections > 1 ? 's' : ''}.
+                {result.cards} carte{result.cards > 1 ? 's' : ''}{result.frames > 0 ? `, ${result.frames} cadre${result.frames > 1 ? 's' : ''}` : ''} et {result.connections} liaison{result.connections > 1 ? 's' : ''} ajoutée{result.connections > 1 ? 's' : ''}.
               </p>
             </div>
             <button onClick={onClose} className="w-full py-2 text-sm rounded-xl bg-primary-600 text-white font-medium hover:bg-primary-700 transition-colors">
               Fermer
+            </button>
+            <button
+              onClick={undoImport}
+              disabled={undoing}
+              className="w-full py-2 text-sm rounded-xl text-red-500 hover:bg-red-50 font-medium transition-colors disabled:opacity-50"
+            >
+              {undoing ? 'Annulation…' : 'Annuler cet import'}
             </button>
           </>
         )}
