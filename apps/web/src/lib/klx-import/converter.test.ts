@@ -44,9 +44,23 @@ describe('convertKlaxoon', () => {
     const { cards, stats } = convertKlaxoon(data)
     expect(cards).toHaveLength(1)
     expect(cards[0].type).toBe('TEXT')
+    // Scale 1 → default font → plain text kept (searchable/exportable)
     expect(cards[0].content).toBe('Hello')
     expect(cards[0].color).toBe('#FF0000')
     expect(stats.postits).toBe(1)
+  })
+
+  it('bakes a scaled font into the postit content (Klaxoon scales text with the postit)', () => {
+    const data = {
+      colors: [],
+      ideas: [makeIdea({ content_html: '<p>Titre</p>', scale: { scale_x: 2, scale_y: 2 } })],
+      state: [], links: [], groups: [],
+    }
+    const { cards } = convertKlaxoon(data)
+    const fmt = JSON.parse(cards[0].content)
+    expect(fmt.text).toBe('Titre')
+    expect(fmt.size).toBe(28) // 14 × 2
+    expect(cards[0].width).toBe(384) // 192 × 2 — police et carte grandissent ensemble
   })
 
   it('strips HTML tags from idea content', () => {
