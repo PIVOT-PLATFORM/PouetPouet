@@ -162,9 +162,10 @@ export function useBoard(boardId: string) {
       if (role) setUserRole(role as 'OWNER' | 'EDITOR' | 'VIEWER')
     })
 
-    socket.on('board:imported', ({ cards: ic, connections: iconn }: { cards: Card[]; connections: Connection[] }) => {
+    socket.on('board:imported', ({ cards: ic, connections: iconn, frames: iframes }: { cards: Card[]; connections: Connection[]; frames?: Frame[] }) => {
       setCards((prev) => [...prev, ...ic.map((c) => ({ ...c, fieldValues: [] }))])
       setConnections((prev) => [...prev, ...iconn])
+      if (iframes?.length) setFrames((prev) => [...prev, ...iframes])
       setImportCount((n) => n + 1)
     })
 
