@@ -558,9 +558,13 @@ export const BoardCard = memo(function BoardCard({
   // Font scales with the card size so text stays proportional to the ticket:
   // a bigger card shows bigger text (matching Klaxoon postits). REF_W is the
   // width of a freshly-created TEXT card, at which textFmt.size renders as-is.
+  // Capped by half the card height so a wide-but-short card doesn't overflow
+  // vertically (postits keep their width-based size — the cap only bites on
+  // genuinely short cards).
   const REF_W = 192
+  const renderH = Math.max(card.height, MIN_H)
   const fontScale = card.type === 'TEXT' ? Math.max(card.width, MIN_W) / REF_W : 1
-  const scaledFontSize = Math.round(Math.max(8, Math.min(240, textFmt.size * fontScale)))
+  const scaledFontSize = Math.round(Math.max(8, Math.min(240, textFmt.size * fontScale, renderH * 0.5)))
   // TEXT card text styling (configured from the detail modal).
   const textStyle: React.CSSProperties = {
     fontSize: scaledFontSize,

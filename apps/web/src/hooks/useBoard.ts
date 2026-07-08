@@ -559,20 +559,33 @@ export function useBoard(boardId: string) {
     selectionResizeStartRef.current = map.size >= 2 ? map : null
   }
 
+  const selResizeEmitRef = useRef(0)
   function scaleSelection(factor: number, anchorX: number, anchorY: number) {
     const starts = selectionResizeStartRef.current
     if (!starts) return
-    setCards((prev) => prev.map((c) => {
-      const s = starts.get(c.id)
-      if (!s) return c
-      return {
-        ...c,
+    const next = new Map<string, CardBox>()
+    starts.forEach((s, id) => {
+      next.set(id, {
         posX: anchorX + (s.posX - anchorX) * factor,
         posY: anchorY + (s.posY - anchorY) * factor,
         width: s.width * factor,
         height: s.height * factor,
-      }
+      })
+    })
+    setCards((prev) => prev.map((c) => {
+      const b = next.get(c.id)
+      return b ? { ...c, ...b } : c
     }))
+    // Aperçu live pour les autres participants, throttlé pour ne pas saturer le
+    // socket ; l'état final est renvoyé au commit.
+    const now = Date.now()
+    if (now - selResizeEmitRef.current > 60) {
+      selResizeEmitRef.current = now
+      next.forEach((b, id) => {
+        socketRef.current.emit('card:resize', { id, boardId, width: b.width, height: b.height })
+        socketRef.current.emit('card:move', { id, boardId, posX: b.posX, posY: b.posY })
+      })
+    }
   }
 
   function commitResizeSelection() {

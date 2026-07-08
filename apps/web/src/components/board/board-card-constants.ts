@@ -5,8 +5,10 @@ export const CHIP_STYLE: Record<string, string> = {
   SELECT: 'bg-violet-50 text-violet-700 border-violet-100',
 }
 
-export const MIN_W = 150
-export const MIN_H = 110
+// Plancher de taille des cartes (rendu + redimensionnement). Bas volontairement
+// pour ne pas regonfler les petits postits importés de Klaxoon (échelle < 1).
+export const MIN_W = 40
+export const MIN_H = 32
 export const SHAPE_MIN = 80
 // Largeur mini d'une étiquette (LABEL) — boîte déterministe pour des poignées alignées (#116)
 export const MIN_LABEL_W = 60

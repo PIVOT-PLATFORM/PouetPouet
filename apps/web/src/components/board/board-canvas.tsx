@@ -587,9 +587,12 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
       if (rb && (rb.w > 5 || rb.h > 5)) {
+        // Sélection par intersection : une carte est prise dès que le lasso la
+        // touche (comme Miro/Klaxoon), pas seulement si elle est entièrement
+        // dedans.
         onSelectCards(new Set(cards.filter((c) =>
-          c.posX >= rb!.x && c.posX + c.width <= rb!.x + rb!.w &&
-          c.posY >= rb!.y && c.posY + c.height <= rb!.y + rb!.h
+          c.posX < rb!.x + rb!.w && c.posX + c.width > rb!.x &&
+          c.posY < rb!.y + rb!.h && c.posY + c.height > rb!.y
         ).map((c) => c.id)))
       } else {
         onSelectCards(new Set())
