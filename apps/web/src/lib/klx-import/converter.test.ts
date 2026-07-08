@@ -225,6 +225,34 @@ describe('convertKlaxoon', () => {
     expect(connections[0].dashed).toBe(true)
   })
 
+  it('a "dot" link (the real Klaxoon dotted-style value) is also treated as dashed', () => {
+    const data = {
+      colors: [],
+      ideas: [makeIdea({ uuid: 'o' }), makeIdea({ uuid: 'p' })],
+      state: [],
+      links: [
+        { uuid: 'l4', is_active: true, object_ids: ['o', 'p'], link_shape: 'curve', shapes: [null, null], color: null, stroke_width: 2, stroke_style: 'dot' },
+      ],
+      groups: [],
+    }
+    const { connections } = convertKlaxoon(data)
+    expect(connections[0].dashed).toBe(true)
+  })
+
+  it('a "full" link stays solid', () => {
+    const data = {
+      colors: [],
+      ideas: [makeIdea({ uuid: 'q' }), makeIdea({ uuid: 'r' })],
+      state: [],
+      links: [
+        { uuid: 'l5', is_active: true, object_ids: ['q', 'r'], link_shape: 'curve', shapes: [null, null], color: null, stroke_width: 2, stroke_style: 'full' },
+      ],
+      groups: [],
+    }
+    const { connections } = convertKlaxoon(data)
+    expect(connections[0].dashed).toBe(false)
+  })
+
   it('sorts cards by z_index ascending', () => {
     const data = {
       colors: [],

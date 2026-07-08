@@ -604,7 +604,9 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
       shape: linkShapeMap[link.link_shape] ?? 'curved',
       color: link.color ? cColor(link.color) : '#9ca3af',
       width: Math.max(1, Math.round((link.stroke_width ?? 4) / 2)),
-      dashed: link.stroke_style === 'dashed',
+      // Klaxoon uses 'dot' for its dotted style (never 'dashed' in practice) —
+      // both map to the board's single dashed flag.
+      dashed: link.stroke_style === 'dot' || link.stroke_style === 'dashed',
       arrow,
       label: '',
     })
