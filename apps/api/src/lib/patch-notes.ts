@@ -20,6 +20,34 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.32.0',
+    date: '2026-07-09',
+    title: 'Import Klaxoon & confort des boards',
+    summary: 'Import Klaxoon revu : déposez directement un fichier .klx, il se décompresse et se convertit tout seul avec une bien meilleure fidélité (tailles réelles, cadres, images, dessins, champs personnalisés). Et une série d\'améliorations de confort sur les boards : texte proportionnel à la carte, redimensionnement d\'une sélection multiple, dézoom adapté aux grands boards, navigation au clic droit.',
+    sections: [
+      {
+        heading: '📥 Import Klaxoon',
+        items: [
+          'Déposez directement un fichier .klx : décompression, repérage des activités et conversion automatiques',
+          'Fidélité de conversion nettement améliorée : tailles et positions réelles, zones → cadres, postits image, dessins au brush, formes et flèches',
+          'Catégories et dimensions Klaxoon converties en champs personnalisés sur les cartes',
+          'Annulation de l\'import en un clic, et placement anti-collision sous le contenu existant',
+          'Liaisons en pointillés désormais correctement détectées',
+        ],
+      },
+      {
+        heading: '🎨 Confort des boards',
+        items: [
+          'La taille du texte s\'adapte à la taille de la carte (lisible quel que soit le zoom)',
+          'Redimensionnement d\'une sélection multiple ou d\'un groupe via un cadre englobant, en un seul geste',
+          'Dézoom dynamique : les très grands boards tiennent désormais entièrement à l\'écran',
+          'Navigation au clic droit maintenu, comme au clic molette',
+          'Badge « en cours d\'édition » qui n\'est plus rogné par la carte',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.31.0',
     date: '2026-07-06',
     title: 'Module PI Planning',
