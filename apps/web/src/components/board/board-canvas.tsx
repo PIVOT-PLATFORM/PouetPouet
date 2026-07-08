@@ -32,6 +32,9 @@ interface Props {
   onMoveCard: (id: string, x: number, y: number) => void
   onResizeCard: (id: string, w: number, h: number) => void
   onResizeCardBox: (id: string, box: { posX: number; posY: number; width: number; height: number }) => void
+  onStartResizeSelection: () => void
+  onScaleSelection: (factor: number, anchorX: number, anchorY: number) => void
+  onCommitResizeSelection: () => void
   onUpdateCard: (id: string, content: string) => void
   onRecolorCard: (id: string, color: string) => void
   onDeleteCard: (id: string) => void
@@ -155,6 +158,7 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
   clipboard, isReadonly,
   onAddCard, onMoveCard, onResizeCard, onResizeCardBox, onUpdateCard, onRecolorCard, onDeleteCard,
   onStartDragCard, onCommitDragCard, onStartResizeCard, onCommitResizeCard,
+  onStartResizeSelection, onScaleSelection, onCommitResizeSelection,
   onSelectCards, onAddConnection, onDeleteConnection, onUpdateConnection,
   onMoveFrame, onStartDragFrame, onCommitDragFrame,
   onResizeFrameBox, onStartResizeFrame, onCommitResizeFrame,
@@ -759,6 +763,43 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     else fitToContent()
   }
 
+  // ── Redimensionnement d'une sélection multiple (cadre englobant) ──────────────
+  // Boîte englobant les cartes sélectionnées non verrouillées (≥ 2) — support des
+  // poignées de redimensionnement de groupe.
+  const resizableSelected = cards.filter((c) => selectedIds.has(c.id) && !c.locked)
+  const selectionBox = (toolMode === 'select' && !isReadonly && resizableSelected.length >= 2)
+    ? boundsOf(resizableSelected)
+    : null
+
+  // Tirer une poignée de coin met à l'échelle toute la sélection autour du coin
+  // opposé (ancre fixe) : mise à l'échelle uniforme, disposition relative conservée.
+  function handleSelectionResizeStart(e: React.MouseEvent, corner: 'nw' | 'ne' | 'sw' | 'se') {
+    if (e.button !== 0 || !selectionBox) return
+    e.preventDefault(); e.stopPropagation()
+    const box = selectionBox
+    const anchorX = corner === 'se' || corner === 'ne' ? box.minX : box.maxX
+    const anchorY = corner === 'se' || corner === 'sw' ? box.minY : box.maxY
+    const handleX = corner === 'se' || corner === 'ne' ? box.maxX : box.minX
+    const handleY = corner === 'se' || corner === 'sw' ? box.maxY : box.minY
+    const diag = Math.hypot(handleX - anchorX, handleY - anchorY) || 1
+    // Le plus petit côté de la sélection ne doit pas passer sous ~24px.
+    const smallestDim = Math.max(1, Math.min(...resizableSelected.map((c) => Math.min(c.width, c.height))))
+    const minFactor = Math.min(1, 24 / smallestDim)
+    onStartResizeSelection()
+    function onMove(ev: MouseEvent) {
+      const p = toCanvas(ev.clientX, ev.clientY)
+      const factor = Math.max(minFactor, Math.min(20, Math.hypot(p.x - anchorX, p.y - anchorY) / diag))
+      onScaleSelection(factor, anchorX, anchorY)
+    }
+    function onUp() {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      onCommitResizeSelection()
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
   // Keep the wheel handler's zoom floor in sync with the content size (its
   // listener is bound once and can't read fresh cards/frames itself).
   useEffect(() => {
@@ -1245,6 +1286,33 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
           {/* ── Layer 2: Foreground ── */}
           {renderFramesForLayer(2)}
           {renderCardsForLayer(2)}
+
+          {/* ── Cadre de redimensionnement d'une sélection multiple ── */}
+          {selectionBox && (
+            <div
+              className="absolute pointer-events-none"
+              style={{ left: selectionBox.minX, top: selectionBox.minY, width: selectionBox.w, height: selectionBox.h, zIndex: 55 }}
+            >
+              <div className="absolute inset-0 rounded" style={{ border: `${1.5 / zoom}px dashed #6366f1` }} />
+              {(['nw', 'ne', 'sw', 'se'] as const).map((corner) => {
+                const hs = 12 / zoom
+                const off = -hs / 2
+                const pos: React.CSSProperties =
+                  corner === 'nw' ? { left: off, top: off, cursor: 'nwse-resize' }
+                  : corner === 'ne' ? { right: off, top: off, cursor: 'nesw-resize' }
+                  : corner === 'sw' ? { left: off, bottom: off, cursor: 'nesw-resize' }
+                  : { right: off, bottom: off, cursor: 'nwse-resize' }
+                return (
+                  <div
+                    key={corner}
+                    onMouseDown={(e) => handleSelectionResizeStart(e, corner)}
+                    className="absolute bg-white pointer-events-auto"
+                    style={{ width: hs, height: hs, border: `${1.5 / zoom}px solid #6366f1`, borderRadius: 2 / zoom, ...pos }}
+                  />
+                )
+              })}
+            </div>
+          )}
 
           {/* Guides d'alignement (pendant le drag d'une carte) — rose, fins quel que soit le zoom */}
           {guides.map((g, i) => (

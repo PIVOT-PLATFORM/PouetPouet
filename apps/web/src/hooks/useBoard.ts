@@ -539,6 +539,64 @@ export function useBoard(boardId: string) {
     cardResizeStartRef.current = { id, posX: card.posX, posY: card.posY, width: card.width, height: card.height }
   }
 
+  // ── Redimensionnement d'une sélection multiple / d'un groupe ──────────────
+  // Mise à l'échelle uniforme de toute la sélection autour d'un point d'ancrage
+  // fixe : positions ET tailles suivent le même facteur, la disposition relative
+  // est conservée. Émission différée au commit (évite de saturer le socket sur
+  // une grosse sélection) + une seule entrée d'historique pour tout le groupe.
+  type CardBox = { posX: number; posY: number; width: number; height: number }
+  const selectionResizeStartRef = useRef<Map<string, CardBox> | null>(null)
+
+  function startResizeSelection() {
+    const selected = selectedIdsRef.current
+    const map = new Map<string, CardBox>()
+    cardsRef.current.forEach((c) => {
+      if (selected.has(c.id) && !c.locked) map.set(c.id, { posX: c.posX, posY: c.posY, width: c.width, height: c.height })
+    })
+    selectionResizeStartRef.current = map.size > 0 ? map : null
+  }
+
+  function scaleSelection(factor: number, anchorX: number, anchorY: number) {
+    const starts = selectionResizeStartRef.current
+    if (!starts) return
+    setCards((prev) => prev.map((c) => {
+      const s = starts.get(c.id)
+      if (!s) return c
+      return {
+        ...c,
+        posX: anchorX + (s.posX - anchorX) * factor,
+        posY: anchorY + (s.posY - anchorY) * factor,
+        width: s.width * factor,
+        height: s.height * factor,
+      }
+    }))
+  }
+
+  function commitResizeSelection() {
+    const starts = selectionResizeStartRef.current
+    selectionResizeStartRef.current = null
+    if (!starts) return
+    const ends = new Map<string, CardBox>()
+    starts.forEach((_, id) => {
+      const c = cardsRef.current.find((cc) => cc.id === id)
+      if (c) ends.set(id, { posX: c.posX, posY: c.posY, width: c.width, height: c.height })
+    })
+    const apply = (boxes: Map<string, CardBox>) => {
+      boxes.forEach((b, id) => {
+        setCards((prev) => prev.map((c) => c.id === id ? { ...c, ...b } : c))
+        socketRef.current.emit('card:resize', { id, boardId, width: b.width, height: b.height })
+        socketRef.current.emit('card:move', { id, boardId, posX: b.posX, posY: b.posY })
+      })
+    }
+    let changed = false
+    starts.forEach((s, id) => {
+      const e = ends.get(id)
+      if (e && (Math.abs(e.width - s.width) > 0.5 || Math.abs(e.height - s.height) > 0.5 || Math.abs(e.posX - s.posX) > 0.5 || Math.abs(e.posY - s.posY) > 0.5)) changed = true
+    })
+    apply(ends) // pousse l'état final aux autres clients (rien n'a été émis pendant le drag)
+    if (changed) pushHistory({ undo: () => apply(starts), redo: () => apply(ends) })
+  }
+
   function commitResizeCard(id: string) {
     const start = cardResizeStartRef.current
     cardResizeStartRef.current = null
@@ -1300,6 +1358,7 @@ export function useBoard(boardId: string) {
     updateBoardInfo,
     addCard, consumeAutoEdit, moveCard, resizeCard, resizeCardBox, updateCard, deleteCard, deleteSelected, recolorCard, recolorSelected,
     startDragCard, commitDragCard, startResizeCard, commitResizeCard,
+    startResizeSelection, scaleSelection, commitResizeSelection,
     groupSelected, ungroupById, recolorGroup,
     addConnection, deleteConnection, updateConnection,
     addFrame, moveFrame, resizeFrameBox, updateFrame, setFrameActive, deleteFrame,
