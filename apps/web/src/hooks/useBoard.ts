@@ -547,18 +547,14 @@ export function useBoard(boardId: string) {
   type CardBox = { posX: number; posY: number; width: number; height: number }
   const selectionResizeStartRef = useRef<Map<string, CardBox> | null>(null)
 
-  function startResizeSelection() {
-    const selected = selectedIdsRef.current
-    // Étend au groupe entier de toute carte sélectionnée (comme startDragCard).
-    const ids = new Set<string>(selected)
-    cardsRef.current.forEach((c) => {
-      if (c.groupId && selected.has(c.id)) {
-        cardsRef.current.forEach((o) => { if (o.groupId === c.groupId) ids.add(o.id) })
-      }
-    })
+  // Reçoit l'ensemble exact des cartes à redimensionner, calculé par le canvas
+  // (sélection + groupes entiers) — source unique, garantit que la mise à
+  // l'échelle porte sur exactement les cartes que le cadre englobe.
+  function startResizeSelection(ids: string[]) {
+    const wanted = new Set(ids)
     const map = new Map<string, CardBox>()
     cardsRef.current.forEach((c) => {
-      if (ids.has(c.id) && !c.locked) map.set(c.id, { posX: c.posX, posY: c.posY, width: c.width, height: c.height })
+      if (wanted.has(c.id) && !c.locked) map.set(c.id, { posX: c.posX, posY: c.posY, width: c.width, height: c.height })
     })
     selectionResizeStartRef.current = map.size >= 2 ? map : null
   }

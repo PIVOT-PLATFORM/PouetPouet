@@ -33,7 +33,7 @@ interface Props {
   onMoveCard: (id: string, x: number, y: number) => void
   onResizeCard: (id: string, w: number, h: number) => void
   onResizeCardBox: (id: string, box: { posX: number; posY: number; width: number; height: number }) => void
-  onStartResizeSelection: () => void
+  onStartResizeSelection: (ids: string[]) => void
   onScaleSelection: (factor: number, anchorX: number, anchorY: number) => void
   onCommitResizeSelection: () => void
   onUpdateCard: (id: string, content: string) => void
@@ -816,7 +816,8 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     // Le plus petit côté de la sélection ne doit pas passer sous ~24px.
     const smallestDim = Math.max(1, Math.min(...resizableSelected.map((c) => Math.min(c.width, c.height))))
     const minFactor = Math.min(1, 24 / smallestDim)
-    onStartResizeSelection()
+    // Source unique : on scale exactement les cartes que le cadre englobe.
+    onStartResizeSelection(resizableSelected.map((c) => c.id))
     function onMove(ev: MouseEvent) {
       const p = toCanvas(ev.clientX, ev.clientY)
       const factor = Math.max(minFactor, Math.min(20, Math.hypot(p.x - anchorX, p.y - anchorY) / diag))
