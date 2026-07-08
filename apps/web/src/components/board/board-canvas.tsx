@@ -774,9 +774,19 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     if (c.groupId) for (const o of cards) if (o.groupId === c.groupId) resizableIds.add(o.id)
   }
   const resizableSelected = cards.filter((c) => resizableIds.has(c.id) && !c.locked)
-  const selectionBox = (toolMode === 'select' && !isReadonly && resizableSelected.length >= 2)
+  const selectionBounds = (toolMode === 'select' && !isReadonly && resizableSelected.length >= 2)
     ? boundsOf(resizableSelected)
     : null
+  // Petite marge esthétique (constante à l'écran) pour que le cadre ne colle pas
+  // aux cartes. Gonfle la boîte utilisée à la fois par le rendu et l'interaction.
+  const selectionBox = selectionBounds && (() => {
+    const pad = 10 / viewport.zoom
+    return {
+      minX: selectionBounds.minX - pad, minY: selectionBounds.minY - pad,
+      maxX: selectionBounds.maxX + pad, maxY: selectionBounds.maxY + pad,
+      w: selectionBounds.w + pad * 2, h: selectionBounds.h + pad * 2,
+    }
+  })()
 
   // Tirer une poignée de coin met à l'échelle toute la sélection autour du coin
   // opposé (ancre fixe) : mise à l'échelle uniforme, disposition relative conservée.
