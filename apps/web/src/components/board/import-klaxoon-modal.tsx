@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import type JSZip from 'jszip'
 import { Upload } from 'lucide-react'
 import { api } from '@/lib/api'
-import { convertKlaxoon, type KlxCard, type KlxConnection, type KlxFrame, type KlxImportStats } from '@/lib/klx-import/converter'
+import { convertKlaxoon, type KlxCard, type KlxConnection, type KlxField, type KlxFrame, type KlxImportStats } from '@/lib/klx-import/converter'
 import { findKlxActivities, mimeForPath, mediaKey, type KlxActivityEntry } from '@/lib/klx-import/archive'
 
 interface Props {
@@ -17,13 +17,21 @@ type Step = 'pick' | 'reading' | 'choose' | 'preview' | 'importing' | 'done' | '
 export function ImportKlaxoonModal({ boardId, onClose }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const zipRef = useRef<JSZip | null>(null)
-  const pendingRef = useRef<{ cards: KlxCard[]; connections: KlxConnection[]; frames: KlxFrame[] } | null>(null)
+  const pendingRef = useRef<{ cards: KlxCard[]; connections: KlxConnection[]; frames: KlxFrame[]; fields: KlxField[] } | null>(null)
 
   const [step, setStep] = useState<Step>('pick')
   const [dragging, setDragging] = useState(false)
   const [activities, setActivities] = useState<KlxActivityEntry[]>([])
   const [stats, setStats] = useState<KlxImportStats | null>(null)
-  const [result, setResult] = useState<{ cards: number; connections: number } | null>(null)
+  const [result, setResult] = useState<{
+    cards: number
+    connections: number
+    frames: number
+    cardIds: string[]
+    connectionIds: string[]
+    frameIds: string[]
+  } | null>(null)
+  const [undoing, setUndoing] = useState(false)
   const [error, setError] = useState('')
 
   // Lit un tableau localisé dans l'archive : son _brainstorm_data.json + les
@@ -42,8 +50,8 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
         imageMap.set(mediaKey(path), `data:${mimeForPath(path)};base64,${base64}`)
       }))
 
-      const { cards, connections, frames, stats: s } = convertKlaxoon(data, imageMap, process.env.NODE_ENV === 'development')
-      pendingRef.current = { cards, connections, frames }
+      const { cards, connections, frames, fields, stats: s } = convertKlaxoon(data, imageMap, process.env.NODE_ENV === 'development')
+      pendingRef.current = { cards, connections, frames, fields }
       setStats(s)
       setStep('preview')
     } catch {
@@ -94,12 +102,31 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
     if (!pendingRef.current) return
     setStep('importing')
     try {
-      const res = await api.post(`/api/boards/${boardId}/import/klaxoon`, pendingRef.current) as { cards: number; connections: number }
+      const res = await api.post(`/api/boards/${boardId}/import/klaxoon`, pendingRef.current) as NonNullable<typeof result>
       setResult(res)
       setStep('done')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erreur lors de l'import.")
       setStep('error')
+    }
+  }
+
+  // Supprime tout ce que cet import vient de créer (cartes, liaisons, cadres).
+  async function undoImport() {
+    if (!result || undoing) return
+    setUndoing(true)
+    try {
+      await api.post(`/api/boards/${boardId}/import/undo`, {
+        cardIds: result.cardIds,
+        connectionIds: result.connectionIds,
+        frameIds: result.frameIds,
+      })
+      onClose()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Impossible d'annuler l'import.")
+      setStep('error')
+    } finally {
+      setUndoing(false)
     }
   }
 
@@ -198,6 +225,9 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
               <StatRow icon="🖼️" label="Images" value={stats.images} />
               <StatRow icon="🔗" label="Liaisons" value={stats.links} />
               <StatRow icon="🗂️" label="Groupes" value={stats.groups} />
+              {stats.fields > 0 && (
+                <StatRow icon="🏷️" label="Champs (catégorie, dimensions)" value={stats.fields} />
+              )}
               {stats.skipped > 0 && (
                 <StatRow icon="⏭️" label="Ignorés (inactifs…)" value={stats.skipped} muted />
               )}
@@ -236,11 +266,18 @@ export function ImportKlaxoonModal({ boardId, onClose }: Props) {
               </div>
               <p className="text-sm font-medium text-gray-900">Import réussi</p>
               <p className="text-xs text-gray-500 text-center">
-                {result.cards} carte{result.cards > 1 ? 's' : ''} et {result.connections} liaison{result.connections > 1 ? 's' : ''} ajoutée{result.connections > 1 ? 's' : ''}.
+                {result.cards} carte{result.cards > 1 ? 's' : ''}{result.frames > 0 ? `, ${result.frames} cadre${result.frames > 1 ? 's' : ''}` : ''} et {result.connections} liaison{result.connections > 1 ? 's' : ''} ajoutée{result.connections > 1 ? 's' : ''}.
               </p>
             </div>
             <button onClick={onClose} className="w-full py-2 text-sm rounded-xl bg-primary-600 text-white font-medium hover:bg-primary-700 transition-colors">
               Fermer
+            </button>
+            <button
+              onClick={undoImport}
+              disabled={undoing}
+              className="w-full py-2 text-sm rounded-xl text-red-500 hover:bg-red-50 font-medium transition-colors disabled:opacity-50"
+            >
+              {undoing ? 'Annulation…' : 'Annuler cet import'}
             </button>
           </>
         )}

@@ -553,4 +553,75 @@ describe('convertKlaxoon', () => {
     expect(stats.links).toBe(0)
     expect(stats.skipped).toBe(1)
   })
+
+  // ── Catégories / dimensions → champs personnalisés ──────────────────────────
+
+  it('maps a postit category to a "Catégorie" SELECT field value', () => {
+    const data = {
+      colors: [],
+      categories: [{ id: 'cat-1', label: 'MEP EAM', rank: 0 }],
+      ideas: [makeIdea({ category: { id: 'cat-1' } })],
+      state: [], links: [], groups: [],
+    }
+    const { cards, fields, stats } = convertKlaxoon(data)
+    expect(cards[0].fieldValues).toEqual([{ field: 'Catégorie', value: 'MEP EAM' }])
+    expect(fields).toEqual([{ name: 'Catégorie', type: 'SELECT', options: ['MEP EAM'] }])
+    expect(stats.fields).toBe(1)
+  })
+
+  it('maps dimension_values to their own TEXT fields, one per dimension label', () => {
+    const data = {
+      colors: [],
+      dimensions: [
+        { uuid: 'dim-porteur', label: 'Porteur', rank: 0 },
+        { uuid: 'dim-equipe', label: 'Equipe', rank: 1 },
+      ],
+      ideas: [makeIdea({
+        dimension_values: [
+          { dimension: { uuid: 'dim-porteur' }, value: 'Jamir & Julien' },
+          { dimension: { uuid: 'dim-equipe' }, value: 'TSE' },
+        ],
+      })],
+      state: [], links: [], groups: [],
+    }
+    const { cards, fields } = convertKlaxoon(data)
+    expect(cards[0].fieldValues).toEqual([
+      { field: 'Porteur', value: 'Jamir & Julien' },
+      { field: 'Equipe', value: 'TSE' },
+    ])
+    expect(fields).toEqual(expect.arrayContaining([
+      { name: 'Porteur', type: 'TEXT', options: null },
+      { name: 'Equipe', type: 'TEXT', options: null },
+    ]))
+  })
+
+  it('declares no fields when no idea actually carries a category or dimension value', () => {
+    const data = {
+      colors: [],
+      categories: [{ id: 'cat-1', label: 'Unused', rank: 0 }],
+      dimensions: [{ uuid: 'dim-1', label: 'Unused dim', rank: 0 }],
+      ideas: [makeIdea()], // no category, no dimension_values
+      state: [], links: [], groups: [],
+    }
+    const { cards, fields, stats } = convertKlaxoon(data)
+    expect(cards[0].fieldValues).toBeUndefined()
+    expect(fields).toEqual([])
+    expect(stats.fields).toBe(0)
+  })
+
+  it('ignores empty dimension_values and unknown category ids', () => {
+    const data = {
+      colors: [],
+      categories: [],
+      dimensions: [{ uuid: 'dim-1', label: 'Porteur', rank: 0 }],
+      ideas: [makeIdea({
+        category: { id: 'ghost-cat' },
+        dimension_values: [{ dimension: { uuid: 'dim-1' }, value: '' }],
+      })],
+      state: [], links: [], groups: [],
+    }
+    const { cards, fields } = convertKlaxoon(data)
+    expect(cards[0].fieldValues).toBeUndefined()
+    expect(fields).toEqual([])
+  })
 })

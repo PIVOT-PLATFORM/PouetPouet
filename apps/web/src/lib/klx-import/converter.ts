@@ -203,6 +203,16 @@ export interface KlxCard {
   // Klaxoon group uuid this card belongs to (null = ungrouped). The API remaps
   // each distinct key to a fresh server-side groupId on import.
   groupKey: string | null
+  // Structured metadata (postit category, dimension values) → board custom
+  // fields; `field` is the field name declared in KlxImportResult.fields.
+  fieldValues?: { field: string; value: string }[]
+}
+
+// Klaxoon postit categories / dimensions → board custom fields.
+export interface KlxField {
+  name: string
+  type: 'TEXT' | 'SELECT'
+  options: string[] | null
 }
 
 export interface KlxConnection {
@@ -234,6 +244,7 @@ export interface KlxImportStats {
   links: number
   groups: number
   zones: number
+  fields: number
   skipped: number
 }
 
@@ -241,6 +252,7 @@ export interface KlxImportResult {
   cards: KlxCard[]
   connections: KlxConnection[]
   frames: KlxFrame[]
+  fields: KlxField[]
   stats: KlxImportStats
   // Unknown board_object_types encountered during import (one sample per type).
   // Populated only when debug=true is passed. Used to identify new Klaxoon types.
@@ -255,8 +267,19 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
   const cards: KlxCard[] = []
   const connections: KlxConnection[] = []
   const frames: KlxFrame[] = []
-  const stats: KlxImportStats = { postits: 0, texts: 0, draws: 0, shapes: 0, images: 0, links: 0, groups: 0, zones: 0, skipped: 0 }
+  const stats: KlxImportStats = { postits: 0, texts: 0, draws: 0, shapes: 0, images: 0, links: 0, groups: 0, zones: 0, fields: 0, skipped: 0 }
   const unknownTypes: Record<string, unknown> = {}
+
+  // Postit categories (color-legend labels) and dimensions (structured extra
+  // columns like « Porteur ») referenced by ideas — become board custom fields.
+  const categoryLabels = new Map<string, string>()
+  for (const cat of data.categories ?? []) {
+    if (cat?.id !== undefined && cat.label) categoryLabels.set(String(cat.id), String(cat.label))
+  }
+  const dimensionLabels = new Map<string, string>()
+  for (const dim of data.dimensions ?? []) {
+    if (dim?.uuid && dim.label) dimensionLabels.set(dim.uuid, String(dim.label))
+  }
 
   // --- Global offset: shift everything so top-left starts near (0, 0) ---
   let minX = Infinity, minY = Infinity
@@ -292,6 +315,16 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
     const posX = Math.round((idea.coords?.left ?? 0) - ox)
     const posY = Math.round((idea.coords?.top ?? 0) - oy)
 
+    const fieldValues: { field: string; value: string }[] = []
+    const categoryLabel = idea.category?.id ? categoryLabels.get(String(idea.category.id)) : undefined
+    if (categoryLabel) fieldValues.push({ field: 'Catégorie', value: categoryLabel })
+    for (const dv of idea.dimension_values ?? []) {
+      const label = dv?.dimension?.uuid ? dimensionLabels.get(dv.dimension.uuid) : undefined
+      const value = typeof dv?.value === 'string' ? dv.value.trim() : ''
+      if (label && value) fieldValues.push({ field: label, value })
+    }
+    const withFields = fieldValues.length > 0 ? { fieldValues } : {}
+
     // Image postit (idea.type IMAGE): the postit body is a mediabundle image.
     if (idea.type?.type === 'IMAGE' && idea.image?.path) {
       const dataUrl = imageMap?.get(idea.image.path)
@@ -308,6 +341,7 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
         zIndex: idea.z_index ?? 0,
         locked: idea.is_locked ?? false,
         groupKey: null,
+        ...withFields,
       })
       stats.images++
       continue
@@ -333,6 +367,7 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
       zIndex: idea.z_index ?? 0,
       locked: idea.is_locked ?? false,
       groupKey: null,
+      ...withFields,
     })
     stats.postits++
   }
@@ -599,9 +634,26 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
     stats.groups++
   }
 
+  // --- Custom fields ---
+  // Only declare the fields at least one imported card actually uses.
+  const usedFieldNames = new Set<string>()
+  for (const c of cards) {
+    for (const fv of c.fieldValues ?? []) usedFieldNames.add(fv.field)
+  }
+  const fields: KlxField[] = []
+  if (usedFieldNames.has('Catégorie')) {
+    fields.push({ name: 'Catégorie', type: 'SELECT', options: [...new Set(categoryLabels.values())] })
+  }
+  for (const label of new Set(dimensionLabels.values())) {
+    if (usedFieldNames.has(label) && label !== 'Catégorie') {
+      fields.push({ name: label, type: 'TEXT', options: null })
+    }
+  }
+  stats.fields = fields.length
+
   if (debug && Object.keys(unknownTypes).length > 0) {
     console.info('[klx-import] unknown types (one sample each):', unknownTypes)
   }
 
-  return { cards, connections, frames, stats, ...(debug ? { unknownTypes } : {}) }
+  return { cards, connections, frames, fields, stats, ...(debug ? { unknownTypes } : {}) }
 }

@@ -162,11 +162,26 @@ export function useBoard(boardId: string) {
       if (role) setUserRole(role as 'OWNER' | 'EDITOR' | 'VIEWER')
     })
 
-    socket.on('board:imported', ({ cards: ic, connections: iconn, frames: iframes }: { cards: Card[]; connections: Connection[]; frames?: Frame[] }) => {
-      setCards((prev) => [...prev, ...ic.map((c) => ({ ...c, fieldValues: [] }))])
+    socket.on('board:imported', ({ cards: ic, connections: iconn, frames: iframes, fields: ifields }: { cards: Card[]; connections: Connection[]; frames?: Frame[]; fields?: BoardField[] }) => {
+      setCards((prev) => [...prev, ...ic.map((c) => ({ ...c, fieldValues: c.fieldValues ?? [] }))])
       setConnections((prev) => [...prev, ...iconn])
       if (iframes?.length) setFrames((prev) => [...prev, ...iframes])
+      if (ifields?.length) {
+        setFields((prev) => [...prev, ...ifields
+          .filter((f) => !prev.some((p) => p.id === f.id))
+          .map((f) => ({ ...f, options: f.options as string[] | null }))])
+      }
       setImportCount((n) => n + 1)
+    })
+
+    socket.on('board:import-undone', ({ cardIds, connectionIds, frameIds }: { cardIds: string[]; connectionIds: string[]; frameIds: string[] }) => {
+      const cardSet = new Set(cardIds)
+      const connSet = new Set(connectionIds)
+      const frameSet = new Set(frameIds)
+      setCards((prev) => prev.filter((c) => !cardSet.has(c.id)))
+      // Les connexions portées par les cartes supprimées disparaissent aussi.
+      setConnections((prev) => prev.filter((c) => !connSet.has(c.id) && !cardSet.has(c.fromId) && !cardSet.has(c.toId)))
+      setFrames((prev) => prev.filter((f) => !frameSet.has(f.id)))
     })
 
     socket.on('board:error', (msg: string) => {
@@ -349,7 +364,7 @@ export function useBoard(boardId: string) {
         'frame:created', 'frame:moved', 'frame:resized', 'frame:updated', 'frame:deleted',
         'boardfield:created', 'boardfield:updated', 'boardfield:deleted',
         'cardfield:updated', 'cardfield:cleared',
-        'board:imported',
+        'board:imported', 'board:import-undone',
       ].forEach((e) => socket.off(e))
     }
   }, [boardId])
