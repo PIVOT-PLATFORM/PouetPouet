@@ -331,16 +331,23 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     window.addEventListener('mouseup', onUp)
   }
 
-  // ── Middle-mouse pan ─────────────────────────────────────────────────────────
+  // ── Pan au clic milieu (molette) ou au clic droit ───────────────────────────
   useEffect(() => {
     const el = containerRef.current!
     function onDown(e: MouseEvent) {
-      if (e.button !== 1) return
+      // bouton 1 = molette, bouton 2 = clic droit — les deux naviguent le board.
+      if (e.button !== 1 && e.button !== 2) return
       e.preventDefault()
       startPan(e.clientX, e.clientY)
     }
+    // Supprime le menu contextuel du navigateur pour que le clic droit serve au pan.
+    function onContextMenu(e: MouseEvent) { e.preventDefault() }
     el.addEventListener('mousedown', onDown)
-    return () => el.removeEventListener('mousedown', onDown)
+    el.addEventListener('contextmenu', onContextMenu)
+    return () => {
+      el.removeEventListener('mousedown', onDown)
+      el.removeEventListener('contextmenu', onContextMenu)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
