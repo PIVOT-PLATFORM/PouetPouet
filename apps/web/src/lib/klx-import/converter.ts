@@ -631,7 +631,16 @@ export function convertKlaxoon(data: any, imageMap?: Map<string, string>, debug 
   // The board renders cards in creation order (no per-card z-index server side),
   // and the API creates them in array order. Sort by Klaxoon z_index so big
   // container shapes (low z) end up below the postits they frame.
-  cards.sort((a, b) => a.zIndex - b.zIndex)
+  //
+  // Oversized postits (≥ 3× the base width) are almost always background/section
+  // blocks the author drew *behind* content (calendar day columns, area labels).
+  // Klaxoon's z-index doesn't reliably keep them at the back, so we force them
+  // there — otherwise they render opaque over the small postits they should frame.
+  const isBackgroundPostit = (c: KlxCard) => c.type === 'TEXT' && c.width >= KLX_POSTIT * 3
+  cards.sort((a, b) => {
+    const back = (isBackgroundPostit(a) ? 0 : 1) - (isBackgroundPostit(b) ? 0 : 1)
+    return back !== 0 ? back : a.zIndex - b.zIndex
+  })
 
   // --- Groups → shared groupKey ---
   // Tag each group's imported members with the Klaxoon group uuid. Only groups

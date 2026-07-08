@@ -283,6 +283,22 @@ describe('convertKlaxoon', () => {
     expect(cards[1].klxId).toBe('high')
   })
 
+  it('sorts oversized background postits behind normal ones, even with a higher z_index', () => {
+    const data = {
+      colors: [],
+      ideas: [
+        makeIdea({ uuid: 'small', z_index: 1 }),
+        // ×4 postit (width 768 ≥ 576) avec un z_index supérieur : doit quand même
+        // passer derrière (rendu en premier dans le tableau).
+        makeIdea({ uuid: 'bg', z_index: 999, scale: { scale_x: 4, scale_y: 4 } }),
+      ],
+      state: [], links: [], groups: [],
+    }
+    const { cards } = convertKlaxoon(data)
+    expect(cards[0].klxId).toBe('bg')     // arrière-plan rendu en premier
+    expect(cards[1].klxId).toBe('small')  // petit postit au-dessus
+  })
+
   it('skips inactive links', () => {
     const data = {
       colors: [],
