@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useMemo, useCallback, forwardRef, useImper
 import type { Card, Frame, BoardField, Connection, VoteSession, ClipboardCard } from '@/hooks/useBoard'
 import { groupColor } from '@/hooks/useBoard'
 import { BoardCard } from './board-card'
+import { MIN_W, MIN_H, SHAPE_MIN, MIN_LABEL_W } from './board-card-constants'
 import { CropModal } from './crop-modal'
 import { FrameItem } from './frame-item'
 import { CardDetailModal } from './card-detail-modal'
@@ -718,6 +719,16 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     return { minX, minY, maxX, maxY, w: maxX - minX, h: maxY - minY }
   }
 
+  // Bounding box using each card's *rendered* size (min-clamped like BoardCard),
+  // so the selection frame encloses cards whose stored size is below the minimum.
+  function renderedBoundsOf(items: Card[]) {
+    return boundsOf(items.map((c) => {
+      const minW = c.type === 'SHAPE' || c.type === 'DRAW' ? SHAPE_MIN : c.type === 'LABEL' ? MIN_LABEL_W : MIN_W
+      const minH = c.type === 'SHAPE' || c.type === 'DRAW' ? SHAPE_MIN : c.type === 'LABEL' ? 20 : MIN_H
+      return { posX: c.posX, posY: c.posY, width: Math.max(c.width, minW), height: Math.max(c.height, minH) }
+    }))
+  }
+
   // Lowest reachable zoom: normally MIN_ZOOM, but never higher than what it takes
   // to fit all content (×0.6 to leave a little slack) — so a very large board
   // (huge Klaxoon imports) can always be zoomed out far enough to see in full.
@@ -774,8 +785,11 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     if (c.groupId) for (const o of cards) if (o.groupId === c.groupId) resizableIds.add(o.id)
   }
   const resizableSelected = cards.filter((c) => resizableIds.has(c.id) && !c.locked)
+  // Bornes basées sur la taille RÉELLEMENT affichée : une carte dont les
+  // dimensions stockées passent sous le minimum s'affiche plus grande
+  // (max(w, MIN_W)…) et dépasserait sinon du cadre.
   const selectionBounds = (toolMode === 'select' && !isReadonly && resizableSelected.length >= 2)
-    ? boundsOf(resizableSelected)
+    ? renderedBoundsOf(resizableSelected)
     : null
   // Petite marge esthétique (constante à l'écran) pour que le cadre ne colle pas
   // aux cartes. Gonfle la boîte utilisée à la fois par le rendu et l'interaction.
