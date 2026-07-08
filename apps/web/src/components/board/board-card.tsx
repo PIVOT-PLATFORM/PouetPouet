@@ -555,9 +555,19 @@ export const BoardCard = memo(function BoardCard({
   // ── TEXT / IMAGE / LINK card ─────────────────────────────────────────────────
   // TEXT cards get a colored header band derived from the card color.
   const headerBg = card.type === 'TEXT' ? headerTint(card.color) : undefined
+  // Font scales with the card size so text stays proportional to the ticket:
+  // a bigger card shows bigger text (matching Klaxoon postits). REF_W is the
+  // width of a freshly-created TEXT card, at which textFmt.size renders as-is.
+  // Capped by half the card height so a wide-but-short card doesn't overflow
+  // vertically (postits keep their width-based size — the cap only bites on
+  // genuinely short cards).
+  const REF_W = 192
+  const renderH = Math.max(card.height, MIN_H)
+  const fontScale = card.type === 'TEXT' ? Math.max(card.width, MIN_W) / REF_W : 1
+  const scaledFontSize = Math.round(Math.max(8, Math.min(240, textFmt.size * fontScale, renderH * 0.5)))
   // TEXT card text styling (configured from the detail modal).
   const textStyle: React.CSSProperties = {
-    fontSize: textFmt.size,
+    fontSize: scaledFontSize,
     fontWeight: textFmt.bold ? 700 : 400,
     fontStyle: textFmt.italic ? 'italic' : 'normal',
     textDecoration: [textFmt.underline ? 'underline' : '', textFmt.strike ? 'line-through' : ''].filter(Boolean).join(' ') || 'none',
@@ -565,6 +575,20 @@ export const BoardCard = memo(function BoardCard({
     textAlign: textFmt.align,
   }
   return (
+    <>
+    {/* Verrou doux : badge "Untel édite…". Rendu frère de la carte (et non
+        enfant) pour échapper à son overflow-hidden — sinon la bulle, placée
+        au-dessus du bord, serait rognée. Positionné en coordonnées board,
+        juste au-dessus de la carte. */}
+    {remoteEditor && (
+      <div
+        className="absolute z-30 flex items-center gap-1 bg-amber-500 text-white rounded-full px-2.5 py-1 shadow-md ring-2 ring-white pointer-events-none"
+        style={{ left: card.posX + 8, top: card.posY, transform: 'translateY(calc(-100% - 2px))' }}
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+        <span className="text-[11px] font-semibold whitespace-nowrap">{remoteEditor.name} édite…</span>
+      </div>
+    )}
     <div
       data-card-id={card.id}
       className={`absolute rounded-xl shadow-md hover:shadow-xl transition-shadow duration-200 flex flex-col group select-none ${isEditing && card.type === 'TEXT' ? '' : 'overflow-hidden'}`}
@@ -583,13 +607,6 @@ export const BoardCard = memo(function BoardCard({
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
-      {/* ── Verrou doux : badge "Untel édite…" (halo blanc pour ressortir sur toute couleur) ── */}
-      {remoteEditor && (
-        <div className="absolute -top-3 left-2 z-10 flex items-center gap-1 bg-amber-500 text-white rounded-full px-2.5 py-1 shadow-md ring-2 ring-white pointer-events-none">
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-          <span className="text-[11px] font-semibold whitespace-nowrap">{remoteEditor.name} édite…</span>
-        </div>
-      )}
       {/* ── Header band (colored for TEXT) + actions row ── */}
       <div
         className="shrink-0 flex justify-end items-center gap-1 px-2 pt-1.5 h-7 rounded-t-xl"
@@ -803,7 +820,9 @@ export const BoardCard = memo(function BoardCard({
       <div className="shrink-0 h-2" />
 
       {/* ── Resize handles (when selected) ── */}
-      {!isReadonly && !card.locked && !isMultiSelect && (
+      {/* Masquées en sélection multiple ET pour une carte groupée : le groupe se
+          redimensionne d'un bloc via le cadre englobant du canvas. */}
+      {!isReadonly && !card.locked && !isMultiSelect && !card.groupId && (
         <BorderResizeHandles onStart={handleResizeMouseDown} />
       )}
 
@@ -812,6 +831,7 @@ export const BoardCard = memo(function BoardCard({
           <LinkCardsOverlay cardId={card.id} isSource={isLinkSource} onClick={onLinkCardsClick} />
         )}
     </div>
+    </>
   )
 })
 
