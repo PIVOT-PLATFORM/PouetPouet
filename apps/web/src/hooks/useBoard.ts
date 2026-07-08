@@ -549,11 +549,18 @@ export function useBoard(boardId: string) {
 
   function startResizeSelection() {
     const selected = selectedIdsRef.current
+    // Étend au groupe entier de toute carte sélectionnée (comme startDragCard).
+    const ids = new Set<string>(selected)
+    cardsRef.current.forEach((c) => {
+      if (c.groupId && selected.has(c.id)) {
+        cardsRef.current.forEach((o) => { if (o.groupId === c.groupId) ids.add(o.id) })
+      }
+    })
     const map = new Map<string, CardBox>()
     cardsRef.current.forEach((c) => {
-      if (selected.has(c.id) && !c.locked) map.set(c.id, { posX: c.posX, posY: c.posY, width: c.width, height: c.height })
+      if (ids.has(c.id) && !c.locked) map.set(c.id, { posX: c.posX, posY: c.posY, width: c.width, height: c.height })
     })
-    selectionResizeStartRef.current = map.size > 0 ? map : null
+    selectionResizeStartRef.current = map.size >= 2 ? map : null
   }
 
   function scaleSelection(factor: number, anchorX: number, anchorY: number) {

@@ -816,7 +816,9 @@ export const BoardCard = memo(function BoardCard({
       <div className="shrink-0 h-2" />
 
       {/* ── Resize handles (when selected) ── */}
-      {!isReadonly && !card.locked && !isMultiSelect && (
+      {/* Masquées en sélection multiple ET pour une carte groupée : le groupe se
+          redimensionne d'un bloc via le cadre englobant du canvas. */}
+      {!isReadonly && !card.locked && !isMultiSelect && !card.groupId && (
         <BorderResizeHandles onStart={handleResizeMouseDown} />
       )}
 

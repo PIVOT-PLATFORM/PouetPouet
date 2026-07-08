@@ -763,10 +763,17 @@ export const BoardCanvas = forwardRef<BoardCanvasHandle, Props>(function BoardCa
     else fitToContent()
   }
 
-  // ── Redimensionnement d'une sélection multiple (cadre englobant) ──────────────
-  // Boîte englobant les cartes sélectionnées non verrouillées (≥ 2) — support des
-  // poignées de redimensionnement de groupe.
-  const resizableSelected = cards.filter((c) => selectedIds.has(c.id) && !c.locked)
+  // ── Redimensionnement d'une sélection multiple / d'un groupe (cadre englobant) ──
+  // Ensemble redimensionnable = cartes sélectionnées + tous les membres de leur
+  // groupe (comme le déplacement, qui entraîne le groupe entier même si une seule
+  // carte est sélectionnée), hors cartes verrouillées.
+  const resizableIds = new Set<string>()
+  for (const c of cards) {
+    if (!selectedIds.has(c.id)) continue
+    resizableIds.add(c.id)
+    if (c.groupId) for (const o of cards) if (o.groupId === c.groupId) resizableIds.add(o.id)
+  }
+  const resizableSelected = cards.filter((c) => resizableIds.has(c.id) && !c.locked)
   const selectionBox = (toolMode === 'select' && !isReadonly && resizableSelected.length >= 2)
     ? boundsOf(resizableSelected)
     : null
