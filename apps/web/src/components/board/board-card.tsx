@@ -571,6 +571,20 @@ export const BoardCard = memo(function BoardCard({
     textAlign: textFmt.align,
   }
   return (
+    <>
+    {/* Verrou doux : badge "Untel édite…". Rendu frère de la carte (et non
+        enfant) pour échapper à son overflow-hidden — sinon la bulle, placée
+        au-dessus du bord, serait rognée. Positionné en coordonnées board,
+        juste au-dessus de la carte. */}
+    {remoteEditor && (
+      <div
+        className="absolute z-30 flex items-center gap-1 bg-amber-500 text-white rounded-full px-2.5 py-1 shadow-md ring-2 ring-white pointer-events-none"
+        style={{ left: card.posX + 8, top: card.posY, transform: 'translateY(calc(-100% - 2px))' }}
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+        <span className="text-[11px] font-semibold whitespace-nowrap">{remoteEditor.name} édite…</span>
+      </div>
+    )}
     <div
       data-card-id={card.id}
       className={`absolute rounded-xl shadow-md hover:shadow-xl transition-shadow duration-200 flex flex-col group select-none ${isEditing && card.type === 'TEXT' ? '' : 'overflow-hidden'}`}
@@ -589,13 +603,6 @@ export const BoardCard = memo(function BoardCard({
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
-      {/* ── Verrou doux : badge "Untel édite…" (halo blanc pour ressortir sur toute couleur) ── */}
-      {remoteEditor && (
-        <div className="absolute -top-3 left-2 z-10 flex items-center gap-1 bg-amber-500 text-white rounded-full px-2.5 py-1 shadow-md ring-2 ring-white pointer-events-none">
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-          <span className="text-[11px] font-semibold whitespace-nowrap">{remoteEditor.name} édite…</span>
-        </div>
-      )}
       {/* ── Header band (colored for TEXT) + actions row ── */}
       <div
         className="shrink-0 flex justify-end items-center gap-1 px-2 pt-1.5 h-7 rounded-t-xl"
@@ -818,6 +825,7 @@ export const BoardCard = memo(function BoardCard({
           <LinkCardsOverlay cardId={card.id} isSource={isLinkSource} onClick={onLinkCardsClick} />
         )}
     </div>
+    </>
   )
 })
 
