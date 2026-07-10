@@ -200,7 +200,7 @@ export const pdfRoutes: FastifyPluginAsync = async (app) => {
     }
     const cleanName = data.filename.replace(/\.pdf$/i, '').trim() || 'Document'
     const record = await prisma.pdfDocument.create({
-      data: { ownerId, name: cleanName, pageCount, size, folderId: folderId ?? null },
+      data: { ownerId, name: cleanName, pageCount, size, folderId: folderId ?? null, tags: [] },
       select: docSelect,
     })
     renameSync(tmp, filePath(record.id))
@@ -253,7 +253,7 @@ export const pdfRoutes: FastifyPluginAsync = async (app) => {
     }
     const outBytes = await merged.save()
     const record = await prisma.pdfDocument.create({
-      data: { ownerId, name, pageCount: merged.getPageCount(), size: outBytes.length, folderId: folderId ?? null },
+      data: { ownerId, name, pageCount: merged.getPageCount(), size: outBytes.length, folderId: folderId ?? null, tags: [] },
       select: docSelect,
     })
     writeFileSync(filePath(record.id), outBytes)
@@ -279,7 +279,7 @@ export const pdfRoutes: FastifyPluginAsync = async (app) => {
     copied.forEach(p => newDoc.addPage(p))
     const outBytes = await newDoc.save()
     const record = await prisma.pdfDocument.create({
-      data: { ownerId, name, pageCount: newDoc.getPageCount(), size: outBytes.length, folderId: doc.folderId },
+      data: { ownerId, name, pageCount: newDoc.getPageCount(), size: outBytes.length, folderId: doc.folderId, tags: [] },
       select: docSelect,
     })
     writeFileSync(filePath(record.id), outBytes)
@@ -355,7 +355,7 @@ export const pdfRoutes: FastifyPluginAsync = async (app) => {
       copied.forEach(p => part.addPage(p))
       const outBytes = await part.save()
       const record = await prisma.pdfDocument.create({
-        data: { ownerId, name: `${doc.name} — partie ${i + 1}`, pageCount: part.getPageCount(), size: outBytes.length, folderId: doc.folderId },
+        data: { ownerId, name: `${doc.name} — partie ${i + 1}`, pageCount: part.getPageCount(), size: outBytes.length, folderId: doc.folderId, tags: [] },
         select: docSelect,
       })
       writeFileSync(filePath(record.id), outBytes)
