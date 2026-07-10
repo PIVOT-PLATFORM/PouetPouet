@@ -6,6 +6,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 > Les notes de version **détaillées** (groupées par thème, orientées utilisateur) sont la source de vérité in-app : [`apps/api/src/lib/patch-notes.ts`](apps/api/src/lib/patch-notes.ts), affichées dans le panneau de notifications. Ce fichier en est l'index public condensé.
 
+## [0.32.1] — 2026-07-10
+**Sécurité** : filtrage anti-SSRF sur le fetch OpenGraph des cartes lien/texte (résolution DNS + blocage des plages privées/loopback/link-local, redirections revalidées à chaque hop), en-têtes HTTP de sécurité (`@fastify/helmet`) sur l'API, conteneurs Docker exécutés en utilisateur non-root, `nodemailer` mis à jour (faille `high` corrigée). Documentation `SECURITY.md` mise à jour.
+
 ## [0.32.0] — 2026-07-09
 **Import Klaxoon** revu : dépôt direct d'un fichier `.klx` (décompression, repérage des activités et conversion automatiques), fidélité de conversion nettement améliorée (tailles et positions réelles, zones → cadres, postits image, dessins au brush, formes et flèches), catégories/dimensions Klaxoon → champs personnalisés sur les cartes, annulation de l'import en un clic, placement anti-collision sous le contenu existant, liaisons en pointillés désormais détectées. **Confort des boards** : taille du texte proportionnelle à la carte (lisible quel que soit le zoom), redimensionnement d'une sélection multiple ou d'un groupe via un cadre englobant, dézoom dynamique adapté aux très grands boards, navigation au clic droit maintenu (comme le clic molette), badge « en cours d'édition » qui n'est plus rogné.
 
