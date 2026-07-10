@@ -6,6 +6,7 @@ import { ZodError } from 'zod'
 import { ExternalUnavailableError } from './lib/external-client.js'
 import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify'
 import cors from '@fastify/cors'
+import helmet from '@fastify/helmet'
 import jwt from '@fastify/jwt'
 import cookie from '@fastify/cookie'
 import rateLimit from '@fastify/rate-limit'
@@ -47,6 +48,13 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
     promise,
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
   ])
+}
+
+// En prod, un JWT_SECRET absent retomberait sur un secret par défaut connu de tous
+// (voir plus bas) : les tokens émis seraient forgeables par quiconque lit le code
+// source. On préfère planter au démarrage plutôt que de servir en silence avec ce défaut.
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET manquant en production — arrêt du démarrage.')
 }
 
 const app = Fastify({
@@ -97,6 +105,13 @@ if (process.env.NODE_ENV === 'production') {
 await app.register(cors, {
   origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
   credentials: true,
+})
+
+await app.register(helmet, {
+  // API JSON pure consommée cross-origin par apps/web — CSP par défaut de helmet
+  // vise du HTML servi par le même serveur, non pertinent et gênant ici.
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
 })
 
 await app.register(jwt, {
