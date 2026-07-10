@@ -44,9 +44,10 @@ Le gate CI `npm run security:audit` bloque les vulnérabilités **critical** sur
 
 | Paquet | Alerte | Pourquoi accepté |
 |--------|--------|------------------|
-| `xlsx` | Prototype pollution + ReDoS (GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9) | **Usage write-only** : nous générons des fichiers à l'export (`json_to_sheet` + `writeFile`), nous ne **parsons jamais** de fichier `.xlsx` entrant. Les failles sont sur le chemin de lecture → non atteignables. Pas de fix npm (paquet figé à 0.18.5). |
-| `prisma` / `effect` | DoS contexte fibers (GHSA-38f7-945m-qr2g) | Le correctif force `prisma@6.19.3` (moteur v7) qui **casse le build Docker**. Prisma est volontairement épinglé à 6.19.0. Dette suivie : item *Migration Prisma v7* dans `ROADMAP.md`. |
+| `xlsx` | Prototype pollution + ReDoS (GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9) | Utilisé pour l'export (`json_to_sheet` + `writeFile`) **et** pour un import Excel dans Scrum Poker (`read()` sur un fichier déposé par l'utilisateur, exécuté côté navigateur). Risque **borné au navigateur de la personne qui dépose le fichier** — aucune exécution serveur, aucun autre utilisateur affecté. Pas de fix npm (paquet figé à 0.18.5) ; migration vers `exceljs` à évaluer si la surface d'usage s'étend. |
+| `prisma` | Bypass de middleware statique via `@prisma/dev`→`@hono/node-server` (repeated slashes in serveStatic) | Dépendance du **CLI de dev** de Prisma (tooling `prisma studio`), jamais invoquée par notre code en production (`prisma migrate deploy` ne sert aucun fichier statique). Non atteignable. En attente d'un bump upstream de Prisma. |
 | `next` / `postcss` | XSS stringify CSS (GHSA-qx2v-qp2m-jg93) | Faille **build-time** (génération CSS), pas runtime. Le correctif naïf rétrograde Next à 9.3.3. Sera résolu au prochain patch de Next. |
+| `@google-cloud/storage` (chaîne `gaxios`/`retry-request`/`teeny-request`/`uuid`) | Vulnérabilités moderate transitives sur des versions internes du SDK | Déjà à la dernière version compatible (`7.21.0`) ; les paquets vulnérables sont épinglés par les dépendances internes du SDK Google Cloud lui-même. Se résorbera au prochain bump upstream de `@google-cloud/storage`. |
 
 Cette liste est revue à chaque `npm audit`. Toute nouvelle alerte **critical** ou toute alerte atteignable en production doit être corrigée, pas ajoutée ici.
 
