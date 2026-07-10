@@ -1,6 +1,27 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { type TestBookStatus, type TestCaseStatus } from '@prisma/client'
+import { z } from 'zod'
 import { prisma } from '../../lib/prisma.js'
+
+// Allowlist explicite des champs éditables — évite qu'un body forgé n'écrase
+// ownerId/bookId/sectionId via `data: body` (mass assignment cross-tenant).
+const bookUpdateSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  version: z.string().nullable().optional(),
+  status: z.enum(['DRAFT', 'REVIEW', 'APPROVED', 'ARCHIVED']).optional(),
+})
+const sectionUpdateSchema = z.object({
+  title: z.string().min(1).optional(),
+  order: z.number().int().optional(),
+})
+const caseUpdateSchema = z.object({
+  title: z.string().min(1).optional(),
+  precondition: z.string().nullable().optional(),
+  steps: z.string().nullable().optional(),
+  expected: z.string().nullable().optional(),
+  status: z.enum(['TODO', 'PASS', 'FAIL', 'BLOCKED', 'SKIP']).optional(),
+  order: z.number().int().optional(),
+})
 
 export const testbooksRoutes: FastifyPluginAsync = async (app) => {
   // ── Liste + création ────────────────────────────────────────────────────────
@@ -47,7 +68,7 @@ export const testbooksRoutes: FastifyPluginAsync = async (app) => {
   app.patch('/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id: ownerId } = request.user as { id: string }
     const { id } = request.params as { id: string }
-    const body = request.body as Partial<{ title: string; description: string | null; version: string | null; status: TestBookStatus }>
+    const body = bookUpdateSchema.parse(request.body)
 
     const book = await prisma.testBook.findFirst({ where: { id, ownerId } })
     if (!book) return reply.status(404).send({ error: 'Cahier introuvable' })
@@ -88,7 +109,7 @@ export const testbooksRoutes: FastifyPluginAsync = async (app) => {
   app.patch('/sections/:sectionId', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id: ownerId } = request.user as { id: string }
     const { sectionId } = request.params as { sectionId: string }
-    const body = request.body as Partial<{ title: string; order: number }>
+    const body = sectionUpdateSchema.parse(request.body)
 
     const section = await prisma.testSection.findFirst({
       where: { id: sectionId },
@@ -144,7 +165,7 @@ export const testbooksRoutes: FastifyPluginAsync = async (app) => {
   app.patch('/cases/:caseId', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id: ownerId } = request.user as { id: string }
     const { caseId } = request.params as { caseId: string }
-    const body = request.body as Partial<{ title: string; precondition: string | null; steps: string | null; expected: string | null; status: TestCaseStatus; order: number }>
+    const body = caseUpdateSchema.parse(request.body)
 
     const testCase = await prisma.testCase.findFirst({
       where: { id: caseId },

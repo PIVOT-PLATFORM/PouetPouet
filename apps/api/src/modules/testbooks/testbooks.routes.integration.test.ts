@@ -64,6 +64,15 @@ describe('TestBooks — cahiers, sections, cas de test', () => {
     expect(res.json().title).toBe('Cahier édité')
   })
 
+  it('PATCH /:id — un ownerId injecté dans le body est ignoré (anti mass-assignment)', async () => {
+    const res = await app.inject({ method: 'PATCH', url: `/api/testbooks/${bookId}`, headers: auth(alice.token), payload: { title: 'Toujours à Alice', ownerId: bob.user.id } })
+    expect(res.statusCode).toBe(200)
+    const stillMine = await app.inject({ method: 'GET', url: `/api/testbooks/${bookId}`, headers: auth(alice.token) })
+    expect(stillMine.statusCode).toBe(200)
+    const bobCannotSeeIt = await app.inject({ method: 'GET', url: `/api/testbooks/${bookId}`, headers: auth(bob.token) })
+    expect(bobCannotSeeIt.statusCode).toBe(404)
+  })
+
   it('POST /:id/sections — un tiers ne peut pas ajouter de section → 404', async () => {
     const res = await app.inject({ method: 'POST', url: `/api/testbooks/${bookId}/sections`, headers: auth(bob.token), payload: { title: 'Section pirate' } })
     expect(res.statusCode).toBe(404)
@@ -79,6 +88,14 @@ describe('TestBooks — cahiers, sections, cas de test', () => {
     expect(second.json().order).toBe(1)
   })
 
+  it('PATCH /sections/:sectionId — un bookId injecté dans le body est ignoré (anti mass-assignment cross-tenant)', async () => {
+    const bobsBook = await app.inject({ method: 'POST', url: '/api/testbooks', headers: auth(bob.token), payload: { title: 'Cahier de Bob' } })
+    const res = await app.inject({ method: 'PATCH', url: `/api/testbooks/sections/${sectionId}`, headers: auth(alice.token), payload: { title: 'Toujours dans le cahier d\'Alice', bookId: bobsBook.json().id } })
+    expect(res.statusCode).toBe(200)
+    const book = await app.inject({ method: 'GET', url: `/api/testbooks/${bookId}`, headers: auth(alice.token) })
+    expect(book.json().sections.some((s: { id: string }) => s.id === sectionId)).toBe(true)
+  })
+
   it('POST /sections/:sectionId/cases — un tiers ne peut pas ajouter de cas → 404', async () => {
     const res = await app.inject({ method: 'POST', url: `/api/testbooks/sections/${sectionId}/cases`, headers: auth(bob.token), payload: { title: 'Cas pirate' } })
     expect(res.statusCode).toBe(404)
@@ -89,6 +106,16 @@ describe('TestBooks — cahiers, sections, cas de test', () => {
     expect(res.statusCode).toBe(201)
     caseId = res.json().id
     expect(res.json().title).toBe('Se connecter')
+  })
+
+  it('PATCH /cases/:caseId — un sectionId injecté dans le body est ignoré (anti mass-assignment cross-tenant)', async () => {
+    const bobsBook = await app.inject({ method: 'POST', url: '/api/testbooks', headers: auth(bob.token), payload: { title: 'Cahier de Bob 2' } })
+    const bobsSection = await app.inject({ method: 'POST', url: `/api/testbooks/${bobsBook.json().id}/sections`, headers: auth(bob.token), payload: { title: 'Section de Bob' } })
+    const res = await app.inject({ method: 'PATCH', url: `/api/testbooks/cases/${caseId}`, headers: auth(alice.token), payload: { title: 'Toujours dans la section d\'Alice', sectionId: bobsSection.json().id } })
+    expect(res.statusCode).toBe(200)
+    const book = await app.inject({ method: 'GET', url: `/api/testbooks/${bookId}`, headers: auth(alice.token) })
+    const originalSection = book.json().sections.find((s: { id: string }) => s.id === sectionId)
+    expect(originalSection.cases.some((c: { id: string }) => c.id === caseId)).toBe(true)
   })
 
   it('PATCH /cases/:caseId — un tiers ne peut pas éditer → 404', async () => {
