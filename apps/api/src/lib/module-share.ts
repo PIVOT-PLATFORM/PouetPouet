@@ -24,7 +24,7 @@ export function bestRole(a: ModuleRole | null, b: ModuleRole | null): ModuleRole
 
 // Le moins élevé des deux rôles (plafonnement) — null = aucun accès (contrairement
 // à bestRole où null signifie "source absente, ignorer").
-function minRole(a: ModuleRole, b: ModuleRole | null): ModuleRole | null {
+export function minRole(a: ModuleRole, b: ModuleRole | null): ModuleRole | null {
   if (!b) return null
   return RANK[a] <= RANK[b] ? a : b
 }

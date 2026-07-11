@@ -206,7 +206,7 @@ export function ModuleShareModal({ module, resourceId, resourceName, onClose }: 
         ) : (
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Inviter les membres actuels d'une équipe</span>
-            <p className="text-[11px] text-gray-400 -mt-1">Partage figé : les comptes ayant accès à l'équipe maintenant sont invités individuellement. Un nouveau membre n'aura pas accès automatiquement.</p>
+            <p className="text-[11px] text-gray-400 -mt-1">Partage figé : les membres actuels reliés à un compte (et les comptes ayant accès à l'équipe) sont invités individuellement. Un nouveau membre n'aura pas accès automatiquement.</p>
             {teams === null ? (
               <p className="text-xs text-gray-400">Chargement…</p>
             ) : teams.length === 0 ? (

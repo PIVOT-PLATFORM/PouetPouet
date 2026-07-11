@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { audit } from '../lib/audit.js'
 import { notify } from '../lib/notify.js'
-import { resolveRole } from '../lib/module-share.js'
+import { resolveRole, bestRole, minRole, type ModuleRole } from '../lib/module-share.js'
 
 // Résolveur par module : (resourceId) → { ownerId, name } | null. Étendre ici pour
 // ouvrir le partage à un nouveau module.
@@ -112,23 +112,41 @@ export const shareRoutes: FastifyPluginAsync = async (app) => {
     const { module, resourceId } = request.params as { module: string; resourceId: string }
     const { teamId, role } = inviteTeamSchema.parse(request.body)
 
-    // Collect user accounts with access to the team: team owner + shared users.
+    // Comptes concernés : owner de l'équipe + comptes avec qui l'équipe est
+    // partagée (rôle demandé, sans plafond — pas membres du roster, le grade ne
+    // s'applique pas à eux) + membres du roster liés à un compte (rôle demandé
+    // plafonné par leur grade ; "Aucun grade" = exclusion volontaire, comme pour
+    // le partage dynamique).
     const team = await prisma.team.findUnique({ where: { id: teamId }, select: { ownerId: true } })
     if (!team) return reply.status(404).send({ error: 'Équipe introuvable.' })
-    const teamShares = await prisma.moduleShare.findMany({ where: { module: 'team', resourceId: teamId }, select: { userId: true } })
-    const userIds = [...new Set([team.ownerId, ...teamShares.map((s) => s.userId)])].filter((id) => id !== resourceOwnerId)
-    if (userIds.length === 0) return reply.status(200).send([])
+    const [teamShares, linkedMembers] = await Promise.all([
+      prisma.moduleShare.findMany({ where: { module: 'team', resourceId: teamId }, select: { userId: true } }),
+      prisma.teamMember.findMany({ where: { teamId, userId: { not: null } }, select: { userId: true, teamRole: true } }),
+    ])
+    const roleByUser = new Map<string, ModuleRole>()
+    for (const id of [team.ownerId, ...teamShares.map((s) => s.userId)]) roleByUser.set(id, role)
+    for (const m of linkedMembers) {
+      const capped = minRole(role, m.teamRole)
+      if (!capped) continue
+      roleByUser.set(m.userId as string, bestRole(roleByUser.get(m.userId as string) ?? null, capped) as ModuleRole)
+    }
+    roleByUser.delete(resourceOwnerId)
+    if (roleByUser.size === 0) return reply.status(200).send([])
 
-    // Batch-upsert shares for the target resource.
-    await prisma.moduleShare.createMany({
-      data: userIds.map((userId) => ({ module, resourceId, userId, role })),
-      skipDuplicates: true,
-    })
-    // createMany doesn't support upsert on conflicts; use updateMany to set role on existing rows.
-    await prisma.moduleShare.updateMany({ where: { module, resourceId, userId: { in: userIds } }, data: { role } })
+    // Batch-upsert par rôle effectif (createMany ne gère pas l'upsert : createMany
+    // skipDuplicates + updateMany pour aligner le rôle des lignes préexistantes).
+    for (const effectiveRole of ['VIEWER', 'EDITOR'] as const) {
+      const ids = [...roleByUser.entries()].filter(([, r]) => r === effectiveRole).map(([id]) => id)
+      if (ids.length === 0) continue
+      await prisma.moduleShare.createMany({
+        data: ids.map((userId) => ({ module, resourceId, userId, role: effectiveRole })),
+        skipDuplicates: true,
+      })
+      await prisma.moduleShare.updateMany({ where: { module, resourceId, userId: { in: ids } }, data: { role: effectiveRole } })
+    }
 
     const created = await prisma.moduleShare.findMany({
-      where: { module, resourceId, userId: { in: userIds } },
+      where: { module, resourceId, userId: { in: [...roleByUser.keys()] } },
       select: SHARE_SELECT,
       orderBy: { createdAt: 'asc' },
     })
@@ -139,7 +157,7 @@ export const shareRoutes: FastifyPluginAsync = async (app) => {
           userId: s.user.id,
           type: 'MODULE_SHARED',
           title: `${MODULE_LABEL[module] ?? module} partagé avec vous`,
-          body: `Accès ${role === 'EDITOR' ? 'Éditeur' : 'Lecteur'} accordé via une équipe.`,
+          body: `Accès ${s.role === 'EDITOR' ? 'Éditeur' : 'Lecteur'} accordé via une équipe.`,
           link: MODULE_LINK[module] ?? null,
         }),
       ),
