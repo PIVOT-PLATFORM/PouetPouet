@@ -17,10 +17,10 @@ jobs:
   stryker-api:
     name: Stryker — API
     runs-on: ubuntu-latest
-    # ~19 800 mutants sur src/**/*.ts (20 modules) ; observé ~50-60 min à rythme
-    # constant (perTest coverage analysis) — 30 min était systématiquement
-    # insuffisant (job annulé à 60% de complétion, jamais de rapport produit).
-    timeout-minutes: 90
+    # ~22 200 mutants sur src/**/*.ts (20 modules). 30 min et 90 min se sont
+    # tous les deux révélés insuffisants (annulé à 60% puis 97.7% de complétion,
+    # jamais de rapport produit) — le rythme ralentit nettement en fin de run.
+    timeout-minutes: 150
     permissions:
       contents: read
 
