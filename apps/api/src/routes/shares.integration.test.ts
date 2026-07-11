@@ -204,6 +204,14 @@ describe('/api/shares team-share dynamique (integration)', () => {
     expect(list.statusCode).toBe(200)
   })
 
+  it('deep-links the notification to the shared resource (not the module list)', async () => {
+    const notif = await prisma.notification.findFirst({
+      where: { userId: memberId, type: 'MODULE_SHARED' },
+      orderBy: { createdAt: 'desc' },
+    })
+    expect(notif?.link).toBe(`/scrum/${scrumId}`)
+  })
+
   it('lists team-shares for the resource', async () => {
     const res = await app.inject({
       method: 'GET',

@@ -32,6 +32,15 @@ const RESOLVERS: Record<string, (id: string) => Promise<ResourceInfo | null>> = 
 const MODULE_LABEL: Record<string, string> = { scrum: 'Scrum Poker', daily: 'Daily', team: 'Équipe', wheel: 'La Roue', capacity: 'Capacité', meetops: 'MeetOps', quiz: 'Quiz', roadmap: 'Roadmap', portfolio: 'Portefeuille', parcourTemplate: 'Template Parcours', parcourInstance: 'Instance Parcours', form: 'Formulaire', pdf: 'PDF Manager', signdoc: 'SignDoc', challenge: 'Challenge innovation', todolist: 'Liste de tâches', tododashboard: 'Tableau de bord To-Do', pi: 'PI Planning' }
 const MODULE_LINK: Record<string, string> = { scrum: '/scrum', daily: '/daily', team: '/equipes', wheel: '/wheel', capacity: '/capacity', meetops: '/meetops', quiz: '/quiz', roadmap: '/roadmap', portfolio: '/portfolio', parcourTemplate: '/parcours/templates', parcourInstance: '/parcours/run', form: '/forms', pdf: '/pdf', signdoc: '/signdoc', challenge: '/innovation/challenges', todolist: '/todo', tododashboard: '/todo/dashboards', pi: '/pi' }
 
+// Lien de notification vers la ressource précise ({base}/{id}) — sauf pour les
+// modules sans page de détail web, où on retombe sur la liste.
+const LIST_ONLY_MODULES = new Set(['team', 'wheel'])
+function resourceLink(module: string, resourceId: string): string | null {
+  const base = MODULE_LINK[module]
+  if (!base) return null
+  return LIST_ONLY_MODULES.has(module) ? base : `${base}/${resourceId}`
+}
+
 const inviteSchema = z.object({ email: z.string().email(), role: z.enum(['VIEWER', 'EDITOR']) })
 const inviteTeamSchema = z.object({ teamId: z.string().min(1), role: z.enum(['VIEWER', 'EDITOR']) })
 const teamShareSchema = z.object({ teamId: z.string().min(1), role: z.enum(['VIEWER', 'EDITOR']) })
@@ -99,7 +108,7 @@ export const shareRoutes: FastifyPluginAsync = async (app) => {
       type: 'MODULE_SHARED',
       title: `${MODULE_LABEL[module] ?? module} partagé avec vous`,
       body: `« ${owner.name} » vous a donné le rôle ${role === 'EDITOR' ? 'Éditeur' : 'Lecteur'}.`,
-      link: MODULE_LINK[module] ?? null,
+      link: resourceLink(module, resourceId),
     })
     return reply.status(201).send(share)
   })
@@ -158,7 +167,7 @@ export const shareRoutes: FastifyPluginAsync = async (app) => {
           type: 'MODULE_SHARED',
           title: `${MODULE_LABEL[module] ?? module} partagé avec vous`,
           body: `Accès ${s.role === 'EDITOR' ? 'Éditeur' : 'Lecteur'} accordé via une équipe.`,
-          link: MODULE_LINK[module] ?? null,
+          link: resourceLink(module, resourceId),
         }),
       ),
     )
@@ -210,7 +219,7 @@ export const shareRoutes: FastifyPluginAsync = async (app) => {
           type: 'MODULE_SHARED',
           title: `${MODULE_LABEL[module] ?? module} partagé avec vous`,
           body: `Accès ${role === 'EDITOR' ? 'Éditeur' : 'Lecteur'} accordé via l'équipe « ${share.team.name} ».`,
-          link: MODULE_LINK[module] ?? null,
+          link: resourceLink(module, resourceId),
         }),
       ),
     )
