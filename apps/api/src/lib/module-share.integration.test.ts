@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { prisma } from './prisma.js'
-import { resolveRole } from './module-share.js'
+import { resolveRole, sharedResourceIds } from './module-share.js'
 
 // Rôle hérité d'une équipe via TeamModuleShare — plafonné par TeamMember.teamRole.
 const SUFFIX = '@moduleshare.int.test'
@@ -67,5 +67,59 @@ describe('resolveRole — héritage via équipe (TeamModuleShare)', () => {
     await prisma.moduleShare.create({ data: { module: 'test-module', resourceId, userId: memberId, role: 'EDITOR' } })
     const role = await resolveRole('test-module', resourceId, memberId, ownerId)
     expect(role).toBe('EDITOR')
+  })
+})
+
+// Régression : une ressource partagée uniquement via TeamModuleShare (aucun
+// ModuleShare individuel) doit apparaître dans les listes (GET /api/daily/sessions,
+// /api/scrum, ...), pas seulement en accès direct par id via resolveRole.
+describe('sharedResourceIds — inclut les ressources partagées dynamiquement par équipe', () => {
+  const LIST_SUFFIX = '@moduleshare.list.int.test'
+  let ownerId: string
+  let memberId: string
+  let teamId: string
+  let onlyTeamSharedId: string
+  let onlyIndividualSharedId: string
+  let bothId: string
+
+  beforeAll(async () => {
+    await prisma.user.deleteMany({ where: { email: { endsWith: LIST_SUFFIX } } })
+    const owner = await prisma.user.create({ data: { email: `owner${LIST_SUFFIX}`, name: 'Owner', password: 'x', emailVerified: true } })
+    const member = await prisma.user.create({ data: { email: `member${LIST_SUFFIX}`, name: 'Member', password: 'x', emailVerified: true } })
+    ownerId = owner.id
+    memberId = member.id
+    const team = await prisma.team.create({ data: { name: 'Équipe liste', ownerId } })
+    teamId = team.id
+    await prisma.teamMember.create({ data: { teamId, name: 'Membre', email: member.email, userId: memberId, teamRole: 'EDITOR' } })
+
+    onlyTeamSharedId = (await prisma.team.create({ data: { name: 'Ressource équipe seule', ownerId } })).id
+    onlyIndividualSharedId = (await prisma.team.create({ data: { name: 'Ressource individuelle seule', ownerId } })).id
+    bothId = (await prisma.team.create({ data: { name: 'Ressource des deux', ownerId } })).id
+
+    await prisma.teamModuleShare.create({ data: { module: 'list-test-module', resourceId: onlyTeamSharedId, teamId, role: 'VIEWER' } })
+    await prisma.moduleShare.create({ data: { module: 'list-test-module', resourceId: onlyIndividualSharedId, userId: memberId, role: 'EDITOR' } })
+    await prisma.teamModuleShare.create({ data: { module: 'list-test-module', resourceId: bothId, teamId, role: 'VIEWER' } })
+    await prisma.moduleShare.create({ data: { module: 'list-test-module', resourceId: bothId, userId: memberId, role: 'EDITOR' } })
+  })
+
+  afterAll(async () => {
+    await prisma.user.deleteMany({ where: { email: { endsWith: LIST_SUFFIX } } })
+  })
+
+  it('inclut la ressource partagée uniquement via TeamModuleShare (le bug rapporté)', async () => {
+    const list = await sharedResourceIds('list-test-module', memberId)
+    expect(list.find((r) => r.id === onlyTeamSharedId)).toMatchObject({ role: 'VIEWER' })
+  })
+
+  it('inclut toujours la ressource partagée uniquement en individuel', async () => {
+    const list = await sharedResourceIds('list-test-module', memberId)
+    expect(list.find((r) => r.id === onlyIndividualSharedId)).toMatchObject({ role: 'EDITOR' })
+  })
+
+  it('combine les deux sources sans doublon, en gardant le meilleur rôle', async () => {
+    const list = await sharedResourceIds('list-test-module', memberId)
+    const matches = list.filter((r) => r.id === bothId)
+    expect(matches).toHaveLength(1)
+    expect(matches[0].role).toBe('EDITOR')
   })
 })
