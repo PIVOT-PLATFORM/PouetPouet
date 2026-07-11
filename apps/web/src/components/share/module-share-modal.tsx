@@ -16,6 +16,12 @@ interface Team {
   name: string
 }
 
+interface TeamShareEntry {
+  id: string
+  role: Role
+  team: { id: string; name: string; color: string }
+}
+
 interface Props {
   module: string
   resourceId: string
@@ -33,7 +39,7 @@ export function ModuleShareModal({ module, resourceId, resourceName, onClose }: 
   const [error, setError] = useState<string | null>(null)
   const [inviting, setInviting] = useState(false)
 
-  // Team invite section
+  // Team invite section (fan-out figé, #131/PR#140)
   const [teams, setTeams] = useState<Team[] | null>(null)
   const [teamId, setTeamId] = useState('')
   const [teamRole, setTeamRole] = useState<Role>('EDITOR')
@@ -41,8 +47,17 @@ export function ModuleShareModal({ module, resourceId, resourceName, onClose }: 
   const [invitingTeam, setInvitingTeam] = useState(false)
   const [showTeamSection, setShowTeamSection] = useState(false)
 
+  // Partage dynamique par équipe (TeamModuleShare) — reste à jour automatiquement
+  const [teamShares, setTeamShares] = useState<TeamShareEntry[] | null>(null)
+  const [dynTeamId, setDynTeamId] = useState('')
+  const [dynRole, setDynRole] = useState<Role>('EDITOR')
+  const [dynError, setDynError] = useState<string | null>(null)
+  const [savingDyn, setSavingDyn] = useState(false)
+  const [showDynSection, setShowDynSection] = useState(false)
+
   useEffect(() => {
     api.get<ShareEntry[]>(base).then(setShares).catch(() => setShares([]))
+    api.get<TeamShareEntry[]>(`${base}/team-shares`).then(setTeamShares).catch(() => setTeamShares([]))
   }, [base])
 
   function openTeamSection() {
@@ -50,6 +65,34 @@ export function ModuleShareModal({ module, resourceId, resourceName, onClose }: 
     if (!teams) {
       api.get<Team[]>('/api/teams').then((t) => { setTeams(t); if (t.length > 0) setTeamId(t[0].id) }).catch(() => setTeams([]))
     }
+  }
+
+  function openDynSection() {
+    setShowDynSection(true)
+    if (!teams) {
+      api.get<Team[]>('/api/teams').then((t) => { setTeams(t); if (t.length > 0) setDynTeamId(t[0].id) }).catch(() => setTeams([]))
+    } else if (!dynTeamId && teams.length > 0) {
+      setDynTeamId(teams[0].id)
+    }
+  }
+
+  async function createDynShare(e: React.FormEvent) {
+    e.preventDefault()
+    setDynError(null)
+    setSavingDyn(true)
+    try {
+      const share = await api.post<TeamShareEntry>(`${base}/team-share`, { teamId: dynTeamId, role: dynRole })
+      setTeamShares((prev) => [...(prev ?? []).filter((s) => s.team.id !== share.team.id), share])
+    } catch (err) {
+      setDynError((err as Error).message)
+    } finally {
+      setSavingDyn(false)
+    }
+  }
+
+  async function revokeDynShare(tId: string) {
+    setTeamShares((prev) => prev?.filter((s) => s.team.id !== tId) ?? prev)
+    await api.delete(`${base}/team-share/${tId}`).catch(() => {})
   }
 
   async function invite(e: React.FormEvent) {
@@ -151,18 +194,19 @@ export function ModuleShareModal({ module, resourceId, resourceName, onClose }: 
           <p className="text-[11px] text-gray-400">L'invité doit déjà avoir un compte. Éditeur = peut piloter ; Lecteur = lecture seule.</p>
         </div>
 
-        {/* Inviter via une équipe */}
+        {/* Inviter via une équipe (fan-out figé) */}
         {!showTeamSection ? (
           <button
             type="button"
             onClick={openTeamSection}
             className="self-start text-xs text-primary-600 dark:text-primary-400 hover:underline"
           >
-            + Partager à une équipe
+            + Inviter les membres actuels d'une équipe
           </button>
         ) : (
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Partager à une équipe</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Inviter les membres actuels d'une équipe</span>
+            <p className="text-[11px] text-gray-400 -mt-1">Partage figé : les comptes ayant accès à l'équipe maintenant sont invités individuellement. Un nouveau membre n'aura pas accès automatiquement.</p>
             {teams === null ? (
               <p className="text-xs text-gray-400">Chargement…</p>
             ) : teams.length === 0 ? (
@@ -196,6 +240,82 @@ export function ModuleShareModal({ module, resourceId, resourceName, onClose }: 
               </form>
             )}
             {teamError && <p className="text-xs text-red-500">{teamError}</p>}
+          </div>
+        )}
+
+        {/* Partage dynamique par équipe (TeamModuleShare) */}
+        {!showDynSection ? (
+          <button
+            type="button"
+            onClick={openDynSection}
+            className="self-start text-xs text-primary-600 dark:text-primary-400 hover:underline"
+          >
+            + Partager dynamiquement à une équipe
+          </button>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Partager dynamiquement à une équipe</span>
+            <p className="text-[11px] text-gray-400 -mt-1">Toujours à jour : chaque membre relié à un compte (grade ≥ ce rôle) a accès, y compris ceux qui rejoignent l'équipe plus tard.</p>
+            {teams === null ? (
+              <p className="text-xs text-gray-400">Chargement…</p>
+            ) : teams.length === 0 ? (
+              <p className="text-xs text-gray-400">Aucune équipe disponible.</p>
+            ) : (
+              <form onSubmit={createDynShare} className="flex gap-2">
+                <select
+                  value={dynTeamId}
+                  onChange={(e) => setDynTeamId(e.target.value)}
+                  className="flex-1 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"
+                >
+                  {teams.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={dynRole}
+                  onChange={(e) => setDynRole(e.target.value as Role)}
+                  className="text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl px-2 py-2 focus:outline-none focus:ring-1 focus:ring-primary-400"
+                >
+                  <option value="VIEWER">Lecture</option>
+                  <option value="EDITOR">Édition</option>
+                </select>
+                <button
+                  type="submit"
+                  disabled={savingDyn}
+                  className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {savingDyn ? '…' : 'Partager'}
+                </button>
+              </form>
+            )}
+            {dynError && <p className="text-xs text-red-500">{dynError}</p>}
+          </div>
+        )}
+
+        {/* Équipes en partage dynamique */}
+        {teamShares && teamShares.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Équipes en partage dynamique</span>
+            {teamShares.map((ts) => (
+              <div key={ts.id} className="flex items-center gap-3 py-2 px-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 group">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-semibold" style={{ background: ts.team.color }}>
+                  {ts.team.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{ts.team.name}</p>
+                  <p className="text-xs text-gray-400">{ts.role === 'EDITOR' ? 'Édition' : 'Lecture'} (plafonné par le grade de chaque membre)</p>
+                </div>
+                <button
+                  onClick={() => revokeDynShare(ts.team.id)}
+                  title="Retirer le partage dynamique"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
