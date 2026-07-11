@@ -26,6 +26,10 @@ RUN npx tsc --project packages/shared/tsconfig.json && \
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# /app est créé par WORKDIR en root ; sans ce chown, node ne peut pas y créer de
+# nouveaux sous-dossiers au runtime (ex: mkdirSync du stockage PDF local) même si
+# le contenu copié plus bas est déjà --chown=node:node.
+RUN chown node:node /app
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/apps/api/dist ./apps/api/dist
 COPY --from=builder --chown=node:node /app/apps/api/prisma ./apps/api/prisma
