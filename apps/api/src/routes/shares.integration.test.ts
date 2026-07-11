@@ -99,6 +99,38 @@ describe('/api/shares invite-team (integration)', () => {
     })
     expect(res.statusCode).toBe(404)
   })
+
+  // Régression : les membres du roster liés à un compte (TeamMember.userId) doivent
+  // être invités par le fan-out, pas seulement les comptes avec qui l'équipe-objet
+  // est partagée via ModuleShare('team').
+  it('invites linked roster members, capped by their grade, excluding ungraded ones', async () => {
+    const graded = await createTestUser(app, `graded${SUFFIX}`)
+    const capped = await createTestUser(app, `capped${SUFFIX}`)
+    const ungraded = await createTestUser(app, `ungraded${SUFFIX}`)
+    await prisma.teamMember.createMany({
+      data: [
+        { teamId, name: 'Gradé éditeur', email: graded.user.email, userId: graded.user.id, teamRole: 'EDITOR' },
+        { teamId, name: 'Gradé lecteur', email: capped.user.email, userId: capped.user.id, teamRole: 'VIEWER' },
+        { teamId, name: 'Sans grade', email: ungraded.user.email, userId: ungraded.user.id, teamRole: null },
+      ],
+    })
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/shares/scrum/${scrumId}/invite-team`,
+      headers: { authorization: `Bearer ${ownerTok}` },
+      payload: { teamId, role: 'EDITOR' },
+    })
+    expect(res.statusCode).toBe(201)
+    const shares = res.json() as { user: { id: string }; role: string }[]
+    expect(shares.find((s) => s.user.id === graded.user.id)?.role).toBe('EDITOR')
+    // Grade VIEWER plafonne le rôle demandé EDITOR
+    expect(shares.find((s) => s.user.id === capped.user.id)?.role).toBe('VIEWER')
+    // "Aucun grade" = exclusion volontaire des partages d'équipe (aucune ligne créée)
+    expect(shares.some((s) => s.user.id === ungraded.user.id)).toBe(false)
+    const ungradedShare = await prisma.moduleShare.findFirst({ where: { module: 'scrum', resourceId: scrumId, userId: ungraded.user.id } })
+    expect(ungradedShare).toBeNull()
+  })
 })
 
 describe('/api/shares team-share dynamique (integration)', () => {
