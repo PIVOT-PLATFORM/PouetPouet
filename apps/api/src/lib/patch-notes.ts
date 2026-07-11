@@ -20,6 +20,38 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.32.2',
+    date: '2026-07-11',
+    title: 'Correctif PDF & sécurité',
+    summary: 'Correction d\'un bug empêchant l\'envoi de PDF (fusion, extraction, découpe) depuis fin juin. Renforcement du contrôle d\'accès sur les Cahiers de tests.',
+    sections: [
+      {
+        heading: '🐛 Corrections',
+        items: [
+          'PDF Manager : la fusion, l\'extraction et la découpe de pages ne fonctionnaient plus depuis plusieurs jours — corrigé',
+          'Cahiers de tests : renforcement du contrôle d\'accès sur la modification des cahiers, sections et cas de test',
+        ],
+      },
+    ],
+  },
+  {
+    version: '0.32.1',
+    date: '2026-07-10',
+    title: 'Renforcement sécurité',
+    summary: 'Durcissement de la sécurité côté serveur : filtrage des requêtes réseau internes, en-têtes HTTP de sécurité, exécution des conteneurs en utilisateur restreint, mise à jour de dépendances.',
+    sections: [
+      {
+        heading: '🔒 Sécurité',
+        items: [
+          'Filtrage renforcé des requêtes réseau déclenchées par les cartes de lien (protection contre le sondage du réseau interne)',
+          'En-têtes HTTP de sécurité standards ajoutés sur l\'API',
+          'Conteneurs applicatifs exécutés en utilisateur restreint plutôt qu\'administrateur',
+          'Mise à jour de dépendances (dont une faille corrigée sur l\'envoi d\'emails)',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.32.0',
     date: '2026-07-09',
     title: 'Import Klaxoon & confort des boards',
