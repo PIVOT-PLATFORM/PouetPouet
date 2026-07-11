@@ -130,11 +130,33 @@ describe('/api/teams (integration)', () => {
       },
     })
     expect(res.statusCode).toBe(201)
-    const members = res.json().members as Array<{ name: string; userId: string | null; email: string | null }>
+    const members = res.json().members as Array<{ name: string; userId: string | null; email: string | null; teamRole: string | null }>
     expect(members.find((m) => m.name === 'Compte connu')?.userId).toBe(linkedAccount.user.id)
+    // Lien résolu = grade EDITOR par défaut (sinon : partage d'équipe sans effet)
+    expect(members.find((m) => m.name === 'Compte connu')?.teamRole).toBe('EDITOR')
     expect(members.find((m) => m.name === 'Compte inconnu')?.userId).toBeNull()
+    expect(members.find((m) => m.name === 'Compte inconnu')?.teamRole).toBeNull()
     expect(members.find((m) => m.name === 'Indicatif seul')?.userId).toBeNull()
     expect(members.find((m) => m.name === 'Indicatif seul')?.email).toBeNull()
+  })
+
+  it('respects an explicit teamRole (including null = exclusion volontaire)', async () => {
+    const acct = await createTestUser(app, `explicitrole${SUFFIX}`)
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/teams',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        name: 'Équipe grades',
+        members: [
+          { name: 'Lecteur explicite', email: acct.user.email, teamRole: 'VIEWER' },
+          { name: 'Exclu explicite', email: acct.user.email, teamRole: null },
+        ],
+      },
+    })
+    const members = res.json().members as Array<{ name: string; teamRole: string | null }>
+    expect(members.find((m) => m.name === 'Lecteur explicite')?.teamRole).toBe('VIEWER')
+    expect(members.find((m) => m.name === 'Exclu explicite')?.teamRole).toBeNull()
   })
 
   it('resolves email case-insensitively', async () => {
