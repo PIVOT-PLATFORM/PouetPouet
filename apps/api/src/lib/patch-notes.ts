@@ -20,6 +20,21 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.32.2',
+    date: '2026-07-11',
+    title: 'Correctif PDF & sécurité',
+    summary: 'Correction d\'un bug empêchant l\'envoi de PDF (fusion, extraction, découpe) depuis fin juin. Renforcement du contrôle d\'accès sur les Cahiers de tests.',
+    sections: [
+      {
+        heading: '🐛 Corrections',
+        items: [
+          'PDF Manager : la fusion, l\'extraction et la découpe de pages ne fonctionnaient plus depuis plusieurs jours — corrigé',
+          'Cahiers de tests : renforcement du contrôle d\'accès sur la modification des cahiers, sections et cas de test',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.32.1',
     date: '2026-07-10',
     title: 'Renforcement sécurité',
