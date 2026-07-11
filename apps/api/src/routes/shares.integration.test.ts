@@ -100,3 +100,121 @@ describe('/api/shares invite-team (integration)', () => {
     expect(res.statusCode).toBe(404)
   })
 })
+
+describe('/api/shares team-share dynamique (integration)', () => {
+  let app: FastifyInstance
+  let ownerTok: string, memberTok: string, strangerTok: string
+  let memberId: string
+  let teamId: string
+  let scrumId: string
+
+  beforeAll(async () => {
+    await cleanupUsers(SUFFIX)
+    app = await buildTestApp([
+      { plugin: shareRoutes, prefix: '/api/shares' },
+      { plugin: teamRoutes, prefix: '/api/teams' },
+    ])
+
+    const owner = await createTestUser(app, `towner${SUFFIX}`)
+    const member = await createTestUser(app, `tmember${SUFFIX}`)
+    const stranger = await createTestUser(app, `tstranger${SUFFIX}`)
+    ownerTok = owner.token
+    memberTok = member.token; memberId = member.user.id
+    strangerTok = stranger.token
+
+    const teamRes = await app.inject({
+      method: 'POST', url: '/api/teams',
+      headers: { authorization: `Bearer ${ownerTok}` },
+      payload: { name: 'Équipe dynamique', members: [{ name: 'Membre', email: member.user.email, teamRole: 'EDITOR' }] },
+    })
+    teamId = teamRes.json().id
+    expect(teamRes.json().members[0].userId).toBe(memberId) // résolution immédiate (PR1)
+
+    const scrum = await prisma.scrumRoom.create({
+      data: { name: 'Salle dynamique', code: `DYN-${Date.now()}`, ownerId: owner.user.id },
+    })
+    scrumId = scrum.id
+  })
+
+  afterAll(async () => {
+    await cleanupUsers(SUFFIX)
+    await app.close()
+  })
+
+  it('rejects a non-owner', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/shares/scrum/${scrumId}/team-share`,
+      headers: { authorization: `Bearer ${strangerTok}` },
+      payload: { teamId, role: 'EDITOR' },
+    })
+    expect(res.statusCode).toBe(403)
+  })
+
+  it('creates a dynamic team share, member gets access without a separate invite', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/shares/scrum/${scrumId}/team-share`,
+      headers: { authorization: `Bearer ${ownerTok}` },
+      payload: { teamId, role: 'EDITOR' },
+    })
+    expect(res.statusCode).toBe(201)
+    expect(res.json().role).toBe('EDITOR')
+    expect(res.json().team.id).toBe(teamId)
+
+    // Le membre lié (teamRole=EDITOR) accède désormais à la ressource — vérifié
+    // via GET /:module/:resourceId qui exige au moins EDITOR.
+    const list = await app.inject({
+      method: 'GET',
+      url: `/api/shares/scrum/${scrumId}`,
+      headers: { authorization: `Bearer ${memberTok}` },
+    })
+    expect(list.statusCode).toBe(200)
+  })
+
+  it('lists team-shares for the resource', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/shares/scrum/${scrumId}/team-shares`,
+      headers: { authorization: `Bearer ${ownerTok}` },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toHaveLength(1)
+    expect(res.json()[0].team.name).toBe('Équipe dynamique')
+  })
+
+  it('upserts on a second call instead of duplicating', async () => {
+    await app.inject({
+      method: 'POST',
+      url: `/api/shares/scrum/${scrumId}/team-share`,
+      headers: { authorization: `Bearer ${ownerTok}` },
+      payload: { teamId, role: 'VIEWER' },
+    })
+    const count = await prisma.teamModuleShare.count({ where: { module: 'scrum', resourceId: scrumId, teamId } })
+    expect(count).toBe(1)
+  })
+
+  it('revokes the team share', async () => {
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/shares/scrum/${scrumId}/team-share/${teamId}`,
+      headers: { authorization: `Bearer ${ownerTok}` },
+    })
+    expect(res.statusCode).toBe(200)
+    const list = await app.inject({
+      method: 'GET',
+      url: `/api/shares/scrum/${scrumId}/team-shares`,
+      headers: { authorization: `Bearer ${ownerTok}` },
+    })
+    expect(list.json()).toHaveLength(0)
+  })
+
+  it('returns 404 revoking an unknown team-share', async () => {
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/shares/scrum/${scrumId}/team-share/${teamId}`,
+      headers: { authorization: `Bearer ${ownerTok}` },
+    })
+    expect(res.statusCode).toBe(404)
+  })
+})

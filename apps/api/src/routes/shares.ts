@@ -34,12 +34,19 @@ const MODULE_LINK: Record<string, string> = { scrum: '/scrum', daily: '/daily', 
 
 const inviteSchema = z.object({ email: z.string().email(), role: z.enum(['VIEWER', 'EDITOR']) })
 const inviteTeamSchema = z.object({ teamId: z.string().min(1), role: z.enum(['VIEWER', 'EDITOR']) })
+const teamShareSchema = z.object({ teamId: z.string().min(1), role: z.enum(['VIEWER', 'EDITOR']) })
 const roleSchema = z.object({ role: z.enum(['VIEWER', 'EDITOR']) })
 
 const SHARE_SELECT = {
   id: true,
   role: true,
   user: { select: { id: true, name: true, email: true, avatar: true } },
+} as const
+
+const TEAM_SHARE_SELECT = {
+  id: true,
+  role: true,
+  team: { select: { id: true, name: true, color: true } },
 } as const
 
 export const shareRoutes: FastifyPluginAsync = async (app) => {
@@ -138,6 +145,67 @@ export const shareRoutes: FastifyPluginAsync = async (app) => {
       ),
     )
     return reply.status(201).send(created)
+  })
+
+  // Liste des partages dynamiques par équipe — même visibilité que GET /:module/:resourceId.
+  app.get('/:module/:resourceId/team-shares', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: userId } = request.user as { id: string }
+    const { module, resourceId } = request.params as { module: string; resourceId: string }
+    const resolver = RESOLVERS[module]
+    if (!resolver) return reply.status(404).send({ error: 'Module inconnu.' })
+    const res = await resolver(resourceId)
+    if (!res) return reply.status(404).send({ error: 'Ressource introuvable.' })
+    const role = await resolveRole(module, resourceId, userId, res.ownerId)
+    if (role !== 'OWNER' && role !== 'EDITOR') return reply.status(403).send({ error: 'Accès refusé.' })
+    return prisma.teamModuleShare.findMany({ where: { module, resourceId }, select: TEAM_SHARE_SELECT, orderBy: { createdAt: 'asc' } })
+  })
+
+  // Partager dynamiquement à toute une équipe — contrairement à /invite-team (fan-out
+  // figé), un membre relié à un compte hérite de l'accès sans réinvitation, y compris
+  // s'il rejoint l'équipe après ce partage (propriétaire uniquement).
+  app.post('/:module/:resourceId/team-share', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const owner = await loadAsOwner(request, reply)
+    if (!owner) return
+    const { id: userId } = request.user as { id: string }
+    const { module, resourceId } = request.params as { module: string; resourceId: string }
+    const { teamId, role } = teamShareSchema.parse(request.body)
+
+    const team = await prisma.team.findUnique({ where: { id: teamId }, select: { id: true } })
+    if (!team) return reply.status(404).send({ error: 'Équipe introuvable.' })
+
+    const share = await prisma.teamModuleShare.upsert({
+      where: { module_resourceId_teamId: { module, resourceId, teamId } },
+      create: { module, resourceId, teamId, role },
+      update: { role },
+      select: TEAM_SHARE_SELECT,
+    })
+    audit(userId, 'module.share.team-shared', request, `${module}:${resourceId}`)
+
+    const linkedMembers = await prisma.teamMember.findMany({ where: { teamId, userId: { not: null } }, select: { userId: true } })
+    await Promise.all(
+      linkedMembers.map((m) =>
+        notify({
+          userId: m.userId as string,
+          type: 'MODULE_SHARED',
+          title: `${MODULE_LABEL[module] ?? module} partagé avec vous`,
+          body: `Accès ${role === 'EDITOR' ? 'Éditeur' : 'Lecteur'} accordé via l'équipe « ${share.team.name} ».`,
+          link: MODULE_LINK[module] ?? null,
+        }),
+      ),
+    )
+    return reply.status(201).send(share)
+  })
+
+  // Révoquer le partage dynamique d'une équipe (propriétaire uniquement).
+  app.delete('/:module/:resourceId/team-share/:teamId', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const owner = await loadAsOwner(request, reply)
+    if (!owner) return
+    const { id: userId } = request.user as { id: string }
+    const { module, resourceId, teamId } = request.params as { module: string; resourceId: string; teamId: string }
+    const { count } = await prisma.teamModuleShare.deleteMany({ where: { module, resourceId, teamId } })
+    if (count === 0) return reply.status(404).send({ error: 'Partage d\'équipe introuvable.' })
+    audit(userId, 'module.share.team-revoked', request, `${module}:${resourceId}`)
+    return reply.send({ ok: true })
   })
 
   // Changer le rôle d'un partage (propriétaire uniquement).
