@@ -7,6 +7,15 @@ export interface DailyTeamMember {
   teamId: string
   name: string
   order: number
+  email?: string | null
+  userId?: string | null
+  teamRole?: 'VIEWER' | 'EDITOR' | 'OWNER' | null
+}
+
+export interface TeamMemberInput {
+  name: string
+  email?: string | null
+  teamRole?: 'VIEWER' | 'EDITOR' | 'OWNER' | null
 }
 
 export interface DailyTeam {
@@ -64,13 +73,13 @@ export function useTeams() {
     }).catch(() => setIsLoading(false))
   }, [])
 
-  const createTeam = useCallback(async (name: string, members: string[], color?: string, description?: string) => {
+  const createTeam = useCallback(async (name: string, members: TeamMemberInput[] | string[], color?: string, description?: string) => {
     const team = await api.post<DailyTeam>('/api/teams', { name, members, color, description })
     setTeams((prev) => [...prev, team])
     return team
   }, [])
 
-  const updateTeam = useCallback(async (id: string, name: string, members: string[], color?: string, description?: string) => {
+  const updateTeam = useCallback(async (id: string, name: string, members: TeamMemberInput[] | string[], color?: string, description?: string) => {
     const team = await api.put<DailyTeam>(`/api/teams/${id}`, { name, members, color, description })
     // Le PUT ne renvoie pas le `role` (annoté seulement dans GET /) : on conserve
     // celui déjà connu pour ne pas faire régresser l'affichage (badge / actions).
