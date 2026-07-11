@@ -144,5 +144,7 @@ describe('/api/auth (integration)', () => {
 
     const reconciled = await prisma.teamMember.findUnique({ where: { id: pendingMember.id } })
     expect(reconciled?.userId).toBe(newUser!.id)
+    // Grade EDITOR posé au lien (même défaut qu'à la résolution immédiate)
+    expect(reconciled?.teamRole).toBe('EDITOR')
   })
 })

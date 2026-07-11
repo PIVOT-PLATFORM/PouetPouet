@@ -131,13 +131,20 @@ async function resolveMemberUserIds(members: MemberInput[]): Promise<Map<string,
 }
 
 function buildMemberCreateData(memberList: MemberInput[], userIdByEmail: Map<string, string>) {
-  return memberList.map((m, i) => ({
-    name: m.name,
-    role: m.role ?? null,
-    fte: m.fte ?? null,
-    order: m.order ?? i,
-    email: m.email ?? null,
-    userId: m.email ? userIdByEmail.get(m.email) ?? null : null,
-    teamRole: m.teamRole ?? null,
-  }))
+  return memberList.map((m, i) => {
+    const userId = m.email ? userIdByEmail.get(m.email) ?? null : null
+    return {
+      name: m.name,
+      role: m.role ?? null,
+      fte: m.fte ?? null,
+      order: m.order ?? i,
+      email: m.email ?? null,
+      userId,
+      // Grade par défaut EDITOR dès qu'un compte est lié : un partage d'équipe doit
+      // donner accès sans étape supplémentaire (sinon : notif reçue mais rien de
+      // visible). `teamRole: null` explicite dans le payload = exclusion volontaire ;
+      // seul `undefined` (champ absent) déclenche le défaut.
+      teamRole: m.teamRole !== undefined ? m.teamRole : userId ? 'EDITOR' : null,
+    }
+  })
 }

@@ -18,11 +18,13 @@ function withAdmin<T extends { email: string }>(u: T): T & { isAdmin: boolean } 
 
 // Réconciliation inverse : des TeamMember en attente (email saisi avant que le
 // compte n'existe) sont liés dès l'inscription — miroir de la résolution
-// immédiate faite côté teams.ts quand l'email est saisi après coup.
+// immédiate faite côté teams.ts quand l'email est saisi après coup. Le grade
+// par défaut EDITOR s'applique ici aussi (même règle que buildMemberCreateData) :
+// un membre en attente n'a jamais de grade explicite, il en reçoit un au lien.
 async function linkTeamMembershipsByEmail(userId: string, email: string) {
   await prisma.teamMember.updateMany({
     where: { userId: null, email: { equals: email, mode: 'insensitive' } },
-    data: { userId },
+    data: { userId, teamRole: 'EDITOR' },
   })
 }
 

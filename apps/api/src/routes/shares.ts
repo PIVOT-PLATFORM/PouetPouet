@@ -181,7 +181,10 @@ export const shareRoutes: FastifyPluginAsync = async (app) => {
     })
     audit(userId, 'module.share.team-shared', request, `${module}:${resourceId}`)
 
-    const linkedMembers = await prisma.teamMember.findMany({ where: { teamId, userId: { not: null } }, select: { userId: true } })
+    // Seuls les membres gradés héritent d'un accès (resolveRole plafonne par
+    // teamRole) — ne pas notifier un membre explicitement sans grade, qui
+    // recevrait une notif ne menant à rien.
+    const linkedMembers = await prisma.teamMember.findMany({ where: { teamId, userId: { not: null }, teamRole: { not: null } }, select: { userId: true } })
     await Promise.all(
       linkedMembers.map((m) =>
         notify({
