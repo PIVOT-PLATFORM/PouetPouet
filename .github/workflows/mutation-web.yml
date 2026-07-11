@@ -17,7 +17,10 @@ jobs:
   stryker-web:
     name: Stryker — Web
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # ~21 200 mutants sur src/**/*.{ts,tsx} (hors app/) ; observé ~50 min à
+    # rythme constant (perTest coverage analysis) — 30 min était systématiquement
+    # insuffisant (job annulé à 59% de complétion, jamais de rapport produit).
+    timeout-minutes: 90
     permissions:
       contents: read
 
