@@ -430,6 +430,26 @@ model ModuleShare {
   @@index([module, resourceId])
 }
 
+// Partage dynamique à toute une équipe : contrairement au fan-out ponctuel de
+// ModuleShare (POST /invite-team), un nouveau TeamMember relié à un compte
+// hérite immédiatement de l'accès, sans réinvitation (resolveRole, module-share.ts).
+// Rôle plafonné par TeamMember.teamRole — limité à VIEWER/EDITOR à la création
+// (pas de co-propriété via une équipe, cf. shares.ts).
+model TeamModuleShare {
+  id         String     @id @default(cuid())
+  module     String
+  resourceId String
+  teamId     String
+  role       ModuleRole @default(VIEWER)
+  createdAt  DateTime   @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([module, resourceId, teamId])
+  @@index([teamId])
+  @@index([module, resourceId])
+}
+
 enum ModuleRole {
   VIEWER
   EDITOR
@@ -550,6 +570,7 @@ model Team {
   dailySessions  DailySession[]
   capacityEvents CapacityEvent[]
   scrumRooms     ScrumRoom[]
+  moduleShares   TeamModuleShare[]
 }
 
 model TeamMember {
