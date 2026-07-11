@@ -17,10 +17,10 @@
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.9",
-    "prettier": "^3.8.4",
+    "@vitest/coverage-v8": "^4.1.10",
+    "prettier": "^3.9.5",
     "prisma": "7.8.0",
-    "turbo": "^2.10.0",
+    "turbo": "^2.10.4",
     "typescript": "^5.8.3"
   },
   "packageManager": "npm@11.13.0",
