@@ -1688,6 +1688,7 @@ model SignEvent {
   envelope SignEnvelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
 
   @@index([envelopeId, createdAt])
+  @@index([envelopeId, recipientId, type, createdAt])
 }
 
 enum SignStatus {
