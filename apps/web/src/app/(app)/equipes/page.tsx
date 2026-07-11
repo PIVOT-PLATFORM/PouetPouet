@@ -16,11 +16,16 @@ function initials(name: string) {
 
 // ── Member editor row ─────────────────────────────────────────────────────────
 
+type TeamRole = 'VIEWER' | 'EDITOR' | 'OWNER'
+
 interface MemberDraft {
   name: string
   email: string
   linked?: boolean // compte déjà lié côté serveur (informatif, non modifiable ici)
+  teamRole?: TeamRole | null
 }
+
+const TEAM_ROLE_LABEL: Record<TeamRole, string> = { VIEWER: 'Lecteur', EDITOR: 'Éditeur', OWNER: 'Owner' }
 
 function MemberRow({
   member,
@@ -89,6 +94,19 @@ function MemberRow({
             </span>
           )}
         </div>
+        {member.linked && (
+          <select
+            value={member.teamRole ?? ''}
+            onChange={(e) => onChange({ teamRole: (e.target.value || null) as TeamRole | null })}
+            title="Grade dans l'équipe — plafonne l'accès hérité d'un partage dynamique"
+            className="self-start text-[11px] border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-800"
+          >
+            <option value="">Aucun grade (pas d&apos;accès hérité)</option>
+            {(['VIEWER', 'EDITOR', 'OWNER'] as const).map((r) => (
+              <option key={r} value={r}>{TEAM_ROLE_LABEL[r]}</option>
+            ))}
+          </select>
+        )}
       </div>
       <button
         type="button"
@@ -118,7 +136,7 @@ function TeamModal({
   const [description, setDescription] = useState(initial?.description ?? '')
   const [color, setColor] = useState(initial?.color ?? DEFAULT_SHAPE_COLOR)
   const [members, setMembers] = useState<MemberDraft[]>(
-    initial?.members.map((m) => ({ name: m.name, email: m.email ?? '', linked: !!m.userId })) ?? [{ name: '', email: '' }]
+    initial?.members.map((m) => ({ name: m.name, email: m.email ?? '', linked: !!m.userId, teamRole: m.teamRole ?? null })) ?? [{ name: '', email: '' }]
   )
   const [saving, setSaving] = useState(false)
 
@@ -141,7 +159,7 @@ function TeamModal({
   async function handleSave() {
     if (!name.trim()) return
     const validMembers = members
-      .map((m) => ({ name: m.name.trim(), email: m.email.trim() || undefined }))
+      .map((m) => ({ name: m.name.trim(), email: m.email.trim() || undefined, teamRole: m.linked ? m.teamRole ?? null : undefined }))
       .filter((m) => m.name)
     setSaving(true)
     await onSave(name.trim(), validMembers, color, description.trim())
