@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { isRestrictedEmailDomain } from '@pouetpouet/shared'
 import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -123,6 +124,11 @@ export default function RegisterPage() {
           placeholder="vous@exemple.fr"
           autoComplete="email"
         />
+        {isRestrictedEmailDomain(email) && (
+          <p className="-mt-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700 leading-relaxed">
+            PouetPouet est un outil public non homologué pour un usage avec des données professionnelles sensibles. Vous pouvez continuer, mais préférez l&apos;outil interne habituel si c&apos;est votre cas.
+          </p>
+        )}
         <Input
           label="Mot de passe"
           type="password"
