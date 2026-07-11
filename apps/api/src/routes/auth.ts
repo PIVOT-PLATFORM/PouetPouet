@@ -16,6 +16,16 @@ function withAdmin<T extends { email: string }>(u: T): T & { isAdmin: boolean } 
   return { ...u, isAdmin: isAdminEmail(u.email) }
 }
 
+// Réconciliation inverse : des TeamMember en attente (email saisi avant que le
+// compte n'existe) sont liés dès l'inscription — miroir de la résolution
+// immédiate faite côté teams.ts quand l'email est saisi après coup.
+async function linkTeamMembershipsByEmail(userId: string, email: string) {
+  await prisma.teamMember.updateMany({
+    where: { userId: null, email: { equals: email, mode: 'insensitive' } },
+    data: { userId },
+  })
+}
+
 // Test-only shortcut, controlled by env, so the email step can be skipped while building.
 // Set ALLOW_EMAIL_BYPASS=false (or leave unset) in production to disable it entirely.
 const ALLOW_BYPASS = process.env.ALLOW_EMAIL_BYPASS === 'true'
@@ -90,6 +100,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         data: { email: body.email, name: body.name, password: hashed, emailVerified: true },
         select: USER_SELECT,
       })
+      await linkTeamMembershipsByEmail(user.id, user.email)
       const token = app.jwt.sign({ id: user.id, email: user.email })
       return reply.send({ user: withAdmin(user), token })
     }
@@ -98,6 +109,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       data: { email: body.email, name: body.name, password: hashed },
       select: { id: true, email: true, name: true },
     })
+    await linkTeamMembershipsByEmail(user.id, user.email)
     const { sent, devLink } = await issueVerification(user)
     return reply.send({ pending: true, email: user.email, emailSent: sent, devLink })
   })

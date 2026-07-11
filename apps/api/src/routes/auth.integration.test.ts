@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { buildTestApp, cleanupUsers } from '../test/build-app.js'
+import { buildTestApp, cleanupUsers, createTestUser } from '../test/build-app.js'
 import { authRoutes } from './auth.js'
 import { prisma } from '../lib/prisma.js'
 
@@ -124,5 +124,25 @@ describe('/api/auth (integration)', () => {
         return res.json().map((e: { action: string }) => e.action)
       }, { timeout: 3000 })
       .toEqual(expect.arrayContaining(['auth.login', 'auth.login_failed']))
+  })
+
+  it('links a pending TeamMember to the new account at registration (reconciliation)', async () => {
+    const owner = await createTestUser(app, `teamowner${SUFFIX}`)
+    const team = await prisma.team.create({ data: { name: 'Équipe en attente', ownerId: owner.user.id } })
+    const pendingMember = await prisma.teamMember.create({
+      data: { teamId: team.id, name: 'Future compte', email: `newmember${SUFFIX}` },
+    })
+    expect(pendingMember.userId).toBeNull()
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: { email: `newmember${SUFFIX}`, name: 'Nouveau', password: 'Password123!' },
+    })
+    expect(res.statusCode).toBe(200)
+    const newUser = await prisma.user.findUnique({ where: { email: `newmember${SUFFIX}` } })
+
+    const reconciled = await prisma.teamMember.findUnique({ where: { id: pendingMember.id } })
+    expect(reconciled?.userId).toBe(newUser!.id)
   })
 })

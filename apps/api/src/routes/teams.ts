@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
+import type { ModuleRole } from '@prisma/client'
 import { prisma } from '../lib/prisma.js'
 import { resolveRole, canManage, sharedResourceIds, deleteResourceShares } from '../lib/module-share.js'
 
@@ -18,6 +19,8 @@ interface MemberInput {
   role?: string | null
   fte?: number | null
   order?: number
+  email?: string | null
+  teamRole?: ModuleRole | null
 }
 
 export const teamRoutes: FastifyPluginAsync = async (app) => {
@@ -52,13 +55,14 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
     }
     if (!name?.trim()) return reply.status(400).send({ error: 'Nom requis' })
     const memberList = normalizeMembers(members)
+    const userIdByEmail = await resolveMemberUserIds(memberList)
     const team = await prisma.team.create({
       data: {
         name: name.trim(),
         ownerId,
         color: color ?? '#6366f1',
         description: description?.trim() || null,
-        members: { create: memberList.map((m, i) => ({ name: m.name, role: m.role ?? null, fte: m.fte ?? null, order: m.order ?? i })) },
+        members: { create: buildMemberCreateData(memberList, userIdByEmail) },
       },
       include: TEAM_INCLUDE,
     })
@@ -80,13 +84,14 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
     if (!canManage(role)) return reply.status(role ? 403 : 404).send({ error: role ? 'Réservé au propriétaire ou éditeur.' : 'Équipe introuvable' })
     await prisma.teamMember.deleteMany({ where: { teamId: id } })
     const memberList = normalizeMembers(members)
+    const userIdByEmail = await resolveMemberUserIds(memberList)
     const updated = await prisma.team.update({
       where: { id },
       data: {
         name: name?.trim() || existing.name,
         color: color ?? existing.color,
         description: description !== undefined ? (description?.trim() || null) : existing.description,
-        members: { create: memberList.map((m, i) => ({ name: m.name, role: m.role ?? null, fte: m.fte ?? null, order: m.order ?? i })) },
+        members: { create: buildMemberCreateData(memberList, userIdByEmail) },
       },
       include: TEAM_INCLUDE,
     })
@@ -108,6 +113,31 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
 function normalizeMembers(members: MemberInput[] | string[] | undefined): MemberInput[] {
   if (!members) return []
   return (members as Array<string | MemberInput>).map((m) =>
-    typeof m === 'string' ? { name: m.trim() } : { ...m, name: m.name.trim() }
+    typeof m === 'string' ? { name: m.trim() } : { ...m, name: m.name.trim(), email: m.email?.trim().toLowerCase() || null }
   )
+}
+
+// Résolution best-effort email → compte existant (même logique que
+// signdoc.routes.ts pour SignRecipient) : lie immédiatement si le compte existe
+// déjà ; sinon la réconciliation inverse se fait à l'inscription (auth.ts).
+async function resolveMemberUserIds(members: MemberInput[]): Promise<Map<string, string>> {
+  const emails = [...new Set(members.map((m) => m.email).filter((e): e is string => !!e))]
+  if (emails.length === 0) return new Map()
+  // email déjà normalisé en minuscules par normalizeMembers ; User.email n'est pas
+  // garanti stocké en minuscules (pas de transform à l'inscription) — comparaison
+  // insensible à la casse pour rester fiable dans tous les cas.
+  const users = await prisma.user.findMany({ where: { email: { in: emails, mode: 'insensitive' } }, select: { id: true, email: true } })
+  return new Map(users.map((u) => [u.email.toLowerCase(), u.id]))
+}
+
+function buildMemberCreateData(memberList: MemberInput[], userIdByEmail: Map<string, string>) {
+  return memberList.map((m, i) => ({
+    name: m.name,
+    role: m.role ?? null,
+    fte: m.fte ?? null,
+    order: m.order ?? i,
+    email: m.email ?? null,
+    userId: m.email ? userIdByEmail.get(m.email) ?? null : null,
+    teamRole: m.teamRole ?? null,
+  }))
 }

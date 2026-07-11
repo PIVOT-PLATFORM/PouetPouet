@@ -94,6 +94,7 @@ model User {
   todoListFavorites        TodoListFavorite[]
   todoDashboards           TodoDashboard[]
   piCycles                 PiCycle[]
+  teamMemberships          TeamMember[]
 }
 
 // Lien compte local ↔ identité fédérée (OIDC). Un même utilisateur peut avoir
@@ -552,14 +553,21 @@ model Team {
 }
 
 model TeamMember {
-  id     String  @id @default(cuid())
-  teamId String
-  name   String
-  role   String?
-  fte    Float?
-  order  Int     @default(0)
+  id       String     @id @default(cuid())
+  teamId   String
+  name     String
+  role     String?
+  fte      Float?
+  order    Int        @default(0)
+  email    String?
+  userId   String?
+  teamRole ModuleRole?
 
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([userId])
 }
 
 // ── Daily Standup ─────────────────────────────────────────────────────────────

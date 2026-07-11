@@ -114,6 +114,40 @@ describe('/api/teams (integration)', () => {
     expect(del.statusCode).toBe(404)
   })
 
+  it('links a member to an existing account by email, ignores unknown emails', async () => {
+    const linkedAccount = await createTestUser(app, `linked${SUFFIX}`)
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/teams',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        name: 'Équipe D',
+        members: [
+          { name: 'Compte connu', email: linkedAccount.user.email },
+          { name: 'Compte inconnu', email: `inconnu${SUFFIX}` },
+          { name: 'Indicatif seul' },
+        ],
+      },
+    })
+    expect(res.statusCode).toBe(201)
+    const members = res.json().members as Array<{ name: string; userId: string | null; email: string | null }>
+    expect(members.find((m) => m.name === 'Compte connu')?.userId).toBe(linkedAccount.user.id)
+    expect(members.find((m) => m.name === 'Compte inconnu')?.userId).toBeNull()
+    expect(members.find((m) => m.name === 'Indicatif seul')?.userId).toBeNull()
+    expect(members.find((m) => m.name === 'Indicatif seul')?.email).toBeNull()
+  })
+
+  it('resolves email case-insensitively', async () => {
+    const linkedAccount = await createTestUser(app, `casetest${SUFFIX}`)
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/teams',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { name: 'Équipe E', members: [{ name: 'X', email: linkedAccount.user.email.toUpperCase() }] },
+    })
+    expect(res.json().members[0].userId).toBe(linkedAccount.user.id)
+  })
+
   it('deletes a team', async () => {
     const created = await app.inject({
       method: 'POST',

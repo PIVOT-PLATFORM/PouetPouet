@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Users } from 'lucide-react'
+import { Users, Link2 } from 'lucide-react'
 import { useTeams } from '@/hooks/useDaily'
-import type { DailyTeam } from '@/hooks/useDaily'
+import type { DailyTeam, TeamMemberInput } from '@/hooks/useDaily'
 import { ColorPicker } from '@/components/ui/color-picker'
 import { ModuleShareModal } from '@/components/share/module-share-modal'
 import { DEFAULT_SHAPE_COLOR } from '@/lib/colors'
@@ -16,8 +16,14 @@ function initials(name: string) {
 
 // ── Member editor row ─────────────────────────────────────────────────────────
 
+interface MemberDraft {
+  name: string
+  email: string
+  linked?: boolean // compte déjà lié côté serveur (informatif, non modifiable ici)
+}
+
 function MemberRow({
-  name,
+  member,
   index,
   total,
   onChange,
@@ -26,10 +32,10 @@ function MemberRow({
   onMoveDown,
   onEnter,
 }: {
-  name: string
+  member: MemberDraft
   index: number
   total: number
-  onChange: (v: string) => void
+  onChange: (v: Partial<MemberDraft>) => void
   onRemove: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -55,19 +61,35 @@ function MemberRow({
           ▼
         </button>
       </div>
-      <input
-        value={name}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            onEnter()
-          }
-        }}
-        autoFocus={index === total - 1 && name === '' && total > 1}
-        placeholder={`Membre ${index + 1}`}
-        className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-800 dark:text-white"
-      />
+      <div className="flex-1 flex flex-col gap-1">
+        <input
+          value={member.name}
+          onChange={(e) => onChange({ name: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              onEnter()
+            }
+          }}
+          autoFocus={index === total - 1 && member.name === '' && total > 1}
+          placeholder={`Membre ${index + 1}`}
+          className="text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-800 dark:text-white"
+        />
+        <div className="flex items-center gap-1.5">
+          <input
+            value={member.email}
+            onChange={(e) => onChange({ email: e.target.value })}
+            type="email"
+            placeholder="Email (optionnel — relie ce membre à son compte)"
+            className="flex-1 text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-800"
+          />
+          {member.linked && (
+            <span title="Compte lié" className="flex items-center gap-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Link2 size={12} /> Lié
+            </span>
+          )}
+        </div>
+      </div>
       <button
         type="button"
         onClick={onRemove}
@@ -89,14 +111,14 @@ function TeamModal({
   onClose,
 }: {
   initial?: DailyTeam
-  onSave: (name: string, members: string[], color: string, description: string) => Promise<void>
+  onSave: (name: string, members: TeamMemberInput[], color: string, description: string) => Promise<void>
   onClose: () => void
 }) {
   const [name, setName] = useState(initial?.name ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [color, setColor] = useState(initial?.color ?? DEFAULT_SHAPE_COLOR)
-  const [members, setMembers] = useState<string[]>(
-    initial?.members.map((m) => m.name) ?? ['']
+  const [members, setMembers] = useState<MemberDraft[]>(
+    initial?.members.map((m) => ({ name: m.name, email: m.email ?? '', linked: !!m.userId })) ?? [{ name: '', email: '' }]
   )
   const [saving, setSaving] = useState(false)
 
@@ -118,7 +140,9 @@ function TeamModal({
 
   async function handleSave() {
     if (!name.trim()) return
-    const validMembers = members.map((m) => m.trim()).filter(Boolean)
+    const validMembers = members
+      .map((m) => ({ name: m.name.trim(), email: m.email.trim() || undefined }))
+      .filter((m) => m.name)
     setSaving(true)
     await onSave(name.trim(), validMembers, color, description.trim())
     setSaving(false)
@@ -173,25 +197,25 @@ function TeamModal({
               {members.map((m, i) => (
                 <MemberRow
                   key={i}
-                  name={m}
+                  member={m}
                   index={i}
                   total={members.length}
-                  onChange={(v) => setMembers((prev) => prev.map((x, j) => j === i ? v : x))}
+                  onChange={(v) => setMembers((prev) => prev.map((x, j) => j === i ? { ...x, ...v, linked: v.email !== undefined ? false : x.linked } : x))}
                   onRemove={() => setMembers((prev) => prev.filter((_, j) => j !== i))}
                   onMoveUp={() => moveUp(i)}
                   onMoveDown={() => moveDown(i)}
                   onEnter={() => {
                     // Entrée sur la dernière ligne remplie : ajoute un champ vide
                     // (qui prend le focus via autoFocus) pour saisir le suivant.
-                    if (i === members.length - 1 && m.trim()) {
-                      setMembers((prev) => [...prev, ''])
+                    if (i === members.length - 1 && m.name.trim()) {
+                      setMembers((prev) => [...prev, { name: '', email: '' }])
                     }
                   }}
                 />
               ))}
               <button
                 type="button"
-                onClick={() => setMembers((prev) => [...prev, ''])}
+                onClick={() => setMembers((prev) => [...prev, { name: '', email: '' }])}
                 className="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 font-medium text-left py-1"
               >
                 + Ajouter un membre
@@ -384,7 +408,7 @@ export default function EquipesPage() {
   const [shareTarget, setShareTarget] = useState<DailyTeam | null>(null)
   const [search, setSearch] = useState('')
 
-  const handleSave = useCallback(async (name: string, members: string[], color: string, description: string) => {
+  const handleSave = useCallback(async (name: string, members: TeamMemberInput[], color: string, description: string) => {
     if (editTarget) {
       await updateTeam(editTarget.id, name, members, color, description)
     } else {
