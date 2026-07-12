@@ -20,6 +20,7 @@ interface Question {
 interface Quiz {
   id: string
   title: string
+  role?: 'OWNER' | 'EDITOR' | 'VIEWER'
 }
 
 interface SessionResult {
@@ -288,6 +289,10 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
     return <div className="text-center py-12 text-gray-400 text-sm">Chargement…</div>
   }
 
+  // Quiz partagé en lecture : consultation des questions et de l'historique,
+  // aucune action d'édition ni de lancement de session.
+  const readOnly = quiz?.role === 'VIEWER'
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
@@ -296,8 +301,12 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
         </Link>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 truncate">{quiz?.title ?? 'Quiz'}</h1>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{questions.length} question{questions.length !== 1 ? 's' : ''}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            {questions.length} question{questions.length !== 1 ? 's' : ''}
+            {readOnly && <span className="ml-2 inline-block rounded-md bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:text-gray-400">Partagé · Lecture seule</span>}
+          </p>
         </div>
+        {!readOnly && (
         <button
           onClick={handleLaunch}
           disabled={launching || questions.length === 0}
@@ -306,9 +315,10 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
           <Play className="w-4 h-4" />
           {launching ? 'Lancement…' : 'Lancer une session'}
         </button>
+        )}
       </div>
 
-      {questions.length > 0 && (
+      {!readOnly && questions.length > 0 && (
         <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3">
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">Appliquer à toutes :</span>
           <select
@@ -349,13 +359,13 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
           ) : (
             <div
               key={q.id}
-              draggable
-              onDragStart={() => handleDragStart(idx)}
-              onDragOver={(e) => handleDragOver(e, idx)}
-              onDragEnd={handleDragEnd}
-              className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-start gap-3 cursor-grab active:cursor-grabbing"
+              draggable={!readOnly}
+              onDragStart={readOnly ? undefined : () => handleDragStart(idx)}
+              onDragOver={readOnly ? undefined : (e) => handleDragOver(e, idx)}
+              onDragEnd={readOnly ? undefined : handleDragEnd}
+              className={`group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-start gap-3 ${readOnly ? '' : 'cursor-grab active:cursor-grabbing'}`}
             >
-              <GripVertical className="w-4 h-4 text-gray-300 dark:text-gray-600 mt-0.5 shrink-0" />
+              {!readOnly && <GripVertical className="w-4 h-4 text-gray-300 dark:text-gray-600 mt-0.5 shrink-0" />}
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Q{idx + 1} · {q.timeLimit > 0 ? `${q.timeLimit}s` : 'Illimité'} · {q.points} pts</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">{q.text}</p>
@@ -378,6 +388,7 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
                   ))}
                 </div>
               </div>
+              {!readOnly && (
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                 <button
                   onClick={() => setEditingId(q.id)}
@@ -393,11 +404,12 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
+              )}
             </div>
           )
         )}
 
-        {showAddForm ? (
+        {readOnly ? null : showAddForm ? (
           <QuestionForm
             onSave={handleAddQuestion}
             onCancel={() => setShowAddForm(false)}
@@ -508,6 +520,7 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
                             {s.podium[0] && <> · 🥇 {s.podium[0].name}</>}
                           </p>
                         </button>
+                        {!readOnly && (
                         <button
                           onClick={() => { setRenamingId(s.id); setRenameValue(s.title ?? '') }}
                           className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors shrink-0"
@@ -515,6 +528,7 @@ export default function QuizEditorPage({ params }: { params: Promise<{ id: strin
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
+                        )}
                         <span className="font-mono text-xs text-gray-300 dark:text-gray-600 shrink-0">{s.code}</span>
                         <button onClick={() => setExpandedSession(isOpen ? null : s.id)} className="shrink-0 text-gray-400">
                           {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}

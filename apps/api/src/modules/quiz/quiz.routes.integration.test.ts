@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { buildTestApp, createTestUser, cleanupUsers } from '../../test/build-app.js'
+import { prisma } from '../../lib/prisma.js'
 import { quizRoutes } from './quiz.routes.js'
 
 // Le gameplay temps réel (quiz.sockets.ts) suit la convention du repo : couvert
@@ -202,5 +203,82 @@ describe('Quiz — CRUD, questions, sessions', () => {
     expect(denied.statusCode).toBe(404)
     const ok = await app.inject({ method: 'DELETE', url: `/api/quiz/${quizId}`, headers: auth(alice.token) })
     expect(ok.statusCode).toBe(204)
+  })
+})
+
+// Partage : un quiz était exposé dans la modale de partage mais toutes les routes
+// étaient owner-only — le destinataire ne voyait rien (audit partage, point 1).
+describe('Quiz — rôles de partage (VIEWER / EDITOR)', () => {
+  let app: FastifyInstance
+  let owner: { user: { id: string }; token: string }
+  let editor: { user: { id: string }; token: string }
+  let viewer: { user: { id: string }; token: string }
+  let quizId: string
+
+  beforeAll(async () => {
+    await cleanupUsers(SUFFIX)
+    app = await buildTestApp([{ plugin: quizRoutes, prefix: '/api/quiz' }])
+    owner = await createTestUser(app, `shareowner${SUFFIX}`)
+    editor = await createTestUser(app, `shareeditor${SUFFIX}`)
+    viewer = await createTestUser(app, `shareviewer${SUFFIX}`)
+
+    quizId = (await app.inject({ method: 'POST', url: '/api/quiz', headers: auth(owner.token), payload: { title: 'Quiz partagé' } })).json().id
+    await app.inject({
+      method: 'POST', url: `/api/quiz/${quizId}/questions`, headers: auth(owner.token),
+      payload: { text: 'Q1 ?', options: ['A', 'B'], correct: 0 },
+    })
+    await prisma.moduleShare.createMany({
+      data: [
+        { module: 'quiz', resourceId: quizId, userId: editor.user.id, role: 'EDITOR' },
+        { module: 'quiz', resourceId: quizId, userId: viewer.user.id, role: 'VIEWER' },
+      ],
+    })
+  })
+
+  afterAll(async () => {
+    await cleanupUsers(SUFFIX)
+    await app.close()
+  })
+
+  it('la liste inclut le quiz partagé, annoté du rôle', async () => {
+    const forEditor = await app.inject({ method: 'GET', url: '/api/quiz', headers: auth(editor.token) })
+    expect(forEditor.json().find((q: { id: string }) => q.id === quizId)?.role).toBe('EDITOR')
+    const forViewer = await app.inject({ method: 'GET', url: '/api/quiz', headers: auth(viewer.token) })
+    expect(forViewer.json().find((q: { id: string }) => q.id === quizId)?.role).toBe('VIEWER')
+  })
+
+  it('VIEWER lit le détail, les questions et l\'historique', async () => {
+    expect((await app.inject({ method: 'GET', url: `/api/quiz/${quizId}`, headers: auth(viewer.token) })).statusCode).toBe(200)
+    expect((await app.inject({ method: 'GET', url: `/api/quiz/${quizId}/questions`, headers: auth(viewer.token) })).statusCode).toBe(200)
+    expect((await app.inject({ method: 'GET', url: `/api/quiz/${quizId}/sessions`, headers: auth(viewer.token) })).statusCode).toBe(200)
+  })
+
+  it('VIEWER ne peut ni éditer ni lancer de session (403)', async () => {
+    expect((await app.inject({ method: 'PUT', url: `/api/quiz/${quizId}`, headers: auth(viewer.token), payload: { title: 'Volé' } })).statusCode).toBe(403)
+    expect((await app.inject({ method: 'POST', url: `/api/quiz/${quizId}/questions`, headers: auth(viewer.token), payload: { text: 'X ?', options: ['A', 'B'], correct: 0 } })).statusCode).toBe(403)
+    expect((await app.inject({ method: 'POST', url: `/api/quiz/${quizId}/session`, headers: auth(viewer.token), payload: {} })).statusCode).toBe(403)
+  })
+
+  it('EDITOR édite les questions et lance une session (il en devient l\'animateur)', async () => {
+    const added = await app.inject({
+      method: 'POST', url: `/api/quiz/${quizId}/questions`, headers: auth(editor.token),
+      payload: { text: 'Q2 par éditeur ?', options: ['A', 'B'], correct: 1 },
+    })
+    expect(added.statusCode).toBe(201)
+
+    const session = await app.inject({ method: 'POST', url: `/api/quiz/${quizId}/session`, headers: auth(editor.token), payload: {} })
+    expect(session.statusCode).toBe(201)
+    const dbSession = await prisma.quizSession.findUnique({ where: { id: session.json().sessionId } })
+    expect(dbSession?.ownerId).toBe(editor.user.id)
+  })
+
+  it('EDITOR ne peut ni supprimer le quiz ni le mettre en favori (owner-only)', async () => {
+    expect((await app.inject({ method: 'DELETE', url: `/api/quiz/${quizId}`, headers: auth(editor.token) })).statusCode).toBe(404)
+    expect((await app.inject({ method: 'PATCH', url: `/api/quiz/${quizId}/favorite`, headers: auth(editor.token) })).statusCode).toBe(404)
+  })
+
+  it('la suppression par le owner purge les partages', async () => {
+    expect((await app.inject({ method: 'DELETE', url: `/api/quiz/${quizId}`, headers: auth(owner.token) })).statusCode).toBe(204)
+    expect(await prisma.moduleShare.count({ where: { module: 'quiz', resourceId: quizId } })).toBe(0)
   })
 })
