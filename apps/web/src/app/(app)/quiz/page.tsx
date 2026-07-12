@@ -14,6 +14,7 @@ interface Quiz {
   updatedAt: string
   isFavorite: boolean
   shareCount: number
+  role?: 'OWNER' | 'EDITOR' | 'VIEWER'
   _count: { questions: number }
 }
 
@@ -178,9 +179,15 @@ export default function QuizPage() {
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate leading-tight">{quiz.title}</h3>
                   <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
                     {quiz._count.questions} question{quiz._count.questions !== 1 ? 's' : ''}
+                    {quiz.role && quiz.role !== 'OWNER' && (
+                      <span className="ml-2 inline-block rounded-md bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:text-gray-400 align-middle">
+                        {quiz.role === 'EDITOR' ? 'Partagé · Édition' : 'Partagé · Lecture'}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  {(!quiz.role || quiz.role === 'OWNER') && (
                   <button
                     onClick={(e) => handleToggleFavorite(e, quiz.id)}
                     title={quiz.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
@@ -188,6 +195,7 @@ export default function QuizPage() {
                   >
                     <StarIcon filled={quiz.isFavorite} />
                   </button>
+                  )}
                   {quiz.shareCount > 0 && (
                     <span className="text-gray-300" title={`Partagé avec ${quiz.shareCount} personne${quiz.shareCount > 1 ? 's' : ''}`}>
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -195,6 +203,8 @@ export default function QuizPage() {
                       </svg>
                     </span>
                   )}
+                  {(!quiz.role || quiz.role === 'OWNER') && (
+                  <>
                   <button
                     onClick={(e) => { e.stopPropagation(); setShareModal({ id: quiz.id, title: quiz.title }) }}
                     title="Partager"
@@ -214,6 +224,8 @@ export default function QuizPage() {
                       <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                   </button>
+                  </>
+                  )}
                 </div>
               </div>
 
@@ -221,6 +233,7 @@ export default function QuizPage() {
                 <span className="text-xs text-gray-400 dark:text-gray-500">
                   Modifié {new Date(quiz.updatedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                 </span>
+                {quiz.role !== 'VIEWER' && (
                 <button
                   onClick={(e) => handleLaunch(e, quiz.id)}
                   disabled={launchingId === quiz.id || quiz._count.questions === 0}
@@ -229,6 +242,7 @@ export default function QuizPage() {
                   <Play className="w-3 h-3" />
                   {launchingId === quiz.id ? 'Lancement…' : 'Lancer'}
                 </button>
+                )}
               </div>
             </div>
           ))}
