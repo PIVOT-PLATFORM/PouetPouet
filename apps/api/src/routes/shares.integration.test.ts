@@ -257,4 +257,23 @@ describe('/api/shares team-share dynamique (integration)', () => {
     })
     expect(res.statusCode).toBe(404)
   })
+
+  // Régression : les pages Commande publique appellent la modale avec ces clés —
+  // absentes des RESOLVERS, chaque invitation répondait 404 « Module inconnu ».
+  it('resolves procurement modules (activite + demande-achat)', async () => {
+    const owner = await createTestUser(app, `procowner${SUFFIX}`)
+    const invitee = await createTestUser(app, `procinvitee${SUFFIX}`)
+    const activite = await prisma.activite.create({ data: { ownerId: owner.user.id, nom: 'Activité test partage' } })
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/shares/procurement-activite/${activite.id}/invite`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { email: invitee.user.email, role: 'VIEWER' },
+    })
+    expect(res.statusCode).toBe(201)
+
+    const notif = await prisma.notification.findFirst({ where: { userId: invitee.user.id, type: 'MODULE_SHARED' }, orderBy: { createdAt: 'desc' } })
+    expect(notif?.link).toBe(`/procurement/activites/${activite.id}`)
+  })
 })

@@ -4,7 +4,7 @@ import { z } from 'zod'
 import crypto from 'node:crypto'
 import path from 'node:path'
 import { prisma } from '../../lib/prisma.js'
-import { resolveRole, deleteResourceShares } from '../../lib/module-share.js'
+import { resolveRole, deleteResourceShares, sharedResourceIds } from '../../lib/module-share.js'
 import { sendFormResponseEmail, sendFormInviteEmail, sendFormReminderEmail } from '../../lib/mailer.js'
 import { saveFile, readFile, deleteStorageFile } from '../../lib/storage.js'
 import { bus } from '../../lib/bus.js'
@@ -219,17 +219,16 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
         orderBy: { updatedAt: 'desc' },
         include: { _count: { select: { responses: true } } },
       }),
-      prisma.moduleShare.findMany({
-        where: { module: 'form', userId },
-        select: { resourceId: true, role: true },
-      }),
+      // sharedResourceIds (et non ModuleShare en direct) : inclut aussi les
+      // formulaires partagés dynamiquement via une équipe (TeamModuleShare).
+      sharedResourceIds('form', userId),
     ])
 
-    const sharedRoles = new Map(sharedEntries.map((s) => [s.resourceId, s.role]))
+    const sharedRoles = new Map(sharedEntries.map((s) => [s.id, s.role]))
     let sharedForms: typeof ownedForms = []
     if (sharedEntries.length > 0) {
       sharedForms = await prisma.form.findMany({
-        where: { id: { in: sharedEntries.map((s) => s.resourceId) } },
+        where: { id: { in: sharedEntries.map((s) => s.id) } },
         orderBy: { updatedAt: 'desc' },
         include: { _count: { select: { responses: true } } },
       })

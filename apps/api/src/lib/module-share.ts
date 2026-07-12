@@ -109,7 +109,11 @@ export async function sharedResourceIds(module: string, userId: string): Promise
   return [...merged.entries()].map(([id, role]) => ({ id, role }))
 }
 
-// Nettoyage des partages à la suppression d'une ressource (pas de FK polymorphe).
+// Nettoyage des partages à la suppression d'une ressource (pas de FK polymorphe) —
+// partages individuels et partages dynamiques par équipe.
 export async function deleteResourceShares(module: string, resourceId: string): Promise<void> {
-  await prisma.moduleShare.deleteMany({ where: { module, resourceId } })
+  await Promise.all([
+    prisma.moduleShare.deleteMany({ where: { module, resourceId } }),
+    prisma.teamModuleShare.deleteMany({ where: { module, resourceId } }),
+  ])
 }
