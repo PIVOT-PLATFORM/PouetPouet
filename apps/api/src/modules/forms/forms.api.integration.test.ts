@@ -238,3 +238,37 @@ describe('Forms — téléchargement fichier (garde de clé)', () => {
     expect(res.statusCode).toBe(404)
   })
 })
+
+// ── Liste : inclut les formulaires partagés dynamiquement via une équipe ──────
+
+describe('Forms — liste et partage dynamique par équipe', () => {
+  let app: FastifyInstance
+  let owner: { user: { id: string }; token: string }
+  let member: { user: { id: string; email: string }; token: string }
+  let formId: string
+
+  beforeAll(async () => {
+    await cleanupUsers(SUFFIX)
+    app = await buildTestApp([{ plugin: formsRoutes, prefix: '/api/forms' }])
+    owner = await createTestUser(app, `owner-teamshare${SUFFIX}`)
+    member = await createTestUser(app, `member-teamshare${SUFFIX}`)
+    formId = (await createForm(app, owner.token, { title: 'Partagé à l\'équipe' })).json().id
+
+    const team = await prisma.team.create({ data: { name: 'Équipe forms', ownerId: owner.user.id } })
+    await prisma.teamMember.create({ data: { teamId: team.id, name: 'Membre', email: member.user.email, userId: member.user.id, teamRole: 'EDITOR' } })
+    await prisma.teamModuleShare.create({ data: { module: 'form', resourceId: formId, teamId: team.id, role: 'EDITOR' } })
+  })
+
+  afterAll(async () => {
+    await cleanupUsers(SUFFIX)
+    await app.close()
+  })
+
+  it('un formulaire partagé uniquement via TeamModuleShare apparaît dans la liste du membre', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/forms', headers: { authorization: `Bearer ${member.token}` } })
+    expect(res.statusCode).toBe(200)
+    const form = (res.json() as Array<{ id: string; role: string }>).find((f) => f.id === formId)
+    expect(form).toBeDefined()
+    expect(form?.role).toBe('EDITOR')
+  })
+})

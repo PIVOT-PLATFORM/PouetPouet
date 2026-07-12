@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { prisma } from './prisma.js'
-import { resolveRole, sharedResourceIds } from './module-share.js'
+import { resolveRole, sharedResourceIds, deleteResourceShares } from './module-share.js'
 
 // Rôle hérité d'une équipe via TeamModuleShare — plafonné par TeamMember.teamRole.
 const SUFFIX = '@moduleshare.int.test'
@@ -121,5 +121,11 @@ describe('sharedResourceIds — inclut les ressources partagées dynamiquement p
     const matches = list.filter((r) => r.id === bothId)
     expect(matches).toHaveLength(1)
     expect(matches[0].role).toBe('EDITOR')
+  })
+
+  it('deleteResourceShares purge aussi les partages dynamiques par équipe', async () => {
+    await deleteResourceShares('list-test-module', bothId)
+    expect(await prisma.moduleShare.count({ where: { module: 'list-test-module', resourceId: bothId } })).toBe(0)
+    expect(await prisma.teamModuleShare.count({ where: { module: 'list-test-module', resourceId: bothId } })).toBe(0)
   })
 })
