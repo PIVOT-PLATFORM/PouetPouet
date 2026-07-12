@@ -170,6 +170,57 @@ describe('/api/teams (integration)', () => {
     expect(res.json().members[0].userId).toBe(linkedAccount.user.id)
   })
 
+  // Le PUT remplace le roster, mais Daily (noms purs) et Capacité (name/role/fte)
+  // ne connaissent pas email/teamRole : un champ absent doit hériter du membre
+  // existant de même nom au lieu d'être effacé.
+  it('preserves link fields when a partial client (Daily/Capacité) resaves the roster', async () => {
+    const acct = await createTestUser(app, `preserve${SUFFIX}`)
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/teams',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { name: 'Équipe préservation', members: [{ name: 'Lié', email: acct.user.email, role: 'Dev', fte: 0.8 }] },
+    })
+    const teamId = created.json().id
+    expect(created.json().members[0].userId).toBe(acct.user.id)
+
+    // Daily : string[] (aucun champ) → tout est préservé
+    const dailySave = await app.inject({
+      method: 'PUT',
+      url: `/api/teams/${teamId}`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { name: 'Équipe préservation', members: ['Lié'] },
+    })
+    let member = dailySave.json().members[0]
+    expect(member.userId).toBe(acct.user.id)
+    expect(member.teamRole).toBe('EDITOR')
+    expect(member.role).toBe('Dev')
+    expect(member.fte).toBe(0.8)
+
+    // Capacité : name/role/fte sans email/teamRole → lien et grade préservés
+    const capacitySave = await app.inject({
+      method: 'PUT',
+      url: `/api/teams/${teamId}`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { name: 'Équipe préservation', members: [{ name: 'Lié', role: 'Lead', fte: 1 }] },
+    })
+    member = capacitySave.json().members[0]
+    expect(member.userId).toBe(acct.user.id)
+    expect(member.teamRole).toBe('EDITOR')
+    expect(member.role).toBe('Lead')
+
+    // Équipes : email null explicite = effacement volontaire du lien
+    const clearSave = await app.inject({
+      method: 'PUT',
+      url: `/api/teams/${teamId}`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { name: 'Équipe préservation', members: [{ name: 'Lié', email: null }] },
+    })
+    member = clearSave.json().members[0]
+    expect(member.email).toBeNull()
+    expect(member.userId).toBeNull()
+  })
+
   it('deletes a team', async () => {
     const created = await app.inject({
       method: 'POST',

@@ -78,12 +78,12 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
       description?: string
       members?: MemberInput[] | string[]
     }
-    const existing = await prisma.team.findUnique({ where: { id } })
+    const existing = await prisma.team.findUnique({ where: { id }, include: { members: true } })
     if (!existing) return reply.status(404).send({ error: 'Équipe introuvable' })
     const role = await resolveRole('team', id, ownerId, existing.ownerId)
     if (!canManage(role)) return reply.status(role ? 403 : 404).send({ error: role ? 'Réservé au propriétaire ou éditeur.' : 'Équipe introuvable' })
+    const memberList = mergeWithExistingMembers(normalizeMembers(members), existing.members)
     await prisma.teamMember.deleteMany({ where: { teamId: id } })
-    const memberList = normalizeMembers(members)
     const userIdByEmail = await resolveMemberUserIds(memberList)
     const updated = await prisma.team.update({
       where: { id },
@@ -110,11 +110,51 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
 }
 
 // Accept both string[] (Daily legacy: just names) and MemberInput[].
+// `email: undefined` (champ absent) est préservé tel quel — il signifie « client
+// qui ne gère pas ce champ », traité par mergeWithExistingMembers ; seul un email
+// explicitement fourni est normalisé (null = effacement volontaire).
 function normalizeMembers(members: MemberInput[] | string[] | undefined): MemberInput[] {
   if (!members) return []
   return (members as Array<string | MemberInput>).map((m) =>
-    typeof m === 'string' ? { name: m.trim() } : { ...m, name: m.name.trim(), email: m.email?.trim().toLowerCase() || null }
+    typeof m === 'string'
+      ? { name: m.trim() }
+      : { ...m, name: m.name.trim(), email: m.email !== undefined ? m.email?.trim().toLowerCase() || null : undefined }
   )
+}
+
+// Le PUT remplace tout le roster, mais tous les écrans qui éditent une équipe ne
+// connaissent pas tous les champs d'un membre (Daily n'envoie que des noms,
+// Capacité name/role/fte, Équipes name/email/teamRole). Sans fusion, chaque
+// sauvegarde depuis un écran « partiel » effacerait les champs des autres
+// (liens de compte, grades, poste, FTE). Règle : un champ absent du payload
+// (undefined) hérite de la valeur du membre existant de même nom ; null reste
+// un effacement volontaire. Membres homonymes appariés dans l'ordre ; membre
+// renommé = nouveau membre (reperd son lien, à relier).
+function mergeWithExistingMembers(
+  memberList: MemberInput[],
+  existingMembers: Array<{ name: string; role: string | null; fte: number | null; email: string | null; teamRole: ModuleRole | null }>,
+): MemberInput[] {
+  const pool = new Map<string, typeof existingMembers>()
+  for (const m of existingMembers) {
+    const list = pool.get(m.name) ?? []
+    list.push(m)
+    pool.set(m.name, list)
+  }
+  return memberList.map((m) => {
+    const match = pool.get(m.name)?.shift()
+    if (!match) return m
+    const email = m.email !== undefined ? m.email : match.email
+    return {
+      ...m,
+      role: m.role !== undefined ? m.role : match.role,
+      fte: m.fte !== undefined ? m.fte : match.fte,
+      email,
+      // Le grade ne suit que si le lien (email) est inchangé — un email nouveau ou
+      // modifié laisse teamRole indéfini, pour repasser par le défaut EDITOR au
+      // moment de la résolution (buildMemberCreateData).
+      teamRole: m.teamRole !== undefined ? m.teamRole : match.email !== null && email === match.email ? match.teamRole : undefined,
+    }
+  })
 }
 
 // Résolution best-effort email → compte existant (même logique que

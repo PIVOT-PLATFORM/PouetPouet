@@ -158,8 +158,11 @@ function TeamModal({
 
   async function handleSave() {
     if (!name.trim()) return
+    // email: null explicite quand le champ est vide — cet éditeur affiche le champ,
+    // son payload fait foi (l'API ne préserve l'existant que sur un champ absent,
+    // cas des écrans Daily/Capacité qui ne connaissent pas l'email).
     const validMembers = members
-      .map((m) => ({ name: m.name.trim(), email: m.email.trim() || undefined, teamRole: m.linked ? m.teamRole ?? null : undefined }))
+      .map((m) => ({ name: m.name.trim(), email: m.email.trim() || null, teamRole: m.linked ? m.teamRole ?? null : undefined }))
       .filter((m) => m.name)
     setSaving(true)
     await onSave(name.trim(), validMembers, color, description.trim())
