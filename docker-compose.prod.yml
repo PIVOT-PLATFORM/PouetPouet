@@ -27,6 +27,8 @@ services:
     depends_on:
       - postgres
       - redis
+    volumes:
+      - api_uploads:/app/.uploads
 
   web:
     build:
@@ -41,3 +43,6 @@ services:
       - "3000:3000"
     depends_on:
       - api
+
+volumes:
+  api_uploads:
