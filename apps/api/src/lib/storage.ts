@@ -4,9 +4,15 @@ import path from 'node:path'
 
 const BUCKET = process.env.GCS_BUCKET ?? 'pouetpouet-documents'
 
-// En local (pas de credentials GCS), on stocke les fichiers dans .uploads/
-// et on expose des endpoints dev /api/parcours/_dev/:key
-const IS_LOCAL_DEV = !process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.NODE_ENV !== 'production'
+// STORAGE_DRIVER pilote explicitement le mode de stockage. Non défini (Cloud
+// Run actuel) : on retombe sur l'ancienne déduction via NODE_ENV, pour ne pas
+// changer le comportement tant que la variable n'est pas positionnée. Défini
+// (serveur on-premise, STORAGE_DRIVER=local malgré NODE_ENV=production) : la
+// valeur explicite prime.
+const STORAGE_DRIVER = process.env.STORAGE_DRIVER as 'local' | 'gcs' | undefined
+export const IS_LOCAL_DEV = STORAGE_DRIVER
+  ? STORAGE_DRIVER === 'local'
+  : !process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.NODE_ENV !== 'production'
 export const LOCAL_UPLOAD_DIR = path.join(process.cwd(), '.uploads')
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
 

@@ -5,7 +5,7 @@ import { prisma } from '../../lib/prisma.js'
 import { resolveRole, sharedResourceIds, deleteResourceShares } from '../../lib/module-share.js'
 import { notify } from '../../lib/notify.js'
 import { sendParcoursStepAssignedEmail } from '../../lib/mailer.js'
-import { getUploadSignedUrl, getDownloadSignedUrl, deleteStorageFile, LOCAL_UPLOAD_DIR } from '../../lib/storage.js'
+import { getUploadSignedUrl, getDownloadSignedUrl, deleteStorageFile, LOCAL_UPLOAD_DIR, IS_LOCAL_DEV } from '../../lib/storage.js'
 import { bus } from '../../lib/bus.js'
 import { initApprovalChain, currentApprover, canDecide, recordDecision } from '../../lib/approval-chain.js'
 import { type SkipIfDef, type FlowEdgeDef, type ModuleStepDef, evalCondition, interpolate, executeHttpStep, executeAiStep, executeValidationNotifications, resolveNextStep } from '../../lib/parcours-engine.js'
@@ -173,7 +173,7 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
   // En Fastify v5, les content-types non enregistrés retournent 415 avant même
   // d'atteindre le handler. On isole les routes _dev dans un sous-plugin pour y
   // enregistrer un parser '*' (buffer) sans impacter les routes JSON parentes.
-  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.NODE_ENV !== 'production') {
+  if (IS_LOCAL_DEV) {
     await app.register(async (devApp) => {
       devApp.addContentTypeParser('*', { parseAs: 'buffer' }, (_req, body, done) => done(null, body))
 
