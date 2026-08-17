@@ -15,7 +15,7 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: pouetpouet_api
+    container_name: pivot_api
     restart: unless-stopped
     env_file:
       - .env
@@ -37,7 +37,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL}
-    container_name: pouetpouet_web
+    container_name: pivot_web
     restart: unless-stopped
     ports:
       - "3000:3000"
