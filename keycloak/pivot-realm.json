@@ -1,11 +1,11 @@
 {
-  "realm": "forge",
+  "realm": "pivot",
   "enabled": true,
   "registrationAllowed": false,
   "clients": [
     {
       "clientId": "pouetpouet",
-      "name": "PouetPouet (FORGE)",
+      "name": "PouetPouet (PIVOT)",
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": false,
@@ -21,7 +21,7 @@
     {
       "username": "sso-user",
       "enabled": true,
-      "email": "sso-user@forge.local",
+      "email": "sso-user@pivot.local",
       "emailVerified": true,
       "firstName": "SSO",
       "lastName": "User",

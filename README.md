@@ -206,7 +206,7 @@ Playwright démarre automatiquement l'API sur `4000` et le web sur `3000` si les
 
 Le socle PIVOT repose sur un registre de modules partagé :
 
-- les manifests sont déclarés dans `packages/shared/src/forge/modules.ts` ;
+- les manifests sont déclarés dans `packages/shared/src/pivot/modules.ts` ;
 - les routes et sockets serveur sont montés depuis `apps/api/src/modules/registry.ts` ;
 - chaque module possède ses routes, ses handlers temps réel et ses entités Prisma ;
 - les modules communiquent via un bus d'événements typés.

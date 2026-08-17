@@ -3,7 +3,7 @@ import { findOrCreateUser } from './oidc.js'
 import { prisma } from '../lib/prisma.js'
 
 const SUFFIX = '@oidc.int.test'
-const PROVIDER = 'http://idp.test/realms/forge'
+const PROVIDER = 'http://idp.test/realms/pivot'
 
 describe('findOrCreateUser (integration)', () => {
   beforeAll(async () => {

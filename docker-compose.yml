@@ -44,7 +44,7 @@ services:
 
   # IdP local pour tester le SSO OIDC (opt-in) :
   #   docker compose --profile sso up -d keycloak
-  # Realm "forge" importé depuis keycloak/ — utilisateur test : sso-user / sso-password
+  # Realm "pivot" importé depuis keycloak/ — utilisateur test : sso-user / sso-password
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
     container_name: pouetpouet_keycloak

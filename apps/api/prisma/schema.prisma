@@ -551,7 +551,7 @@ enum ScrumTicketStatus {
   DONE
 }
 
-// ── Team pivot (socle FORGE F3) ───────────────────────────────────────────────
+// ── Team pivot (socle PIVOT F3) ─────────────────────────────────────────────
 // Remplace DailyTeam et CapacityTeam. Une équipe est un pivot partagé par Daily,
 // La Roue et Capacité. Les membres ont role/fte optionnels (Daily ne les utilise pas).
 

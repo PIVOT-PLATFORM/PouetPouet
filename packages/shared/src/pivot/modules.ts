@@ -1,6 +1,6 @@
 import type { ModuleManifest } from './manifest.js'
 
-// Registre déclaratif des modules FORGE.
+// Registre déclaratif des modules PIVOT.
 // F3.1 accompli : Team est un pivot du socle partagé par Daily, La Roue et Capacité.
 
 export const POUETPOUET_MODULE: ModuleManifest = {
