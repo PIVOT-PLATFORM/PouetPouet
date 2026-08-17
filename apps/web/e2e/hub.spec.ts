@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { registerUser } from './helpers'
 
-test('le hub affiche une tuile par module FORGE', async ({ page }) => {
+test('le hub affiche une tuile par module PIVOT', async ({ page }) => {
   await registerUser(page, 'E2E Hub')
   await page.goto('/hub')
 

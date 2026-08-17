@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
 import type { PivotEvent } from '@pouetpouet/shared'
 
-// Bus d'événements FORGE.
+// Bus d'événements PIVOT.
 // Implémentation in-process (le modular monolith tourne en instance unique) ;
 // l'interface est le contrat : une implémentation Redis pub/sub pourra la
 // remplacer à l'identique quand le scaling horizontal arrivera (F4).

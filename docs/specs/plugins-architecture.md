@@ -19,7 +19,7 @@ contrats existants.**
 
 | Brique | Emplacement | Rôle pour les plugins |
 |--------|-------------|------------------------|
-| `ModuleManifest` | `packages/shared/src/forge/manifest.ts` | Déclare déjà `id`, `nav`, `apiPrefix`, `ownedEntities`, `referencedPivots`, `emits`, `listensTo` → c'est un **manifeste de plugin** |
+| `ModuleManifest` | `packages/shared/src/pivot/manifest.ts` | Déclare déjà `id`, `nav`, `apiPrefix`, `ownedEntities`, `referencedPivots`, `emits`, `listensTo` → c'est un **manifeste de plugin** |
 | Registre | `apps/api/src/modules/registry.ts` (`API_MODULES`) | Monte routes + handlers socket en itérant une liste → point d'enregistrement |
 | Bus d'événements | `apps/api/src/lib/bus.ts` (`EventBus`) | Découplage inter-modules (`<module>.<entité>.<action>`) |
 | Règle d'isolation | en-tête de `registry.ts` | Un module n'importe que depuis son dossier, `../../lib` (socle) et `@pouetpouet/shared` |

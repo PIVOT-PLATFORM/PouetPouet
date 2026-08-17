@@ -1,4 +1,4 @@
-// FORGE — contrat d'intégration d'un module.
+// PIVOT — contrat d'intégration d'un module.
 // Chaque outil de la suite (PouetPouet, Scrum Poker, Daily, La Roue, Capacité…)
 // déclare ici ce qu'il possède, ce qu'il référence et ce qu'il émet/écoute.
 // C'est ce contrat qui permet aux modules de communiquer au lieu de coexister :

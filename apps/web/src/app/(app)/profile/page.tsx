@@ -702,7 +702,7 @@ export default function ProfilePage() {
       {/* ── Webhooks ── */}
       <SectionCard title="Webhooks">
         <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
-          Recevez des notifications HTTP lorsque des événements se produisent dans FORGE. Chaque livraison est signée avec un secret HMAC-SHA256 dans l'en-tête <code className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-1 rounded text-xs">X-Webhook-Signature</code>.
+          Recevez des notifications HTTP lorsque des événements se produisent dans PIVOT. Chaque livraison est signée avec un secret HMAC-SHA256 dans l'en-tête <code className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-1 rounded text-xs">X-Webhook-Signature</code>.
         </p>
 
         {newWkSecret && (

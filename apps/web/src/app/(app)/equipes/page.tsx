@@ -389,7 +389,7 @@ function TeamCard({
           </div>
         </div>
 
-        {/* Stats FORGE — cross-module usage of this team pivot */}
+        {/* Stats PIVOT — cross-module usage of this team pivot */}
         <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-gray-50 dark:border-gray-800 mt-auto">
           {sessions > 0 && (
             <div className="flex items-center gap-1 text-xs text-gray-400" title="Daily Standup">

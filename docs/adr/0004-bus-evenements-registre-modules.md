@@ -29,7 +29,7 @@ Un **bus d'événements** (`apps/api/src/lib/bus.ts`) et un **registre de module
 (`apps/api/src/modules/registry.ts`, `API_MODULES`).
 
 - Chaque module vit dans `modules/<id>/` et déclare un `ModuleManifest`
-  (`packages/shared/src/forge/manifest.ts` : `id`, `nav`, `apiPrefix`,
+  (`packages/shared/src/pivot/manifest.ts` : `id`, `nav`, `apiPrefix`,
   `ownedEntities`, `referencedPivots`, `emits`, `listensTo`).
 - **Règle d'isolation** : un module n'importe que depuis son propre dossier, le
   socle (`../../lib`) et `@pouetpouet/shared` — jamais le dossier d'un autre module.

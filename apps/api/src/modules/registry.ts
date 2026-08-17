@@ -42,7 +42,7 @@ import { todoDashboardRoutes } from './todo/todo-dashboard.routes.js'
 import { piRoutes } from './pi/pi.routes.js'
 import { piBoardRoutes } from './pi/pi-board.routes.js'
 
-// FORGE F0 — registre des modules côté API.
+// PIVOT F0 — registre des modules côté API.
 // Le socle (index.ts) monte routes et handlers socket en itérant ce registre :
 // activer/désactiver un module = l'ajouter/retirer ici. Les routes du socle
 // (auth, notifications, sessions live) restent montées explicitement.

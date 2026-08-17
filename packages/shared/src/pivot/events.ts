@@ -1,4 +1,4 @@
-// FORGE — enveloppe des événements inter-modules.
+// PIVOT — enveloppe des événements inter-modules.
 // Le type transite par le bus (in-process aujourd'hui, Redis pub/sub demain) ;
 // il est dans shared pour que producteurs et consommateurs partagent le contrat.
 

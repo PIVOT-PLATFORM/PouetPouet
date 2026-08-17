@@ -11,7 +11,7 @@ export function registerSocketHandlers(io: Server) {
     // Socle : sessions live (service transverse, pas un module)
     sessionSocketHandlers(io, socket)
 
-    // Modules FORGE (cf. modules/registry.ts)
+    // Modules PIVOT (cf. modules/registry.ts)
     for (const mod of API_MODULES) {
       for (const handlers of mod.socketHandlers) handlers(io, socket)
     }

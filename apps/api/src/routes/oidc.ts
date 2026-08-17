@@ -4,7 +4,7 @@ import * as oidc from 'openid-client'
 import { prisma } from '../lib/prisma.js'
 import { audit } from '../lib/audit.js'
 
-// Identité fédérée (FORGE F5.1) — relying party OIDC générique (Keycloak,
+// Identité fédérée (PIVOT F5.1) — relying party OIDC générique (Keycloak,
 // Google Workspace, Azure AD…). Entièrement env-gated : sans OIDC_ISSUER,
 // les routes répondent 404 et le bouton SSO n'apparaît pas côté web.
 //

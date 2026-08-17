@@ -127,7 +127,7 @@ await app.register(cookie)
 if (process.env.NODE_ENV !== 'production') {
   await app.register(swagger, {
     openapi: {
-      info: { title: 'PouetPouet API', version: pkg.version, description: 'FORGE — suite collaborative data-centric' },
+      info: { title: 'PouetPouet API', version: pkg.version, description: 'PIVOT — suite collaborative data-centric' },
       components: {
         securitySchemes: {
           bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
@@ -182,12 +182,12 @@ app.register(flagRoutes, { prefix: '/api' })
 app.register(shareRoutes, { prefix: '/api/shares' })
 app.register(gamesRoutes, { prefix: '/api/games' })
 
-// Modules FORGE : montés depuis le registre (cf. modules/registry.ts)
+// Modules PIVOT : montés depuis le registre (cf. modules/registry.ts)
 registerModuleRoutes(app)
 
 // Trace de tous les événements inter-modules
 bus.subscribe('*', (e) => {
-  app.log.info({ forgeEvent: e.type, module: e.module, payload: e.payload }, 'forge event')
+  app.log.info({ pivotEvent: e.type, module: e.module, payload: e.payload }, 'pivot event')
 })
 
 // F3.2 — liaisons événementielles : les modules notifient leurs propriétaires via le bus.

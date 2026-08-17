@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-// SSO OIDC (FORGE F5.1) — nécessite Keycloak local + OIDC_* dans apps/api/.env :
+// SSO OIDC (PIVOT F5.1) — nécessite Keycloak local + OIDC_* dans apps/api/.env :
 //   docker compose --profile sso up -d keycloak
 // Le test se skippe proprement si l'API n'a pas d'IdP configuré.
 
@@ -14,7 +14,7 @@ test('connexion SSO via Keycloak : login IdP → compte fédéré → hub', asyn
   await page.getByRole('link', { name: /Se connecter avec/ }).click()
 
   // Formulaire de login Keycloak
-  await page.waitForURL(/realms\/forge/)
+  await page.waitForURL(/realms\/pivot/)
   await page.locator('#username').fill('sso-user')
   await page.locator('#password').fill('sso-password')
   await page.locator('#kc-login').click()

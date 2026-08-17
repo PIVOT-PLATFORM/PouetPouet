@@ -19,7 +19,7 @@ WITH seed_users(id, email, name, avatar, bio, theme, palette, favorite_modules) 
   VALUES
     ('usr_admin_dev', 'admin@example.test', 'Admin Dev', NULL, 'Compte administrateur de developpement.', 'light', 'default', ARRAY['boards', 'scrum', 'daily']::TEXT[]),
     ('usr_alice_dev', 'alice@example.test', 'Alice Martin', NULL, 'Product owner cote metier.', 'light', 'fde-bleu-vert', ARRAY['boards', 'capacity']::TEXT[]),
-    ('usr_bob_dev', 'bob@example.test', 'Bob Durand', NULL, 'Tech lead equipe Forge.', 'dark', 'ocean', ARRAY['scrum', 'wheel']::TEXT[]),
+    ('usr_bob_dev', 'bob@example.test', 'Bob Durand', NULL, 'Tech lead equipe Pivot.', 'dark', 'ocean', ARRAY['scrum', 'wheel']::TEXT[]),
     ('usr_charlie_dev', 'charlie@example.test', 'Charlie Nguyen', NULL, 'Facilitateur agile.', 'light', 'amethyste', ARRAY['daily', 'wheel']::TEXT[]),
     ('usr_viewer_dev', 'viewer@example.test', 'Viewer Demo', NULL, 'Compte lecteur pour tester les partages.', 'light', 'default', ARRAY[]::TEXT[])
 )
@@ -73,7 +73,7 @@ ON CONFLICT ("keyHash") DO UPDATE SET
 
 INSERT INTO "Team" ("id", "name", "ownerId", "color", "description", "createdAt", "updatedAt")
 VALUES
-  ('team_forge_dev', 'Equipe Forge', 'usr_admin_dev', '#2563eb', 'Equipe produit utilisee par Scrum, Daily, Roue et Capacite.', NOW() - INTERVAL '11 days', NOW()),
+  ('team_pivot_dev', 'Equipe Pivot', 'usr_admin_dev', '#2563eb', 'Equipe produit utilisee par Scrum, Daily, Roue et Capacite.', NOW() - INTERVAL '11 days', NOW()),
   ('team_design_dev', 'Equipe Design', 'usr_alice_dev', '#14b8a6', 'Equipe transverse pour tester les droits multi-utilisateurs.', NOW() - INTERVAL '9 days', NOW())
 ON CONFLICT ("id") DO UPDATE SET
   "name" = EXCLUDED."name",
@@ -84,11 +84,11 @@ ON CONFLICT ("id") DO UPDATE SET
 
 INSERT INTO "TeamMember" ("id", "teamId", "name", "role", "fte", "order")
 VALUES
-  ('tm_forge_alice', 'team_forge_dev', 'Alice', 'Product Owner', 1, 0),
-  ('tm_forge_bob', 'team_forge_dev', 'Bob', 'Tech Lead', 1, 1),
-  ('tm_forge_charlie', 'team_forge_dev', 'Charlie', 'Facilitateur', 0.8, 2),
-  ('tm_forge_dina', 'team_forge_dev', 'Dina', 'Developpeuse', 1, 3),
-  ('tm_forge_eli', 'team_forge_dev', 'Eli', 'QA', 0.6, 4),
+  ('tm_pivot_alice', 'team_pivot_dev', 'Alice', 'Product Owner', 1, 0),
+  ('tm_pivot_bob', 'team_pivot_dev', 'Bob', 'Tech Lead', 1, 1),
+  ('tm_pivot_charlie', 'team_pivot_dev', 'Charlie', 'Facilitateur', 0.8, 2),
+  ('tm_pivot_dina', 'team_pivot_dev', 'Dina', 'Developpeuse', 1, 3),
+  ('tm_pivot_eli', 'team_pivot_dev', 'Eli', 'QA', 0.6, 4),
   ('tm_design_nora', 'team_design_dev', 'Nora', 'UX', 1, 0),
   ('tm_design_sam', 'team_design_dev', 'Sam', 'UI', 0.8, 1)
 ON CONFLICT ("id") DO UPDATE SET
@@ -299,7 +299,7 @@ ON CONFLICT ("id") DO UPDATE SET
 
 INSERT INTO "ScrumRoom" ("id", "name", "code", "ownerId", "teamId", "scale", "createdAt", "updatedAt")
 VALUES
-  ('scrum_room_forge', 'Poker Sprint 43', 'POKER1', 'usr_admin_dev', 'team_forge_dev', 'FIBONACCI', NOW() - INTERVAL '5 days', NOW())
+  ('scrum_room_pivot', 'Poker Sprint 43', 'POKER1', 'usr_admin_dev', 'team_pivot_dev', 'FIBONACCI', NOW() - INTERVAL '5 days', NOW())
 ON CONFLICT ("code") DO UPDATE SET
   "name" = EXCLUDED."name",
   "ownerId" = EXCLUDED."ownerId",
@@ -309,9 +309,9 @@ ON CONFLICT ("code") DO UPDATE SET
 
 INSERT INTO "ScrumTicket" ("id", "roomId", "title", "estimate", "estimateTime", "order", "status", "createdAt")
 VALUES
-  ('scrum_ticket_login', 'scrum_room_forge', 'Simplifier la connexion SSO', '5', NULL, 0, 'REVEALED', NOW() - INTERVAL '5 days'),
-  ('scrum_ticket_webhooks', 'scrum_room_forge', 'Journaliser les livraisons webhook', NULL, NULL, 1, 'VOTING', NOW() - INTERVAL '5 days'),
-  ('scrum_ticket_export', 'scrum_room_forge', 'Exporter les resultats de vote', NULL, NULL, 2, 'PENDING', NOW() - INTERVAL '4 days')
+  ('scrum_ticket_login', 'scrum_room_pivot', 'Simplifier la connexion SSO', '5', NULL, 0, 'REVEALED', NOW() - INTERVAL '5 days'),
+  ('scrum_ticket_webhooks', 'scrum_room_pivot', 'Journaliser les livraisons webhook', NULL, NULL, 1, 'VOTING', NOW() - INTERVAL '5 days'),
+  ('scrum_ticket_export', 'scrum_room_pivot', 'Exporter les resultats de vote', NULL, NULL, 2, 'PENDING', NOW() - INTERVAL '4 days')
 ON CONFLICT ("id") DO UPDATE SET
   "title" = EXCLUDED."title",
   "estimate" = EXCLUDED."estimate",
@@ -334,8 +334,8 @@ INSERT INTO "DailySession" (
   "startedAt", "endedAt", "createdAt", "updatedAt"
 )
 VALUES
-  ('daily_forge_today', 'Daily Forge', 'usr_admin_dev', 'team_forge_dev', 120, 'RUNNING', 1, NOW() - INTERVAL '10 minutes', NULL, NOW() - INTERVAL '1 day', NOW()),
-  ('daily_forge_done', 'Daily Forge precedent', 'usr_admin_dev', 'team_forge_dev', 90, 'DONE', 4, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day' + INTERVAL '12 minutes', NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day')
+  ('daily_pivot_today', 'Daily Pivot', 'usr_admin_dev', 'team_pivot_dev', 120, 'RUNNING', 1, NOW() - INTERVAL '10 minutes', NULL, NOW() - INTERVAL '1 day', NOW()),
+  ('daily_pivot_done', 'Daily Pivot precedent', 'usr_admin_dev', 'team_pivot_dev', 90, 'DONE', 4, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day' + INTERVAL '12 minutes', NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day')
 ON CONFLICT ("id") DO UPDATE SET
   "name" = EXCLUDED."name",
   "teamId" = EXCLUDED."teamId",
@@ -348,11 +348,11 @@ ON CONFLICT ("id") DO UPDATE SET
 
 INSERT INTO "DailyParticipant" ("id", "sessionId", "name", "order", "speakingAt", "doneSpeaking", "status")
 VALUES
-  ('dp_today_alice', 'daily_forge_today', 'Alice', 0, NOW() - INTERVAL '10 minutes', NOW() - INTERVAL '8 minutes', 'DONE'),
-  ('dp_today_bob', 'daily_forge_today', 'Bob', 1, NOW() - INTERVAL '8 minutes', NULL, 'SPEAKING'),
-  ('dp_today_charlie', 'daily_forge_today', 'Charlie', 2, NULL, NULL, 'WAITING'),
-  ('dp_today_dina', 'daily_forge_today', 'Dina', 3, NULL, NULL, 'WAITING'),
-  ('dp_today_eli', 'daily_forge_today', 'Eli', 4, NULL, NULL, 'WAITING')
+  ('dp_today_alice', 'daily_pivot_today', 'Alice', 0, NOW() - INTERVAL '10 minutes', NOW() - INTERVAL '8 minutes', 'DONE'),
+  ('dp_today_bob', 'daily_pivot_today', 'Bob', 1, NOW() - INTERVAL '8 minutes', NULL, 'SPEAKING'),
+  ('dp_today_charlie', 'daily_pivot_today', 'Charlie', 2, NULL, NULL, 'WAITING'),
+  ('dp_today_dina', 'daily_pivot_today', 'Dina', 3, NULL, NULL, 'WAITING'),
+  ('dp_today_eli', 'daily_pivot_today', 'Eli', 4, NULL, NULL, 'WAITING')
 ON CONFLICT ("id") DO UPDATE SET
   "sessionId" = EXCLUDED."sessionId",
   "name" = EXCLUDED."name",
@@ -371,8 +371,8 @@ ON CONFLICT ("id") DO UPDATE SET
 
 INSERT INTO "WheelDraw" ("id", "ownerId", "teamId", "teamName", "eventId", "note", "count", "mode", "results", "excluded", "createdAt")
 VALUES
-  ('wheel_draw_1', 'usr_admin_dev', 'team_forge_dev', 'Equipe Forge', 'wheel_event_facilitation', 'Animateur du daily', 1, 'WEIGHTED', ARRAY['Charlie']::TEXT[], ARRAY[]::TEXT[], NOW() - INTERVAL '3 days'),
-  ('wheel_draw_2', 'usr_admin_dev', 'team_forge_dev', 'Equipe Forge', 'wheel_event_facilitation', 'Binome demo client', 2, 'RANDOM', ARRAY['Alice','Dina']::TEXT[], ARRAY['Bob']::TEXT[], NOW() - INTERVAL '1 day')
+  ('wheel_draw_1', 'usr_admin_dev', 'team_pivot_dev', 'Equipe Pivot', 'wheel_event_facilitation', 'Animateur du daily', 1, 'WEIGHTED', ARRAY['Charlie']::TEXT[], ARRAY[]::TEXT[], NOW() - INTERVAL '3 days'),
+  ('wheel_draw_2', 'usr_admin_dev', 'team_pivot_dev', 'Equipe Pivot', 'wheel_event_facilitation', 'Binome demo client', 2, 'RANDOM', ARRAY['Alice','Dina']::TEXT[], ARRAY['Bob']::TEXT[], NOW() - INTERVAL '1 day')
 ON CONFLICT ("id") DO UPDATE SET
   "teamId" = EXCLUDED."teamId",
   "teamName" = EXCLUDED."teamName",
@@ -389,8 +389,8 @@ INSERT INTO "CapacityEvent" (
   "completedPoints", "notes", "createdAt", "updatedAt"
 )
 VALUES
-  ('capacity_pi_q3', 'PI Planning Q3', 'usr_admin_dev', 'team_forge_dev', NULL, 'PI_PLANNING', 'ACTIVE', DATE '2026-06-15', DATE '2026-09-18', ARRAY[1,2,3,4,5]::INTEGER[], 8, 0.75, 0.65, 220, NULL, 'Objectif: stabiliser le socle collaboratif.', NOW() - INTERVAL '4 days', NOW()),
-  ('capacity_sprint_43', 'Sprint 43', 'usr_admin_dev', 'team_forge_dev', 'capacity_pi_q3', 'SPRINT', 'PLANNING', DATE '2026-06-15', DATE '2026-06-28', ARRAY[1,2,3,4,5]::INTEGER[], 8, 0.8, 0.7, 42, NULL, 'Sprint de durcissement avant demo.', NOW() - INTERVAL '3 days', NOW())
+  ('capacity_pi_q3', 'PI Planning Q3', 'usr_admin_dev', 'team_pivot_dev', NULL, 'PI_PLANNING', 'ACTIVE', DATE '2026-06-15', DATE '2026-09-18', ARRAY[1,2,3,4,5]::INTEGER[], 8, 0.75, 0.65, 220, NULL, 'Objectif: stabiliser le socle collaboratif.', NOW() - INTERVAL '4 days', NOW()),
+  ('capacity_sprint_43', 'Sprint 43', 'usr_admin_dev', 'team_pivot_dev', 'capacity_pi_q3', 'SPRINT', 'PLANNING', DATE '2026-06-15', DATE '2026-06-28', ARRAY[1,2,3,4,5]::INTEGER[], 8, 0.8, 0.7, 42, NULL, 'Sprint de durcissement avant demo.', NOW() - INTERVAL '3 days', NOW())
 ON CONFLICT ("id") DO UPDATE SET
   "name" = EXCLUDED."name",
   "teamId" = EXCLUDED."teamId",

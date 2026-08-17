@@ -90,7 +90,7 @@ Implémentées ensemble sur une seule branche (à la demande de Julien) :
 - Tests : extension `todo.routes.integration.test.ts` (nouveaux statuts, assigné sans accès → 400, stats).
 
 ### PR4 — Socle module PI + intégrations Forms/To-Do (M/L) — ✅ mergé (PR #245)
-- Enregistrement 4 points : `PI_MODULE` (`packages/shared/src/forge/modules.ts`), flag `module.pi` false (`flags.ts`), `registry.ts`, icône + Hub `DOMAINS` (+ retrait « Mes PIP » de INCOMING) + page Aide.
+- Enregistrement 4 points : `PI_MODULE` (`packages/shared/src/pivot/modules.ts`), flag `module.pi` false (`flags.ts`), `registry.ts`, icône + Hub `DOMAINS` (+ retrait « Mes PIP » de INCOMING) + page Aide.
 - Migration : PiCycle/PiIteration/PiCycleTeam.
 - API `apps/api/src/modules/pi/pi.routes.ts` : CRUD cycle (génération auto des itérations : nombre + semaines → dates, dernière = « IP Sprint »), CRUD équipes + import depuis `Team` pivot, résolveur `'pi'` dans `shares.ts`, `deleteResourceShares` au delete.
 - **Intégration Forms** : `POST /:id/logistics-form` — crée un `Form` (owner = RTE) avec le template logistique pré-rempli depuis `eventDay1/eventDay2` (checkboxes présence Mardi/Mercredi, radio hôtel, checkboxes 3 repas, long_text allergies), le publie, stocke `logisticsFormId`. Le RTE peut ensuite l'éditer librement dans le builder Forms.

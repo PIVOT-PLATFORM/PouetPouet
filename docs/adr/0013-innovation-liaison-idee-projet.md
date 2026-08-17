@@ -10,7 +10,7 @@ ne relie la fiche à un item concret du Roadmap ou du Portefeuille — la vision
 d'un **graphe de données partagé où les modules sont des vues** (cf.
 [ADR-0004](./0004-bus-evenements-registre-modules.md)) n'est pas exploitée ici. Le
 manifeste du module déclare d'ailleurs explicitement `emits: []` / `listensTo: []`
-(`packages/shared/src/forge/modules.ts`) : zéro intégration inter-module.
+(`packages/shared/src/pivot/modules.ts`) : zéro intégration inter-module.
 
 Ce sujet a été identifié pendant le lot d'amélioration pré-release (benchmark
 marché : IdeaScale et Yumana tracent le passage idée→projet avec ROI). Décision de

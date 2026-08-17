@@ -312,7 +312,7 @@ Partage via `ModuleShare` (module = `'parcours'`), pattern identique à Scrum, D
 | `apps/api/src/routes/shares.ts` | Ajouter `parcourTemplate` et `parcourInstance` dans `RESOLVERS` |
 | `apps/api/src/routes/hub.ts` | Ajouter compteurs et items récents pour les parcours |
 | `packages/shared/src/types/flags.ts` | Ajouter `{ key: 'module.parcours', defaultEnabled: false }` |
-| `packages/shared/src/forge/modules.ts` | Ajouter `PARCOURS_MODULE` manifest |
+| `packages/shared/src/pivot/modules.ts` | Ajouter `PARCOURS_MODULE` manifest |
 | `apps/api/src/modules/registry.ts` | Ajouter le module dans `API_MODULES` |
 
 ---
