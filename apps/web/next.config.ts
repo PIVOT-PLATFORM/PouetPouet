@@ -34,11 +34,19 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+  // 'credentialless' (pas 'require-corp') : les aperçus OG des cartes LINK chargent
+  // des images <img> cross-origin arbitraires (domaines tiers non maîtrisés, sans
+  // en-tête CORP) — require-corp les bloquerait. credentialless couvre ces requêtes
+  // sans credentials sans exiger de CORP côté tiers.
+  { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+  { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
   // HSTS only in prod — dev uses plain http
   ...(isDev ? [] : [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' }]),
 ]
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   output: 'standalone',
   outputFileTracingRoot: path.join(__dirname, '../../'),
   transpilePackages: ['@pouetpouet/shared'],
