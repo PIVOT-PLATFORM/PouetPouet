@@ -57,6 +57,19 @@ jobs:
         with:
           args: detect --source /github/workspace --log-level warn --redact
 
+      - name: Block committed key/certificate files
+        # gitleaks ne détecte que du texte reconnaissable — un .p12 est un binaire
+        # PKCS12 opaque qui lui échappe (cause de l'incident post-mortem 2026-07-02).
+        # Ce garde-fou bloque par extension, indépendamment du contenu.
+        run: |
+          set -euo pipefail
+          matches=$(git ls-files | grep -iE '\.(p12|pfx|key|pem|jks)$' || true)
+          if [ -n "$matches" ]; then
+            echo "::error::Fichier(s) clé/certificat détecté(s) dans le repo :"
+            echo "$matches"
+            exit 1
+          fi
+
   container-scan:
     name: Container scan (${{ matrix.image.name }})
     runs-on: ubuntu-latest
