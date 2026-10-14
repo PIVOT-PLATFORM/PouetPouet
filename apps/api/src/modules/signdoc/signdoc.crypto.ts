@@ -30,8 +30,8 @@ function generateP12(passphrase: string): Buffer {
   cert.setSubject(attrs)
   cert.setIssuer(attrs)
   cert.setExtensions([
-    { name: 'basicConstraints', cA: true },
-    { name: 'keyUsage', digitalSignature: true, nonRepudiation: true, keyCertSign: true },
+    { name: 'basicConstraints', cA: false },
+    { name: 'keyUsage', digitalSignature: true, nonRepudiation: true },
   ])
   cert.sign(keys.privateKey, forge.md.sha256.create())
   const asn1 = forge.pkcs12.toPkcs12Asn1(keys.privateKey, [cert], passphrase, { algorithm: '3des' })
@@ -45,6 +45,9 @@ export function getServerP12(): { p12: Buffer; passphrase: string } {
   if (envB64) {
     cached = { p12: Buffer.from(envB64, 'base64'), passphrase: PASSPHRASE }
     return cached
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SIGNDOC_P12_BASE64 manquant en production — refus de générer une clé de dev.')
   }
   mkdirSync(SIGNDOC_DIR, { recursive: true })
   if (existsSync(P12_PATH)) {
