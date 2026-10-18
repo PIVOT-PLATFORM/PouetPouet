@@ -42,6 +42,11 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: path.join(__dirname, '../../'),
   transpilePackages: ['@pouetpouet/shared'],
+  turbopack: {
+    resolveAlias: {
+      '@pouetpouet/shared': '../../packages/shared/src/index.web.ts',
+    },
+  },
   webpack: (config) => {
     // pdfjs-dist optionally requires 'canvas' for Node.js — not needed in browser
     config.resolve.alias.canvas = false
