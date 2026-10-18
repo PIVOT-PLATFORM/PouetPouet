@@ -20,6 +20,42 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.33.0',
+    date: '2026-10-18',
+    title: 'Partage par équipe & socle modernisé',
+    summary: 'Le partage par équipe devient dynamique dans toute la plateforme, les accès Quiz et les équipes sont fiabilisés, et le socle technique est modernisé pour améliorer sécurité, compatibilité et maintenance.',
+    sections: [
+      {
+        heading: '👥 Partage et équipes',
+        items: [
+          'Partage dynamique d’une ressource avec une équipe entière, avec choix du rôle Lecteur ou Éditeur',
+          'Les nouveaux membres liés à une équipe héritent automatiquement des accès accordés à cette équipe',
+          'Un membre d’équipe peut être relié à son compte utilisateur par son adresse email',
+          'Les invitations d’équipe incluent désormais tous les membres du roster disposant d’un compte',
+          'Les notifications de partage ouvrent directement la ressource concernée',
+        ],
+      },
+      {
+        heading: '✅ Corrections fonctionnelles',
+        items: [
+          'Quiz : les partages Lecteur et Éditeur donnent maintenant réellement accès aux quiz concernés',
+          'Équipes : la modification du roster depuis Daily ou Capacité ne supprime plus les liaisons avec les comptes utilisateurs',
+          'Commande publique et Formulaires : correction de plusieurs incohérences de visibilité sur les ressources partagées',
+          'Inscription : les domaines email restreints déclenchent une alerte informative sans bloquer inutilement le parcours',
+        ],
+      },
+      {
+        heading: '🔒 Sécurité et fiabilité',
+        items: [
+          'Mise à jour majeure des dépendances du frontend, de l’API, des tests et des services mock',
+          'Suppression des vulnérabilités critiques détectées dans les dépendances de production',
+          'Stockage de production rendu explicite et persistant, et conteneurs locaux renommés sous l’identité Pivot',
+          'Next.js 16, React 19, Fastify 5, Prisma 7 et Turbopack validés ensemble',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.32.2',
     date: '2026-07-11',
     title: 'Correctif PDF & sécurité',

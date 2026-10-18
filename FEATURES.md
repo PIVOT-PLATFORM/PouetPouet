@@ -1,4 +1,4 @@
-# PouetPouet — Guide des fonctionnalités
+# PIVOT / PouetPouet — Guide des fonctionnalités
 
 Tour d'horizon de tout ce qu'on peut faire avec PouetPouet. Ce guide suit le flux d'un utilisateur, depuis l'inscription jusqu'aux animations de session avancées.
 
@@ -411,7 +411,80 @@ Gestion des réunions et rituels d'équipe : événements, modèles et calendrie
 
 ---
 
-## 13. Raccourcis clavier
+## 13. Roadmap et Portefeuille
+
+- Construire des roadmaps sur une timeline Gantt multi-échelles avec jalons, responsables, risques, priorités et dépendances validées.
+- Déplacer et redimensionner les éléments directement sur la timeline, puis filtrer et exporter en PDF, JSON ou CSV.
+- Regrouper plusieurs roadmaps dans un portefeuille consolidé avec accès transitif pour les lecteurs et éditeurs invités.
+
+---
+
+## 14. Cahiers de tests
+
+- Organiser les campagnes en cahiers, sections et cas de test avec statuts, résultats et suivi de progression.
+- Partager les cahiers par rôle et conserver une séparation stricte entre les espaces des utilisateurs.
+
+---
+
+## 15. PDF Manager et SignDoc
+
+- Classer les PDF par dossiers et tags, rechercher, fusionner, réordonner, pivoter, extraire ou découper leurs pages.
+- Exporter les documents ou leur contenu en PDF, texte, images ZIP et formats bureautiques disponibles.
+- Préparer une demande de signature avec plusieurs signataires, ordre séquentiel ou parallèle, échéances et champs positionnés par glisser-déposer.
+- Produire un document scellé et un historique de preuve, avec pilotage partagé par rôle.
+
+---
+
+## 16. Formulaires
+
+- Composer des formulaires publics avec champs texte, nombre, date, choix, échelle, fichier, grille et sections.
+- Configurer réponse unique, fermeture automatique, plafond de réponses, confirmations et notifications.
+- Inviter des destinataires nommés, suivre les réponses, relancer les retardataires et exporter les résultats en CSV.
+
+---
+
+## 17. Parcours
+
+- Concevoir visuellement des workflows composés d’étapes formulaire, document, validation ou action.
+- Réutiliser des templates, lancer des instances, suivre leur progression et consulter l’historique complet.
+- Déclencher ou faire avancer un parcours depuis un webhook externe.
+
+---
+
+## 18. Innovation et Feedback
+
+- Publier et faire mûrir des idées, voter, commenter, ajouter favoris, contributeurs, pièces jointes, liens et catégories.
+- Organiser des challenges avec périmètres, jurys, critères pondérés, classement, lauréats et export CSV.
+- Centraliser bugs et suggestions dans un kanban Feedback collaboratif avec votes en temps réel.
+
+---
+
+## 19. To-Do
+
+- Créer des listes personnelles ou partagées avec priorité, échéance, assignation et statuts À faire, En cours, Bloqué, Fait ou Annulé.
+- Travailler en vue liste ou kanban, filtrer par membre et mettre les listes importantes en favori.
+- Consolider plusieurs listes dans des tableaux de bord avec progression, retards et activité récente.
+
+---
+
+## 20. PI Planning
+
+- Préparer un PI SAFe avec cycle, itérations générées et équipes du Train.
+- Générer le formulaire logistique et le tableau To-Do de préparation depuis les modules existants.
+- Piloter un program board multi-équipes avec tickets typés, glisser-déposer et dépendances contrôlées.
+
+---
+
+## 21. Partage dynamique par équipe
+
+- Relier les membres d’un roster à leur compte utilisateur par email.
+- Partager une ressource avec une équipe entière en Lecture ou Édition.
+- Accorder automatiquement l’accès aux nouveaux comptes liés à l’équipe, sans repartager chaque ressource.
+- Ouvrir directement la ressource depuis la notification de partage.
+
+---
+
+## 22. Raccourcis clavier
 
 | Raccourci | Action |
 |---|---|
@@ -431,7 +504,7 @@ Gestion des réunions et rituels d'équipe : événements, modèles et calendrie
 
 ---
 
-## 14. Indicateurs visuels et états
+## 23. Indicateurs visuels et états
 
 - **Liseré gris fin** autour d'une carte = verrouillée
 - **Contour coloré commun** = cartes groupées
@@ -448,12 +521,11 @@ Gestion des réunions et rituels d'équipe : événements, modèles et calendrie
 
 ---
 
-## 15. Limitations connues
+## 24. Limitations connues
 
 - L'undo/redo est local au client : un utilisateur ne peut pas annuler les actions des autres.
 - Les drafts de templates abandonnés ne sont pas auto-nettoyés (visibles uniquement via le re-clic sur "Modifier le contenu").
-- Les images de couverture sont des URL externes (pas d'upload géré côté serveur pour le moment).
-- La présence Socket.io est en mémoire : pour scaler horizontalement il faudrait activer l'adapter Redis.
+- Certaines conversions bureautiques du PDF Manager nécessitent la présence de Pandoc sur le serveur.
 
 ---
 

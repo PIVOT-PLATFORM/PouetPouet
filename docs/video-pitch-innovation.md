@@ -642,7 +642,7 @@ Audio B   Sound design (portes, rumeur, whoosh, silence)
   pour la session de questions : un chiffre non sourcé challengé par un jury
   coûte plus cher qu'il ne rapporte — à 330 000 €, il sera challengé.
 - **`docs/pitch-innovation.md` est daté** : 8 modules et v0.22 annoncés, alors que
-  le produit est à 19 modules et v0.32.2. À mettre à jour si les slides
+  le produit est à 19 modules et v0.33.0. À mettre à jour si les slides
   accompagnent la vidéo.
 - **Données à l'écran** : vérifier qu'aucune capture ne laisse passer de vrais
   noms, emails ou contenus internes.

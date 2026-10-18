@@ -87,7 +87,7 @@ export async function fetchOgMeta(rawUrl: string): Promise<OgMeta | null> {
 
         res = await fetch(currentUrl.href, {
           signal: controller.signal,
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PouetPouetBot/1.0; +https://github.com/0bno/PouetPouet)' },
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PouetPouetBot/1.0; +https://github.com/PIVOT-PLATFORM/PouetPouet)' },
           redirect: 'manual',
         })
 

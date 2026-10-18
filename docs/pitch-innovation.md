@@ -265,7 +265,7 @@ Les équipes agiles jonglent entre **6 à 9 outils distincts** pour collaborer.
 ## Architecture — solide et mainstream
 
 ```
-Next.js 15 + React 19      →  Frontend, App Router, SSR
+Next.js 16 + React 19      →  Frontend, App Router, SSR
 Fastify 5 + Socket.io v4   →  API temps réel, WebSockets
 PostgreSQL + Prisma ORM    →  Données relationnelles
 Redis                      →  Cache, sessions, rate-limiting
@@ -446,7 +446,7 @@ _class: lead
 
 **Open-source · Auto-hébergée · Temps réel · 8 modules · ROI positif M+1**
 
-`github.com/0bno/PouetPouet` · `v0.22.0`
+`github.com/PIVOT-PLATFORM/PouetPouet` · `v0.33.0`
 
 `pouetpouet-web-118355313911.europe-west1.run.app`
 

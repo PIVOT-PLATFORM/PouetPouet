@@ -160,11 +160,14 @@ export const procurementRoutes: FastifyPluginAsync = async (app) => {
     const montant = da.lots.reduce((s, l) => s + l.montant, 0)
     const chain = await buildApprobationChain(body.orgUnitId, montant)
 
-    const workflow = await prisma.demandeAchatWorkflow.create({
-      data: { demandeAchatExternalId: externalId, ownerId: userId, orgUnitId: body.orgUnitId, activiteId: body.activiteId || null },
-    })
-    await prisma.commandeApprobation.createMany({
-      data: chain.map((step, order) => ({ demandeAchatWorkflowId: workflow.id, order, type: step.type, orgUnitId: step.orgUnitId })),
+    const workflow = await prisma.$transaction(async (tx) => {
+      const created = await tx.demandeAchatWorkflow.create({
+        data: { demandeAchatExternalId: externalId, ownerId: userId, orgUnitId: body.orgUnitId, activiteId: body.activiteId || null },
+      })
+      await tx.commandeApprobation.createMany({
+        data: chain.map((step, order) => ({ demandeAchatWorkflowId: created.id, order, type: step.type, orgUnitId: step.orgUnitId })),
+      })
+      return created
     })
 
     const merged = await mergeWorkflow(da, await prisma.demandeAchatWorkflow.findUnique({ where: { id: workflow.id } }), userId)
