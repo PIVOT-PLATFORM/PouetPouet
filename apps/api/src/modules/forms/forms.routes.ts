@@ -36,7 +36,7 @@ const fieldSchema = z.object({
   gridRows: z.array(z.string().max(300)).max(30).optional(),
   gridCols: z.array(z.string().max(300)).max(30).optional(),
   gridMultiple: z.boolean().optional(),
-  optionRouting: z.record(z.string()).optional(),
+  optionRouting: z.record(z.string(), z.string()).optional(),
 })
 
 const formCreateSchema = z.object({
@@ -157,7 +157,7 @@ export const formsRoutes: FastifyPluginAsync = async (app) => {
   // Soumettre une réponse (anonyme, ou d'un destinataire nommé — modifiable dans ce cas).
   app.post('/public/:token/responses', async (request, reply) => {
     const { token } = request.params as { token: string }
-    const { data } = z.object({ data: z.record(z.unknown()) }).parse(request.body)
+    const { data } = z.object({ data: z.record(z.string(), z.unknown()) }).parse(request.body)
 
     const { form, recipient } = await resolvePublicToken(token)
     if (!form || !form.isPublished) return reply.status(404).send({ error: 'Formulaire introuvable' })

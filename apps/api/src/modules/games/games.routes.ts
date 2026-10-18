@@ -9,7 +9,7 @@ type GameId = (typeof VALID_GAMES)[number]
 const submitSchema = z.object({
   game: z.enum(VALID_GAMES),
   score: z.number().int().min(0).max(1_000_000),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
 export const gamesRoutes: FastifyPluginAsync = async (app) => {

@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer'
+import nodemailer, { type Transporter } from 'nodemailer'
 
 // SMTP is optional: when SMTP_HOST is unset we fall back to logging the email to the
 // server console, so verification still works in dev without a mail provider.
@@ -11,7 +11,7 @@ const MAIL_FROM = process.env.MAIL_FROM ?? 'PouetPouet <no-reply@pouetpouet.app>
 
 export const isSmtpConfigured = Boolean(SMTP_HOST)
 
-let transporter: nodemailer.Transporter | null = null
+let transporter: Transporter | null = null
 function getTransporter() {
   if (!isSmtpConfigured) return null
   if (!transporter) {

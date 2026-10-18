@@ -49,7 +49,7 @@ const templateCreateSchema = z.object({
   description: z.string().max(2000).optional(),
   category: z.string().max(50).optional(),
   tags: z.array(z.string().max(30)).max(10).optional(),
-  steps: z.array(z.record(z.unknown())).min(0).max(50),
+  steps: z.array(z.record(z.string(), z.unknown())).min(0).max(50),
   flowEdges: z.array(flowEdgeSchema).max(200).optional(),
   triggerType: z.enum(['manual', 'form_response', 'webhook']).optional(),
   triggerConfig: triggerConfigSchema,
@@ -67,7 +67,7 @@ const instanceCreateSchema = z.object({
 
 const stepCompleteSchema = z.object({
   action: z.enum(['complete', 'reject']),
-  data: z.record(z.unknown()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
   comment: z.string().max(2000).optional(),
 })
 
@@ -1121,7 +1121,7 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
     const { id, idx } = request.params as { id: string; idx: string }
     const stepIndex = parseInt(idx, 10)
     const body = z.object({
-      data: z.record(z.unknown()).optional(),
+      data: z.record(z.string(), z.unknown()).optional(),
       comment: z.string().max(2000).optional(),
     }).parse(request.body)
 
@@ -1238,7 +1238,7 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
     const { id: userId } = request.user as { id: string }
     const { id, idx } = request.params as { id: string; idx: string }
     const stepIndex = parseInt(idx, 10)
-    const { data } = z.object({ data: z.record(z.unknown()) }).parse(request.body)
+    const { data } = z.object({ data: z.record(z.string(), z.unknown()) }).parse(request.body)
 
     const instance = await prisma.parcourInstance.findUnique({ where: { id } })
     if (!instance) return reply.status(404).send({ error: 'Instance introuvable' })
