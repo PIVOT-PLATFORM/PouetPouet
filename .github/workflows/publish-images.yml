@@ -1,0 +1,200 @@
+name: Publish images
+
+# Publie les images de production sur GHCR :
+#   ghcr.io/pivot-platform/pouetpouet-api et ghcr.io/pivot-platform/pouetpouet-web
+# Tags : vX.Y.Z, X.Y.Z, sha-<court> et `stable` (lu par Coolify à chaque démarrage).
+#
+# Déclencheurs :
+# - workflow_call : appelé par release.yml juste après la création du tag.
+#   (Un tag poussé avec GITHUB_TOKEN ne déclenche aucun autre workflow,
+#   d'où l'appel explicite plutôt que de compter sur `push: tags`.)
+# - push de tag v* : filet pour un tag posé à la main (hors release.yml).
+# - workflow_dispatch :
+#   - rollback   : repointe `stable` vers une version déjà publiée, sans rebuild ;
+#   - test-build : construit les deux images sur la branche, sans rien pousser.
+#
+# Un tag dont la CI échoue ne publie rien : le build dépend de ci.yml.
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Tag de version à publier (ex. v0.33.0)
+        required: true
+        type: string
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      action:
+        description: rollback = repointer `stable` ; test-build = build sans push
+        required: true
+        type: choice
+        options: [rollback, test-build]
+        default: rollback
+      version:
+        description: Version déjà publiée à remettre en `stable` (ex. v0.32.2)
+        required: false
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: publish-images
+  cancel-in-progress: false
+
+env:
+  IMAGE_PREFIX: ghcr.io/pivot-platform/pouetpouet
+
+jobs:
+  ci:
+    name: Quality gates
+    if: github.event_name != 'workflow_dispatch' || inputs.action == 'test-build'
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+    permissions:
+      contents: read
+      pull-requests: read
+
+  build:
+    name: Build & push (${{ matrix.image }})
+    needs: ci
+    # Publication : CI verte obligatoire. test-build : on construit même si la
+    # CI échoue (rien n'est poussé), pour valider les Dockerfiles et ce job.
+    if: >-
+      !cancelled() && (needs.ci.result == 'success' ||
+      (github.event_name == 'workflow_dispatch' && inputs.action == 'test-build'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [api, web]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve version
+        id: ver
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          # On ne pousse que pour une version : appel par release.yml ou push de tag.
+          PUSH: ${{ github.event_name != 'workflow_dispatch' && (inputs.version != '' || github.ref_type == 'tag') }}
+        run: |
+          set -euo pipefail
+          if [ "$PUSH" = "true" ]; then
+            if [ -n "$INPUT_VERSION" ]; then VERSION="$INPUT_VERSION"; else VERSION="$GITHUB_REF_NAME"; fi
+            if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Version invalide « $VERSION » (attendu vX.Y.Z)."
+              exit 1
+            fi
+          else
+            VERSION="v$(node -p "require('./package.json').version")"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "push=$PUSH" >> "$GITHUB_OUTPUT"
+          echo "Image ${IMAGE_PREFIX}-${{ matrix.image }} — version $VERSION — push=$PUSH"
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}
+          flavor: latest=false
+          tags: |
+            type=raw,value=${{ steps.ver.outputs.version }}
+            type=semver,pattern={{version}},value=${{ steps.ver.outputs.version }}
+            type=sha,format=short
+            type=raw,value=stable
+          # coolify.managed=true est OBLIGATOIRE : le nettoyage nocturne de
+          # Coolify supprime les images inutilisées qui n'ont pas ce label.
+          labels: |
+            org.opencontainers.image.title=pouetpouet-${{ matrix.image }}
+            org.opencontainers.image.version=${{ steps.ver.outputs.version }}
+            coolify.managed=true
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        if: steps.ver.outputs.push == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Les NEXT_PUBLIC_* sont figés dans le bundle web au build ; l'image api
+      # ignore ces build-args.
+      - name: Build & push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/${{ matrix.image }}/Dockerfile
+          platforms: linux/amd64
+          push: ${{ steps.ver.outputs.push == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL || 'https://pivot-api.jvmg.fr' }}
+            NEXT_PUBLIC_SOCKET_URL=${{ vars.PUBLIC_SOCKET_URL || vars.PUBLIC_API_URL || 'https://pivot-api.jvmg.fr' }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ secrets.SENTRY_DSN_WEB }}
+          cache-from: type=gha,scope=docker-${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=docker-${{ matrix.image }}
+
+  rollback:
+    name: Rollback stable → ${{ inputs.version }}
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'rollback'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      packages: write
+
+    steps:
+      - name: Validate version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version invalide « $VERSION » (attendu vX.Y.Z, ex. v0.32.2)."
+            exit 1
+          fi
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Vérifie d'abord que les DEUX images existent, pour ne jamais laisser
+      # api et web sur des versions différentes.
+      - name: Repoint stable
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          for img in api web; do
+            if ! docker buildx imagetools inspect "${IMAGE_PREFIX}-${img}:${VERSION}" > /dev/null; then
+              echo "::error::${IMAGE_PREFIX}-${img}:${VERSION} introuvable sur GHCR."
+              exit 1
+            fi
+          done
+          for img in api web; do
+            docker buildx imagetools create \
+              -t "${IMAGE_PREFIX}-${img}:stable" \
+              "${IMAGE_PREFIX}-${img}:${VERSION}"
+          done
+          {
+            echo "### \`stable\` → ${VERSION}"
+            echo
+            echo "Redémarrer l'application dans Coolify (Restart) pour appliquer."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -29,7 +29,7 @@ feature/fix  →  develop  →  master
 
 - Partez **toujours** de `develop`, jamais de `master`.
 - `develop` : branche d'intégration (pas de déploiement).
-- `master` : déployée automatiquement sur Cloud Run à chaque push — ne ciblez jamais `master` directement.
+- `master` : chaque push d'une nouvelle version crée le tag de release et publie les images de production sur GHCR — ne ciblez jamais `master` directement.
 - **Une contribution = une branche = une PR** vers `develop`.
 
 Nommage : `feat/...`, `fix/...`, `docs/...`, `chore/...`, `ci/...`.
