@@ -23,7 +23,6 @@ on:
         type: string
   push:
     tags: ['v*']
-    branches: ['ci/publish-images-ghcr'] # TEMP test-build, à retirer
   workflow_dispatch:
     inputs:
       action:
@@ -63,7 +62,7 @@ jobs:
     # CI échoue (rien n'est poussé), pour valider les Dockerfiles et ce job.
     if: >-
       !cancelled() && (needs.ci.result == 'success' ||
-      (github.event_name == 'workflow_dispatch' && inputs.action == 'test-build') || github.ref_type == 'branch')
+      (github.event_name == 'workflow_dispatch' && inputs.action == 'test-build'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
