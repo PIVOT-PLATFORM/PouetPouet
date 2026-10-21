@@ -508,7 +508,6 @@ export default function ProfilePage() {
                   key={p.id}
                   type="button"
                   onClick={() => updateProfile({ palette: p.id })}
-                  aria-label={`Palette ${p.label}`}
                   aria-pressed={user.palette === p.id}
                   className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors ${
                     user.palette === p.id
@@ -521,6 +520,9 @@ export default function ProfilePage() {
                     <span className="w-5 h-5 rounded-full ring-2 ring-white dark:ring-gray-900" style={{ background: p.swatch[1] }} />
                   </span>
                   <span className="min-w-0">
+                    {/* Nom accessible = texte visible préfixé (WCAG 2.5.3 Label in Name) :
+                        pas d'aria-label, qui masquerait le libellé et l'indication visibles. */}
+                    <span className="sr-only">Palette </span>
                     <span className="block text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{p.label}</span>
                     {p.hint && <span className="block text-[10px] text-gray-500 dark:text-gray-500 truncate">{p.hint}</span>}
                   </span>
