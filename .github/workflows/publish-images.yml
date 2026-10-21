@@ -82,7 +82,8 @@ jobs:
         id: ver
         env:
           INPUT_VERSION: ${{ inputs.version }}
-          PUSH: ${{ github.event_name != 'workflow_dispatch' }}
+          # On ne pousse que pour une version : appel par release.yml ou push de tag.
+          PUSH: ${{ github.event_name != 'workflow_dispatch' && (inputs.version != '' || github.ref_type == 'tag') }}
         run: |
           set -euo pipefail
           if [ "$PUSH" = "true" ]; then
