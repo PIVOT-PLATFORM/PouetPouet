@@ -105,6 +105,10 @@ if (process.env.NODE_ENV === 'production') {
 await app.register(cors, {
   origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
   credentials: true,
+  // Explicite depuis @fastify/cors v11 : le défaut est passé à GET,HEAD,POST
+  // (méthodes CORS-safelisted), ce qui fait échouer le preflight de tous les
+  // PUT/PATCH/DELETE émis cross-origin par apps/web (ex. PATCH /api/auth/profile).
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
 })
 
 await app.register(helmet, {
