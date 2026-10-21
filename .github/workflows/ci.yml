@@ -74,6 +74,44 @@ jobs:
           echo "Required repository secret: SONAR_TOKEN."
           echo "Required repository variables: SONAR_PROJECT_KEY, SONAR_ORGANIZATION."
 
+  docker-build:
+    name: Docker build (${{ matrix.image.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - name: api
+            dockerfile: apps/api/Dockerfile
+          - name: web
+            dockerfile: apps/web/Dockerfile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Construit les images de production (sans push) pour qu'un Dockerfile
+      # cassé fasse échouer la CI avant le merge, et pas au déploiement.
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.image.dockerfile }}
+          push: false
+          tags: pouetpouet/${{ matrix.image.name }}:ci
+          build-args: |
+            NEXT_PUBLIC_API_URL=http://localhost:4000
+            NEXT_PUBLIC_SOCKET_URL=http://localhost:4000
+          cache-from: type=gha,scope=docker-${{ matrix.image.name }}
+          cache-to: type=gha,mode=max,scope=docker-${{ matrix.image.name }}
+
   integration:
     name: API integration tests
     runs-on: ubuntu-latest

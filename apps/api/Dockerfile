@@ -12,11 +12,17 @@ RUN npm ci
 # Build
 FROM base AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Copie tout /app de l'étape deps (et pas seulement /app/node_modules) : npm ne
+# hisse pas toujours les dépendances à la racine (ex. versions divergentes entre
+# workspaces), elles vivent alors dans apps/*/node_modules ou packages/*/node_modules.
+COPY --from=deps /app ./
 COPY packages/ ./packages/
 COPY apps/api/ ./apps/api/
 COPY package.json tsconfig.base.json ./
 RUN npm run build --workspace=@pouetpouet/api
+# Garantit l'existence des node_modules de workspace (copiés dans l'étape runner
+# même quand npm a tout hissé à la racine).
+RUN mkdir -p apps/api/node_modules
 # Compile @pouetpouet/shared to JS so Node.js can import it at runtime (no tsx in prod).
 # Also patch package.json to point to dist/ instead of src/ TypeScript source.
 RUN npx tsc --project packages/shared/tsconfig.json && \
@@ -31,6 +37,7 @@ ENV NODE_ENV=production
 # le contenu copié plus bas est déjà --chown=node:node.
 RUN chown node:node /app
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder --chown=node:node /app/apps/api/dist ./apps/api/dist
 COPY --from=builder --chown=node:node /app/apps/api/prisma ./apps/api/prisma
 COPY --from=builder --chown=node:node /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
