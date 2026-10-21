@@ -11,7 +11,10 @@ RUN npm ci
 # Build
 FROM base AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Copie tout /app de l'étape deps (et pas seulement /app/node_modules) : npm ne
+# hisse pas toujours les dépendances à la racine (ex. versions divergentes entre
+# workspaces), elles vivent alors dans apps/*/node_modules ou packages/*/node_modules.
+COPY --from=deps /app ./
 COPY packages/ ./packages/
 COPY apps/web/ ./apps/web/
 COPY package.json tsconfig.base.json ./
