@@ -6,12 +6,16 @@ on:
   push:
     branches: [master, develop]
   workflow_dispatch:
+  # Réutilisé comme garde-fou avant publication des images (publish-images.yml).
+  workflow_call:
 
 env:
   NODE_VERSION: '22'
 
 concurrency:
-  group: ci-${{ github.ref }}
+  # github.workflow vaut le nom de l'appelant en workflow_call : évite qu'un
+  # appel depuis Release/Publish images annule (ou soit annulé par) la CI du même ref.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions: {}

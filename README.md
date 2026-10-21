@@ -240,13 +240,42 @@ Le dépôt contient deux images Docker :
 - `apps/api/Dockerfile`
 - `apps/web/Dockerfile`
 
-Le workflow `.github/workflows/deploy.yml` déploie sur Google Cloud Run à chaque push sur `master` :
+La production tourne sur un serveur auto-hébergé piloté par **Coolify**, qui ne construit
+rien : il télécharge à chaque démarrage les images publiées sur GHCR par la CI :
 
-- build et push de l'image API ;
-- migration Prisma au démarrage de l'API ;
-- déploiement Cloud Run de l'API ;
-- build du frontend avec l'URL d'API produite ;
-- déploiement Cloud Run du web.
+- `ghcr.io/pivot-platform/pouetpouet-api:stable`
+- `ghcr.io/pivot-platform/pouetpouet-web:stable`
+
+Chaque version est aussi taguée `vX.Y.Z`, `X.Y.Z` et `sha-<court>`. GitHub ne peut pas
+joindre le serveur : la CI **publie** seulement, le **déploiement** a lieu au redémarrage
+de l'application (redémarrage planifié de 7h ou bouton **Restart** dans Coolify). Les
+migrations Prisma sont appliquées au démarrage de l'API.
+
+### Déployer une version
+
+1. Suivre la checklist de release (`CLAUDE.md`) : entrée de patch notes, bump de
+   `version` dans les trois `package.json`, merge `develop → master`, push `master`.
+2. Le workflow **Release** crée le tag `vX.Y.Z` et la GitHub Release, puis appelle
+   **Publish images** (`.github/workflows/publish-images.yml`) : CI complète sur le
+   commit tagué (lint, typecheck, tests unitaires, intégration, E2E), puis build et
+   push des images api et web. Si la CI échoue, rien n'est publié et `stable` ne bouge pas.
+3. Une fois le run vert, cliquer **Restart** dans Coolify (ou attendre le démarrage de 7h).
+
+Un tag `v*` poussé à la main déclenche aussi Publish images.
+
+### Revenir en arrière
+
+1. Actions → **Publish images** → *Run workflow* : `action = rollback`,
+   `version = vX.Y.Z` (une version déjà publiée sur GHCR). `stable` est repointé vers
+   cette version pour api et web, sans reconstruire.
+2. Cliquer **Restart** dans Coolify.
+
+Attention : une migration Prisma déjà appliquée n'est pas annulée par un retour arrière
+d'image (voir `docs/ops/backup-restore-rollback.md`, §3).
+
+Les URL publiques injectées dans le bundle web au build se règlent par les variables de
+dépôt `PUBLIC_API_URL` et `PUBLIC_SOCKET_URL` (défaut : `https://pivot-api.jvmg.fr`) ; le
+DSN Sentry web vient du secret `SENTRY_DSN_WEB` (vide si absent).
 
 La CI exécute actuellement :
 

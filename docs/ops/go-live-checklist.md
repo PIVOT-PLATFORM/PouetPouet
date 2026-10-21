@@ -1,5 +1,8 @@
 # Checklist d'activation infra (go-live)
 
+> **Historique.** Checklist écrite pour la prod GCP / Cloud Run, abandonnée le 22/08/2026
+> (`deploy.yml` retiré). Prod actuelle : images GHCR + Coolify — voir README, « Déploiement ».
+
 > Séquence **ordonnée** des étapes hors-repo (GCP + admin GitHub) pour activer ce qui
 > a été câblé côté code. À exécuter par un compte **admin GitHub** + **GCP** (projet
 > `${GCP_PROJECT_ID}`, région `europe-west1`).

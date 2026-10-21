@@ -3,6 +3,8 @@ name: Release
 # Au push sur master : crée le tag git v<version> et la GitHub Release
 # correspondante, avec les notes extraites de PATCH_NOTES (patch-notes.ts).
 # Idempotent : ne fait rien si le tag de la version courante existe déjà.
+# Puis, si un tag vient d'être créé : CI complète sur ce commit et publication
+# des images api/web sur GHCR (publish-images.yml, tag `stable` lu par Coolify).
 on:
   push:
     branches: [master]
@@ -20,6 +22,9 @@ jobs:
     name: Tag & GitHub Release
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      created: ${{ steps.tag.outputs.exists == 'false' }}
+      tag: v${{ steps.ver.outputs.version }}
 
     steps:
       - name: Checkout
@@ -70,3 +75,16 @@ jobs:
           gh release create "v${{ steps.ver.outputs.version }}" \
             --title "v${{ steps.ver.outputs.version }}" \
             --notes-file RELEASE_NOTES.md
+
+  publish-images:
+    name: Publish images (GHCR)
+    needs: release
+    if: needs.release.outputs.created == 'true'
+    uses: ./.github/workflows/publish-images.yml
+    with:
+      version: ${{ needs.release.outputs.tag }}
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: read

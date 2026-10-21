@@ -13,7 +13,7 @@
 | BDD | PostgreSQL · Prisma ORM |
 | Cache | Redis (ioredis) |
 | Monorepo | Turborepo · npm workspaces |
-| Deploy | Docker · GCP Cloud Run · CI via GitHub Actions (trigger : push `master`) |
+| Deploy | Docker · images GHCR (`:stable`) publiées par la CI au tag de release · Coolify (serveur auto-hébergé) |
 
 ## Structure
 ```
@@ -58,18 +58,19 @@ Le mode standalone ne copie pas `public/` automatiquement.
 feature/fix → develop → master (sur demande explicite uniquement)
 ```
 - `develop` : intégration continue, pas de CI/deploy
-- `master` : déploiement auto GCP Cloud Run sur push
+- `master` : push → tag `vX.Y.Z` + publication des images GHCR (`release.yml` → `publish-images.yml`) ; mise en prod au Restart Coolify (ou 7h)
 - Toujours merger `develop → master`, jamais une branche feature directement
 
 ## Checklist release
 1. Ajouter une entrée EN HAUT de `apps/api/src/lib/patch-notes.ts`
 2. Bumper `version` dans : `package.json` (racine) + `apps/api/package.json` + `apps/web/package.json`
 3. Commit sur `develop` → merge `develop → master` → push `master`
+4. Run Release / Publish images vert → Restart dans Coolify (rollback : Publish images en mode `rollback`, cf. README)
 
 ## Gotchas importants
 - **Ne jamais committer** les fichiers `apps/web/src/lib/klx-import/samples/` (données Klaxoon, gitignorées)
 - `DATABASE_URL` n'est pas chargé automatiquement par `tsx` — toujours utiliser `--env-file=.env` (déjà en place dans `apps/api/package.json`)
-- En prod GCP : le SMTP est câblé dans `deploy.yml` (Gmail), mais les secrets GCP Secret Manager (`SMTP_USER`, `SMTP_PASS`, `FRONTEND_URL`) doivent être garnis pour que les emails partent réellement. Détails dans la memory `project-email-verification`.
+- En prod : les variables d'environnement runtime de l'API (SMTP, `FRONTEND_URL`, secrets…) se règlent dans Coolify, plus dans un workflow (l'ancien `deploy.yml` GCP a été retiré). Détails SMTP dans la memory `project-email-verification`.
 
 # Guideline
 

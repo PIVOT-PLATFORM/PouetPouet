@@ -136,6 +136,10 @@ corrective et la déployer normalement. Plus sûr qu'un rollback de schéma.
 
 ## 4. Rollback de déploiement (Cloud Run)
 
+> **Historique.** La prod n'est plus sur Cloud Run (projet GCP supprimé le 22/08/2026,
+> `deploy.yml` retiré). Rollback actuel : workflow **Publish images** en mode `rollback`
+> puis Restart dans Coolify — voir README, « Revenir en arrière ».
+
 Chaque déploiement crée une **révision** immutable. Rollback = renvoyer le trafic vers la
 révision précédente (l'image est aussi taguée `:version` et `:sha`, cf. `deploy.yml`).
 
