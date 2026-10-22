@@ -470,11 +470,13 @@ describe('bus trigger form_response → auto-instance', () => {
       payload: { formId: 'test-form-id', responseId: 'r1', data: {} },
     })
 
-    // Laisser les handlers async s'exécuter
-    await new Promise((r) => setTimeout(r, 50))
-
-    const instances = await prisma.parcourInstance.findMany({ where: { templateId } })
-    expect(instances.length).toBeGreaterThanOrEqual(1)
+    // Le handler est async (non attendu par publish) : on attend l'instance
+    // plutôt qu'un délai fixe, sinon le cleanup suivant tombe en plein insert
+    // (deadlock FK/cascade). Une seule instance : les apps des describe
+    // précédents ont été fermées, donc désabonnées.
+    await vi.waitFor(async () => {
+      expect(await prisma.parcourInstance.count({ where: { templateId } })).toBe(1)
+    }, { timeout: 5000, interval: 50 })
   })
 })
 
