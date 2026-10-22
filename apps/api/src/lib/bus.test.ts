@@ -81,6 +81,16 @@ describe('InProcessBus', () => {
     errorSpy.mockRestore()
   })
 
+  it('le bus réel capture le rejet d\'un handler async (pas de rejet non géré)', async () => {
+    const { bus } = await import('./bus.js')
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const unsub = bus.subscribe('async.err.test', async () => { throw new Error('boom async') })
+    bus.publish({ type: 'async.err.test', module: 'test', payload: null })
+    await vi.waitFor(() => expect(errorSpy).toHaveBeenCalled())
+    unsub()
+    errorSpy.mockRestore()
+  })
+
   it('multiple typed subscribers all receive the same event', () => {
     const bus = makeBus()
     const a: number[] = [], b: number[] = []

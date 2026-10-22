@@ -24,13 +24,16 @@ class InProcessBus implements EventBus {
 
   publish<T>(event: Omit<PivotEvent<T>, 'at'>): void {
     const full: PivotEvent<T> = { ...event, at: new Date().toISOString() }
-    // Un handler qui jette ne doit jamais faire tomber le producteur.
+    // Un handler qui jette ne doit jamais faire tomber le producteur — ni,
+    // pour un handler async, laisser filer un rejet non géré (qui arrête le
+    // processus Node en l'absence de gestionnaire global).
+    const onError = (err: unknown) => console.error(`[bus] handler error on ${event.type}:`, err)
     for (const channel of [event.type, '*']) {
       for (const listener of this.emitter.listeners(channel)) {
         try {
-          void (listener as Handler<T>)(full)
+          void Promise.resolve((listener as Handler<T>)(full)).catch(onError)
         } catch (err) {
-          console.error(`[bus] handler error on ${event.type}:`, err)
+          onError(err)
         }
       }
     }

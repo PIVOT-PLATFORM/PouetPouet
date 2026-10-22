@@ -1429,44 +1429,51 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
 
   // ── Déclencheur bus : lancer automatiquement les templates dont triggerType = 'form_response'
   // quand une réponse à un formulaire lié est soumise.
-  bus.subscribe<{ formId: string; responseId: string; data: Record<string, unknown> }>(
+  // Désabonné à la fermeture : sinon chaque enregistrement du plugin (une app
+  // de test par describe) empile un handler et une réponse crée N instances.
+  const unsubscribeFormResponse = bus.subscribe<{ formId: string; responseId: string; data: Record<string, unknown> }>(
     'form.response.created',
     async (event) => {
       const { formId, data } = event.payload
-      const templates = await prisma.parcourTemplate.findMany({
-        where: { triggerType: 'form_response' },
-      })
-      for (const tmpl of templates) {
-        const config = tmpl.triggerConfig as { formId?: string } | null
-        if (config?.formId !== formId) continue
-        const steps = Array.isArray(tmpl.steps) ? tmpl.steps as ModuleStepDef[] : []
-        const refNumber = await generateRefNumber(tmpl.category)
-        const now = new Date()
-        const firstDueAt = steps[0]?.slaDays ? new Date(now.getTime() + steps[0].slaDays * 24 * 60 * 60 * 1000) : null
-        const title = `Réponse formulaire — ${now.toLocaleDateString('fr-FR')}`
-        const instance = await prisma.parcourInstance.create({
-          data: {
-            templateId: tmpl.id,
-            ownerId: tmpl.ownerId,
-            title,
-            refNumber,
-            priority: 'normal',
-            data: data as Prisma.InputJsonValue,
-            steps: {
-              create: steps.map((s, idx) => ({
-                stepIndex: idx,
-                status: 'PENDING',
-                assignedTo: idx === 0 ? (s.assignedTo ?? null) : null,
-                dueAt: idx === 0 ? firstDueAt : null,
-              })),
-            },
-            history: { create: { userId: tmpl.ownerId, action: 'started' } },
-          },
+      try {
+        const templates = await prisma.parcourTemplate.findMany({
+          where: { triggerType: 'form_response' },
         })
-        await activateFirstStep(instance.id, tmpl.ownerId, steps, title, refNumber)
+        for (const tmpl of templates) {
+          const config = tmpl.triggerConfig as { formId?: string } | null
+          if (config?.formId !== formId) continue
+          const steps = Array.isArray(tmpl.steps) ? tmpl.steps as ModuleStepDef[] : []
+          const refNumber = await generateRefNumber(tmpl.category)
+          const now = new Date()
+          const firstDueAt = steps[0]?.slaDays ? new Date(now.getTime() + steps[0].slaDays * 24 * 60 * 60 * 1000) : null
+          const title = `Réponse formulaire — ${now.toLocaleDateString('fr-FR')}`
+          const instance = await prisma.parcourInstance.create({
+            data: {
+              templateId: tmpl.id,
+              ownerId: tmpl.ownerId,
+              title,
+              refNumber,
+              priority: 'normal',
+              data: data as Prisma.InputJsonValue,
+              steps: {
+                create: steps.map((s, idx) => ({
+                  stepIndex: idx,
+                  status: 'PENDING',
+                  assignedTo: idx === 0 ? (s.assignedTo ?? null) : null,
+                  dueAt: idx === 0 ? firstDueAt : null,
+                })),
+              },
+              history: { create: { userId: tmpl.ownerId, action: 'started' } },
+            },
+          })
+          await activateFirstStep(instance.id, tmpl.ownerId, steps, title, refNumber)
+        }
+      } catch (err) {
+        app.log.error({ err, formId }, 'parcours: échec du déclencheur form_response')
       }
     },
   )
+  app.addHook('onClose', async () => { unsubscribeFormResponse() })
 }
 
 async function generateRefNumber(category: string | null): Promise<string> {
