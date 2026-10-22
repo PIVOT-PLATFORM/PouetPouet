@@ -8,7 +8,7 @@ import { sendParcoursStepAssignedEmail } from '../../lib/mailer.js'
 import { getUploadSignedUrl, getDownloadSignedUrl, deleteStorageFile, LOCAL_UPLOAD_DIR, IS_LOCAL_DEV } from '../../lib/storage.js'
 import { bus } from '../../lib/bus.js'
 import { initApprovalChain, currentApprover, canDecide, recordDecision } from '../../lib/approval-chain.js'
-import { type SkipIfDef, type FlowEdgeDef, type ModuleStepDef, evalCondition, interpolate, executeHttpStep, executeAiStep, executeValidationNotifications, resolveNextStep } from '../../lib/parcours-engine.js'
+import { type SkipIfDef, type FlowEdgeDef, type ModuleStepDef, evalCondition, interpolate, executeHttpStep, executeAiStep, executeValidationNotifications, resolveNextStep, stepActorIds } from '../../lib/parcours-engine.js'
 import type { StepDef } from '@pouetpouet/shared'
 import { unscheduleTemplate } from '../../lib/parcours-scheduler.js'
 
@@ -218,11 +218,28 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
     return { role, ownerId: t.ownerId }
   }
 
+  // Rôle effectif sur une instance : propriété/partage, sinon VIEWER pour un
+  // intervenant (assigné, membre de groupe, approbateur d'au moins une étape).
+  // actorPendingSteps : étapes encore PENDING sur lesquelles il peut agir.
+  async function instanceAccess(instanceId: string, userId: string, ownerId: string) {
+    const [role, actorSteps] = await Promise.all([
+      resolveRole('parcourInstance', instanceId, userId, ownerId),
+      prisma.parcourStepInstance.findMany({
+        where: { instanceId, actorIds: { has: userId } },
+        select: { stepIndex: true, status: true },
+      }),
+    ])
+    return {
+      role: role ?? (actorSteps.length > 0 ? 'VIEWER' as const : null),
+      actorPendingSteps: actorSteps.filter((s) => s.status === 'PENDING').map((s) => s.stepIndex),
+    }
+  }
+
   async function instanceRoleFor(instanceId: string, userId: string) {
     const i = await prisma.parcourInstance.findUnique({ where: { id: instanceId }, select: { ownerId: true } })
-    if (!i) return { role: null as null, ownerId: null as null }
-    const role = await resolveRole('parcourInstance', instanceId, userId, i.ownerId)
-    return { role, ownerId: i.ownerId }
+    if (!i) return { role: null as null, ownerId: null as null, actorPendingSteps: [] as number[] }
+    const { role, actorPendingSteps } = await instanceAccess(instanceId, userId, i.ownerId)
+    return { role, ownerId: i.ownerId, actorPendingSteps }
   }
 
   // ── Templates ──────────────────────────────────────────────────────────────────
@@ -385,7 +402,7 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
 
   // ── Instances ──────────────────────────────────────────────────────────────────
 
-  // Liste des instances : possédées + partagées.
+  // Liste des instances : possédées + partagées + celles où l'on intervient.
   auth.get('/instances', async (request) => {
     const { id: userId } = request.user as { id: string }
     const { status } = request.query as { status?: string }
@@ -393,7 +410,11 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
     const sharedRole = new Map(shared.map((s) => [s.id, s.role]))
     const instances = await prisma.parcourInstance.findMany({
       where: {
-        OR: [{ ownerId: userId }, { id: { in: shared.map((s) => s.id) } }],
+        OR: [
+          { ownerId: userId },
+          { id: { in: shared.map((s) => s.id) } },
+          { steps: { some: { actorIds: { has: userId } } } },
+        ],
         ...(status && { status: status as never }),
       },
       include: { template: { select: { steps: true, category: true } } },
@@ -432,7 +453,7 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
       },
     })
     if (!instance) return reply.status(404).send({ error: 'Instance introuvable' })
-    const role = await resolveRole('parcourInstance', id, userId, instance.ownerId)
+    const { role, actorPendingSteps } = await instanceAccess(id, userId, instance.ownerId)
     if (!role) return reply.status(403).send({ error: 'Accès refusé' })
 
     // Auto-réparation : si currentStep pointe sur une étape déjà terminée
@@ -474,6 +495,8 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
       remindByEmail: instance.remindByEmail,
       data: instance.data,
       role,
+      // Étapes où l'utilisateur intervient et peut agir (même en simple lecteur).
+      actionableSteps: actorPendingSteps,
       steps: instance.template.steps,
       stepInstances: instance.steps,
       documents: instance.documents,
@@ -510,6 +533,7 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
             stepIndex: idx,
             status: 'PENDING',
             assignedTo: idx === 0 ? (s.assignedTo ?? null) : null,
+            actorIds: idx === 0 ? stepActorIds(s as ModuleStepDef, s.assignedTo ?? null) : [],
             dueAt: idx === 0 ? firstDueAt : null,
           })),
         },
@@ -551,13 +575,16 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
       where: { id },
       include: {
         template: { select: { steps: true, flowEdges: true } },
-        steps: { select: { stepIndex: true, status: true, data: true } },
+        steps: { select: { stepIndex: true, status: true, data: true, actorIds: true } },
       },
     })
     if (!instance) return reply.status(404).send({ error: 'Instance introuvable' })
 
+    // OWNER/EDITOR agissent sur toute étape ; un intervenant (même sans partage
+    // ou en VIEWER) agit sur les étapes dont il est assigné/membre/approbateur.
     const role = await resolveRole('parcourInstance', id, userId, instance.ownerId)
-    if (!role || role === 'VIEWER') return reply.status(403).send({ error: 'Accès refusé' })
+    const isStepActor = instance.steps.some((s) => s.stepIndex === stepIndex && s.actorIds.includes(userId))
+    if (role !== 'OWNER' && role !== 'EDITOR' && !isStepActor) return reply.status(403).send({ error: 'Accès refusé' })
     if (instance.status !== 'IN_PROGRESS') return reply.status(400).send({ error: 'Instance non active' })
     if (stepIndex !== instance.currentStep) return reply.status(400).send({ error: 'Ce n\'est pas l\'étape courante' })
 
@@ -859,6 +886,7 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
             where: { instanceId_stepIndex: { instanceId: id, stepIndex: nextStep } },
             data: {
               assignedTo,
+              actorIds: stepActorIds(nextStepDef, assignedTo),
               dueAt: nextDueAt,
               ...(stepInitData ? { data: stepInitData as Prisma.InputJsonValue } : {}),
             },
@@ -917,8 +945,9 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
     const { filename, mimeType } = request.body as { filename: string; mimeType: string }
     if (!filename || !mimeType) return reply.status(400).send({ error: 'filename et mimeType requis' })
 
-    const { role } = await instanceRoleFor(id, userId)
-    if (!role || role === 'VIEWER') return reply.status(403).send({ error: 'Accès refusé' })
+    // Un intervenant peut déposer un document tant qu'il a une étape en attente.
+    const { role, actorPendingSteps } = await instanceRoleFor(id, userId)
+    if (!role || (role === 'VIEWER' && actorPendingSteps.length === 0)) return reply.status(403).send({ error: 'Accès refusé' })
 
     const ext = filename.split('.').pop() ?? 'bin'
     const key = `parcours/${id}/${crypto.randomUUID()}.${ext}`
@@ -930,10 +959,14 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
   auth.post('/instances/:id/documents', async (request, reply) => {
     const { id: userId } = request.user as { id: string }
     const { id } = request.params as { id: string }
-    const { role } = await instanceRoleFor(id, userId)
-    if (!role || role === 'VIEWER') return reply.status(403).send({ error: 'Accès refusé' })
+    const { role, actorPendingSteps } = await instanceRoleFor(id, userId)
+    if (!role) return reply.status(403).send({ error: 'Accès refusé' })
 
     const body = documentRegisterSchema.parse(request.body)
+    // Un intervenant (sans droit d'édition) ne dépose que sur une de ses étapes en attente.
+    if (role === 'VIEWER' && (body.stepIndex === undefined || !actorPendingSteps.includes(body.stepIndex))) {
+      return reply.status(403).send({ error: 'Accès refusé' })
+    }
     const doc = await prisma.parcourDocument.create({
       data: {
         instanceId: id,
@@ -960,9 +993,7 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
     const doc = await prisma.parcourDocument.findUnique({ where: { id: docId } })
     if (!doc) return reply.status(404).send({ error: 'Document introuvable' })
 
-    const docInstance = await prisma.parcourInstance.findUnique({ where: { id: doc.instanceId }, select: { ownerId: true } })
-    if (!docInstance) return reply.status(404).send({ error: 'Instance introuvable' })
-    const role = await resolveRole('parcourInstance', doc.instanceId, userId, docInstance.ownerId)
+    const { role } = await instanceRoleFor(doc.instanceId, userId)
     if (!role) return reply.status(403).send({ error: 'Accès refusé' })
 
     const url = await getDownloadSignedUrl(doc.storageKey)
@@ -1176,7 +1207,7 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
         : null
       await prisma.parcourStepInstance.update({
         where: { instanceId_stepIndex: { instanceId: id, stepIndex: nextCurrentStep } },
-        data: { assignedTo: nextStepDef?.assignedTo ?? null, dueAt: nextDueAt },
+        data: { assignedTo: nextStepDef?.assignedTo ?? null, actorIds: stepActorIds(nextStepDef, nextStepDef?.assignedTo ?? null), dueAt: nextDueAt },
       })
       if (nextStepDef?.assignedTo) {
         await notify({ userId: nextStepDef.assignedTo, type: 'PARCOURS_STEP_ASSIGNED', title: `Étape à compléter dans "${instance.title}"`, link: `/parcours/run/${id}` })
@@ -1338,7 +1369,7 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
       const actionData = await triggerModuleAction(nextStepDef, instance.ownerId, instance.title)
       await prisma.parcourStepInstance.update({
         where: { instanceId_stepIndex: { instanceId: id, stepIndex: nextStep } },
-        data: { assignedTo: nextStepDef?.assignedTo ?? null, dueAt: nextDueAt, ...(actionData ? { data: actionData as Prisma.InputJsonValue } : {}) },
+        data: { assignedTo: nextStepDef?.assignedTo ?? null, actorIds: stepActorIds(nextStepDef, nextStepDef?.assignedTo ?? null), dueAt: nextDueAt, ...(actionData ? { data: actionData as Prisma.InputJsonValue } : {}) },
       })
       if (nextStepDef?.assignedTo) {
         await notify({ userId: nextStepDef.assignedTo, type: 'PARCOURS_STEP_ASSIGNED', title: `Étape à compléter dans "${instance.title}"`, link: `/parcours/run/${id}` })
@@ -1414,6 +1445,7 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
             stepIndex: idx,
             status: 'PENDING',
             assignedTo: idx === 0 ? (s.assignedTo ?? null) : null,
+            actorIds: idx === 0 ? stepActorIds(s as ModuleStepDef, s.assignedTo ?? null) : [],
             dueAt: idx === 0 ? firstDueAt : null,
           })),
         },
@@ -1457,6 +1489,7 @@ export const parcoursRoutes: FastifyPluginAsync = async (app) => {
                 stepIndex: idx,
                 status: 'PENDING',
                 assignedTo: idx === 0 ? (s.assignedTo ?? null) : null,
+                actorIds: idx === 0 ? stepActorIds(s, s.assignedTo ?? null) : [],
                 dueAt: idx === 0 ? firstDueAt : null,
               })),
             },

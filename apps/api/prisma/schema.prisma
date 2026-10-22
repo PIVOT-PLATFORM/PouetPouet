@@ -1885,6 +1885,9 @@ model ParcourStepInstance {
   stepIndex   Int
   status      StepStatus @default(PENDING)
   assignedTo  String?
+  // Intervenants de l'étape (assigné, membres de groupe/chaîne, approbateurs) :
+  // ils lisent l'instance et agissent sur cette étape sans partage explicite.
+  actorIds    String[]   @default([])
   completedBy String?
   completedAt DateTime?
   dueAt       DateTime?

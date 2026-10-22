@@ -183,6 +183,8 @@ export interface ParcourInstanceDetail {
   remindByEmail: boolean
   data: Record<string, unknown>
   role: ModuleRole
+  /** Étapes en attente sur lesquelles l'utilisateur intervient (assigné, membre, approbateur). */
+  actionableSteps: number[]
   steps: StepDef[]
   stepInstances: ParcourStepInstanceDetail[]
   documents: ParcourDocumentSummary[]

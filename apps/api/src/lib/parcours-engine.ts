@@ -39,6 +39,20 @@ export type ModuleStepDef = {
   }
 }
 
+// Intervenants d'une étape activée : l'assigné effectif, les membres d'une
+// validation group/chain et les approbateurs d'une approval-chain.
+export function stepActorIds(step: ModuleStepDef | undefined, assignedTo: string | null): string[] {
+  const ids = new Set<string>()
+  if (assignedTo) ids.add(assignedTo)
+  if (step?.type === 'validation' && (step.assignmentMode === 'group' || step.assignmentMode === 'chain')) {
+    for (const m of step.groupMembers ?? []) if (m.id) ids.add(m.id)
+  }
+  if (step?.type === 'approval-chain') {
+    for (const a of step.approvers ?? []) if (a) ids.add(a)
+  }
+  return [...ids]
+}
+
 export function evalCondition(cond: SkipIfDef, data: Record<string, unknown>): boolean {
   const raw = data[cond.field]
   const val = String(raw ?? '')
