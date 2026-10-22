@@ -126,6 +126,8 @@ interface Props {
   currentStep: number
   instanceStatus: string
   canEdit: boolean
+  /** Peut compléter/rejeter l'étape affichée (éditeur, ou intervenant de cette étape). */
+  canAct: boolean
   onComplete: (idx: number, body: { action: 'complete' | 'reject'; data?: Record<string, unknown>; comment?: string }) => Promise<void>
   onForceComplete: (idx: number, data?: Record<string, unknown>, comment?: string) => void
   onSkip: (idx: number, comment?: string) => void
@@ -141,7 +143,7 @@ interface Props {
 }
 
 export function StepDetailPanel({
-  steps, stepInstances, documents, history, selectedStep, currentStep, instanceStatus, canEdit,
+  steps, stepInstances, documents, history, selectedStep, currentStep, instanceStatus, canEdit, canAct,
   onComplete, onForceComplete, onSkip, onReset, onUpdateData, onAddStepComment, onNavigate,
   getUploadUrl, registerDocument,
 }: Props) {
@@ -315,7 +317,13 @@ export function StepDetailPanel({
         )}
 
         {/* ── Étape courante active ── */}
-        {isCurrent && (
+        {isCurrent && !canAct && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+            <Lock className="w-3.5 h-3.5 flex-shrink-0" />
+            Étape en cours, traitée par un autre intervenant.
+          </div>
+        )}
+        {isCurrent && canAct && (
           <>
             <StepRenderer
               step={step}

@@ -54,6 +54,8 @@ export default function InstanceCockpitPage() {
   const canEdit = instance.role !== 'VIEWER'
   // Étape affichée : épinglée par l'utilisateur, sinon étape courante
   const displayStep = selectedStep !== null ? selectedStep : instance.currentStep
+  // Un intervenant sans droit d'édition agit seulement sur ses propres étapes.
+  const canAct = canEdit || instance.actionableSteps.includes(displayStep)
 
   // Fix #8 : progression
   const completedCount = instance.stepInstances.filter((s) => s.status === 'COMPLETED' || s.status === 'SKIPPED').length
@@ -205,6 +207,7 @@ export default function InstanceCockpitPage() {
           currentStep={instance.currentStep}
           instanceStatus={instance.status}
           canEdit={canEdit}
+          canAct={canAct}
           onComplete={(idx, body) => completeStep(idx, body)}
           onForceComplete={forceCompleteStep}
           onSkip={skipStep}
