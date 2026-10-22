@@ -18,7 +18,12 @@ export function getSocket(): Socket {
 
 export function connectSocket(): Socket {
   const s = getSocket()
-  if (!s.connected) s.connect()
+  // `active` et non `connected` : appelé à chaque rendu (useRef(connectSocket())),
+  // un connect() pendant la poignée de main renvoie un paquet CONNECT ; le serveur
+  // le juge invalide et ferme la connexion (« forced server close »). Le client
+  // ne se reconnecte qu'~1 s plus tard et les emits en tampon arrivent alors
+  // dans le désordre (board:join renvoyé après les mutations).
+  if (!s.active) s.connect()
   return s
 }
 

@@ -133,7 +133,37 @@ async function broadcastPresence(io: Server, boardId: string) {
 
 export function boardSocketHandlers(io: Server, socket: Socket) {
   // â”€â”€ Board state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  socket.on('board:join', async (boardId: string) => {
+  // Joins en cours, par board. Socket.io n'attend pas la fin d'un handler async
+  // avant de dispatcher le paquet suivant : une mutation émise juste après le
+  // join (typiquement quand le socket se connectait encore et que le client
+  // envoie ses paquets en tampon d'un bloc) arrivait avant que le rôle soit
+  // posé, et canWrite l'ignorait silencieusement (carte créée perdue). Tout
+  // paquet visant un board attend donc la fin du join en cours sur ce board,
+  // dans l'ordre d'arrivée.
+  // Le join est lancé depuis ce middleware et non via socket.on : les
+  // middlewares s'exécutent à la réception de chaque paquet, dans l'ordre,
+  // alors que les handlers ne sont dispatchés qu'au tick suivant — trop tard
+  // pour que les paquets déjà reçus derrière le join le voient en cours.
+  const pendingJoins = new Map<string, Promise<void>>()
+  socket.use(([event, payload], next) => {
+    if (event === 'board:join') {
+      const boardId = payload as string
+      // Joins sérialisés par board (un même client peut en émettre deux d'affilée).
+      const join = (pendingJoins.get(boardId) ?? Promise.resolve()).then(() => joinBoard(boardId))
+      // `done` ne rejette jamais (la file ne doit pas rester bloquée) ; une erreur
+      // du join reste non gérée comme avant, via le promise renvoyé par finally.
+      const done = new Promise<void>((resolve) => { void join.finally(resolve) })
+      pendingJoins.set(boardId, done)
+      void done.then(() => { if (pendingJoins.get(boardId) === done) pendingJoins.delete(boardId) })
+      return
+    }
+    const boardId = typeof payload === 'string' ? payload : (payload as { boardId?: unknown } | null)?.boardId
+    const pending = typeof boardId === 'string' ? pendingJoins.get(boardId) : undefined
+    if (!pending) return next()
+    void pending.then(() => next())
+  })
+
+  async function joinBoard(boardId: string) {
     const userId: string | undefined = socket.data.userId
     if (!userId) { socket.emit('board:error', 'AccÃ¨s refusÃ©'); return }
     const board = await prisma.board.findUnique({ where: { id: boardId } })
@@ -193,7 +223,7 @@ export function boardSocketHandlers(io: Server, socket: Socket) {
     // Rejouer un timer encore actif à l'arrivant (sinon il ne le verrait pas).
     const timerEndsAt = await getActiveTimer(boardId)
     if (timerEndsAt) socket.emit('timer:started', { endsAt: timerEndsAt, serverNow: Date.now() })
-  })
+  }
 
   socket.on('board:leave', async (boardId: string) => {
     socket.leave(`board:${boardId}`)

@@ -34,14 +34,9 @@ test('le créateur édite sa carte ; une création distante ne vole pas le focus
       (document.elementFromPoint(x, y) as HTMLElement | null)?.className?.includes?.('overflow-hidden') ?? false,
     { x: viewport.width - 250, y: viewport.height - 250 }), { timeout: 5000 })
     .toBe(true)
-  // Le join socket de B peut ne pas être encore acté côté serveur : un premier
-  // dblclick trop tôt est ignoré (canWrite) — on retente une fois.
+  // Pas de retente : le serveur fait attendre la création derrière le join
+  // de B, même si ce join n'est pas encore acté au moment du dblclick.
   await pageB.mouse.dblclick(viewport.width - 250, viewport.height - 250)
-  try {
-    await expect(pageB.locator('[data-card-id]')).toHaveCount(2, { timeout: 3000 })
-  } catch {
-    await pageB.mouse.dblclick(viewport.width - 250, viewport.height - 250)
-  }
   await expect(pageB.locator('[data-card-id]')).toHaveCount(2, { timeout: 5000 })
 
   // La nouvelle carte arrive chez A… sans lui voler le focus
